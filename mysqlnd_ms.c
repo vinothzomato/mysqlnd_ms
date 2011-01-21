@@ -416,10 +416,6 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 /* }}} */
 
 
-#ifdef COMPILE_DL_MYSQLND_MS
-ZEND_GET_MODULE(mysqlnd_ms)
-#endif
-
 /* {{{ PHP_INI
  */
 PHP_INI_BEGIN()
@@ -540,6 +536,9 @@ zend_module_entry mysqlnd_ms_module_entry = {
 };
 /* }}} */
 
+#ifdef COMPILE_DL_MYSQLND_MS
+ZEND_GET_MODULE(mysqlnd_ms)
+#endif
 
 /*
  * Local variables:
