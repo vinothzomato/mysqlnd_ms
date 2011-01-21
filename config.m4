@@ -1,5 +1,5 @@
 PHP_ARG_ENABLE(mysqlnd_ms, whether to enable mysqlnd_ms support,
-[  --enable-mysqlnd-mc           Enable mysqlnd_ms support])
+[  --enable-mysqlnd-ms           Enable mysqlnd_ms support])
 
 if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
   PHP_SUBST(MYSQLND_MS_SHARED_LIBADD)
