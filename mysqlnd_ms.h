@@ -13,6 +13,7 @@
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
   | Author: Andrey Hristov <andrey@php.net>                              |
+  |         Johannes Schlueter <johannes@php.net>                        |
   +----------------------------------------------------------------------+
 */
 
@@ -39,6 +40,7 @@ PHP_FUNCTION(confirm_mysqlnd_ms_compiled);	/* For testing, remove later. */
 
 ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool  enable;
+	const char * ini_file;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
 /* In every utility function you add that needs to use variables 

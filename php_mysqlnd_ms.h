@@ -13,6 +13,7 @@
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
   | Author: Andrey Hristov <andrey@php.net>                              |
+  |         Johannes Schlueter <johannes@php.net>                        |
   +----------------------------------------------------------------------+
 */
 
