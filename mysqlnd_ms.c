@@ -205,12 +205,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				}
 				DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 
-				conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-				if (!*conn_data_pp) {
-					*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);		
-					zend_llist_init(&(*conn_data_pp)->connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-				}
-
 				/* create slave connections */
 				do {
 					char * ini_setting_name = NULL;
@@ -235,47 +229,16 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		}
 	} else {
 		DBG_INF("No INI setting with name "MASTER_INI_NAME" found");
-		s = host;
-		while (last == FALSE && s) {
-			if (!(p = strchr(s, ';'))) {
-				p = s + strlen(s);
-				last = TRUE;
-			}
-		
-			{
-				char local_buf[p - s + 1];
-				memcpy(local_buf, s, p - s);
-				local_buf[p - s] = '\0';
-				DBG_INF_FMT("Connecting to %s", local_buf);
-				if (first) {
-					ret = orig_mysqlnd_conn_methods->connect(conn, local_buf, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
-
-					if (ret != PASS) {
-						break;
-					}
-					DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
-
-					conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-					if (!*conn_data_pp) {
-						*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);		
-						zend_llist_init(&(*conn_data_pp)->connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-					}
-				} else {
-					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, local_buf, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);		
-					if (ret == PASS) {
-						zend_llist_add_element(&(*conn_data_pp)->connections, &tmp_conn);
-						DBG_INF_FMT("Slave connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
-					} else {
-						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
-					}
-				}
-				s = p + 1;
-				first = FALSE;
-			}
-		}
+		ret = orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 	}
 
+	if (ret == PASS) {
+		conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+		if (!*conn_data_pp) {
+			*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);		
+			zend_llist_init(&(*conn_data_pp)->connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		}
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
