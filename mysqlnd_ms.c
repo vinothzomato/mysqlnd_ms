@@ -54,12 +54,21 @@ MUTEX_T	LOCK_global_config_access;
 #endif
 
 
+#define GLOBAL_SECTION_NAME "global"
+
+
 typedef struct st_mysqlnd_ms_connection_data
 {
 	zend_llist connections;
 	MYSQLND * last_used_connection;
 } MYSQLND_MS_CONNECTION_DATA;
 
+
+struct st_mysqlnd_ms_ini_parser_cb_data
+{
+	HashTable * global_ini;
+	HashTable * current_ini_section;
+};
 
 /* {{{ mysqlnd_ms_conn_list_dtor */
 static void
@@ -74,30 +83,54 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 }
 /* }}} */
 
+/* {{{ mysqlnd_ms_global_configuration_section_dtor */
+static void
+mysqlnd_ms_global_configuration_section_dtor(void * data)
+{
+	TSRMLS_FETCH();
+	mnd_free(*(char **)data);
+}
+/* }}} */
 
 
 /* {{{ mysqlnd_ms_ini_parser_cb */
 static void
-mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_type, void *list_v TSRMLS_DC)
+mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_type, void * cb_data TSRMLS_DC)
 {
-	HashTable * list = (HashTable *) list_v;
+	struct st_mysqlnd_ms_ini_parser_cb_data * parser_data = (struct st_mysqlnd_ms_ini_parser_cb_data *) cb_data;
 	char * value_copy;
 
 	DBG_ENTER("mysqlnd_ms_ini_parser_cb");
-	if (!key || !value) {
-		return; 
+	DBG_INF_FMT("key=%p value=%p", key, value);
+	DBG_INF_FMT("current_section=%p", parser_data->current_ini_section);
+
+	/* `value` will be NULL for ZEND_INI_PARSER_SECTION */
+	if (!key) {
+		DBG_VOID_RETURN; 
 	}
 	
 	switch (callback_type) {
 		case ZEND_INI_PARSER_ENTRY:
+			if (!value) {
+				DBG_VOID_RETURN; 
+			}
 			convert_to_string_ex(&key);
 			convert_to_string_ex(&value);
-			DBG_INF_FMT("%s=%s", Z_STRVAL_P(key), Z_STRVAL_P(value));
 			value_copy = mnd_pestrndup(Z_STRVAL_P(value), Z_STRLEN_P(value), 1);
-			zend_hash_update(list, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1, &value_copy, sizeof(char *), NULL);
+			zend_hash_update(parser_data->current_ini_section, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1, &value_copy, sizeof(char *), NULL);
+			DBG_INF_FMT("New entry [%s]=[%s]", Z_STRVAL_P(key), Z_STRVAL_P(value));
 			break;
 		case ZEND_INI_PARSER_SECTION:
+		{
+			HashTable * new_section = mnd_calloc(1, sizeof(HashTable));
+			convert_to_string_ex(&key);
+			zend_hash_init(new_section, 2, NULL /* hash_func */, mysqlnd_ms_global_configuration_section_dtor /*dtor*/, 1 /* persistent */);
+			zend_hash_update(parser_data->global_ini, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1, &new_section, sizeof(HashTable *), NULL);
+			parser_data->current_ini_section = new_section;
+
+			DBG_INF_FMT("Found section [%s][len=%d] [%p]", Z_STRVAL_P(key), Z_STRLEN_P(key) + 1, new_section);
 			break;
+		}
 		case ZEND_INI_PARSER_POP_ENTRY:
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Array syntax not allowed in ini file");
 			break;
@@ -112,20 +145,27 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 
 /* {{{ mysqlnd_ms_init_server_list */
 static int
-mysqlnd_ms_init_server_list(TSRMLS_D)
+mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 {
 	const char * ini_file = INI_STR("mysqlnd_ms.ini_file");
 	DBG_ENTER("mysqlnd_ms_init_server_list");
 	DBG_INF_FMT("ini_file=%s", ini_file? ini_file:"n/a");
 
 	if (ini_file) {
+		HashTable * global_section = mnd_calloc(1, sizeof(HashTable));
+		struct st_mysqlnd_ms_ini_parser_cb_data ini_parse_data = {0};
 		zend_file_handle fh = {0};
 
-		memset(&fh, sizeof(fh), 0);
+		zend_hash_init(global_section, 2, NULL /* hash_func */, mysqlnd_ms_global_configuration_section_dtor /*dtor*/, 1 /* persistent */);
+		zend_hash_update(configuration, GLOBAL_SECTION_NAME, sizeof(GLOBAL_SECTION_NAME), &global_section, sizeof(HashTable *), NULL);
+
+		ini_parse_data.global_ini = &mysqlnd_ms_global_configuration;
+		ini_parse_data.current_ini_section = global_section;
+
 		fh.filename = INI_STR("mysqlnd_ms.ini_file");
 		fh.type = ZEND_HANDLE_FILENAME;
-
-		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_ini_parser_cb, &mysqlnd_ms_global_configuration TSRMLS_CC)) {
+		
+		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_ini_parser_cb, &ini_parse_data TSRMLS_CC)) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse server list ini file");
 			DBG_RETURN(FAILURE);
 		}
@@ -137,21 +177,25 @@ mysqlnd_ms_init_server_list(TSRMLS_D)
 
 /* {{{ mysqlnd_ms_ini_string */
 static char *
-mysqlnd_ms_ini_string(const char * name, size_t name_length, zend_bool * exists TSRMLS_DC) 
+mysqlnd_ms_ini_string(const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists TSRMLS_DC) 
 {
 	char * ret = NULL;
-	char ** ini_entry;
+	HashTable ** ini_section;
 	DBG_ENTER("mysqlnd_ms_ini_string");
 	DBG_INF_FMT("name=%s", name);
 	if (exists) {
 		*exists = 0;
 	}
+
 	MYSQLND_MS_CONFIG_LOCK;
-	if (zend_hash_find(&mysqlnd_ms_global_configuration, name, name_length, (void **) &ini_entry) == SUCCESS) {
-		if (exists) {
-			*exists = 1;
+	if (zend_hash_find(&mysqlnd_ms_global_configuration, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+		char ** ini_section_entry;
+		if (zend_hash_find(*(HashTable **)ini_section, name, name_len + 1, (void **) &ini_section_entry) == SUCCESS) {
+			if (exists) {
+				*exists = 1;
+			}
+			ret = mnd_pestrdup(*ini_section_entry, 0);
 		}
-		ret = mnd_pestrdup(*ini_entry, 0);
 	}
 	MYSQLND_MS_CONFIG_UNLOCK;
 
@@ -161,7 +205,25 @@ mysqlnd_ms_ini_string(const char * name, size_t name_length, zend_bool * exists 
 }
 /* }}} */
 
-#define MASTER_INI_NAME "master1"
+
+/* {{{ mysqlnd_ms_ini_section_exists */
+zend_bool
+mysqlnd_ms_ini_get_section(const char * section, size_t section_len TSRMLS_DC) 
+{
+	zend_bool ret = FALSE;
+	char ** ini_entry;
+	DBG_ENTER("mysqlnd_ms_ini_section_exists");
+	DBG_INF_FMT("section=[%s] len=[%d]", section, section_len);
+
+	MYSQLND_MS_CONFIG_LOCK;
+	ret = (SUCCESS == zend_hash_find(&mysqlnd_ms_global_configuration, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
+	MYSQLND_MS_CONFIG_UNLOCK;
+
+	DBG_INF_FMT("ret=%d", ret);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
 
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
@@ -177,61 +239,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 									unsigned int mysql_flags TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
-	const char * p, * s;
-	zend_bool first = TRUE, last = FALSE;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp;
-	zend_bool value_exists = FALSE;
-	char * master = mysqlnd_ms_ini_string(MASTER_INI_NAME, sizeof(MASTER_INI_NAME), &value_exists TSRMLS_CC);
-
+	size_t host_len = strlen(host);
 	DBG_ENTER("mysqlnd_ms::connect");
-	if (master || value_exists) {
-		int i = 1, j = 1;
-		while (value_exists && strcasecmp(master, host)) {
-			char * ini_setting_name = NULL;
-			size_t ini_setting_name_len = spprintf(&ini_setting_name, 0, "master%d", i + 1);
-			efree(master);
-			master = mysqlnd_ms_ini_string(ini_setting_name, ini_setting_name_len + 1, &value_exists TSRMLS_CC);
-			efree(ini_setting_name);
-			++i;
-		}
-		if (value_exists && master) {
-			do {
-				/* create master connection */
-				ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
-				efree(master);
-				master = NULL;
-				if (ret != PASS) {
-					break;
-				}
-				DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 
-				/* create slave connections */
-				do {
-					char * ini_setting_name = NULL;
-					size_t ini_setting_name_len = spprintf(&ini_setting_name, 0, "slave%d_%d", i, j);
-					char * slave = mysqlnd_ms_ini_string(ini_setting_name, ini_setting_name_len + 1, &value_exists TSRMLS_CC);
-					efree(ini_setting_name);
-					++j;
-					if (value_exists && slave) {
-						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
-						efree(slave);
-						slave = NULL;
-						if (ret == PASS) {
-							zend_llist_add_element(&(*conn_data_pp)->connections, &tmp_conn);
-							DBG_INF_FMT("Slave connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
-						} else {
-							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
-						}				
-					}
-				} while (value_exists);
-			} while (0);
-		}
-	} else {
-		DBG_INF("No INI setting with name "MASTER_INI_NAME" found");
-		ret = orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
-	}
-
+	ret = orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 	if (ret == PASS) {
 		conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 		if (!*conn_data_pp) {
@@ -239,6 +251,38 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			zend_llist_init(&(*conn_data_pp)->connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 		}
 	}
+
+	if (PASS == ret && TRUE == mysqlnd_ms_ini_get_section(host, host_len TSRMLS_CC)) {
+		do {
+			int i = 1;
+			zend_bool value_exists = FALSE;
+
+			/* create master connection */
+			DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
+
+			/* create slave connections */
+			do {
+				char * ini_setting_name = NULL;
+				size_t ini_setting_name_len = spprintf(&ini_setting_name, 0, "slave%d", i);
+				char * slave = mysqlnd_ms_ini_string(host, host_len, ini_setting_name, ini_setting_name_len, &value_exists TSRMLS_CC);
+				efree(ini_setting_name);
+				++i;
+				if (value_exists && slave) {
+					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
+					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
+					efree(slave);
+					slave = NULL;
+					if (ret == PASS) {
+						zend_llist_add_element(&(*conn_data_pp)->connections, &tmp_conn);
+						DBG_INF_FMT("Slave connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
+					} else {
+						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
+					}				
+				}
+			} while (value_exists);
+		} while (0);	
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -596,7 +640,8 @@ static void
 mysqlnd_ms_global_configuration_dtor(void * data)
 {
 	TSRMLS_FETCH();
-	mnd_free(*(char **)data);
+	zend_hash_destroy(*(HashTable **)data);
+	mnd_free(*(HashTable **)data);
 }
 /* }}} */
 
@@ -606,7 +651,7 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 {
 	MYSQLND_MS_CONFIG_LOCK;
 	if (FALSE == mysqlns_ms_global_config_loaded) {
-		mysqlnd_ms_init_server_list(TSRMLS_C);
+		mysqlnd_ms_init_server_list(&mysqlnd_ms_global_configuration TSRMLS_CC);
 		mysqlns_ms_global_config_loaded = TRUE;
 	}
 	MYSQLND_MS_CONFIG_UNLOCK;
