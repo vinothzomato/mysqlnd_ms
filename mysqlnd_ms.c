@@ -88,6 +88,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	zend_bool section_found = mysqlnd_ms_ini_get_section(&mysqlnd_ms_config, host, host_len TSRMLS_CC);
 
 	DBG_ENTER("mysqlnd_ms::connect");
+	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Exclusive usage of configuration enforced but did not find the correct INI file section");
+		DBG_RETURN(FAIL);
+	}
 
 	if (FALSE == section_found) {
 		ret = orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
@@ -434,6 +438,7 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
  */
 PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("mysqlnd_ms.enable", "0", PHP_INI_SYSTEM, OnUpdateBool, enable, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
+	STD_PHP_INI_ENTRY("mysqlnd_ms.force_config_usage", "0", PHP_INI_SYSTEM, OnUpdateBool, force_config_usage, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.ini_file", NULL, PHP_INI_SYSTEM, OnUpdateString, ini_file, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 PHP_INI_END()
 /* }}} */
@@ -477,6 +482,8 @@ static void
 php_mysqlnd_ms_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 {
 	mysqlnd_ms_globals->enable = FALSE;
+	mysqlnd_ms_globals->force_config_usage = FALSE;
+	mysqlnd_ms_globals->ini_file = NULL;
 }
 /* }}} */
 

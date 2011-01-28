@@ -39,7 +39,8 @@
 PHP_FUNCTION(confirm_mysqlnd_ms_compiled);	/* For testing, remove later. */
 
 ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
-	zend_bool  enable;
+	zend_bool enable;
+	zend_bool force_config_usage;
 	const char * ini_file;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
