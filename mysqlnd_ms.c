@@ -510,12 +510,14 @@ mysqlnd_ms_config_dtor(void * data)
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION(mysqlnd_ms)
 {
-	MYSQLND_MS_CONFIG_LOCK;
-	if (FALSE == mysqlns_ms_global_config_loaded) {
-		mysqlnd_ms_init_server_list(&mysqlnd_ms_config TSRMLS_CC);
-		mysqlns_ms_global_config_loaded = TRUE;
+	if (MYSQLND_MS_G(enable)) {
+		MYSQLND_MS_CONFIG_LOCK;
+		if (FALSE == mysqlns_ms_global_config_loaded) {
+			mysqlnd_ms_init_server_list(&mysqlnd_ms_config TSRMLS_CC);
+			mysqlns_ms_global_config_loaded = TRUE;
+		}
+		MYSQLND_MS_CONFIG_UNLOCK;
 	}
-	MYSQLND_MS_CONFIG_UNLOCK;
 	return SUCCESS;
 }
 /* }}} */
