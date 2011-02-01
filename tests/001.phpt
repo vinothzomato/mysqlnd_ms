@@ -1,10 +1,10 @@
 --TEST--
-Check for mysqlnd_mc presence
+Check for mysqlnd_ms presence
 --SKIPIF--
-<?php if (!extension_loaded("mysqlnd_mc")) print "skip"; ?>
+<?php if (!extension_loaded("mysqlnd_ms")) print "skip"; ?>
 --FILE--
-<?php 
-echo "mysqlnd_mc extension is available";
+<?php
+echo "mysqlnd_ms extension is available";
 /*
 	you can add regression tests for your extension here
 
@@ -18,4 +18,4 @@ echo "mysqlnd_mc extension is available";
 */
 ?>
 --EXPECT--
-mysqlnd_mc extension is available
+mysqlnd_ms extension is available
