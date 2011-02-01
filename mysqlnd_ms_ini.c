@@ -229,7 +229,7 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 /* {{{ mysqlnd_ms_ini_string */
 char *
 mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len,
-					  zend_bool * exists, zend_bool * is_list_value TSRMLS_DC)
+					  zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC)
 {
 	zend_bool tmp_bool;
 	char * ret = NULL;
@@ -247,7 +247,9 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 		is_list_value = &tmp_bool;
 	}
 
-	MYSQLND_MS_CONFIG_LOCK;
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_LOCK;
+	}
 	if (zend_hash_find(config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
 		struct st_mysqlnd_ms_ini_entry ** ini_section_entry_pp;
 		struct st_mysqlnd_ms_ini_entry * ini_section_entry;
@@ -278,7 +280,9 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 			}
 		}
 	}
-	MYSQLND_MS_CONFIG_UNLOCK;
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_UNLOCK;
+	}
 
 	DBG_INF_FMT("ret=%s", ret? ret:"n/a");
 
@@ -327,7 +331,7 @@ mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_ini_section_exists */
 zend_bool
-mysqlnd_ms_ini_get_section(HashTable * config, const char * section, size_t section_len TSRMLS_DC)
+mysqlnd_ms_ini_section_exists(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
 {
 	zend_bool ret = FALSE;
 	char ** ini_entry;
@@ -335,9 +339,13 @@ mysqlnd_ms_ini_get_section(HashTable * config, const char * section, size_t sect
 	DBG_INF_FMT("section=[%s] len=[%d]", section? section:"n/a", section_len);
 
 	if (config && section && section_len) {
-		MYSQLND_MS_CONFIG_LOCK;
+		if (use_lock) {
+			MYSQLND_MS_CONFIG_LOCK;
+		}
 		ret = (SUCCESS == zend_hash_find(config, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
-		MYSQLND_MS_CONFIG_UNLOCK;
+		if (use_lock) {
+			MYSQLND_MS_CONFIG_UNLOCK;
+		}
 	}
 
 	DBG_INF_FMT("ret=%d", ret);

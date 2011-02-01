@@ -34,6 +34,8 @@
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_ini.h"
 
+#define MYSLQND_MS_HOTLOADING FALSE
+
 #define MASTER_NAME "master"
 #define SLAVE_NAME "slave"
 
@@ -86,11 +88,19 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	enum_func_status ret = FAIL;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp;
 	size_t host_len = host? strlen(host) : 0;
-	zend_bool section_found = mysqlnd_ms_ini_get_section(&mysqlnd_ms_config, host, host_len TSRMLS_CC);
+	zend_bool section_found;
+	zend_bool hotloading = MYSLQND_MS_HOTLOADING;
 
 	DBG_ENTER("mysqlnd_ms::connect");
+	if (hotloading) {
+		MYSQLND_MS_CONFIG_LOCK;
+	}
+	section_found = mysqlnd_ms_ini_section_exists(&mysqlnd_ms_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
 	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Exclusive usage of configuration enforced but did not find the correct INI file section");
+		if (hotloading) {
+			MYSQLND_MS_CONFIG_UNLOCK;
+		}
 		DBG_RETURN(FAIL);
 	}
 
@@ -109,7 +119,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		do {
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
 			/* create master connection */
-			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1, &value_exists, &is_list_value TSRMLS_CC);
+			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+												  &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 
 			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 			mnd_efree(master);
@@ -123,13 +134,14 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 			}
 			zend_llist_add_element(&(*conn_data_pp)->master_connections, &conn);
-			DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
+			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 			
 			/* More master connections ? */
 			if (is_list_value) {
 				DBG_INF("We have more master connections. Connect...");
 				do {
-					master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1, &value_exists, &is_list_value TSRMLS_CC);
+					master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+												   &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
 					if (value_exists && master) {
 						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
@@ -139,7 +151,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 						if (ret == PASS) {
 							zend_llist_add_element(&(*conn_data_pp)->master_connections, &tmp_conn);
-							DBG_INF_FMT("Further master connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
+							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 						} else {
 							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 						}
@@ -149,7 +161,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 			/* create slave slave_connections */
 			do {
-				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1, &value_exists, &is_list_value TSRMLS_CC);
+				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+													 &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
 					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
@@ -158,7 +171,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 					if (ret == PASS) {
 						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &tmp_conn);
-						DBG_INF_FMT("Slave connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
+						DBG_INF_FMT("Slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 					} else {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 					}
@@ -166,7 +179,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			} while (value_exists);
 		} while (0);
 	}
-
+	if (hotloading) {
+		MYSQLND_MS_CONFIG_UNLOCK;
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -372,11 +387,11 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	DBG_ENTER("mysqlnd_ms::select_db");
 	if (!conn_data_pp || !*conn_data_pp) {
-		DBG_RETURN(orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent
 #if PHP_VERSION_ID >= 50399
-															,passwd_len
+		DBG_RETURN(orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent, passwd_len TSRMLS_CC));
+#else
+		DBG_RETURN(orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent TSRMLS_CC));
 #endif
-															TSRMLS_CC));
 	}
 	/* search the list of easy handles hanging off the multi-handle */
 	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); connection && *connection;
@@ -587,6 +602,17 @@ MYSQLND_METHOD(mysqlnd_ms, field_count)(const MYSQLND * const proxy_conn TSRMLS_
 /* }}} */
 
 
+/* {{{ mysqlnd_conn::thread_id */
+static uint64_t
+MYSQLND_METHOD(mysqlnd_ms, thread_id)(const MYSQLND * const proxy_conn TSRMLS_DC)
+{
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	const MYSQLND * const conn = ((*conn_data_pp) && (*conn_data_pp)->last_used_connection)? (*conn_data_pp)->last_used_connection:proxy_conn;
+	return conn->thread_id;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::insert_id */
 static uint64_t
 MYSQLND_METHOD(mysqlnd_ms, insert_id)(const MYSQLND * const proxy_conn TSRMLS_DC)
@@ -682,6 +708,7 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.get_sqlstate	= MYSQLND_METHOD(mysqlnd_ms, sqlstate);
 
 
+	my_mysqlnd_conn_methods.get_thread_id		= MYSQLND_METHOD(mysqlnd_ms, thread_id);
 	my_mysqlnd_conn_methods.get_field_count		= MYSQLND_METHOD(mysqlnd_ms, field_count);
 	my_mysqlnd_conn_methods.get_last_insert_id	= MYSQLND_METHOD(mysqlnd_ms, insert_id);
 	my_mysqlnd_conn_methods.get_affected_rows	= MYSQLND_METHOD(mysqlnd_ms, affected_rows);
