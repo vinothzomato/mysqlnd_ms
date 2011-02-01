@@ -35,7 +35,7 @@ extern MUTEX_T LOCK_global_config_access;
 
 enum_func_status mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC);
 zend_bool mysqlnd_ms_ini_get_section(HashTable * config, const char * section, size_t section_len TSRMLS_DC);
-char * mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists TSRMLS_DC);
+char * mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
 
 
 #endif	/* MYSQLND_MS_INI_H */

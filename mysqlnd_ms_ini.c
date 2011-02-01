@@ -228,9 +228,10 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 
 /* {{{ mysqlnd_ms_ini_string */
 char *
-mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists TSRMLS_DC)
+mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len,
+					  zend_bool * exists, zend_bool * is_list_value TSRMLS_DC)
 {
-	zend_bool stack_exists;
+	zend_bool tmp_bool;
 	char * ret = NULL;
 	HashTable ** ini_section;
 	DBG_ENTER("mysqlnd_ms_ini_string");
@@ -238,7 +239,12 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 	if (exists) {
 		*exists = 0;
 	} else {
-		exists = &stack_exists;
+		exists = &tmp_bool;
+	}
+	if (is_list_value) {
+		*is_list_value = 0;
+	} else {
+		is_list_value = &tmp_bool;
 	}
 
 	MYSQLND_MS_CONFIG_LOCK;
@@ -256,6 +262,7 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 				case IS_ARRAY:
 				{
 					char ** original;
+					*is_list_value = 1;
 					DBG_INF_FMT("the list has %d entries", zend_llist_count(ini_section_entry->value.list));
 					original = zend_llist_get_current(ini_section_entry->value.list);
 					if (original && *original) {
@@ -325,11 +332,13 @@ mysqlnd_ms_ini_get_section(HashTable * config, const char * section, size_t sect
 	zend_bool ret = FALSE;
 	char ** ini_entry;
 	DBG_ENTER("mysqlnd_ms_ini_section_exists");
-	DBG_INF_FMT("section=[%s] len=[%d]", section, section_len);
+	DBG_INF_FMT("section=[%s] len=[%d]", section? section:"n/a", section_len);
 
-	MYSQLND_MS_CONFIG_LOCK;
-	ret = (SUCCESS == zend_hash_find(config, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
-	MYSQLND_MS_CONFIG_UNLOCK;
+	if (config && section && section_len) {
+		MYSQLND_MS_CONFIG_LOCK;
+		ret = (SUCCESS == zend_hash_find(config, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
+		MYSQLND_MS_CONFIG_UNLOCK;
+	}
 
 	DBG_INF_FMT("ret=%d", ret);
 	DBG_RETURN(ret);

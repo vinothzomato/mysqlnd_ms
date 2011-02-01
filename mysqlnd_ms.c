@@ -50,6 +50,7 @@ static HashTable mysqlnd_ms_config;
 
 typedef struct st_mysqlnd_ms_connection_data
 {
+	zend_llist master_connections;
 	zend_llist slave_connections;
 	MYSQLND * last_used_connection;
 } MYSQLND_MS_CONNECTION_DATA;
@@ -84,7 +85,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 {
 	enum_func_status ret = FAIL;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp;
-	size_t host_len = strlen(host);
+	size_t host_len = host? strlen(host) : 0;
 	zend_bool section_found = mysqlnd_ms_ini_get_section(&mysqlnd_ms_config, host, host_len TSRMLS_CC);
 
 	DBG_ENTER("mysqlnd_ms::connect");
@@ -99,13 +100,16 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 			if (!*conn_data_pp) {
 				*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);
+				zend_llist_init(&(*conn_data_pp)->master_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 				zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 			}
+			zend_llist_add_element(&(*conn_data_pp)->master_connections, &conn);
 		}
 	} else {
 		do {
-			zend_bool value_exists = FALSE;
-			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1, &value_exists TSRMLS_CC);
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			/* create master connection */
+			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1, &value_exists, &is_list_value TSRMLS_CC);
 
 			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 			mnd_efree(master);
@@ -115,16 +119,38 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 			if (!*conn_data_pp) {
 				*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);
+				zend_llist_init(&(*conn_data_pp)->master_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 				zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 			}
-
-			/* create master connection */
+			zend_llist_add_element(&(*conn_data_pp)->master_connections, &conn);
 			DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
+			
+			/* More master connections ? */
+			if (is_list_value) {
+				DBG_INF("We have more master connections. Connect...");
+				do {
+					master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1, &value_exists, &is_list_value TSRMLS_CC);
+					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
+					if (value_exists && master) {
+						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
+						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
+						mnd_efree(master);
+						master = NULL;
+
+						if (ret == PASS) {
+							zend_llist_add_element(&(*conn_data_pp)->master_connections, &tmp_conn);
+							DBG_INF_FMT("Further master connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
+						} else {
+							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
+						}
+					}
+				} while (value_exists);
+			}
 
 			/* create slave slave_connections */
 			do {
-				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1, &value_exists TSRMLS_CC);
-				if (value_exists && slave) {
+				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1, &value_exists, &is_list_value TSRMLS_CC);
+				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
 					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 					mnd_efree(slave);
@@ -148,11 +174,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 #define MASTER_SWITCH "ms=master"
 #define SLAVE_SWITCH "ms=slave"
+#define LAST_USED_SWITCH "ms=last_used"
 
 enum enum_which_server
 {
 	USE_MASTER,
-	USE_SLAVE
+	USE_SLAVE,
+	USE_LAST_USED
 };
 
 
@@ -184,6 +212,11 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 			ret = USE_SLAVE;
 			forced = TRUE;
 		}
+		if (!strncasecmp(Z_STRVAL(token.value), LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
+			DBG_INF("forced last used");
+			ret = USE_LAST_USED;
+			forced = TRUE;
+		}
 		zval_dtor(&token.value);
 		token = mysqlnd_ms_get_token(&p, &len, cset TSRMLS_CC);
 	}
@@ -196,26 +229,61 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_choose_connection */
+static MYSQLND *
+mysqlnd_ms_choose_connection(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+{
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms_choose_connection");
+
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(conn);
+	}
+	switch (mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC)) {
+		case USE_SLAVE:
+		{
+			zend_llist * l = &(*conn_data_pp)->slave_connections;
+			MYSQLND ** tmp = zend_llist_get_next(l);
+			MYSQLND ** element = tmp && *tmp? tmp : zend_llist_get_first(l);
+			if (element && *element) {
+				DBG_INF("Using slave connection");
+				DBG_RETURN(*element);
+			}
+		}
+		/* fall-through */
+		case USE_MASTER:
+		{
+			zend_llist * l = &(*conn_data_pp)->master_connections;
+			MYSQLND ** tmp = zend_llist_get_next(l);
+			MYSQLND ** element = tmp && *tmp? tmp : zend_llist_get_first(l); /* there is always one element */
+			DBG_INF("Using master connection");
+			DBG_RETURN(*element);
+		}
+		case USE_LAST_USED:
+			DBG_INF("Using last used connection");
+			DBG_RETURN((*conn_data_pp)->last_used_connection);
+		default:
+			/* error */
+			DBG_RETURN(conn);
+			break;
+	}
+}
+/* }}} */
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char *query, unsigned int query_len TSRMLS_DC)
 {
+	MYSQLND * connection;
 	enum_func_status ret;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-	zend_llist * l = &(*conn_data_pp)->slave_connections;
-	MYSQLND ** tmp = zend_llist_get_next(l);
-	MYSQLND ** element = tmp && *tmp? tmp : zend_llist_get_first(l);
 	DBG_ENTER("mysqlnd_ms::query");
-
-	if (mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC) == USE_MASTER || !element || !*element) {
-		DBG_INF_FMT("Using master. Thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
-		(*conn_data_pp)->last_used_connection = conn;
-		ret = orig_mysqlnd_conn_methods->query(conn, query, query_len TSRMLS_CC);
-		DBG_RETURN(ret);
+	connection = mysqlnd_ms_choose_connection(conn, query, query_len TSRMLS_CC);
+	if (conn_data_pp && *conn_data_pp) {
+		(*conn_data_pp)->last_used_connection = connection;
 	}
-	DBG_INF_FMT("Using slave. Thread "MYSQLND_LLU_SPEC, (*element)->m->get_thread_id(*element TSRMLS_CC));
-	(*conn_data_pp)->last_used_connection = *element;
-	ret = orig_mysqlnd_conn_methods->query(*element, query, query_len TSRMLS_CC);
+	ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -261,7 +329,8 @@ MYSQLND_METHOD(mysqlnd_ms, free_contents)(MYSQLND *conn TSRMLS_DC)
 	data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	DBG_INF_FMT("data_pp=%p", data_pp);
 	if (data_pp && *data_pp) {
-		DBG_INF_FMT("cleaning the llist");
+		DBG_INF_FMT("cleaning the llists");
+		zend_llist_clean(&(*data_pp)->master_connections);
 		zend_llist_clean(&(*data_pp)->slave_connections);
 		mnd_pefree(*data_pp, conn->persistent);
 		*data_pp = NULL;
@@ -285,17 +354,161 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(const MYSQLND * const proxy_conn, char
 /* }}} */
 
 
+/* {{{ mysqlnd_ms::change_user */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
+										  const char *user,
+										  const char *passwd,
+										  const char *db,
+										  zend_bool silent
+#if PHP_VERSION_ID >= 50399
+										  ,size_t passwd_len
+#endif
+										  TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND ** connection;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms::select_db");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent
+#if PHP_VERSION_ID >= 50399
+															,passwd_len
+#endif
+															TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->change_user(*connection, user, passwd, db, silent
+#if PHP_VERSION_ID >= 50399
+															,passwd_len
+#endif
+															TSRMLS_CC))
+		{
+			ret = FAIL;
+		}
+	}
+
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->change_user(*connection, user, passwd, db, silent
+#if PHP_VERSION_ID >= 50399
+															,passwd_len
+#endif
+															TSRMLS_CC))
+		{
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms::ping */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, ping)(MYSQLND * const proxy_conn TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND ** connection;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms::ping");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->ping(proxy_conn TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->ping(*connection TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->ping(*connection TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms::select_db */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND ** connection;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms::select_db");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->select_db(proxy_conn, db, db_len TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->select_db(*connection, db, db_len TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->select_db(*connection, db, db_len TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::set_charset */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char * const csname TSRMLS_DC)
 {
-	enum_func_status ret;
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND ** connection;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * const conn = ((*conn_data_pp) && (*conn_data_pp)->last_used_connection)? (*conn_data_pp)->last_used_connection:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::set_charset");
-	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
-	ret = orig_mysqlnd_conn_methods->set_charset(conn, csname TSRMLS_CC);
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->set_charset(proxy_conn, csname TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_charset(*connection, csname TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (connection = (MYSQLND **) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); connection && *connection;
+			connection = (MYSQLND **) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_charset(*connection, csname TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
 	DBG_RETURN(ret);
+
 }
 /* }}} */
 
@@ -458,6 +671,9 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.store_result	= MYSQLND_METHOD(mysqlnd_ms, store_result);
 	my_mysqlnd_conn_methods.free_contents	= MYSQLND_METHOD(mysqlnd_ms, free_contents);
 	my_mysqlnd_conn_methods.escape_string	= MYSQLND_METHOD(mysqlnd_ms, escape_string);
+	my_mysqlnd_conn_methods.change_user		= MYSQLND_METHOD(mysqlnd_ms, change_user);
+	my_mysqlnd_conn_methods.ping			= MYSQLND_METHOD(mysqlnd_ms, ping);
+	my_mysqlnd_conn_methods.select_db		= MYSQLND_METHOD(mysqlnd_ms, select_db);
 	my_mysqlnd_conn_methods.set_charset		= MYSQLND_METHOD(mysqlnd_ms, set_charset);
 	my_mysqlnd_conn_methods.next_result		= MYSQLND_METHOD(mysqlnd_ms, next_result);
 	my_mysqlnd_conn_methods.more_results	= MYSQLND_METHOD(mysqlnd_ms, more_results);
@@ -540,6 +756,7 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_MASTER_SWITCH", MASTER_SWITCH, CONST_CS | CONST_PERSISTENT);
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_SLAVE_SWITCH", SLAVE_SWITCH, CONST_CS | CONST_PERSISTENT);
+	REGISTER_STRING_CONSTANT("MYSQLND_MS_LAST_USED_SWITCH", LAST_USED_SWITCH, CONST_CS | CONST_PERSISTENT);
 
 	return SUCCESS;
 }
