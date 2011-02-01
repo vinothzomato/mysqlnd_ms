@@ -18,7 +18,7 @@
 */
 
 /* $Id: header 252479 2008-02-07 19:39:50Z iliaa $ */
-#ifndef MYSQLND_MS_INI_H 
+#ifndef MYSQLND_MS_INI_H
 #define MYSQLND_MS_INI_H
 
 #ifdef ZTS

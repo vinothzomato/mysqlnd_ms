@@ -698,7 +698,7 @@ mysqlnd_ms_get_token(const char **p, size_t * query_len, const MYSQLND_CHARSET *
 
 	ZVAL_NULL(&ret.value);
 	if (!*query_len) {
-		DBG_RETURN(ret);	
+		DBG_RETURN(ret);
 	}
 
 	while ((*query_len) && isspace(**p)) {
@@ -1567,7 +1567,7 @@ append:
 					first_db = first_table;
 					first_table = tmp;
 					db_found = TRUE;
-					jump_to_skip_init = TRUE;					
+					jump_to_skip_init = TRUE;
 				}
 				break;
 			case QC_TOKEN_XOR:
@@ -1667,7 +1667,7 @@ append:
 		smart_str_free_ex(first_table, 0);
 		efree(first_table);
 	}
-	
+
 	DBG_RETURN(normalized_query);
 }
 /* }}} */
