@@ -50,7 +50,7 @@ static HashTable mysqlnd_ms_config;
 
 typedef struct st_mysqlnd_ms_connection_data
 {
-	zend_llist connections;
+	zend_llist slave_connections;
 	MYSQLND * last_used_connection;
 } MYSQLND_MS_CONNECTION_DATA;
 
@@ -99,7 +99,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 			if (!*conn_data_pp) {
 				*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);
-				zend_llist_init(&(*conn_data_pp)->connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+				zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 			}
 		}
 	} else {
@@ -115,13 +115,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 			if (!*conn_data_pp) {
 				*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);
-				zend_llist_init(&(*conn_data_pp)->connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+				zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 			}
 
 			/* create master connection */
 			DBG_INF_FMT("Master connection with thread_id "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 
-			/* create slave connections */
+			/* create slave slave_connections */
 			do {
 				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1, &value_exists TSRMLS_CC);
 				if (value_exists && slave) {
@@ -131,7 +131,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					slave = NULL;
 
 					if (ret == PASS) {
-						zend_llist_add_element(&(*conn_data_pp)->connections, &tmp_conn);
+						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &tmp_conn);
 						DBG_INF_FMT("Slave connection with thread_id "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 					} else {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
@@ -202,7 +202,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char *query, unsigned in
 {
 	enum_func_status ret;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-	zend_llist * l = &(*conn_data_pp)->connections;
+	zend_llist * l = &(*conn_data_pp)->slave_connections;
 	MYSQLND ** tmp = zend_llist_get_next(l);
 	MYSQLND ** element = tmp && *tmp? tmp : zend_llist_get_first(l);
 	DBG_ENTER("mysqlnd_ms::query");
@@ -262,7 +262,7 @@ MYSQLND_METHOD(mysqlnd_ms, free_contents)(MYSQLND *conn TSRMLS_DC)
 	DBG_INF_FMT("data_pp=%p", data_pp);
 	if (data_pp && *data_pp) {
 		DBG_INF_FMT("cleaning the llist");
-		zend_llist_clean(&(*data_pp)->connections);
+		zend_llist_clean(&(*data_pp)->slave_connections);
 		mnd_pefree(*data_pp, conn->persistent);
 		*data_pp = NULL;
 	}
