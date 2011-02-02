@@ -148,7 +148,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 					for (connection = (MYSQLND **) zend_llist_get_first_ex(master_list, &pos); !ret && connection && *connection;
 							connection = (MYSQLND **) zend_llist_get_next_ex(master_list, &pos))
 					{
-						if (!strncasecmp((*connection)->scheme, Z_STRVAL_P(retval), MIN(Z_STRVAL_P(retval), (*connection)->scheme_len))) {
+						if (!strncasecmp((*connection)->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), (*connection)->scheme_len))) {
 							ret = *connection;
 							DBG_INF_FMT("Userfunc chose master host : [%*s]", (*connection)->scheme_len, (*connection)->scheme);
 						}
@@ -157,7 +157,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 						for (connection = (MYSQLND **) zend_llist_get_first_ex(slave_list, &pos); !ret && connection && *connection;
 								connection = (MYSQLND **) zend_llist_get_next_ex(slave_list, &pos))
 						{
-							if (!strncasecmp((*connection)->scheme, Z_STRVAL_P(retval), MIN(Z_STRVAL_P(retval), (*connection)->scheme_len))) {
+							if (!strncasecmp((*connection)->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), (*connection)->scheme_len))) {
 								ret = *connection;
 								DBG_INF_FMT("Userfunc chose slave host : [%*s]", (*connection)->scheme_len, (*connection)->scheme);
 							}
