@@ -42,6 +42,7 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool enable;
 	zend_bool force_config_usage;
 	const char * ini_file;
+	zval * user_pick_server;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
 /* In every utility function you add that needs to use variables

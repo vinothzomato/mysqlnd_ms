@@ -49,6 +49,7 @@ static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
 static zend_bool mysqlns_ms_global_config_loaded = FALSE;
 static HashTable mysqlnd_ms_config;
 
+static MYSQLND * mysqlnd_ms_choose_connection(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
 
 typedef struct st_mysqlnd_ms_connection_data
 {
@@ -56,6 +57,125 @@ typedef struct st_mysqlnd_ms_connection_data
 	zend_llist slave_connections;
 	MYSQLND * last_used_connection;
 } MYSQLND_MS_CONNECTION_DATA;
+
+#define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
+
+#define MS_STRINGL(vl, ln, a)				\
+{											\
+	MAKE_STD_ZVAL((a));						\
+	ZVAL_STRINGL((a), (char *)(vl), (ln), 1);	\
+}
+
+#define MS_ARRAY(a)		\
+{						\
+	MAKE_STD_ZVAL((a));	\
+	array_init((a));	\
+}
+
+
+/* {{{ mysqlnd_ms_call_handler */
+static zval *
+mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_args TSRMLS_DC)
+{
+	int i;
+	zval * retval;
+	DBG_ENTER("mysqlnd_ms_call_handler");
+
+	MAKE_STD_ZVAL(retval);
+	if (call_user_function(EG(function_table), NULL, func, retval, argc, argv TSRMLS_CC) == FAILURE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
+		zval_ptr_dtor(&retval);
+		retval = NULL;
+	}
+
+	if (destroy_args == TRUE) {
+		for (i = 0; i < argc; i++) {
+			zval_ptr_dtor(&argv[i]);
+		}
+	}
+
+	DBG_RETURN(retval);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_user_pick_server */
+static MYSQLND *
+mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len TSRMLS_DC)
+{
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	zend_llist * master_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
+	zend_llist * slave_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
+	zval * args[3];
+	zval * retval;
+	MYSQLND * ret = NULL;
+
+	DBG_ENTER("mysqlnd_ms_user_pick_server");
+	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
+
+	if (master_list && MYSQLND_MS_G(user_pick_server)) {
+		/* query */
+		MS_STRINGL((char *) query, query_len, args[0]);
+		{
+			MYSQLND ** connection;
+			zend_llist_position	pos;
+			/* master list */
+			MS_ARRAY(args[1]);
+			for (connection = (MYSQLND **) zend_llist_get_first_ex(master_list, &pos); connection && *connection;
+					connection = (MYSQLND **) zend_llist_get_next_ex(master_list, &pos))
+			{
+				add_next_index_stringl(args[1], (*connection)->scheme, (*connection)->scheme_len, 1);
+			}
+
+			/* slave list*/
+			MS_ARRAY(args[2]);
+			if (slave_list) {
+				for (connection = (MYSQLND **) zend_llist_get_first_ex(slave_list, &pos); connection && *connection;
+						connection = (MYSQLND **) zend_llist_get_next_ex(slave_list, &pos))
+				{
+					add_next_index_stringl(args[2], (*connection)->scheme, (*connection)->scheme_len, 1);
+				}
+			}
+		}
+		
+		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), 3, args, TRUE TSRMLS_CC);
+		if (retval) {
+			if (Z_TYPE_P(retval) == IS_STRING) {
+				do {
+					MYSQLND ** connection;
+					zend_llist_position	pos;
+
+					for (connection = (MYSQLND **) zend_llist_get_first_ex(master_list, &pos); !ret && connection && *connection;
+							connection = (MYSQLND **) zend_llist_get_next_ex(master_list, &pos))
+					{
+						if (!strncasecmp((*connection)->scheme, Z_STRVAL_P(retval), MIN(Z_STRVAL_P(retval), (*connection)->scheme_len))) {
+							ret = *connection;
+							DBG_INF_FMT("Userfunc chose master host : [%*s]", (*connection)->scheme_len, (*connection)->scheme);
+						}
+					}
+					if (slave_list) {
+						for (connection = (MYSQLND **) zend_llist_get_first_ex(slave_list, &pos); !ret && connection && *connection;
+								connection = (MYSQLND **) zend_llist_get_next_ex(slave_list, &pos))
+						{
+							if (!strncasecmp((*connection)->scheme, Z_STRVAL_P(retval), MIN(Z_STRVAL_P(retval), (*connection)->scheme_len))) {
+								ret = *connection;
+								DBG_INF_FMT("Userfunc chose slave host : [%*s]", (*connection)->scheme_len, (*connection)->scheme);
+							}
+						}
+					}
+				} while (0);
+			}
+			zval_ptr_dtor(&retval);
+		}
+	}
+	if (ret == NULL) {
+		ret = mysqlnd_ms_choose_connection(conn, query, query_len TSRMLS_CC);	
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
 
 
 /* {{{ mysqlnd_ms_conn_list_dtor */
@@ -291,14 +411,16 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char *query, unsigned int query_len TSRMLS_DC)
 {
 	MYSQLND * connection;
-	enum_func_status ret;
+	enum_func_status ret = FAIL;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	DBG_ENTER("mysqlnd_ms::query");
-	connection = mysqlnd_ms_choose_connection(conn, query, query_len TSRMLS_CC);
-	if (conn_data_pp && *conn_data_pp) {
-		(*conn_data_pp)->last_used_connection = connection;
+	connection = mysqlnd_ms_user_pick_server(conn, query, query_len TSRMLS_CC);
+	if (connection) {
+		if (conn_data_pp && *conn_data_pp) {
+			(*conn_data_pp)->last_used_connection = connection;
+		}
+		ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
 	}
-	ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -657,22 +779,6 @@ MYSQLND_METHOD(mysqlnd_ms, info)(const MYSQLND * const proxy_conn TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_functions[] */
-static const zend_function_entry mysqlnd_ms_functions[] = {
-	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
-};
-/* }}} */
-
-
-/* {{{ mysqlnd_ms_deps[] */
-static const zend_module_dep mysqlnd_ms_deps[] = {
-	ZEND_MOD_REQUIRED("mysqlnd")
-	ZEND_MOD_REQUIRED("standard")
-	{NULL, NULL, NULL}
-};
-/* }}} */
-
-
 /* {{{ PHP_INI
  */
 PHP_INI_BEGIN()
@@ -683,7 +789,7 @@ PHP_INI_END()
 /* }}} */
 
 
-/* {{{ mysqlnd_qc_register_hooks*/
+/* {{{ mysqlnd_ms_register_hooks*/
 static void
 mysqlnd_ms_register_hooks()
 {
@@ -720,13 +826,14 @@ mysqlnd_ms_register_hooks()
 /* }}} */
 
 
-/* {{{ php_mysqlnd_qc_init_globals */
+/* {{{ php_mysqlnd_ms_init_globals */
 static void
 php_mysqlnd_ms_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 {
 	mysqlnd_ms_globals->enable = FALSE;
 	mysqlnd_ms_globals->force_config_usage = FALSE;
 	mysqlnd_ms_globals->ini_file = NULL;
+	mysqlnd_ms_globals->user_pick_server = NULL;
 }
 /* }}} */
 
@@ -760,6 +867,17 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 			mysqlns_ms_global_config_loaded = TRUE;
 		}
 		MYSQLND_MS_CONFIG_UNLOCK;
+	}
+	return SUCCESS;
+}
+/* }}} */
+
+
+/* {{{ PHP_RSHUTDOWN_FUNCTION */
+PHP_RSHUTDOWN_FUNCTION(mysqlnd_ms)
+{
+	if (MYSQLND_MS_G(user_pick_server)) {
+		zval_ptr_dtor(&MYSQLND_MS_G(user_pick_server));
 	}
 	return SUCCESS;
 }
@@ -817,9 +935,63 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 }
 /* }}} */
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_user_pick_server, 0, 0, 1)
+	ZEND_ARG_INFO(0, pick_server_cb)
+ZEND_END_ARG_INFO()
 
-/* {{{ mysqlnd_ms_module_entry
- */
+
+/* {{{ proto bool mysqlnd_ms_set_user_pick_server(string is_select)
+   Sets use_pick function callback */
+static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
+{
+	zval *arg = NULL;
+	char *name;
+
+	DBG_ENTER("zif_mysqlnd_ms_set_user_pick_server");
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &arg) == FAILURE) {
+		DBG_VOID_RETURN;
+	}
+
+	if (!zend_is_callable(arg, 0, &name TSRMLS_CC)) {
+		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "Argument is not a valid callback");
+		efree(name);
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
+	}
+	DBG_INF_FMT("name=%s", name);
+	efree(name);
+
+	if (MYSQLND_MS_G(user_pick_server) != NULL) {
+		zval_ptr_dtor(&MYSQLND_MS_G(user_pick_server));
+	}
+	MYSQLND_MS_G(user_pick_server) = arg;
+	Z_ADDREF_P(arg);
+
+	RETVAL_TRUE;
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_deps[] */
+static const zend_module_dep mysqlnd_ms_deps[] = {
+	ZEND_MOD_REQUIRED("mysqlnd")
+	ZEND_MOD_REQUIRED("standard")
+	{NULL, NULL, NULL}
+};
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_functions */
+static const zend_function_entry mysqlnd_ms_functions[] = {
+	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
+	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
+};
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_module_entry */
 zend_module_entry mysqlnd_ms_module_entry = {
 	STANDARD_MODULE_HEADER_EX,
 	NULL,
@@ -828,8 +1000,8 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	mysqlnd_ms_functions,
 	PHP_MINIT(mysqlnd_ms),
 	PHP_MSHUTDOWN(mysqlnd_ms),
-	PHP_RINIT(mysqlnd_ms), /* RINIT */
-	NULL, /* RSHUT */
+	PHP_RINIT(mysqlnd_ms),
+	PHP_RSHUTDOWN(mysqlnd_ms),
 	PHP_MINFO(mysqlnd_ms),
 	"0.1",
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
