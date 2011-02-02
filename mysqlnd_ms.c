@@ -878,6 +878,7 @@ PHP_RSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
 	if (MYSQLND_MS_G(user_pick_server)) {
 		zval_ptr_dtor(&MYSQLND_MS_G(user_pick_server));
+		MYSQLND_MS_G(user_pick_server) = NULL;
 	}
 	return SUCCESS;
 }
