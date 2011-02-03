@@ -324,18 +324,15 @@ static enum enum_which_server
 mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 {
 	enum enum_which_server ret = USE_MASTER;
-	const char * p = query;
-	size_t len = query_len;
 	struct st_qc_token_and_value token;
-	const MYSQLND_CHARSET * cset = mysqlnd_find_charset_name("utf8");
 	zend_bool forced = FALSE;
-
+	struct st_mysqlnd_tok_scanner * scanner;
 	DBG_ENTER("mysqlnd_ms_query_is_select");
 	if (!query) {
 		DBG_RETURN(USE_MASTER);
 	}
-
-	token = mysqlnd_ms_get_token(&p, &len, cset TSRMLS_CC);
+	scanner = mysqlnd_tok_create_scanner(query, query_len TSRMLS_CC);
+	token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
 	while (token.token == QC_TOKEN_COMMENT) {
 		if (!strncasecmp(Z_STRVAL(token.value), MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1)) {
 			DBG_INF("forced master");
@@ -353,12 +350,13 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 			forced = TRUE;
 		}
 		zval_dtor(&token.value);
-		token = mysqlnd_ms_get_token(&p, &len, cset TSRMLS_CC);
+		token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
 	}
 	if (forced == FALSE && token.token == QC_TOKEN_SELECT) {
 		ret = USE_SLAVE;
 	}
 	zval_dtor(&token.value);
+	mysqlnd_tok_free_scanner(scanner TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */

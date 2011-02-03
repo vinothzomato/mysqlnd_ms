@@ -29,8 +29,8 @@
 #include "ext/mysqlnd/mysqlnd_statistics.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
-#include "mysqlnd_ms_tokenize.h"
-
+#include "mysqlnd_tok.h"
+#include "mysqlnd_tok_def.h"
 
 #ifdef ZTS
 #include "TSRM.h"
@@ -45,21 +45,25 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zval * user_pick_server;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
-/* In every utility function you add that needs to use variables
-   in php_mysqlnd_ms_globals, call TSRMLS_FETCH(); after declaring other
-   variables used by that function, or better yet, pass in TSRMLS_CC
-   after the last function argument and declare your utility function
-   with TSRMLS_DC after the last declared argument.  Always refer to
-   the globals in your function as MYSQLND_MS_G(variable).  You are
-   encouraged to rename these macros something shorter, see
-   examples in any other php module directory.
-*/
 
 #ifdef ZTS
 #define MYSQLND_MS_G(v) TSRMG(mysqlnd_ms_globals_id, zend_mysqlnd_ms_globals *, v)
 #else
 #define MYSQLND_MS_G(v) (mysqlnd_ms_globals.v)
 #endif
+
+struct st_qc_token_and_value
+{
+	unsigned int token;
+	zval value;
+};
+
+
+struct st_mysqlnd_tok_scanner
+{
+	void * scanner;
+	zval * token_value;
+};
 
 #endif	/* MYSQLND_MS_H */
 
