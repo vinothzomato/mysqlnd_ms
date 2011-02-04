@@ -18,6 +18,10 @@
   +----------------------------------------------------------------------+
 */
 
+/*
+Compile with : flex -8 -o mysqlnd_tok.c --reentrant --prefix mysqlnd_tok_ mysqlnd_tok.l
+*/
+
 #include "mysqlnd_tok_def.h"
 #include <string.h>
 #include "php.h"
