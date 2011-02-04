@@ -50,12 +50,19 @@ static MYSQLND * mysqlnd_ms_choose_connection(MYSQLND * conn, const char * const
 
 typedef struct st_mysqlnd_ms_connection_data
 {
+	char * connect_host;
 	zend_llist master_connections;
 	zend_llist slave_connections;
 	MYSQLND * last_used_connection;
 } MYSQLND_MS_CONNECTION_DATA;
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
+
+#define MS_STRING(vl, a)				\
+{											\
+	MAKE_STD_ZVAL((a));						\
+	ZVAL_STRING((a), (char *)(vl), 1);	\
+}
 
 #define MS_STRINGL(vl, ln, a)				\
 {											\
@@ -103,7 +110,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	zend_llist * master_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
 	zend_llist * slave_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
-	zval * args[3];
+	zval * args[4];
 	zval * retval;
 	MYSQLND * ret = NULL;
 
@@ -111,31 +118,38 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
 
 	if (master_list && MYSQLND_MS_G(user_pick_server)) {
+		uint param = 0;
+		/* connect host */
+		MS_STRING((char *) (*conn_data_pp)->connect_host, args[param]);
+		
 		/* query */
-		MS_STRINGL((char *) query, query_len, args[0]);
+		param++;
+		MS_STRINGL((char *) query, query_len, args[param]);
 		{
 			MYSQLND ** connection;
 			zend_llist_position	pos;
 			/* master list */
-			MS_ARRAY(args[1]);
+			param++;
+			MS_ARRAY(args[param]);
 			for (connection = (MYSQLND **) zend_llist_get_first_ex(master_list, &pos); connection && *connection;
 					connection = (MYSQLND **) zend_llist_get_next_ex(master_list, &pos))
 			{
-				add_next_index_stringl(args[1], (*connection)->scheme, (*connection)->scheme_len, 1);
+				add_next_index_stringl(args[param], (*connection)->scheme, (*connection)->scheme_len, 1);
 			}
 
 			/* slave list*/
-			MS_ARRAY(args[2]);
+			param++;
+			MS_ARRAY(args[param]);
 			if (slave_list) {
 				for (connection = (MYSQLND **) zend_llist_get_first_ex(slave_list, &pos); connection && *connection;
 						connection = (MYSQLND **) zend_llist_get_next_ex(slave_list, &pos))
 				{
-					add_next_index_stringl(args[2], (*connection)->scheme, (*connection)->scheme_len, 1);
+					add_next_index_stringl(args[param], (*connection)->scheme, (*connection)->scheme_len, 1);
 				}
 			}
 		}
 		
-		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), 3, args, TRUE TSRMLS_CC);
+		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, TRUE TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
 				do {
@@ -299,6 +313,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	if (hotloading) {
 		MYSQLND_MS_CONFIG_UNLOCK;
 	}
+	if (ret == PASS) {
+		(*conn_data_pp)->connect_host = mnd_pestrdup(host, conn->persistent);
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -461,6 +478,10 @@ MYSQLND_METHOD(mysqlnd_ms, free_contents)(MYSQLND *conn TSRMLS_DC)
 	data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	DBG_INF_FMT("data_pp=%p", data_pp);
 	if (data_pp && *data_pp) {
+		if ((*data_pp)->connect_host) {
+			mnd_pefree((*data_pp)->connect_host, conn->persistent);
+			(*data_pp)->connect_host = NULL;
+		}
 		DBG_INF_FMT("cleaning the llists");
 		zend_llist_clean(&(*data_pp)->master_connections);
 		zend_llist_clean(&(*data_pp)->slave_connections);
