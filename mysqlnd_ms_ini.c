@@ -51,8 +51,9 @@ zend_llist_get_current_ex(zend_llist *l, zend_llist_position *pos)
 }
 /* }}} */
 
-
+#ifdef ZTS
 MUTEX_T LOCK_global_config_access;
+#endif
 
 struct st_mysqlnd_ms_ini_entry
 {
