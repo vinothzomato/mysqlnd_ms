@@ -24,13 +24,10 @@
 #endif
 
 #include "php.h"
-#include "php_ini.h"
 #include "ext/standard/info.h"
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
-#include "Zend/zend_ini.h"
-#include "Zend/zend_ini_scanner.h"
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_ini.h"
 
