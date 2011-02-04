@@ -110,7 +110,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	zend_llist * master_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
 	zend_llist * slave_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
-	zval * args[4];
+	zval * args[5];
 	zval * retval;
 	MYSQLND * ret = NULL;
 
@@ -146,6 +146,14 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 				{
 					add_next_index_stringl(args[param], (*connection)->scheme, (*connection)->scheme_len, 1);
 				}
+			}
+			/* last used connection */
+			param++;
+			MAKE_STD_ZVAL(args[param]);
+			if ((*conn_data_pp)->last_used_connection) {
+				ZVAL_STRING(args[param], ((*conn_data_pp)->last_used_connection)->scheme, 1);
+			} else {
+				ZVAL_NULL(args[param]);
 			}
 		}
 		

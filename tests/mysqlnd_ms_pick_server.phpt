@@ -12,8 +12,8 @@ file_put_contents("mysqlnd_ms.ini", implode("\n", array("[phpBB]", "master=$host
 ?>
 --FILE--
 <?php
-	function pick_server($connect_host, $query, $m_list, $s_list) {
-		var_dump($connect_host, $query, $m_list, $s_list);
+	function pick_server($connect_host, $query, $m_list, $s_list, $last_used_conn) {
+		var_dump($connect_host, $query, $m_list, $s_list, $last_used_conn);
 		return $m_list[0];
 	}
 	mysqlnd_ms_set_user_pick_server("pick_server");
@@ -47,6 +47,7 @@ array(2) {
   [1]=>
   string(%d) "%s"
 }
+NULL
 string(5) "phpBB"
 string(40) "/*ms=master*/SELECT user from mysql.user"
 array(1) {
@@ -59,6 +60,7 @@ array(2) {
   [1]=>
   string(%d) "%s"
 }
+string(%d) "%s"
 string(5) "phpBB"
 string(40) "/*ms=master*/SELECT user from mysql.user"
 array(1) {
@@ -71,4 +73,5 @@ array(2) {
   [1]=>
   string(%d) "%s"
 }
+string(%d) "%s"
 done!
