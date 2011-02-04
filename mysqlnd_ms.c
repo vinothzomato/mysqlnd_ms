@@ -30,11 +30,16 @@
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_ini.h"
+#include "ext/standard/php_rand.h"
 
 #define MYSLQND_MS_HOTLOADING FALSE
 
-#define MASTER_NAME "master"
-#define SLAVE_NAME "slave"
+#define MASTER_NAME		"master"
+#define SLAVE_NAME		"slave"
+#define PICK_NAME		"pick"
+#define PICK_RANDOM		"random"
+#define PICK_RROBIN		"roundrobin"
+#define PICK_USER		"user"
 
 ZEND_DECLARE_MODULE_GLOBALS(mysqlnd_ms)
 
@@ -46,7 +51,16 @@ static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
 static zend_bool mysqlns_ms_global_config_loaded = FALSE;
 static HashTable mysqlnd_ms_config;
 
-static MYSQLND * mysqlnd_ms_choose_connection(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
+static MYSQLND * mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
+static MYSQLND * mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
+
+
+enum mysqlnd_ms_server_pick_strategy
+{
+	SERVER_PICK_RROBIN,
+	SERVER_PICK_RANDOM,
+	SERVER_PICK_USER
+};
 
 typedef struct st_mysqlnd_ms_connection_data
 {
@@ -54,7 +68,10 @@ typedef struct st_mysqlnd_ms_connection_data
 	zend_llist master_connections;
 	zend_llist slave_connections;
 	MYSQLND * last_used_connection;
+	enum mysqlnd_ms_server_pick_strategy pick_strategy;
+	enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
 } MYSQLND_MS_CONNECTION_DATA;
+
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
 
@@ -187,9 +204,6 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			zval_ptr_dtor(&retval);
 		}
 	}
-	if (ret == NULL) {
-		ret = mysqlnd_ms_choose_connection(conn, query, query_len TSRMLS_CC);	
-	}
 
 	DBG_RETURN(ret);
 }
@@ -316,6 +330,33 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 				}
 			} while (value_exists);
+
+			{
+				char * pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
+												  				&value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;
+
+				if (value_exists && pick_strategy) {
+					if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+						(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;
+					} else if (!strncasecmp(PICK_USER, pick_strategy, sizeof(PICK_USER) - 1)) {
+						(*conn_data_pp)->pick_strategy = SERVER_PICK_USER;
+						if (is_list_value) {
+							mnd_efree(pick_strategy);
+							pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
+												  				&value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+							if (pick_strategy) {
+								if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;
+								}
+							}
+						}
+					}
+				}
+				if (pick_strategy) {
+					mnd_efree(pick_strategy);
+				}
+			}
 		} while (0);
 	}
 	if (hotloading) {
@@ -384,12 +425,12 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_choose_connection */
+/* {{{ mysqlnd_ms_choose_connection_rr */
 static MYSQLND *
-mysqlnd_ms_choose_connection(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-	DBG_ENTER("mysqlnd_ms_choose_connection");
+	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(conn);
@@ -426,21 +467,116 @@ mysqlnd_ms_choose_connection(MYSQLND * conn, const char * const query, const siz
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_choose_connection_random */
+static MYSQLND *
+mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+{
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms_choose_connection_random");
+
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(conn);
+	}
+	switch (mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC)) {
+		case USE_SLAVE:
+		{
+			zend_llist_position	pos;
+			zend_llist * l = &(*conn_data_pp)->slave_connections;		
+			MYSQLND ** element;
+			unsigned long rnd_idx;
+			uint i = 0;
+
+			rnd_idx = php_rand(TSRMLS_C);
+			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+			DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
+
+			element = (MYSQLND **) zend_llist_get_first_ex(l, &pos);
+			while (i++ < rnd_idx) {
+				element = (MYSQLND **) zend_llist_get_next_ex(l, &pos);
+			}
+			if (element && *element) {
+				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", (*element)->thread_id);
+				DBG_RETURN(*element);
+			}
+		}
+		/* fall-through */
+		case USE_MASTER:
+		{
+			zend_llist_position	pos;
+			zend_llist * l = &(*conn_data_pp)->master_connections;		
+			MYSQLND ** element;
+			unsigned long rnd_idx;
+			uint i = 0;
+
+			rnd_idx = php_rand(TSRMLS_C);
+			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+			DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
+
+			element = (MYSQLND **) zend_llist_get_first_ex(l, &pos);
+			while (i++ < rnd_idx) {
+				element = (MYSQLND **) zend_llist_get_next_ex(l, &pos);
+			}
+			if (element && *element) {
+				DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", (*element)->thread_id);
+				DBG_RETURN(conn);
+			}
+		}
+		case USE_LAST_USED:
+			DBG_INF("Using last used connection");
+			DBG_RETURN((*conn_data_pp)->last_used_connection);
+		default:
+			/* error */
+			DBG_RETURN(conn);
+			break;
+	}
+}
+/* }}} */
+
+/* {{{ mysqlnd_ms_pick_server */
+static MYSQLND *
+mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+{
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	MYSQLND * connection = conn;
+	DBG_ENTER("mysqlnd_ms_pick_server");
+
+	if (conn_data_pp && *conn_data_pp) {
+		enum mysqlnd_ms_server_pick_strategy strategy = (*conn_data_pp)->pick_strategy;
+		connection = NULL;
+		if (SERVER_PICK_USER == strategy) {
+			connection = mysqlnd_ms_user_pick_server(conn, query, query_len TSRMLS_CC);
+			if (!connection) {
+				strategy = (*conn_data_pp)->fallback_pick_strategy;
+			}
+		}
+		if (!connection) {
+			if (SERVER_PICK_RANDOM == strategy) {
+				connection = mysqlnd_ms_choose_connection_random(conn, query, query_len TSRMLS_CC);
+			} else {
+				connection = mysqlnd_ms_choose_connection_rr(conn, query, query_len TSRMLS_CC);				
+			}
+		}
+		if (!connection) {
+			connection = conn;
+		}
+		(*conn_data_pp)->last_used_connection = connection;
+	}
+	DBG_RETURN(connection);
+}
+/* }}} */
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char *query, unsigned int query_len TSRMLS_DC)
 {
 	MYSQLND * connection;
-	enum_func_status ret = FAIL;
-	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	enum_func_status ret;
 	DBG_ENTER("mysqlnd_ms::query");
-	connection = mysqlnd_ms_user_pick_server(conn, query, query_len TSRMLS_CC);
-	if (connection) {
-		if (conn_data_pp && *conn_data_pp) {
-			(*conn_data_pp)->last_used_connection = connection;
-		}
-		ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
-	}
+
+	connection = mysqlnd_ms_pick_server(conn, query, query_len TSRMLS_CC);
+
+	ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
