@@ -15,6 +15,7 @@ if ($error = create_config("mysqlnd_ms_pick_server.ini", $settings))
   die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
+mysqlnd_ms.pick=user
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=mysqlnd_ms_pick_server.ini
 mysqlnd.debug=d:t:O,/tmp/pick_server
@@ -35,14 +36,11 @@ mysqlnd.debug=d:t:O,/tmp/pick_server
 	$threads["connect"] = $link->thread_id;
 
 
-	if (!$res = $link->query("SELECT 'Master Andrey has send this query to a slave.' FROM DUAL"))
+	if (!$res = $link->query("SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL"))
 	  printf("[002] [%d] %s\n", $link->errno, $link->error);
 	$rows = $res->fetch_all();
-	var_dump($rows);
 	$res->close();
 	$threads["slaves"][$link->thread_id] = 1;
-
-	// var_dump($threads);
 
 	print "done!";
 ?>
