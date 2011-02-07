@@ -1,77 +1,55 @@
 --TEST--
 Pick Server
---INI--
-mysqlnd_ms.enable=1
-mysqlnd_ms.force_config_usage=0
-mysqlnd_ms.ini_file=mysqlnd_ms.ini
 --SKIPIF--
 <?php
 require_once("connect.inc");
 require_once('skipif.inc');
-file_put_contents("mysqlnd_ms.ini", implode("\n", array("[phpBB]", "master=$host", "slave[]=$host", "slave[]=$host")));
+
+$settings = array(
+	"myapp" => array(
+		'master' => array($host),
+		'slave' => array($host, $host),
+	),
+);
+if ($error = create_config("mysqlnd_ms_pick_server.ini", $settings))
+  die(sprintf("SKIP %d\n", $error));
 ?>
+--INI--
+mysqlnd_ms.enable=1
+mysqlnd_ms.ini_file=mysqlnd_ms_pick_server.ini
+mysqlnd.debug=d:t:O,/tmp/pick_server
 --FILE--
 <?php
+  require_once("connect.inc");
 	function pick_server($connect_host, $query, $m_list, $s_list, $last_used_conn) {
 		var_dump($connect_host, $query, $m_list, $s_list, $last_used_conn);
 		return $m_list[0];
 	}
 	mysqlnd_ms_set_user_pick_server("pick_server");
 
-	require_once("connect.inc");
-	$link = my_mysqli_connect("phpBB", $user, $passwd, "", $port, $socket);
+	$threads = array();
+	if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
+		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
+			$host, $user, $db, $port, $socket);
 
-	var_dump($link->thread_id);
-	$res=$link->query("/*ms=slave*/SELECT user from mysql.user");
-	$res2=$link->query("/*ms=master*/SELECT user from mysql.user");
-	$res3=$link->query("/*ms=master*/SELECT user from mysql.user");
+	$threads["connect"] = $link->thread_id;
 
+
+	if (!$res = $link->query("SELECT 'Master Andrey has send this query to a slave.' FROM DUAL"))
+	  printf("[002] [%d] %s\n", $link->errno, $link->error);
+	$rows = $res->fetch_all();
+	var_dump($rows);
+	$res->close();
+	$threads["slaves"][$link->thread_id] = 1;
+
+	// var_dump($threads);
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	unlink("mysqlnd_ms.ini");
+	if (!unlink("mysqlnd_ms_pick_server.ini"))
+	  printf("[clean] Cannot unlink ini file 'mysqlnd_ms_pick_server.ini'.\n");
 ?>
 --EXPECTF--
-int(%d)
-string(5) "phpBB"
-string(39) "/*ms=slave*/SELECT user from mysql.user"
-array(1) {
-  [0]=>
-  string(%d) "%s"
-}
-array(2) {
-  [0]=>
-  string(%d) "%s"
-  [1]=>
-  string(%d) "%s"
-}
-NULL
-string(5) "phpBB"
-string(40) "/*ms=master*/SELECT user from mysql.user"
-array(1) {
-  [0]=>
-  string(%d) "%s"
-}
-array(2) {
-  [0]=>
-  string(%d) "%s"
-  [1]=>
-  string(%d) "%s"
-}
-string(%d) "%s"
-string(5) "phpBB"
-string(40) "/*ms=master*/SELECT user from mysql.user"
-array(1) {
-  [0]=>
-  string(%d) "%s"
-}
-array(2) {
-  [0]=>
-  string(%d) "%s"
-  [1]=>
-  string(%d) "%s"
-}
-string(%d) "%s"
 done!
