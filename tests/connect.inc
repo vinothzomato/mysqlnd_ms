@@ -225,4 +225,33 @@
 	} else {
 		printf("skip Eeeek/BUG/FIXME - connect.inc included twice! skipif bug?\n");
 	}
+
+	if (!function_exists("create_config")) {
+		function create_config($file, $settings, $replace_file = true) {
+
+			if ($replace_file && file_exists($file) && !@unlink($file))
+				return sprintf("Cannot unlink existing file '%s'.", $file);
+
+			if (!$fp = @fopen($file, "w"))
+				return sprintf("Cannot open file '%s' for writing.", $file);
+
+			foreach ($settings as $application => $config) {
+				fwrite($fp, sprintf("[%s]\n", $application));
+				if (isset($config['master'])) {
+					foreach ($config['master'] as $host) {
+						if (!fwrite($fp, sprintf("master=%s\n", $host)))
+							return sprintf("Cannot write master settings to file.");
+					}
+				}
+				if (isset($config['slave'])) {
+					foreach ($config['slave'] as $host) {
+						if (!fwrite($fp, sprintf("slave[]=%s\n", $host)))
+							return sprintf("Cannot write slave settings to file.");
+					}
+				}
+			}
+			fclose($fp);
+			return '';
+		}
+	}
 ?>
