@@ -1,5 +1,5 @@
 --TEST--
-Exportet constants
+Constants
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -7,9 +7,13 @@ require_once('skipif.inc');
 --FILE--
 <?php
 	$expected = array(
+
+		/* SQL hints */
 		"MYSQLND_MS_MASTER_SWITCH" => true,
 		"MYSQLND_MS_SLAVE_SWITCH" => true,
 		"MYSQLND_MS_LAST_USED_SWITCH" => true,
+
+		/* Return values of mysqlnd_ms_is_select() */
 		"MYSQLND_MS_QUERY_USE_LAST_USED" => true,
 		"MYSQLND_MS_QUERY_USE_MASTER" => true,
 		"MYSQLND_MS_QUERY_USE_SLAVE" => true,

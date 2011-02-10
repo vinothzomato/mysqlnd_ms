@@ -250,7 +250,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	}
 	section_found = mysqlnd_ms_ini_section_exists(&mysqlnd_ms_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
 	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Exclusive usage of configuration enforced but did not find the correct INI file section");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Exclusive usage of configuration enforced but did not find the correct INI file section (%s)", host);
 		if (hotloading) {
 			MYSQLND_MS_CONFIG_UNLOCK;
 		}
