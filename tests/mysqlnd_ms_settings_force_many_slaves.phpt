@@ -43,6 +43,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_force_many_slaves.ini
 
 	print "done!";
 ?>
+--XFAIL--
+Overloading MySQL server
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_settings_force_many_slaves.ini"))
