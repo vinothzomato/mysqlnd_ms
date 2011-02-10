@@ -104,7 +104,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 			printf("[%03d + 01] [%d] %s\n", $offset, $link->errno, $link->error);
 			return false;
 		}
-
 		if ($expected) {
 		  $row = $res->fetch_assoc();
 		  $res->close();
@@ -116,10 +115,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 			  printf("[%03d + 03] Unexpected results, dumping data\n", $offset);
 			  var_dump($row);
 			  var_dump($expected);
+			  return false;
 		  }
 		}
-
-
+		return true;
 	}
 
 	function check_master_slave_threads($offset, $threads) {
