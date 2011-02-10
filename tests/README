@@ -1,0 +1,27 @@
+Set those environment variables prior to running the tests.
+
+(export NAME=default_value_if_not_set)
+export TEST_PHP_EXECUTABLE="/home/nixnutz/php/php-src/branches/PHP_5_3/sapi/cli/php"
+export MYSQL_TEST_HOST="localhost"
+export MYSQL_TEST_PORT=3306
+export MYSQL_TEST_USER="root"
+export MYSQL_TEST_PASSWD=""
+export MYSQL_TEST_DB="test"
+export MYSQL_TEST_ENGINE="MyISAM"
+export MYSQL_TEST_SOCKET=""
+export MYSQL_TEST_EXPERIMENTAL=0
+export MYSQL_TEST_SKIP_CONNECT_FAILURE=1
+export MYSQL_TEST_CONNECT_FLAGS=0
+
+Some tests require the availability of a master and a slave server. The two
+MySQL server must be uniquely defined by their host names.
+The two servers do not need to be setup as a MySQL replication master and a
+MySQL replication slave. They do not need to be related in any way. We
+are not testing replication as such. All we need is two distrinct MySQL servers
+to get two distinct connection URIs.
+
+All configures hosts must use the same user, password, port and socket settings.
+
+(export NAME=default_value_if_not_set)
+export MYSQL_TEST_MASTER_HOST="localhost"
+export MYSQL_TEST_SLAVE_HOST="localhost"

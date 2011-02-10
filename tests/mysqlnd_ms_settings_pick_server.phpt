@@ -2,13 +2,17 @@
 Config settings: pick server = user
 --SKIPIF--
 <?php
-require_once("connect.inc");
 require_once('skipif.inc');
+require_once("connect.inc");
+
+if ($master_host == $slave_host) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($host),
-		'slave' => array($host, $host),
+		'master' => array($master_host),
+		'slave' => array($slave_host),
 		'pick' 	=> array('user'),
 	),
 );
@@ -52,9 +56,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 		if (!is_array($slaves)) {
 			printf("[005] No list of slave servers given.");
 		} else {
-			if (2 != ($tmp = count($slaves))) {
-				printf("[006] Expecting two entries in the list of slaves, found %d. Dumping list.\n", $tmp);
-				var_dump($master);
+			if (1 != ($tmp = count($slaves))) {
+				printf("[006] Expecting one entry in the list of slaves, found %d. Dumping list.\n", $tmp);
+				var_dump($slaves);
 			}
 		}
 
@@ -157,6 +161,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 	} else {
 		$threads["slave"][$link->thread_id]++;
 	}
+
 	check_master_slave_threads(30, $threads);
 
 	/* Should go to the first master */
@@ -170,6 +175,33 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 	}
 	check_master_slave_threads(50, $threads);
 
+	/* Should go to the first master */
+	$query = sprintf("/*%s*/SELECT 'master' AS _message FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	$expected = array('_message' => 'master');
+	run_query(60, $link, $query, $expected);
+	if (!isset($threads["master"][$link->thread_id])) {
+		$threads["master"][$link->thread_id] = 1;
+	} else {
+		$threads["master"][$link->thread_id]++;
+	}
+	check_master_slave_threads(70, $threads);
+	if ($threads["master"][$link->thread_id] != 2) {
+		printf("[071] Master should have run 2 queries, records report %d\n", $threads["master"][$link->thread_id]);
+	}
+
+	/* Should go to the first slave */
+	$query = sprintf("/*%s*/SELECT 'slave' AS _message FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
+	$expected = array('_message' => 'slave');
+	run_query(80, $link, $query, $expected);
+	if (!isset($threads["slave"][$link->thread_id])) {
+		$threads["slave"][$link->thread_id] = 1;
+	} else {
+		$threads["slave"][$link->thread_id]++;
+	}
+	check_master_slave_threads(90, $threads);
+	if ($threads["slave"][$link->thread_id] != 2) {
+		printf("[091] Slave should have run 2 queriesy, records report %d\n", $threads["slave"][$link->thread_id]);
+	}
 
 	print "done!";
 ?>
@@ -181,5 +213,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 --EXPECTF--
 'SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL' => slave
 '/*ms=master*/SELECT 'master' AS _message FROM DUAL' => master
-[050 + 01] Slave connection thread=%d is also a master connection!
+'/*ms=master*/SELECT 'master' AS _message FROM DUAL' => master
+'/*ms=slave*/SELECT 'slave' AS _message FROM DUAL' => slave
 done!

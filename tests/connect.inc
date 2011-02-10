@@ -21,6 +21,10 @@
 		ini_set('mysqli.default_socket', $socket);
 	}
 
+	/* We assume that user/password/port/socket are the same for all machines */
+	$master_host = getenv("MYSQL_TEST_MASTER_HOST") ? getenv("MYSQL_TEST_MASTER_HOST") : $host;
+	$slave_host = getenv("MYSQL_TEST_SLAVE_HOST") ? getenv("MYSQL_TEST_SLAVE_HOST") : $host;
+
 	/* Development setting: test experimal features and/or feature requests that never worked before? */
 	$TEST_EXPERIMENTAL = (in_array(getenv("MYSQL_TEST_EXPERIMENTAL"), array(0, 1))) ?
 				((1 == getenv("MYSQL_TEST_EXPERIMENTAL")) ? true : false) :
