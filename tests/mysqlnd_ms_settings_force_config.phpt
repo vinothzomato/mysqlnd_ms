@@ -53,21 +53,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 --EXPECTF--
 Warning: mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 
-Warning: mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via tcp://forced_master_hostname_abstract_name:3305) in %s on line %d
+Warning: mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via %sforced_master_hostname_abstract_name%s in %s on line %d
 
 Warning: mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [001] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
 
 Warning: mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 
-Warning: mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via tcp://forced_master_hostname_ip:3305) in %s on line %d
+Warning: mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via %sforced_master_hostname_ip%s in %s on line %d
 
 Warning: mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [002] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
 
 Warning: mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 
-Warning: mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via tcp://forced_master_hostname_orgname:3305) in %s on line %d
+Warning: mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via %sforced_master_hostname_orgname%s in %s on line %d
 
 Warning: mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [003] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
