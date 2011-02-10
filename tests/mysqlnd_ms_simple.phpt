@@ -3,12 +3,12 @@ Simple
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config_usage=0
-mysqlnd_ms.ini_file=mysqlnd_ms.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_simple.ini
 --SKIPIF--
 <?php
 require_once("connect.inc");
 require_once('skipif.inc');
-file_put_contents("mysqlnd_ms.ini", implode("\n", array("[phpBB]", "master=$host", "slave[]=$host", "slave[]=$host")));
+file_put_contents("test_mysqlnd_ms_simple.ini", implode("\n", array("[phpBB]", "master=$host", "slave[]=$host", "slave[]=$host")));
 ?>
 --FILE--
 <?php
@@ -26,7 +26,7 @@ file_put_contents("mysqlnd_ms.ini", implode("\n", array("[phpBB]", "master=$host
 ?>
 --CLEAN--
 <?php
-	unlink("mysqlnd_ms.ini");
+	unlink("test_mysqlnd_ms_simple.ini");
 ?>
 --EXPECTF--
 int(%d)

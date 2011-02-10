@@ -239,7 +239,7 @@
 				fwrite($fp, sprintf("[%s]\n", $application));
 				if (isset($config['master'])) {
 					foreach ($config['master'] as $host) {
-						if (!fwrite($fp, sprintf("master=%s\n", $host)))
+						if (!fwrite($fp, sprintf("master[]=%s\n", $host)))
 							return sprintf("Cannot write master settings to file.");
 					}
 				}
