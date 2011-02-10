@@ -249,6 +249,24 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_ini_string_is_bool_true */
+static zend_bool
+mysqlnd_ms_ini_string_is_bool_true(const char * value)
+{
+	if (!value) {
+		return FALSE;
+	}
+	if (!strncmp("1", value, sizeof("1") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("true", value, sizeof("true") - 1)) {
+		return TRUE;
+	}
+	return FALSE;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
@@ -298,14 +316,23 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		}
 	} else {
 		do {
-			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = FALSE, use_lazy_connections_list_value = FALSE;
 			/* create master connection */
 			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 
+			char * lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+												  			&use_lazy_connections, &use_lazy_connections_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+
+			use_lazy_connections = use_lazy_connections && mysqlnd_ms_ini_string_is_bool_true(lazy_connections);
+			if (lazy_connections) {
+				mnd_efree(lazy_connections);
+				lazy_connections = NULL;
+			}
+
 			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
-			mnd_efree(master);
 			if (ret != PASS) {
+				mnd_efree(master);
 				break;
 			}
 			{
@@ -316,6 +343,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 			}
 			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
+			mnd_efree(master);
 
 			/* More master connections ? */
 			if (is_list_value) {
