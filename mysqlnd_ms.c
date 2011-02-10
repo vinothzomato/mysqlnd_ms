@@ -138,7 +138,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 		uint param = 0;
 		/* connect host */
 		MS_STRING((char *) (*conn_data_pp)->connect_host, args[param]);
-		
+
 		/* query */
 		param++;
 		MS_STRINGL((char *) query, query_len, args[param]);
@@ -173,7 +173,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 				ZVAL_NULL(args[param]);
 			}
 		}
-		
+
 		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, TRUE TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
@@ -288,7 +288,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 			zend_llist_add_element(&(*conn_data_pp)->master_connections, &conn);
 			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
-			
+
 			/* More master connections ? */
 			if (is_list_value) {
 				DBG_INF("We have more master connections. Connect...");
@@ -481,7 +481,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 		case USE_SLAVE:
 		{
 			zend_llist_position	pos;
-			zend_llist * l = &(*conn_data_pp)->slave_connections;		
+			zend_llist * l = &(*conn_data_pp)->slave_connections;
 			MYSQLND ** element;
 			unsigned long rnd_idx;
 			uint i = 0;
@@ -503,7 +503,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 		case USE_MASTER:
 		{
 			zend_llist_position	pos;
-			zend_llist * l = &(*conn_data_pp)->master_connections;		
+			zend_llist * l = &(*conn_data_pp)->master_connections;
 			MYSQLND ** element;
 			unsigned long rnd_idx;
 			uint i = 0;
@@ -553,7 +553,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 			if (SERVER_PICK_RANDOM == strategy) {
 				connection = mysqlnd_ms_choose_connection_random(conn, query, query_len TSRMLS_CC);
 			} else {
-				connection = mysqlnd_ms_choose_connection_rr(conn, query, query_len TSRMLS_CC);				
+				connection = mysqlnd_ms_choose_connection_rr(conn, query, query_len TSRMLS_CC);
 			}
 		}
 		if (!connection) {
@@ -1064,6 +1064,10 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_SLAVE_SWITCH", SLAVE_SWITCH, CONST_CS | CONST_PERSISTENT);
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_LAST_USED_SWITCH", LAST_USED_SWITCH, CONST_CS | CONST_PERSISTENT);
 
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_MASTER", USE_MASTER, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_SLAVE", USE_SLAVE, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_LAST_USED", USE_LAST_USED, CONST_CS | CONST_PERSISTENT);
+
 	return SUCCESS;
 }
 /* }}} */
@@ -1100,7 +1104,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_user_pick_server, 0, 0, 1)
 	ZEND_ARG_INFO(0, pick_server_cb)
 ZEND_END_ARG_INFO()
 
-
 /* {{{ proto bool mysqlnd_ms_set_user_pick_server(string is_select)
    Sets use_pick function callback */
 static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
@@ -1134,6 +1137,27 @@ static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
 }
 /* }}} */
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_query_is_select, 0, 0, 1)
+	ZEND_ARG_INFO(0, query)
+ZEND_END_ARG_INFO()
+
+
+/* {{{ proto long mysqlnd_ms_query_is_select(string query)
+   Parse query and propose where to send it */
+static PHP_FUNCTION(mysqlnd_ms_query_is_select)
+{
+	char * query;
+	int query_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &query, &query_len) == FAILURE) {
+		return;
+	}
+
+	RETURN_LONG(mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC));
+}
+/* }}} */
+
+
 
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
@@ -1147,6 +1171,7 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 /* {{{ mysqlnd_ms_functions */
 static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
+	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */

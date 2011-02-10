@@ -249,6 +249,12 @@
 							return sprintf("Cannot write slave settings to file.");
 					}
 				}
+
+				if (isset($config['pick'])) {
+					foreach ($config['pick'] as $method)
+						if (!fwrite($fp, sprintf("pick[]=%s\n", $method)))
+							return sprintf("Cannot write query redirection policy settings to file.");
+				}
 			}
 			fclose($fp);
 			return '';

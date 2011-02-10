@@ -9,22 +9,21 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($host),
 		'slave' => array($host, $host),
+		'pick' 	=> array('user'),
 	),
 );
 if ($error = create_config("mysqlnd_ms_pick_server.ini", $settings))
   die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
-mysqlnd_ms.pick=user
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=mysqlnd_ms_pick_server.ini
-mysqlnd.debug=d:t:O,/tmp/pick_server
 --FILE--
 <?php
   require_once("connect.inc");
 	function pick_server($connect_host, $query, $m_list, $s_list, $last_used_conn) {
-		var_dump($connect_host, $query, $m_list, $s_list, $last_used_conn);
-		return $m_list[0];
+		/* var_dump($connect_host, $query, $m_list, $s_list, $last_used_conn); */
+		var_dump(mysqlnd_ms_query_is_select($query));
 	}
 	mysqlnd_ms_set_user_pick_server("pick_server");
 
@@ -50,4 +49,5 @@ mysqlnd.debug=d:t:O,/tmp/pick_server
 	  printf("[clean] Cannot unlink ini file 'mysqlnd_ms_pick_server.ini'.\n");
 ?>
 --EXPECTF--
+int(1)
 done!

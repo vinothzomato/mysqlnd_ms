@@ -10,6 +10,9 @@ require_once('skipif.inc');
 		"MYSQLND_MS_MASTER_SWITCH" => true,
 		"MYSQLND_MS_SLAVE_SWITCH" => true,
 		"MYSQLND_MS_LAST_USED_SWITCH" => true,
+		"MYSQLND_MS_QUERY_USE_LAST_USED" => true,
+		"MYSQLND_MS_QUERY_USE_MASTER" => true,
+		"MYSQLND_MS_QUERY_USE_SLAVE" => true,
 	);
 
 	$constants = get_defined_constants(true);
@@ -33,5 +36,8 @@ require_once('skipif.inc');
 --EXPECTF--
 MYSQLND_MS_LAST_USED_SWITCH = 'ms=last_used'
 MYSQLND_MS_MASTER_SWITCH = 'ms=master'
+MYSQLND_MS_QUERY_USE_LAST_USED = '2'
+MYSQLND_MS_QUERY_USE_MASTER = '0'
+MYSQLND_MS_QUERY_USE_SLAVE = '1'
 MYSQLND_MS_SLAVE_SWITCH = 'ms=slave'
 done!
