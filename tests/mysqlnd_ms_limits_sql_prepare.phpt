@@ -116,7 +116,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 
 	print "done!";
 ?>
---CLEANI--
+--CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_sql_prepare.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
