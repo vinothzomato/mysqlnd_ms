@@ -42,7 +42,7 @@ object(mysqli_result)#%d (5) {
   ["type"]=>
   int(0)
 }
-object(mysqli_result)#4 (5) {
+object(mysqli_result)#%d (5) {
   ["current_field"]=>
   int(0)
   ["field_count"]=>
@@ -54,7 +54,7 @@ object(mysqli_result)#4 (5) {
   ["type"]=>
   int(0)
 }
-object(mysqli_result)#5 (5) {
+object(mysqli_result)#%d (5) {
   ["current_field"]=>
   int(0)
   ["field_count"]=>
