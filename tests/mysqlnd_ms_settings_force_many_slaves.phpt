@@ -2,6 +2,7 @@
 Config settings: force with many slaves
 --SKIPIF--
 <?php
+die("SKIP Enable after delayed connect implementation is done");
 require_once('skipif.inc');
 require_once("connect.inc");
 
