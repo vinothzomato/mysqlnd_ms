@@ -45,7 +45,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 
 	print "done!";
 ?>
---CLEANI--
+--CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_ini_force_config.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
