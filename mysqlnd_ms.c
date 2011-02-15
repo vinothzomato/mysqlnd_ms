@@ -303,7 +303,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);
 	zend_llist_init(&(*conn_data_pp)->master_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-	zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);	
+	zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 
 	if (FALSE == section_found) {
 		ret = orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
@@ -696,7 +696,7 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC)
 		if ((*data_pp)->user) {
 			mnd_pefree((*data_pp)->user, conn->persistent);
 			(*data_pp)->user = NULL;
-		}		
+		}
 
 		if ((*data_pp)->passwd) {
 			mnd_pefree((*data_pp)->passwd, conn->persistent);
@@ -734,6 +734,9 @@ static void
 MYSQLND_METHOD(mysqlnd_ms, free_contents)(MYSQLND *conn TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms::free_contents");
+	if (conn->refcount > 0)
+		DBG_VOID_RETURN;
+
 	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
 	orig_mysqlnd_conn_methods->free_contents(conn TSRMLS_CC);
 	DBG_VOID_RETURN;
