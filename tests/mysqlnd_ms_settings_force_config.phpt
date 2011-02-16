@@ -35,13 +35,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = @my_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
-	printf("[001] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+	printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$link = @my_mysqli_connect("192.168.14.17", $user, $passwd, $db, $port, $socket);
-	printf("[002] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+	printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$link = @my_mysqli_connect("my_orginal_mysql_server_host", $user, $passwd, $db, $port, $socket);
-	printf("[003] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+	printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	print "done!";
 ?>

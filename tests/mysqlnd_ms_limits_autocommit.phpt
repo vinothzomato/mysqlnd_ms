@@ -41,7 +41,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 	*/
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		printf("[001] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	if (!mysqli_autocommit($link, false))
 		printf("[002] Failed to change autocommit setting\n");
@@ -70,7 +70,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 	/* no plugin magic */
 
 	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
-		printf("[010] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[010] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	if (!mysqli_autocommit($link, false))
 		printf("[011] Failed to change autocommit setting\n");

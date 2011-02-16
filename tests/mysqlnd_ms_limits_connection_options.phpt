@@ -40,7 +40,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_options.ini
 		printf("[001] Cannot set init command, [%d] %s\n", $link->errno, $link->error);
 
 	if (!my_mysqli_real_connect($link, "myapp", $user, $passwd, $db, $port, $socket))
-		printf("[002] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* master may have it because MS prototype used to connect to the master first */
 	if (!($res = run_query(3, $link, "SELECT @myinitcommand AS _myinit", MYSQLND_MS_MASTER_SWITCH)))

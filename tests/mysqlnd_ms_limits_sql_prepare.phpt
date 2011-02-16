@@ -29,7 +29,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_prepare.ini
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		printf("[001] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* one and only master */
 	$sql = sprintf("/*%s*/SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);

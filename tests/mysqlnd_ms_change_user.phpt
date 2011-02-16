@@ -53,7 +53,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 	}
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		printf("[001] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$master_thread = $link->thread_id;

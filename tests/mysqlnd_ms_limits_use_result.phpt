@@ -41,7 +41,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_use_result.ini
 	*/
 
 	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
-		printf("[001] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	run_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
 	run_query(3, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);

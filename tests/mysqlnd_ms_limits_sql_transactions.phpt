@@ -44,7 +44,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_transactions.ini
 	*/
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		printf("[001] [%d] %s\n", mysqli_connect_errno($link), mysqli_connect_error($link));
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 
 	/* Note: unlike with C/J the autocommit setting does not impact the redirection */
