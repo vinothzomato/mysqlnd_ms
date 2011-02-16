@@ -396,8 +396,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 					mnd_efree(slave);
 					slave = NULL;
-				} else {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot find slave section in config");
 				}
 			} while (value_exists);
 
