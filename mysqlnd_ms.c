@@ -320,6 +320,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			/* create master connection */
 			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+			if (FALSE == value_exists) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot find master section in config");
+				break;
+			}
 
 			char * lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  			&use_lazy_connections, &use_lazy_connections_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
@@ -392,6 +396,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 					mnd_efree(slave);
 					slave = NULL;
+				} else {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot find slave section in config");
 				}
 			} while (value_exists);
 

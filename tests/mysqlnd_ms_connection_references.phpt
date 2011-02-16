@@ -32,7 +32,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 		return $ret;
 	}
 
-	$num_links = 20;
+	$num_links = 10;
 	$links = array();
 	$references = array();
 
@@ -43,8 +43,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 		$references[$i] = $link;
 	}
 
+	$last_closed = null;
 	do {
-		$last_closed = null;
 		$idx = mt_rand(0, $num_links);
 
 		if (isset($references[$last_closed])) {
