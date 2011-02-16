@@ -9,6 +9,9 @@ if ($master_host == $slave_host) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
+if ($db == 'mysql')
+	die("Default test database must not be 'mysql', use 'test' or the like");
+
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
