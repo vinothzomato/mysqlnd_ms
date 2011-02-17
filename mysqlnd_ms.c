@@ -1207,8 +1207,13 @@ PHP_MSHUTDOWN_FUNCTION(mysqlnd_ms)
  */
 PHP_MINFO_FUNCTION(mysqlnd_ms)
 {
+	char buf[64];
+
 	php_info_print_table_start();
 	php_info_print_table_header(2, "mysqlnd_ms support", "enabled");
+	snprintf(buf, sizeof(buf), "%s (%d)", MYSQLND_MS_VERSION, MYSQLND_MS_VERSION_ID);
+	php_info_print_table_row(2, "Mysqlnd master/slave plugin version", buf);
+	php_info_print_table_row(2, "Plugin active", MYSQLND_MS_G(enable) ? "yes" : "no");
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();
