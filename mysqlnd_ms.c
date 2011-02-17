@@ -320,6 +320,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	} else {
 		do {
 			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = FALSE, use_lazy_connections_list_value = FALSE;
+			char * lazy_connections;
 			/* create master connection */
 			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
@@ -328,8 +329,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				break;
 			}
 
-			char * lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-												  			&use_lazy_connections, &use_lazy_connections_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+													 &use_lazy_connections, &use_lazy_connections_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 
 			use_lazy_connections = use_lazy_connections && mysqlnd_ms_ini_string_is_bool_true(lazy_connections);
 			if (lazy_connections) {
@@ -341,16 +342,15 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			if (ret != PASS) {
 				mnd_efree(master);
 				break;
-			}
-			{
+			} else {
 				MYSQLND_MS_LIST_DATA new_element;
 				new_element.conn = conn;
 				new_element.host = mnd_pestrdup(master, conn->persistent);
 				new_element.persistent = conn->persistent;
 				zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 			}
-			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 			mnd_efree(master);
+			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 
 			/* More master connections ? */
 			if (is_list_value) {
@@ -854,6 +854,21 @@ MYSQLND_METHOD(mysqlnd_ms, ping)(MYSQLND * const proxy_conn TSRMLS_DC)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms::kill */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, kill)(MYSQLND * proxy_conn, unsigned int pid TSRMLS_DC)
+{
+	enum_func_status ret;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	MYSQLND * const conn = ((*conn_data_pp) && (*conn_data_pp)->last_used_connection)? (*conn_data_pp)->last_used_connection:proxy_conn;
+	DBG_ENTER("mysqlnd_ms::next_result");
+	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
+	ret = orig_mysqlnd_conn_methods->kill_connection(conn, pid TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::select_db */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
@@ -1077,6 +1092,7 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.escape_string	= MYSQLND_METHOD(mysqlnd_ms, escape_string);
 	my_mysqlnd_conn_methods.change_user		= MYSQLND_METHOD(mysqlnd_ms, change_user);
 	my_mysqlnd_conn_methods.ping			= MYSQLND_METHOD(mysqlnd_ms, ping);
+	my_mysqlnd_conn_methods.kill_connection	= MYSQLND_METHOD(mysqlnd_ms, kill);
 	my_mysqlnd_conn_methods.select_db		= MYSQLND_METHOD(mysqlnd_ms, select_db);
 	my_mysqlnd_conn_methods.set_charset		= MYSQLND_METHOD(mysqlnd_ms, set_charset);
 	my_mysqlnd_conn_methods.next_result		= MYSQLND_METHOD(mysqlnd_ms, next_result);
