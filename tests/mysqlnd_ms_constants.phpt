@@ -7,6 +7,8 @@ require_once('skipif.inc');
 --FILE--
 <?php
 	$expected = array(
+		"MYSQLND_MS_VERSION" => true,
+		"MYSQLND_MS_VERSION_ID" => true,
 
 		/* SQL hints */
 		"MYSQLND_MS_MASTER_SWITCH" => true,
@@ -44,4 +46,6 @@ MYSQLND_MS_QUERY_USE_LAST_USED = '2'
 MYSQLND_MS_QUERY_USE_MASTER = '0'
 MYSQLND_MS_QUERY_USE_SLAVE = '1'
 MYSQLND_MS_SLAVE_SWITCH = 'ms=slave'
+MYSQLND_MS_VERSION = '1.0.0-prototype'
+MYSQLND_MS_VERSION_ID = '10000'
 done!
