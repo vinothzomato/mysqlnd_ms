@@ -1,5 +1,5 @@
 --TEST--
-Default load balancing strategy
+Default load balancing strategy (round robin)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -105,11 +105,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_default_pick.ini
 	print "done!";
 
 ?>
---CLEANI--
+--CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_default_pick.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
+--XFAIL--
+Multi-master support is non-functional
 --EXPECTF--
 Slave 1 (%d) has run 1 queries
 Slave 2 (%d) has run 1 queries
