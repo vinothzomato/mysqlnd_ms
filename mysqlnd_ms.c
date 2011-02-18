@@ -917,6 +917,74 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 /* }}} */
 
 
+/* {{{ mysqlnd_ms::set_server_option */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_mysqlnd_server_option option TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND_MS_LIST_DATA * el;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms::set_server_option");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->set_server_option(proxy_conn, option TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_server_option(el->conn, option TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_server_option(el->conn, option TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms::set_client_option */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_mysqlnd_option option, const char * const value TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND_MS_LIST_DATA * el;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms::set_server_option");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->set_client_option(proxy_conn, option, value TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_client_option(el->conn, option, value TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_client_option(el->conn, option, value TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::next_result */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, next_result)(MYSQLND * const proxy_conn TSRMLS_DC)
@@ -1064,22 +1132,24 @@ mysqlnd_ms_register_hooks()
 
 	memcpy(&my_mysqlnd_conn_methods, orig_mysqlnd_conn_methods, sizeof(struct st_mysqlnd_conn_methods));
 
-	my_mysqlnd_conn_methods.connect			= MYSQLND_METHOD(mysqlnd_ms, connect);
-	my_mysqlnd_conn_methods.query			= MYSQLND_METHOD(mysqlnd_ms, query);
-	my_mysqlnd_conn_methods.use_result		= MYSQLND_METHOD(mysqlnd_ms, use_result);
-	my_mysqlnd_conn_methods.store_result	= MYSQLND_METHOD(mysqlnd_ms, store_result);
-	my_mysqlnd_conn_methods.free_contents	= MYSQLND_METHOD(mysqlnd_ms, free_contents);
-	my_mysqlnd_conn_methods.escape_string	= MYSQLND_METHOD(mysqlnd_ms, escape_string);
-	my_mysqlnd_conn_methods.change_user		= MYSQLND_METHOD(mysqlnd_ms, change_user);
-	my_mysqlnd_conn_methods.ping			= MYSQLND_METHOD(mysqlnd_ms, ping);
-	my_mysqlnd_conn_methods.kill_connection	= MYSQLND_METHOD(mysqlnd_ms, kill);
-	my_mysqlnd_conn_methods.select_db		= MYSQLND_METHOD(mysqlnd_ms, select_db);
-	my_mysqlnd_conn_methods.set_charset		= MYSQLND_METHOD(mysqlnd_ms, set_charset);
-	my_mysqlnd_conn_methods.next_result		= MYSQLND_METHOD(mysqlnd_ms, next_result);
-	my_mysqlnd_conn_methods.more_results	= MYSQLND_METHOD(mysqlnd_ms, more_results);
-	my_mysqlnd_conn_methods.get_error_no	= MYSQLND_METHOD(mysqlnd_ms, errno);
-	my_mysqlnd_conn_methods.get_error_str	= MYSQLND_METHOD(mysqlnd_ms, error);
-	my_mysqlnd_conn_methods.get_sqlstate	= MYSQLND_METHOD(mysqlnd_ms, sqlstate);
+	my_mysqlnd_conn_methods.connect				= MYSQLND_METHOD(mysqlnd_ms, connect);
+	my_mysqlnd_conn_methods.query				= MYSQLND_METHOD(mysqlnd_ms, query);
+	my_mysqlnd_conn_methods.use_result			= MYSQLND_METHOD(mysqlnd_ms, use_result);
+	my_mysqlnd_conn_methods.store_result		= MYSQLND_METHOD(mysqlnd_ms, store_result);
+	my_mysqlnd_conn_methods.free_contents		= MYSQLND_METHOD(mysqlnd_ms, free_contents);
+	my_mysqlnd_conn_methods.escape_string		= MYSQLND_METHOD(mysqlnd_ms, escape_string);
+	my_mysqlnd_conn_methods.change_user			= MYSQLND_METHOD(mysqlnd_ms, change_user);
+	my_mysqlnd_conn_methods.ping				= MYSQLND_METHOD(mysqlnd_ms, ping);
+	my_mysqlnd_conn_methods.kill_connection		= MYSQLND_METHOD(mysqlnd_ms, kill);
+	my_mysqlnd_conn_methods.select_db			= MYSQLND_METHOD(mysqlnd_ms, select_db);
+	my_mysqlnd_conn_methods.set_charset			= MYSQLND_METHOD(mysqlnd_ms, set_charset);
+	my_mysqlnd_conn_methods.set_server_option	= MYSQLND_METHOD(mysqlnd_ms, set_server_option);
+	my_mysqlnd_conn_methods.set_client_option	= MYSQLND_METHOD(mysqlnd_ms, set_client_option);
+	my_mysqlnd_conn_methods.next_result			= MYSQLND_METHOD(mysqlnd_ms, next_result);
+	my_mysqlnd_conn_methods.more_results		= MYSQLND_METHOD(mysqlnd_ms, more_results);
+	my_mysqlnd_conn_methods.get_error_no		= MYSQLND_METHOD(mysqlnd_ms, errno);
+	my_mysqlnd_conn_methods.get_error_str		= MYSQLND_METHOD(mysqlnd_ms, error);
+	my_mysqlnd_conn_methods.get_sqlstate		= MYSQLND_METHOD(mysqlnd_ms, sqlstate);
 
 
 	my_mysqlnd_conn_methods.get_thread_id		= MYSQLND_METHOD(mysqlnd_ms, thread_id);
