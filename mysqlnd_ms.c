@@ -824,31 +824,11 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, ping)(MYSQLND * const proxy_conn TSRMLS_DC)
 {
-	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
+	enum_func_status ret;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	MYSQLND * const conn = ((*conn_data_pp) && (*conn_data_pp)->last_used_connection)? (*conn_data_pp)->last_used_connection:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::ping");
-	if (!conn_data_pp || !*conn_data_pp) {
-		DBG_RETURN(orig_mysqlnd_conn_methods->ping(proxy_conn TSRMLS_CC));
-	}
-	/* search the list of easy handles hanging off the multi-handle */
-	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
-			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
-	{
-		if (PASS != orig_mysqlnd_conn_methods->ping(el->conn TSRMLS_CC)) {
-			ret = FAIL;
-		}
-	}
-
-	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); el && el->conn;
-			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
-	{
-		if (PASS != orig_mysqlnd_conn_methods->ping(el->conn TSRMLS_CC)) {
-			ret = FAIL;
-		}
-	}
-
+	ret = orig_mysqlnd_conn_methods->ping(conn TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -861,7 +841,7 @@ MYSQLND_METHOD(mysqlnd_ms, kill)(MYSQLND * proxy_conn, unsigned int pid TSRMLS_D
 	enum_func_status ret;
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	MYSQLND * const conn = ((*conn_data_pp) && (*conn_data_pp)->last_used_connection)? (*conn_data_pp)->last_used_connection:proxy_conn;
-	DBG_ENTER("mysqlnd_ms::next_result");
+	DBG_ENTER("mysqlnd_ms::kill");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	ret = orig_mysqlnd_conn_methods->kill_connection(conn, pid TSRMLS_CC);
 	DBG_RETURN(ret);
@@ -1292,7 +1272,6 @@ static PHP_FUNCTION(mysqlnd_ms_query_is_select)
 	RETURN_LONG(mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC));
 }
 /* }}} */
-
 
 
 /* {{{ mysqlnd_ms_deps[] */

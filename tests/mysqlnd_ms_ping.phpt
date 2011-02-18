@@ -22,6 +22,7 @@ if ($error = create_config("test_mysqlnd_ms_ping.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
+mysqlnd.debug="d:t:O,/tmp/mysqlnd.trace"
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -50,8 +51,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 	if (!$link->kill($link->thread_id))
 		printf("[006] [%d] %s\n", $link->errno, $link->error);
 
+	usleep(2000);
 	if ($link->ping())
 		printf("[007] Master connection is still alive\n");
+	else
+		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
 	if (run_query(8, $link, "SET @myrole='Master 1'"))
 		printf("[008] Master connection can still run queries\n");
@@ -71,9 +75,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 	if (!$link->kill($link->thread_id))
 		printf("[013] [%d] %s\n", $link->errno, $link->error);
 
+	usleep(2000);
+
 	if ($link->ping())
 		printf("[014] Slave connection is still alive\n");
-
+	else
+		printf("[014] [%d] %s\n", $link->errno, $link->error);
 
 	$res = run_query(15, $link, "SELECT @myrole AS _role");
 
@@ -90,8 +97,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 	if (!$link->kill($link->thread_id))
 		printf("[019] [%d] %s\n", $link->errno, $link->error);
 
+	usleep(2000);
+
 	if ($link->ping())
 		printf("[020] Slave connection is still alive\n");
+	else
+		printf("[020] [%d] %s\n", $link->errno, $link->error);
 
 	print "done!";
 
@@ -102,7 +113,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
-[008] %s
-[014] %s
-[018] %s
+[007] [%d] %s
+[008] [%d] %s
+[014] [%d] %s
+[020] [%d] %s
 done!
