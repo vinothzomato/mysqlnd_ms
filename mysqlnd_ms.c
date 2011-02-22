@@ -43,6 +43,7 @@
 #define PICK_RANDOM		"random"
 #define PICK_RROBIN		"roundrobin"
 #define PICK_USER		"user"
+#define LAZY_NAME		"lazy_connections"
 
 ZEND_DECLARE_MODULE_GLOBALS(mysqlnd_ms)
 
@@ -319,6 +320,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		}
 	} else {
 		do {
+			unsigned int port_to_use;
+			const char * socket_to_use;
 			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = FALSE, use_lazy_connections_list_value = FALSE;
 			char * lazy_connections;
 			/* create master connection */
@@ -329,7 +332,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				break;
 			}
 
-			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
 													 &use_lazy_connections, &use_lazy_connections_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 
 			use_lazy_connections = use_lazy_connections && mysqlnd_ms_ini_string_is_bool_true(lazy_connections);
@@ -337,8 +340,26 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				mnd_efree(lazy_connections);
 				lazy_connections = NULL;
 			}
+			{
+				char * colon_pos;
+				port_to_use = port;
+				socket_to_use = socket;
 
-			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
+				if (NULL != (colon_pos = strchr(master, ':'))) {
+					if (colon_pos[1] == '/') {
+						/* unix path */
+						socket_to_use = colon_pos + 1; 
+						DBG_INF_FMT("overwriting socket : %s", socket_to_use);
+					} else if (isdigit(colon_pos[1])) {
+						/* port */
+						port_to_use = atoi(colon_pos+1);
+						DBG_INF_FMT("overwriting port : %d", port_to_use);
+					}
+					*colon_pos = '\0'; /* strip the tail */
+				}
+			}
+
+			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
 			if (ret != PASS) {
 				mnd_efree(master);
 				break;
@@ -361,7 +382,27 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
 					if (value_exists && master) {
 						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
+
+						{
+							char * colon_pos;
+							port_to_use = port;
+							socket_to_use = socket;
+
+							if (NULL != (colon_pos = strchr(master, ':'))) {
+								if (colon_pos[1] == '/') {
+									/* unix path */
+									socket_to_use = colon_pos + 1; 
+									DBG_INF_FMT("overwriting socket : %s", socket_to_use);
+								} else if (isdigit(colon_pos[1])) {
+									/* port */
+									port_to_use = atoi(colon_pos+1);
+									DBG_INF_FMT("overwriting port : %d", port_to_use);
+								}
+								*colon_pos = '\0'; /* strip the tail */
+							}
+						}
+
+						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
 
 						if (ret == PASS) {
 							MYSQLND_MS_LIST_DATA new_element;
@@ -385,7 +426,27 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 													 &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
+
+					{
+						char * colon_pos;
+						port_to_use = port;
+						socket_to_use = socket;
+
+						if (NULL != (colon_pos = strchr(slave, ':'))) {
+							if (colon_pos[1] == '/') {
+								/* unix path */
+								socket_to_use = colon_pos + 1; 
+								DBG_INF_FMT("overwriting socket : %s", socket_to_use);
+							} else if (isdigit(colon_pos[1])) {
+								/* port */
+								port_to_use = atoi(colon_pos+1);
+								DBG_INF_FMT("overwriting port : %d", port_to_use);
+							}
+							*colon_pos = '\0'; /* strip the tail */
+						}
+					}
+
+					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
 
 					if (ret == PASS) {
 						MYSQLND_MS_LIST_DATA new_element;
