@@ -372,7 +372,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 			mnd_efree(master);
 			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
-
+#ifdef MYSQLND_MS_MULTIMASTER_ENABLED
 			/* More master connections ? */
 			if (is_list_value) {
 				DBG_INF("We have more master connections. Connect...");
@@ -419,7 +419,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 				} while (value_exists);
 			}
-
+#endif
 			/* create slave slave_connections */
 			do {
 				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
