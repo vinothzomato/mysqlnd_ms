@@ -90,6 +90,8 @@ typedef struct st_mysqlnd_ms_list_data
 {
 	MYSQLND * conn;
 	char * host;
+	unsigned int port;
+	char * socket;
 	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
 
@@ -247,6 +249,10 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		mnd_pefree(element->host, element->persistent);
 		element->host = NULL;
 	}
+	if (element->socket) {
+//		mnd_pefree(element->socket, element->persistent);
+		element->socket = NULL;
+	}
 	element->persistent = FALSE;
 	DBG_VOID_RETURN;
 }
@@ -264,6 +270,9 @@ mysqlnd_ms_ini_string_is_bool_true(const char * value)
 		return TRUE;
 	}
 	if (!strncasecmp("true", value, sizeof("true") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("on", value, sizeof("on") - 1)) {
 		return TRUE;
 	}
 	return FALSE;
@@ -308,11 +317,17 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	*conn_data_pp = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONNECTION_DATA), conn->persistent);
 	zend_llist_init(&(*conn_data_pp)->master_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 	zend_llist_init(&(*conn_data_pp)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+	(*conn_data_pp)->user = user? mnd_pestrdup(user, conn->persistent) : NULL;
+	(*conn_data_pp)->passwd = passwd? mnd_pestrndup(passwd, (*conn_data_pp)->passwd_len = passwd_len, conn->persistent) : NULL;
+	(*conn_data_pp)->db = db? mnd_pestrndup(db, (*conn_data_pp)->db_len = db_len, conn->persistent) : NULL;
+	(*conn_data_pp)->port = port;
+	(*conn_data_pp)->socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
+	(*conn_data_pp)->mysql_flags = mysql_flags;
 
 	if (FALSE == section_found) {
 		ret = orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 		if (ret == PASS) {
-			MYSQLND_MS_LIST_DATA new_element;
+			MYSQLND_MS_LIST_DATA new_element = {0};
 			new_element.conn = conn;
 			new_element.host = mnd_pestrdup(host, conn->persistent);
 			new_element.persistent = conn->persistent;
@@ -360,14 +375,17 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+
 			if (ret != PASS) {
 				mnd_efree(master);
 				break;
 			} else {
-				MYSQLND_MS_LIST_DATA new_element;
+				MYSQLND_MS_LIST_DATA new_element = {0};
 				new_element.conn = conn;
 				new_element.host = mnd_pestrdup(master, conn->persistent);
 				new_element.persistent = conn->persistent;
+				new_element.port = port_to_use;
+				new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
 				zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 			}
 			mnd_efree(master);
@@ -405,10 +423,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
 
 						if (ret == PASS) {
-							MYSQLND_MS_LIST_DATA new_element;
+							MYSQLND_MS_LIST_DATA new_element = {0};
 							new_element.conn = tmp_conn;
 							new_element.host = mnd_pestrdup(master, conn->persistent);
 							new_element.persistent = conn->persistent;
+							new_element.port = port_to_use;
+							new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
 							zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 						} else {
@@ -446,13 +466,20 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						}
 					}
 
-					ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+					if (use_lazy_connections) {
+						DBG_INF("Lazy connection");
+						ret = PASS;
+					} else {				
+						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+					}
 
 					if (ret == PASS) {
-						MYSQLND_MS_LIST_DATA new_element;
+						MYSQLND_MS_LIST_DATA new_element = {0};
 						new_element.conn = tmp_conn;
 						new_element.host = mnd_pestrdup(slave, conn->persistent);
 						new_element.persistent = conn->persistent;
+						new_element.port = port_to_use;
+						new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
 						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &new_element);
 						DBG_INF_FMT("Slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 					} else {
@@ -571,22 +598,35 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 		case USE_SLAVE:
 		{
 			zend_llist * l = &(*conn_data_pp)->slave_connections;
-			MYSQLND_MS_LIST_DATA * tmp = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next(l);
-			MYSQLND * element = (tmp && tmp->conn)? tmp->conn : (((tmp = zend_llist_get_first(l)) && tmp->conn)? tmp->conn : NULL);
-			if (element) {
-				DBG_INF("Using slave connection");
-				DBG_RETURN(element);
+			MYSQLND_MS_LIST_DATA * element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next(l);
+			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
+			if (connection) {
+				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+				
+				if (connection->state == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
+																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						DBG_RETURN(connection);
+					}
+					DBG_INF("Connect failed, falling back to the master");
+				}		
 			}
 		}
 		/* fall-through */
 		case USE_MASTER:
 		{
 			zend_llist * l = &(*conn_data_pp)->master_connections;
-			MYSQLND_MS_LIST_DATA * tmp = zend_llist_get_next(l);
-			MYSQLND * element = (tmp && tmp->conn)? tmp->conn : (((tmp = zend_llist_get_first(l)) && tmp->conn)? tmp->conn : NULL);
+			MYSQLND_MS_LIST_DATA * element = zend_llist_get_next(l);
+			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
 			DBG_INF("Using master connection");
-			if (element) {
-				DBG_RETURN(element);
+			if (connection) {
+				DBG_RETURN(connection);
 			}
 		}
 		/* fall-through */
@@ -631,7 +671,20 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			}
 			if (element && element->conn) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
-				DBG_RETURN(element->conn);
+				
+				if (element->conn->state == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == orig_mysqlnd_conn_methods->connect(element->conn, element->host, (*conn_data_pp)->user,
+																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						DBG_RETURN(element->conn);
+					}
+					DBG_INF("Connect failed, falling back to the master");
+				}		
 			}
 		}
 		/* fall-through */
@@ -697,6 +750,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 		}
 		(*conn_data_pp)->last_used_connection = connection;
 	}
+
 	DBG_RETURN(connection);
 }
 /* }}} */
