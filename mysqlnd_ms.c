@@ -55,8 +55,8 @@ static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
 static zend_bool mysqlns_ms_global_config_loaded = FALSE;
 static HashTable mysqlnd_ms_config;
 
-static MYSQLND * mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
-static MYSQLND * mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
+static MYSQLND * mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC);
+static MYSQLND * mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC);
 static void mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC);
 
 
@@ -144,20 +144,24 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 
 /* {{{ mysqlnd_ms_user_pick_server */
 static MYSQLND *
-mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len TSRMLS_DC)
+mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	zend_llist * master_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
 	zend_llist * slave_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
-	zval * args[5];
+	zval * args[6];
 	zval * retval;
 	MYSQLND * ret = NULL;
 
 	DBG_ENTER("mysqlnd_ms_user_pick_server");
 	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
 
+	*use_all = 0;
 	if (master_list && MYSQLND_MS_G(user_pick_server)) {
 		uint param = 0;
+#ifdef ALL_SERVER_DISPATCH
+		uint use_all_pos = 0;
+#endif
 		/* connect host */
 		MS_STRING((char *) (*conn_data_pp)->connect_host, args[param]);
 
@@ -194,9 +198,17 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			} else {
 				ZVAL_NULL(args[param]);
 			}
+
+#ifdef ALL_SERVER_DISPATCH
+			/* use all */
+			use_all_pos = ++param;
+			MAKE_STD_ZVAL(args[param]);
+			Z_ADDREF_P(args[param]);
+			ZVAL_FALSE(args[param]);
+#endif
 		}
 
-		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, TRUE TSRMLS_CC);
+		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, FALSE /* we will destroy later */ TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
 				do {
@@ -225,12 +237,23 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			}
 			zval_ptr_dtor(&retval);
 		}
+#ifdef ALL_SERVER_DISPATCH
+		convert_to_boolean(args[use_all_pos]);
+		*use_all = Z_BVAL_P(args[use_all_pos]);
+		Z_DELREF_P(args[use_all_pos]);
+#endif
+		/* destroy the params */
+		{
+			unsigned int i;
+			for (i = 0; i < param; i++) {
+				zval_ptr_dtor(&args[i]);
+			}
+		}
 	}
 
 	DBG_RETURN(ret);
 }
 /* }}} */
-
 
 
 /* {{{ mysqlnd_ms_conn_list_dtor */
@@ -250,7 +273,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		element->host = NULL;
 	}
 	if (element->socket) {
-//		mnd_pefree(element->socket, element->persistent);
+		mnd_pefree(element->socket, element->persistent);
 		element->socket = NULL;
 	}
 	element->persistent = FALSE;
@@ -532,12 +555,14 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 #define MASTER_SWITCH "ms=master"
 #define SLAVE_SWITCH "ms=slave"
 #define LAST_USED_SWITCH "ms=last_used"
+#define ALL_SERVER_SWITCH "ms=all"
 
 enum enum_which_server
 {
 	USE_MASTER,
 	USE_SLAVE,
-	USE_LAST_USED
+	USE_LAST_USED,
+	USE_ALL
 };
 
 
@@ -560,22 +585,30 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 			DBG_INF("forced master");
 			ret = USE_MASTER;
 			forced = TRUE;
-		}
-		if (!strncasecmp(Z_STRVAL(token.value), SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1)) {
+		} else if (!strncasecmp(Z_STRVAL(token.value), SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1)) {
 			DBG_INF("forced slave");
 			ret = USE_SLAVE;
 			forced = TRUE;
-		}
-		if (!strncasecmp(Z_STRVAL(token.value), LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
+		} else if (!strncasecmp(Z_STRVAL(token.value), LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
 			DBG_INF("forced last used");
 			ret = USE_LAST_USED;
 			forced = TRUE;
+#ifdef ALL_SERVER_DISPATCH
+		} else if (!strncasecmp(Z_STRVAL(token.value), ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1)) {
+			DBG_INF("forced all server");
+			ret = USE_ALL;
+			forced = TRUE;
+#endif
 		}
 		zval_dtor(&token.value);
 		token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
 	}
 	if (forced == FALSE && token.token == QC_TOKEN_SELECT) {
 		ret = USE_SLAVE;
+#ifdef ALL_SERVER_DISPATCH
+	} else if (forced == FALSE && token.token == QC_TOKEN_SET) {
+		ret = USE_ALL;
+#endif
 	}
 	zval_dtor(&token.value);
 	mysqlnd_tok_free_scanner(scanner TSRMLS_CC);
@@ -586,11 +619,12 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_choose_connection_rr */
 static MYSQLND *
-mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
+	*use_all = 0;
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(conn);
 	}
@@ -633,6 +667,9 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN((*conn_data_pp)->last_used_connection);
+		case USE_ALL:
+			DBG_INF("Dispatch to all connections");
+			DBG_RETURN(conn);
 		default:
 			/* error */
 			DBG_RETURN(conn);
@@ -644,11 +681,12 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 
 /* {{{ mysqlnd_ms_choose_connection_random */
 static MYSQLND *
-mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
+	*use_all = 0;
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(conn);
 	}
@@ -713,6 +751,9 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN((*conn_data_pp)->last_used_connection);
+		case USE_ALL:
+			DBG_INF("Dispatch to all connections");
+			DBG_RETURN(conn);
 		default:
 			/* error */
 			DBG_RETURN(conn);
@@ -723,26 +764,27 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 
 /* {{{ mysqlnd_ms_pick_server */
 static MYSQLND *
-mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	MYSQLND * connection = conn;
 	DBG_ENTER("mysqlnd_ms_pick_server");
 
+	*use_all = 0;
 	if (conn_data_pp && *conn_data_pp) {
 		enum mysqlnd_ms_server_pick_strategy strategy = (*conn_data_pp)->pick_strategy;
 		connection = NULL;
 		if (SERVER_PICK_USER == strategy) {
-			connection = mysqlnd_ms_user_pick_server(conn, query, query_len TSRMLS_CC);
+			connection = mysqlnd_ms_user_pick_server(conn, query, query_len, use_all TSRMLS_CC);
 			if (!connection) {
 				strategy = (*conn_data_pp)->fallback_pick_strategy;
 			}
 		}
 		if (!connection) {
 			if (SERVER_PICK_RANDOM == strategy) {
-				connection = mysqlnd_ms_choose_connection_random(conn, query, query_len TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_random(conn, query, query_len, use_all TSRMLS_CC);
 			} else {
-				connection = mysqlnd_ms_choose_connection_rr(conn, query, query_len TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_rr(conn, query, query_len, use_all TSRMLS_CC);
 			}
 		}
 		if (!connection) {
@@ -756,15 +798,53 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 /* }}} */
 
 
+/* {{{ mysqlnd_ms::select_db */
+static enum_func_status
+mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned int query_len TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND_MS_LIST_DATA * el;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms_query_all");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->query(proxy_conn, query, query_len TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
-MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char *query, unsigned int query_len TSRMLS_DC)
+MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
 {
 	MYSQLND * connection;
 	enum_func_status ret;
+	zend_bool use_all = 0;
 	DBG_ENTER("mysqlnd_ms::query");
 
-	connection = mysqlnd_ms_pick_server(conn, query, query_len TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server(conn, query, query_len, &use_all TSRMLS_CC);
+	if (use_all) {
+		mysqlnd_ms_query_all(conn, query, query_len TSRMLS_CC);
+	}
 
 	ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
@@ -877,6 +957,8 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(const MYSQLND * const proxy_conn, char
 	DBG_RETURN(orig_mysqlnd_conn_methods->escape_string(conn, newstr, escapestr, escapestr_len TSRMLS_CC));
 }
 /* }}} */
+
+
 
 
 /* {{{ mysqlnd_ms::change_user */
@@ -1359,7 +1441,9 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_MASTER_SWITCH", MASTER_SWITCH, CONST_CS | CONST_PERSISTENT);
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_SLAVE_SWITCH", SLAVE_SWITCH, CONST_CS | CONST_PERSISTENT);
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_LAST_USED_SWITCH", LAST_USED_SWITCH, CONST_CS | CONST_PERSISTENT);
-
+#ifdef ALL_SERVER_DISPATCH
+	REGISTER_STRING_CONSTANT("MYSQLND_MS_ALL_SERVER_SWITCH", ALL_SERVER_SWITCH, CONST_CS | CONST_PERSISTENT);
+#endif
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_MASTER", USE_MASTER, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_SLAVE", USE_SLAVE, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_LAST_USED", USE_LAST_USED, CONST_CS | CONST_PERSISTENT);
