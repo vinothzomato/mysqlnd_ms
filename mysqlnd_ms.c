@@ -386,7 +386,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				if (NULL != (colon_pos = strchr(master, ':'))) {
 					if (colon_pos[1] == '/') {
 						/* unix path */
-						socket_to_use = colon_pos + 1; 
+						socket_to_use = colon_pos + 1;
 						DBG_INF_FMT("overwriting socket : %s", socket_to_use);
 					} else if (isdigit(colon_pos[1])) {
 						/* port */
@@ -432,7 +432,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 							if (NULL != (colon_pos = strchr(master, ':'))) {
 								if (colon_pos[1] == '/') {
 									/* unix path */
-									socket_to_use = colon_pos + 1; 
+									socket_to_use = colon_pos + 1;
 									DBG_INF_FMT("overwriting socket : %s", socket_to_use);
 								} else if (isdigit(colon_pos[1])) {
 									/* port */
@@ -478,7 +478,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						if (NULL != (colon_pos = strchr(slave, ':'))) {
 							if (colon_pos[1] == '/') {
 								/* unix path */
-								socket_to_use = colon_pos + 1; 
+								socket_to_use = colon_pos + 1;
 								DBG_INF_FMT("overwriting socket : %s", socket_to_use);
 							} else if (isdigit(colon_pos[1])) {
 								/* port */
@@ -492,7 +492,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					if (use_lazy_connections) {
 						DBG_INF("Lazy connection");
 						ret = PASS;
-					} else {				
+					} else {
 						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
 					}
 
@@ -636,7 +636,7 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
 			if (connection) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
-				
+
 				if (connection->state == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
@@ -649,7 +649,9 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 						DBG_RETURN(connection);
 					}
 					DBG_INF("Connect failed, falling back to the master");
-				}		
+				} else {
+					DBG_RETURN(element->conn);
+				}
 			}
 		}
 		/* fall-through */
@@ -709,7 +711,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			}
 			if (element && element->conn) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
-				
+
 				if (element->conn->state == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
@@ -722,7 +724,9 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 						DBG_RETURN(element->conn);
 					}
 					DBG_INF("Connect failed, falling back to the master");
-				}		
+				} else {
+					DBG_RETURN(element->conn);
+				}
 			}
 		}
 		/* fall-through */
