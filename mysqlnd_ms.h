@@ -36,8 +36,6 @@
 #include "TSRM.h"
 #endif
 
-PHP_FUNCTION(confirm_mysqlnd_ms_compiled);	/* For testing, remove later. */
-
 ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool enable;
 	zend_bool force_config_usage;
@@ -64,6 +62,34 @@ struct st_mysqlnd_tok_scanner
 	void * scanner;
 	zval * token_value;
 };
+
+
+
+#define MASTER_SWITCH "ms=master"
+#define SLAVE_SWITCH "ms=slave"
+#define LAST_USED_SWITCH "ms=last_used"
+#define ALL_SERVER_SWITCH "ms=all"
+
+#define MYSQLND_MS_VERSION "1.0.0-prototype"
+#define MYSQLND_MS_VERSION_ID 10000
+
+#define MYSLQND_MS_HOTLOADING FALSE
+
+enum enum_which_server
+{
+	USE_MASTER,
+	USE_SLAVE,
+	USE_LAST_USED,
+	USE_ALL
+};
+
+extern unsigned int mysqlnd_ms_plugin_id;
+extern HashTable mysqlnd_ms_config;
+ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
+
+
+void mysqlnd_ms_register_hooks();
+enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_H */
 
