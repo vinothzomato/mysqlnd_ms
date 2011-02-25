@@ -236,7 +236,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 		/* destroy the params */
 		{
 			unsigned int i;
-			for (i = 0; i < param; i++) {
+			for (i = 0; i <= param; i++) {
 				zval_ptr_dtor(&args[i]);
 			}
 		}
