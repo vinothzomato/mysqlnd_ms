@@ -11,6 +11,7 @@ if ($master_host == $slave_host) {
 
 $settings = array(
 	"myapp" => array(
+		/* CAUTION: during development we sometimes did support multi-master somestimes not */
 		'master' => array($master_host, $master_host),
 		'slave' => array($slave_host, $slave_host),
 	),
@@ -113,6 +114,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_default_pick.ini
 --EXPECTF--
 Slave 1 (%d) has run 1 queries
 Slave 2 (%d) has run 1 queries
-Master 1 (%d) has run 1 queries
-Master 2 (%d) has run 1 queries
+Master 2 (%d) has run 2 queries
 done!
