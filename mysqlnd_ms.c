@@ -1311,6 +1311,66 @@ MYSQLND_METHOD(mysqlnd_ms, info)(const MYSQLND * const proxy_conn TSRMLS_DC)
 /* }}} */
 
 
+#if MYSQLND_VERSION_ID >= 50009
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, set_autocommit) */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mode TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist_position	pos;
+	MYSQLND_MS_LIST_DATA * el;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	DBG_ENTER("mysqlnd_ms::set_autocommit");
+	if (!conn_data_pp || !*conn_data_pp) {
+		DBG_RETURN(orig_mysqlnd_conn_methods->set_autocommit(proxy_conn, mode TSRMLS_CC));
+	}
+	/* search the list of easy handles hanging off the multi-handle */
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
+	{
+		if (PASS != orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+			ret = FAIL;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, tx_commit) */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND * conn TSRMLS_DC)
+{
+	enum_func_status ret;
+	DBG_ENTER("mysqlnd_ms::tx_commit");
+	ret = orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, tx_rollback) */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND * conn TSRMLS_DC)
+{
+	enum_func_status ret;
+	DBG_ENTER("mysqlnd_ms::tx_rollback");
+	ret = orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+#endif
+
+
 /* {{{ PHP_INI
  */
 PHP_INI_BEGIN()
@@ -1355,7 +1415,11 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.get_affected_rows	= MYSQLND_METHOD(mysqlnd_ms, affected_rows);
 	my_mysqlnd_conn_methods.get_warning_count	= MYSQLND_METHOD(mysqlnd_ms, warning_count);
 	my_mysqlnd_conn_methods.get_last_message	= MYSQLND_METHOD(mysqlnd_ms, info);
-
+#if MYSQLND_VERSION_ID >= 50009
+	my_mysqlnd_conn_methods.set_autocommit		= MYSQLND_METHOD(mysqlnd_ms, set_autocommit);
+	my_mysqlnd_conn_methods.tx_commit			= MYSQLND_METHOD(mysqlnd_ms, tx_commit);
+	my_mysqlnd_conn_methods.tx_rollback			= MYSQLND_METHOD(mysqlnd_ms, tx_rollback);
+#endif
 	mysqlnd_conn_set_methods(&my_mysqlnd_conn_methods);
 }
 /* }}} */
