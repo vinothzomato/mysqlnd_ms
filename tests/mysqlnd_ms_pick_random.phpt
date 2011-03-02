@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'pick'		=> array('random'),
 		'master' 	=> array($master_host),
-		'slave' 	=> array($slave_host, $slave_host, $slave_hosts),
+		'slave' 	=> array($slave_host, $slave_host, $slave_host),
 	),
 );
 if ($error = create_config("test_mysqlnd_random_pick.ini", $settings))
