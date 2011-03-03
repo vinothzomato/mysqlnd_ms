@@ -351,7 +351,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		if (ret == PASS) {
 			MYSQLND_MS_LIST_DATA new_element = {0};
 			new_element.conn = conn;
-			new_element.host = mnd_pestrdup(host, conn->persistent);
+			new_element.host = host? mnd_pestrdup(host, conn->persistent) : NULL;
 			new_element.persistent = conn->persistent;
 			zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 		}
@@ -410,7 +410,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			} else {
 				MYSQLND_MS_LIST_DATA new_element = {0};
 				new_element.conn = conn;
-				new_element.host = mnd_pestrdup(master, conn->persistent);
+				new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
 				new_element.persistent = conn->persistent;
 				new_element.port = port_to_use;
 				new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
@@ -453,7 +453,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						if (ret == PASS) {
 							MYSQLND_MS_LIST_DATA new_element = {0};
 							new_element.conn = tmp_conn;
-							new_element.host = mnd_pestrdup(master, conn->persistent);
+							new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
 							new_element.persistent = conn->persistent;
 							new_element.port = port_to_use;
 							new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
@@ -504,7 +504,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					if (ret == PASS) {
 						MYSQLND_MS_LIST_DATA new_element = {0};
 						new_element.conn = tmp_conn;
-						new_element.host = mnd_pestrdup(slave, conn->persistent);
+						new_element.host = slave? mnd_pestrdup(slave, conn->persistent) : NULL;
 						new_element.persistent = conn->persistent;
 						new_element.port = port_to_use;
 						new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
@@ -564,7 +564,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		MYSQLND_MS_CONFIG_UNLOCK;
 	}
 	if (ret == PASS) {
-		(*conn_data_pp)->connect_host = mnd_pestrdup(host, conn->persistent);
+		(*conn_data_pp)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
 	}
 	DBG_RETURN(ret);
 }
