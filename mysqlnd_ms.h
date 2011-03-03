@@ -73,6 +73,15 @@ struct st_mysqlnd_tok_scanner
 #define MYSQLND_MS_VERSION "1.0.0-prototype"
 #define MYSQLND_MS_VERSION_ID 10000
 
+/*
+  Keep it false for now or we will have races in connect,
+  where multiple instance can read the slave[] values and so
+  move the pointer of each other. Need to find better implementation of
+  hotloading.
+  Maybe not use `hotloading? FALSE:TRUE` but an expclicit lock around
+  the array extraction of master[] and slave[] and pass FALSE to
+  mysqlnd_ms_ini_string(), meaning it should not try to get a lock.
+*/
 #define MYSLQND_MS_HOTLOADING FALSE
 
 enum enum_which_server

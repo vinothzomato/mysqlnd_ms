@@ -537,6 +537,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				}
 			}
 		} while (0);
+		mysqlnd_ms_ini_reset_section(&mysqlnd_ms_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
 	}
 	if (hotloading) {
 		MYSQLND_MS_CONFIG_UNLOCK;

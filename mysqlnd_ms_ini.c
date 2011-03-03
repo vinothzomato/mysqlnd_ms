@@ -290,6 +290,41 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_ini_string_array_reset_pos */
+char *
+mysqlnd_ms_ini_reset_section(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
+{
+	char * ret = NULL;
+	HashTable ** ini_section;
+	DBG_ENTER("mysqlnd_ms_ini_string_array_reset_pos");
+	DBG_INF_FMT("section=%s", section);
+
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_LOCK;
+	}
+	if (zend_hash_find(config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+		HashPosition pos;
+		struct st_mysqlnd_ms_ini_entry ** ini_section_entry_pp;
+
+		zend_hash_internal_pointer_reset_ex(*(HashTable **)ini_section, &pos);
+		while (zend_hash_get_current_data_ex(*(HashTable **)ini_section, (void **) &ini_section_entry_pp, &pos) == SUCCESS) {
+			if (IS_ARRAY == (*ini_section_entry_pp)->type) {
+				zend_llist_get_first((*ini_section_entry_pp)->value.list);
+			}
+			zend_hash_move_forward_ex(*(HashTable **)ini_section, &pos);
+		}
+	}
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_UNLOCK;
+	}
+
+	DBG_INF_FMT("ret=%s", ret? ret:"n/a");
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_init_server_list */
 enum_func_status
 mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
