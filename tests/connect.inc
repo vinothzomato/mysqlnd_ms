@@ -259,6 +259,11 @@
 						if (!fwrite($fp, sprintf("pick[]=%s\n", $method)))
 							return sprintf("Cannot write query redirection policy settings to file.");
 				}
+
+				if (isset($config['lazy_connections'])) {
+					if (!fwrite($fp, sprintf("lazy_connections=%s\n", $config['lazy_connections'])))
+							return sprintf("Cannot write query redirection policy settings to file.");
+				}
 			}
 			fclose($fp);
 			return '';

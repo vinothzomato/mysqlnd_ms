@@ -5,14 +5,11 @@ Limits: autocommit - NOT handled by plugin
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
+		'lazy_connections' => true,
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_autocommit.ini", $settings))
@@ -99,7 +96,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_autocommit.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_autocommit.ini'.\n");
 ?>
 --EXPECTF--
 [007] Autocommit should be on, got '0'

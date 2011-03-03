@@ -1,0 +1,49 @@
+The examples try to help you getting started with the mysqlnd plugin.
+
+*Preconditions*
+
+Make sure you have compiled PHP with PECL/mysqlnd_ms support, the extension
+is loaded and the PHP MySQL extensions are configured to use the mysqlnd library
+when building PHP:
+
+  ./configure --with-mysql=mysqlnd --with-mysqli=mysqlnd
+    --with-pdo-mysql=mysqlnd --enable-mysqlnd-ms
+
+If you are unfamiliar with the mysqlnd library, please consult the PHP manual:
+
+  http://php.net/mysqlnd_ms
+
+*Setup*
+
+Edit mysqlnd_ms_config.ini before running any of the examples!
+mysqlnd_ms_config.ini is contained in the same directory like this README.
+The file is extensively commented to explain its syntax.
+
+You do not need to have MySQL replication setup for running the examples. One
+MySQL server is sufficient. You can, if you want, let the "master[]" and the
+"slave[]" config settings from mysqlnd_ms_config.ini point to the same MySQL
+server. The examples are written in a way that they work without a
+true MySQL replication master-slave relationship between the "master"
+and "slave" servers you set in the config file mysqlnd_ms_config.ini.
+
+Make sure you set port/or socket in the config file.
+
+Edit config.php to set the database user credentials. The same
+user name and password will be used for opening all required
+master-slave connection.
+
+*Running*
+
+The examples and tests make use of the mysqli extension and its API. mysqli
+is the most feature-complete of the three PHP MySQL extensions
+(mysql, mysqli, PDO_MYSQL). Because PECL/mysqlnd_ms is a plugin for the mysqlnd
+library and all of the three PHP MySQL extensions can be configured to use the
+mysqlnd library "under the hood" at the C level, the plugin can be used with any
+of the three extensions. However, mysqli is the most powerful of the breed
+and I'm familiar with it. Thus, I'm always using mysqli in the examples
+and in the tests.
+
+To run the examples do:
+
+  php -d mysqlnd_ms.enable=1
+      -d mysqlnd_ms.ini_file=mysqlnd_ms_config.ini example.php

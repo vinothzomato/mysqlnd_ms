@@ -1,0 +1,38 @@
+PECL/mysqlnd_ms is a mysqlnd library plugin or read-write splitting and
+load balancing to support use of MySQL replication with PHP.
+
+R/W splitting is very basic: everything that is not a SELECT is send
+to the master. Everything else goes to the slaves.  R/W splitting can be
+controlled by SQL hints and/or done by a user defined callback.
+
+Which slave is "picked" is determined by the configured load balancing polic.
+PECL/mysqlnd_ms has built-in functionality for random, random-once,
+round-robin and user defined load balancing.
+
+PECL/mysqlnd_ms has no automatic fail over. Manual fail over is easy:
+catch the error and run the same query again to make the load balancer choose
+the next server. Catching should be easy because you always check for return
+codes, don't you?
+
+The plugin operates transparently from a users point of view.
+As a mysqlnd library plugin it operated on a layer beneath the user APIs
+provided by any of the PHP mysql extensions.
+
+         PHP
+          |
+ mysql  mysqli PDO_MYSQL
+          |
+        mysqlnd
+          |
+    PECL/mysqlnd_ms
+
+          |
+
+         MySQL
+
+
+Please check http://blog.ulf-wendel.de/?p=299, the examples/ directory and
+the test/ directory for further information until documentation becomes available.
+
+Do not use PECL/mysqlnd_ms in production environments, yet!
+It is a proof-of-concept. It is pre-alpha!
