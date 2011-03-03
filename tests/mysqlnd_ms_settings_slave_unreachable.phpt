@@ -9,6 +9,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, "unknown_i_really_hope", $slave_host),
+		'pick' => array("roundrobin"),
 	),
 
 );

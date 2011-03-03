@@ -60,7 +60,7 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_USER
 };
 
-#define DEFAULT_STRATEGY SERVER_PICK_RROBIN
+#define DEFAULT_STRATEGY SERVER_PICK_RANDOM_ONCE
 
 typedef struct st_mysqlnd_ms_connection_data
 {
@@ -367,7 +367,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			if (!hotloading) {
 				MYSQLND_MS_CONFIG_LOCK;
 			}
-			
+
 			master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
 			if (FALSE == value_exists) {
@@ -541,9 +541,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 								if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
 									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
 								} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
-									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;					
+									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;
 								} else if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
-									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;					
+									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;
 								}
 							}
 						}

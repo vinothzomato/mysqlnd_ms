@@ -9,7 +9,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
-		'pick' => array("round_robin"),
+		'pick' => array("roundrobin"),
 	),
 );
 if ($error = create_config("test_mysqlnd_use_result.ini", $settings))
