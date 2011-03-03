@@ -357,15 +357,21 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = FALSE, use_lazy_connections_list_value = FALSE;
 			char * lazy_connections;
 			/* create master connection */
-			char * master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-												  &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+			char * master;
+
+			if (!hotloading) {
+				MYSQLND_MS_CONFIG_LOCK;
+			}
+			
+			master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
 			if (FALSE == value_exists) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot find master section in config");
 				break;
 			}
 
 			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
-													 &use_lazy_connections, &use_lazy_connections_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+													 &use_lazy_connections, &use_lazy_connections_list_value, FALSE TSRMLS_CC);
 
 			use_lazy_connections = use_lazy_connections && mysqlnd_ms_ini_string_is_bool_true(lazy_connections);
 			if (lazy_connections) {
@@ -413,7 +419,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				DBG_INF("We have more master connections. Connect...");
 				do {
 					master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-												   &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+												   &value_exists, &is_list_value, FALSE TSRMLS_CC);
 					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
 					if (value_exists && master) {
 						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
@@ -460,7 +466,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			/* create slave slave_connections */
 			do {
 				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
-													 &value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
 
@@ -509,7 +515,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 			{
 				char * pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
-												  				&value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;
 
 				if (value_exists && pick_strategy) {
@@ -523,7 +529,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						if (is_list_value) {
 							mnd_efree(pick_strategy);
 							pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
-												  				&value_exists, &is_list_value, hotloading? FALSE:TRUE TSRMLS_CC);
+												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 							if (pick_strategy) {
 								if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
 									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;
@@ -537,8 +543,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				}
 			}
 		} while (0);
-		mysqlnd_ms_ini_reset_section(&mysqlnd_ms_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
+		mysqlnd_ms_ini_reset_section(&mysqlnd_ms_config, host, host_len, FALSE TSRMLS_CC);
+		if (!hotloading) {
+			MYSQLND_MS_CONFIG_UNLOCK;
+		}
 	}
+
 	if (hotloading) {
 		MYSQLND_MS_CONFIG_UNLOCK;
 	}

@@ -74,6 +74,7 @@ struct st_mysqlnd_tok_scanner
 #define MYSQLND_MS_VERSION_ID 10000
 
 /*
+  ALREADY FIXED:
   Keep it false for now or we will have races in connect,
   where multiple instance can read the slave[] values and so
   move the pointer of each other. Need to find better implementation of
