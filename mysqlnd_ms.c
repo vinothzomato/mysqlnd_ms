@@ -60,6 +60,8 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_USER
 };
 
+#define DEFAULT_STRATEGY SERVER_PICK_RROBIN
+
 typedef struct st_mysqlnd_ms_connection_data
 {
 	char * connect_host;
@@ -519,11 +521,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			{
 				char * pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
-				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;
+				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = DEFAULT_STRATEGY;
 
 				if (value_exists && pick_strategy) {
 					/* random is a substing of random_once thus we check first for random_once */
-					if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
+					if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
+						(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;
+					} else if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
 						(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
 					} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
 						(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;
@@ -534,8 +538,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 							pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 							if (pick_strategy) {
-								if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
-									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;
+								if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
+									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
+								} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RANDOM;					
+								} else if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
+									(*conn_data_pp)->fallback_pick_strategy = SERVER_PICK_RROBIN;					
 								}
 							}
 						}
