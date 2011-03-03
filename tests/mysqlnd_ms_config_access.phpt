@@ -87,8 +87,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_config_access.ini
 
 	print "done!";
 ?>
---XFAIL--
-We seem to have issues with concurrent access to config settings
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_config_access.ini"))

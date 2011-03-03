@@ -5,10 +5,6 @@ Limits: connection options not handled
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
@@ -66,7 +62,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_options.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_connection_options.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_connection_options.ini'.\n");
 ?>
 --EXPECTF--
 [010] Expecting 'something' got ''

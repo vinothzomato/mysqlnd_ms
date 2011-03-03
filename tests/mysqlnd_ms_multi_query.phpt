@@ -5,14 +5,11 @@ multi query
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	$host => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
+		'pick' => array("round_robin"),
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_multi_query.ini", $settings))
@@ -84,7 +81,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_multi_query.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_multi_query.ini'.\n");
 ?>
 --EXPECTF--
 This is Slave 1 speaking!

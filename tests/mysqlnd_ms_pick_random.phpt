@@ -5,10 +5,6 @@ Load Balancing: random (slaves)
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'pick'		=> array('random'),
@@ -110,7 +106,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_random_pick.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_random_pick.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_random_pick.ini'.\n");
 ?>
 --EXPECTF--
 Slave 1 (%d) has run %d queries.

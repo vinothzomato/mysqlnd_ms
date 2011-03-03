@@ -9,7 +9,6 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
-		'lazy_connections' => true,
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_autocommit.ini", $settings))

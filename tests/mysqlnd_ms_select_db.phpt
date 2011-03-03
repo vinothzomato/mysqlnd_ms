@@ -5,10 +5,6 @@ select_db() - covered by plugin prototype
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 if ($db == 'mysql')
 	die("Default test database must not be 'mysql', use 'test' or the like");
 
@@ -87,7 +83,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_select_db.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_select_db.ini'.\n");
 ?>
 --EXPECTF--
 done!

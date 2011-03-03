@@ -1,28 +1,25 @@
 --TEST--
-Default load balancing strategy (round robin)
+Round robin load balancing
 --SKIPIF--
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
-
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
 
 $settings = array(
 	"myapp" => array(
 		/* CAUTION: during development we sometimes did support multi-master somestimes not */
 		'master' => array($master_host, $master_host),
 		'slave' => array($slave_host, $slave_host),
+		'pick' => array('round_robin'),
 	),
 );
-if ($error = create_config("test_mysqlnd_default_pick.ini", $settings))
+if ($error = create_config("test_mysqlnd_round_robin.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_default_pick.ini
+mysqlnd_ms.ini_file=test_mysqlnd_round_robin.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -108,8 +105,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_default_pick.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_default_pick.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	if (!unlink("test_mysqlnd_round_robin.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_round_robin.ini'.\n");
 ?>
 --EXPECTF--
 Slave 1 (%d) has run 1 queries

@@ -8,14 +8,11 @@ require_once("connect.inc");
 if (!function_exists("iconv"))
 	die("SKIP needs iconv extension\n");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
+		'pick' => array("round_robin"),
 	),
 );
 if ($error = create_config("test_mysqlnd_real_escape.ini", $settings))
@@ -83,7 +80,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_real_escape.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_real_escape.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_real_escape.ini'.\n");
 ?>
 --EXPECTF--
 done!

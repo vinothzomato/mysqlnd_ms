@@ -5,14 +5,11 @@ Limits: mysqli_query + MYSQLI_USE_RESULT is NOT handled by the plugin
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
+		'pick' => array("round_robin"),
 	),
 );
 if ($error = create_config("test_mysqlnd_use_result.ini", $settings))

@@ -102,7 +102,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_transactions.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_sql_transactions.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_sql_transactions.ini'.\n");
 
 
 ?>
