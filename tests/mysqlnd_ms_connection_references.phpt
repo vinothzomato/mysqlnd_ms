@@ -40,7 +40,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 		if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 			printf("[001] Cannot connect, [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 		$links[$i] = $link;
-		$references[$i] = $link;
+		$references[$i] = $links[$i];
 	}
 
 	$last_closed = null;
@@ -48,7 +48,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 		$idx = mt_rand(0, $num_links);
 
 		if (isset($references[$last_closed])) {
-			mysqli_close($references[$last_closed]);
 			unset($references[$last_closed]);
 		}
 		if (isset($links[$idx])) {
