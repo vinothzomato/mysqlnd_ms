@@ -32,7 +32,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 		return $ret;
 	}
 
-	$num_links = 10;
+	$num_links = 2;
 	$links = array();
 	$references = array();
 
@@ -60,8 +60,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 
 	print "done!";
 ?>
---XFAIL--
-Issues around config loading/access
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_connection_references.ini"))
