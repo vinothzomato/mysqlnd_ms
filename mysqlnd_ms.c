@@ -278,18 +278,21 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 
 /* {{{ mysqlnd_ms_ini_string_is_bool_true */
 static zend_bool
-mysqlnd_ms_ini_string_is_bool_true(const char * value)
+mysqlnd_ms_ini_string_is_bool_false(const char * value)
 {
 	if (!value) {
-		return FALSE;
-	}
-	if (!strncmp("1", value, sizeof("1") - 1)) {
 		return TRUE;
 	}
-	if (!strncasecmp("true", value, sizeof("true") - 1)) {
+	if (!strncmp("0", value, sizeof("0") - 1)) {
 		return TRUE;
 	}
-	if (!strncasecmp("on", value, sizeof("on") - 1)) {
+	if (!strncasecmp("false", value, sizeof("false") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("off", value, sizeof("off") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("aus", value, sizeof("aus") - 1)) {
 		return TRUE;
 	}
 	return FALSE;
@@ -354,7 +357,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		do {
 			unsigned int port_to_use;
 			const char * socket_to_use;
-			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = FALSE, use_lazy_connections_list_value = FALSE;
+			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = TRUE, use_lazy_connections_list_value = FALSE;
 			char * lazy_connections;
 			/* create master connection */
 			char * master;
@@ -373,7 +376,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
 													 &use_lazy_connections, &use_lazy_connections_list_value, FALSE TSRMLS_CC);
 
-			use_lazy_connections = use_lazy_connections && mysqlnd_ms_ini_string_is_bool_true(lazy_connections);
+			use_lazy_connections = use_lazy_connections && !mysqlnd_ms_ini_string_is_bool_false(lazy_connections);
 			if (lazy_connections) {
 				mnd_efree(lazy_connections);
 				lazy_connections = NULL;
