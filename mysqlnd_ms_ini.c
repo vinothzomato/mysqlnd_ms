@@ -101,7 +101,7 @@ mysqlnd_ms_global_configuration_section_dtor(void * data)
 			mnd_free(entry->value.list);
 			break;
 		default:
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unknown entry type in mysqlnd_ms_global_configuration_section_dtor");
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Unknown entry type in mysqlnd_ms_global_configuration_section_dtor");
 	}
 	mnd_free(entry);
 }
@@ -149,7 +149,7 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 				{
 					DBG_ERR_FMT("Option [%s] already defined in section [%s]. Overwriting",
 									 Z_STRVAL_P(key), parser_data->current_ini_section_name? parser_data->current_ini_section_name:"n/a");
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option [%s] already defined in section [%s]. Overwriting",
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Option [%s] already defined in section [%s]. Overwriting",
 									 Z_STRVAL_P(key), parser_data->current_ini_section_name? parser_data->current_ini_section_name:"n/a");
 				}
 			}
@@ -190,7 +190,7 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 				entry = *entry_pp;
 				if (entry && entry->type != IS_ARRAY) {
 					DBG_INF_FMT("and it is not an array!");
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Found [] for an option originally defined without []. Dropping original value");
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Found [] for an option originally defined without []. Dropping original value");
 					entry = NULL;
 				}
 			}
@@ -217,7 +217,7 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 			break;
 		}
 		default:
-			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Unexpected callback_type while parsing server list ini file");
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, MYSQLND_MS_ERROR_PREFIX " Unexpected callback_type while parsing server list ini file");
 			break;
 	}
 	DBG_VOID_RETURN;
@@ -275,7 +275,7 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 					break;
 				}
 				default:
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unknown entry type in mysqlnd_ms_ini_string");
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Unknown entry type in mysqlnd_ms_ini_string");
 			}
 		}
 	}
@@ -350,7 +350,7 @@ mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 		fh.type = ZEND_HANDLE_FILENAME;
 
 		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_ini_parser_cb, &ini_parse_data TSRMLS_CC)) {
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to parse server list ini file");
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to parse server list ini file");
 			ret = FAIL;
 		}
 		if (ini_parse_data.current_ini_section_name) {

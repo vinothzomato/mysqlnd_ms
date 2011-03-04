@@ -73,6 +73,8 @@ struct st_mysqlnd_tok_scanner
 #define MYSQLND_MS_VERSION "1.0.0-prototype"
 #define MYSQLND_MS_VERSION_ID 10000
 
+#define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
+
 /*
   ALREADY FIXED:
   Keep it false for now or we will have races in connect,

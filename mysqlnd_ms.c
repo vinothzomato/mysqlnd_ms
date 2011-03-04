@@ -91,8 +91,6 @@ typedef struct st_mysqlnd_ms_list_data
 	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
 
-#define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
-
 #define MS_STRING(vl, a)				\
 {											\
 	MAKE_STD_ZVAL((a));						\
@@ -122,7 +120,7 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 
 	MAKE_STD_ZVAL(retval);
 	if (call_user_function(EG(function_table), NULL, func, retval, argc, argv TSRMLS_CC) == FAILURE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " %s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
 		zval_ptr_dtor(&retval);
 		retval = NULL;
 	}
@@ -327,11 +325,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	}
 	section_found = mysqlnd_ms_ini_section_exists(&mysqlnd_ms_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
 	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Exclusive usage of configuration enforced but did not find the correct INI file section (%s)", host);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section (%s)", host);
 		if (hotloading) {
 			MYSQLND_MS_CONFIG_UNLOCK;
 		}
-		SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Exclusive usage of configuration enforced but did not find the correct INI file section");
+		SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section");
 		DBG_RETURN(FAIL);
 	}
 	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
@@ -372,8 +370,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			master = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
 			if (FALSE == value_exists) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cannot find master section in config");
-				break;
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
+				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
+				DBG_RETURN(FAIL);
 			}
 
 			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
@@ -904,7 +903,8 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 /* }}} */
 
 
-/* {{{ mysqlnd_ms::select_db */
+#ifdef ALL_SERVER_DISPATCH
+/* {{{ mysqlnd_ms_query_all */
 static enum_func_status
 mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned int query_len TSRMLS_DC)
 {
@@ -936,6 +936,7 @@ mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned in
 	DBG_RETURN(ret);
 }
 /* }}} */
+#endif
 
 
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
@@ -948,9 +949,11 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	DBG_ENTER("mysqlnd_ms::query");
 
 	connection = mysqlnd_ms_pick_server(conn, query, query_len, &use_all TSRMLS_CC);
+#ifdef ALL_SERVER_DISPATCH
 	if (use_all) {
 		mysqlnd_ms_query_all(conn, query, query_len TSRMLS_CC);
 	}
+#endif
 
 	ret = orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
