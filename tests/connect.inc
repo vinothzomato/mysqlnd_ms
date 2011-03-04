@@ -262,7 +262,12 @@
 
 				if (isset($config['lazy_connections'])) {
 					if (!fwrite($fp, sprintf("lazy_connections=%s\n", $config['lazy_connections'])))
-							return sprintf("Cannot write query redirection policy settings to file.");
+							return sprintf("Cannot write query redirection/load balancing policy settings to file.");
+				}
+
+				if (isset($config['failover'])) {
+					if (!fwrite($fp, sprintf("failover=%s\n", $config['failover'])))
+							return sprintf("Cannot write failover policy settings to file.");
 				}
 			}
 			fclose($fp);

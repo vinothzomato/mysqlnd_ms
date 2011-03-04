@@ -33,16 +33,17 @@
 #include "ext/standard/php_rand.h"
 
 
-#define MASTER_NAME		"master"
-#define SLAVE_NAME		"slave"
-#define PICK_NAME		"pick"
-#define PICK_RANDOM		"random"
-#define PICK_RANDOM_ONCE "random_once"
-#define PICK_RROBIN		"roundrobin"
-#define PICK_USER		"user"
-#define LAZY_NAME		"lazy_connections"
-
-
+#define MASTER_NAME			"master"
+#define SLAVE_NAME			"slave"
+#define PICK_NAME			"pick"
+#define PICK_RANDOM			"random"
+#define PICK_RANDOM_ONCE 	"random_once"
+#define PICK_RROBIN			"roundrobin"
+#define PICK_USER			"user"
+#define LAZY_NAME			"lazy_connections"
+#define FAILOVER_NAME		"failover"
+#define FAILOVER_DISABLED 	"disabled"
+#define FAILOVER_MASTER		"master"
 
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
@@ -60,7 +61,15 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_USER
 };
 
-#define DEFAULT_STRATEGY SERVER_PICK_RANDOM_ONCE
+#define DEFAULT_PICK_STRATEGY SERVER_PICK_RANDOM_ONCE
+
+enum mysqlnd_ms_server_failover_strategy
+{
+	SERVER_FAILOVER_DISABLED,
+	SERVER_FAILOVER_MASTER
+};
+
+#define DEFAULT_FAILOVER_STRATEGY SERVER_FAILOVER_DISABLED
 
 typedef struct st_mysqlnd_ms_connection_data
 {
@@ -70,6 +79,7 @@ typedef struct st_mysqlnd_ms_connection_data
 	MYSQLND * last_used_connection;
 	enum mysqlnd_ms_server_pick_strategy pick_strategy;
 	enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
+	enum mysqlnd_ms_server_failover_strategy failover_strategy;
 	MYSQLND * random_once;
 
 	char * user;
@@ -530,7 +540,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			{
 				char * pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
-				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = DEFAULT_STRATEGY;
+				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
 
 				if (value_exists && pick_strategy) {
 					/* random is a substing of random_once thus we check first for random_once */
@@ -562,6 +572,24 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					mnd_efree(pick_strategy);
 				}
 			}
+
+			{
+				char * failover_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
+												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
+				(*conn_data_pp)->failover_strategy = DEFAULT_FAILOVER_STRATEGY;
+
+				if (value_exists && failover_strategy) {
+					if (!strncasecmp(FAILOVER_DISABLED, failover_strategy, sizeof(FAILOVER_DISABLED) - 1)) {
+						(*conn_data_pp)->failover_strategy = SERVER_FAILOVER_DISABLED;
+					} else if (!strncasecmp(FAILOVER_MASTER, failover_strategy, sizeof(FAILOVER_MASTER) - 1)) {
+						(*conn_data_pp)->failover_strategy = SERVER_FAILOVER_MASTER;
+					}
+				}
+				if (failover_strategy) {
+					mnd_efree(failover_strategy);
+				}
+			}
+
 		} while (0);
 		mysqlnd_ms_ini_reset_section(&mysqlnd_ms_config, host, host_len, FALSE TSRMLS_CC);
 		if (!hotloading) {
@@ -662,6 +690,11 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 						DBG_INF("Connected");
 						DBG_RETURN(connection);
 					}
+
+					if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
+					  DBG_INF("Failover disabled");
+					  DBG_RETURN(connection);
+					}
 					DBG_INF("Connect failed, falling back to the master");
 				} else {
 					DBG_RETURN(element->conn);
@@ -736,6 +769,10 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 					{
 						DBG_INF("Connected");
 						DBG_RETURN(element->conn);
+					}
+					if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
+					  DBG_INF("Failover disabled");
+					  DBG_RETURN(element->conn);
 					}
 					DBG_INF("Connect failed, falling back to the master");
 				} else {
@@ -826,6 +863,10 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 							DBG_INF("Connected");
 							(*conn_data_pp)->random_once = element->conn;
 							DBG_RETURN(element->conn);
+						}
+						if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
+						  DBG_INF("Failover disabled");
+						  DBG_RETURN(element->conn);
 						}
 						DBG_INF("Connect failed, falling back to the master");
 					} else {
@@ -951,11 +992,15 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
 {
 	MYSQLND * connection;
-	enum_func_status ret;
+	enum_func_status ret = FAIL;
 	zend_bool use_all = 0;
 	DBG_ENTER("mysqlnd_ms::query");
 
 	connection = mysqlnd_ms_pick_server(conn, query, query_len, &use_all TSRMLS_CC);
+	DBG_INF_FMT("Connection %p", connection);
+	if (connection->error_info.error_no)
+		  DBG_RETURN(ret);
+
 #ifdef ALL_SERVER_DISPATCH
 	if (use_all) {
 		mysqlnd_ms_query_all(conn, query, query_len TSRMLS_CC);
