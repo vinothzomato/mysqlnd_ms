@@ -52,9 +52,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	} else if (2000 == mysqli_connect_errno()) {
 		/* Error: 2000 (CR_UNKNOWN_ERROR), HYOOO */
 		printf("[005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [%d] %s\n",
-			  $link->connect_errno, $link->connect_error);
+			  mysqli_connect_errno(), mysqli_connect_error());
 	} else {
-		printf("[006] [%d] %s\n", $link->connect_errno, $link->connect_error);
+		printf("[006] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	print "done!";
@@ -65,13 +65,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
-[001] [%d] %s
-[002] [%d] %s
-[003] [%d] %s
+[001] [2002] Connection refused
+[002] [2002] Connection refused
+[003] [2002] Connection refused
 
-Warning: mysqli_real_connect(): Exclusive usage of configuration enforced but did not find the correct INI file section (%s) in %s on line %d
+Warning: mysqli_real_connect(): Exclusive usage of configuration enforced but did not find the correct INI file section (localhost) in %s on line %d
 
-Warning: mysqli_real_connect(): (00000/0):  in %s on line %d
-
-[005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [2000] %s
+Warning: mysqli_real_connect(): (HY000/2000): Exclusive usage of configuration enforced but did not find the correct INI file section in %s on line %d
+[005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [2000] Exclusive usage of configuration enforced but did not find the correct INI file section
 done!
