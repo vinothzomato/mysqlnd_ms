@@ -1,8 +1,7 @@
 --TEST--
-Config settings: force with many masters
+Config settings: many slaves
 --SKIPIF--
 <?php
-die("SKIP Enable after delayed connect implementation is done");
 require_once('skipif.inc');
 require_once("connect.inc");
 
@@ -14,15 +13,14 @@ $settings = array(
 );
 /* in the hope that few Mysql test server are configures to handle 5000 connections */
 for ($i = 0; $i < 5000; $i++)
-	$settings['do_not_overload_mysql']['master'][] = $host;
+	$settings['do_not_overload_mysql']['slave'][] = $host;
 
-if ($error = create_config("test_mysqlnd_ms_settings_force_many_master.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_settings_force_many_slaves.ini", $settings))
   die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.force_config_usage=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_force_many_master.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_force_many_slaves.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -44,12 +42,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_force_many_master.ini
 
 	print "done!";
 ?>
---XFAIL--
-Overloading MySQL server
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_settings_force_many_master.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_force_many_master.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_settings_force_many_slaves.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_force_many_slaves.ini'.\n");
 ?>
 --EXPECTF--
 done!

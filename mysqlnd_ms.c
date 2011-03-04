@@ -377,9 +377,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 			lazy_connections = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
 													 &use_lazy_connections, &use_lazy_connections_list_value, FALSE TSRMLS_CC);
-
-			use_lazy_connections = use_lazy_connections && !mysqlnd_ms_ini_string_is_bool_false(lazy_connections);
+			/* ignore if lazy_connections ini entry exists or not */
+			use_lazy_connections = TRUE;
 			if (lazy_connections) {
+				/* lazy_connections ini entry exists, disabled? */
+				use_lazy_connections = !mysqlnd_ms_ini_string_is_bool_false(lazy_connections);
 				mnd_efree(lazy_connections);
 				lazy_connections = NULL;
 			}
