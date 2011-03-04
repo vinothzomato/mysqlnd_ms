@@ -30,8 +30,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 		if (!($ret = $link->multi_query($query)))
 			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 
-		printf("%d - %s\n", $link->thread_id, $query);
-
 		return $ret;
 	}
 
