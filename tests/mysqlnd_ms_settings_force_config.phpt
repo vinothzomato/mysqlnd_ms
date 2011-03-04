@@ -33,15 +33,43 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 <?php
 	require_once("connect.inc");
 
+	/*
+	Error codes indicating connect failure provoked by non-existing host
+
+	Error: 2002 (CR_CONNECTION_ERROR)
+	Message: Can't connect to local MySQL server through socket '%s' (%d)
+	Error: 2003 (CR_CONN_HOST_ERROR)
+	Message: Can't connect to MySQL server on '%s' (%d)
+	Error: 2005 (CR_UNKNOWN_HOST)
+	Message: Unknown MySQL server host '%s' (%d)
+	*/
+	$connect_errno_codes = array(
+		2002 => true,
+		2003 => true,
+		2005 => true,
+	);
+
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = @my_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
-	printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	} else {
+		printf("[001] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
 
 	$link = @my_mysqli_connect("192.168.14.17", $user, $passwd, $db, $port, $socket);
-	printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	} else {
+		printf("[002] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
 
 	$link = @my_mysqli_connect("my_orginal_mysql_server_host", $user, $passwd, $db, $port, $socket);
-	printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+		printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	} else {
+		printf("[003] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
 
 	$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
 	if (0 == mysqli_connect_errno()) {
@@ -65,9 +93,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
-[001] [2002] Connection refused
-[002] [2002] Connection refused
-[003] [2002] Connection refused
+[001] [%d] %s
+[002] [%d] %s
+[003] [%d] %s
 
 Warning: mysqli_real_connect(): Exclusive usage of configuration enforced but did not find the correct INI file section (localhost) in %s on line %d
 
