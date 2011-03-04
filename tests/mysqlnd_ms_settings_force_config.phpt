@@ -43,6 +43,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	$link = @my_mysqli_connect("my_orginal_mysql_server_host", $user, $passwd, $db, $port, $socket);
 	printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
+	$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+	if (0 == mysqli_connect_errno()) {
+		/* 0 means no error. This is documented behaviour! */
+		$res = $link->query("SELECT 'This connection should have been forbidden!'");
+		$row = $res->fetch_row();
+		printf("[004] %s\n", $row[0]);
+	} else if (2000 == mysqli_connect_errno()) {
+		/* Error: 2000 (CR_UNKNOWN_ERROR), HYOOO */
+		printf("[005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [%d] %s\n",
+			  $link->connect_errno, $link->connect_error);
+	} else {
+		printf("[006] [%d] %s\n", $link->connect_errno, $link->connect_error);
+	}
+
 	print "done!";
 ?>
 --CLEAN--
@@ -54,4 +68,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 [001] [%d] %s
 [002] [%d] %s
 [003] [%d] %s
+
+Warning: mysqli_real_connect(): Exclusive usage of configuration enforced but did not find the correct INI file section (%s) in %s on line %d
+
+Warning: mysqli_real_connect(): (00000/0):  in %s on line %d
+
+[005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [2000] %s
 done!
