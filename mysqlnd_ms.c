@@ -331,6 +331,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		if (hotloading) {
 			MYSQLND_MS_CONFIG_UNLOCK;
 		}
+		SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Exclusive usage of configuration enforced but did not find the correct INI file section");
 		DBG_RETURN(FAIL);
 	}
 	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
