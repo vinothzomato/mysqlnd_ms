@@ -358,7 +358,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		do {
 			unsigned int port_to_use;
 			const char * socket_to_use;
-			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = TRUE, use_lazy_connections_list_value = FALSE;
+			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = TRUE, use_lazy_connections_list_value = FALSE, have_slaves = FALSE;
 			char * lazy_connections;
 			/* create master connection */
 			char * master;
@@ -475,6 +475,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
 													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
+					have_slaves = TRUE;
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
 
 					{
@@ -519,6 +520,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					slave = NULL;
 				}
 			} while (value_exists);
+
+			if (FALSE == have_slaves) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find slaves section in config");
+				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find slaves section in config");
+				DBG_RETURN(FAIL);
+			}
 
 			{
 				char * pick_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
