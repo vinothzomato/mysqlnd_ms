@@ -28,6 +28,9 @@
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
+#ifndef mnd_sprintf
+#include "ext/mysqlnd/mysqlnd_alloc.h"
+#endif
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_ini.h"
 #include "ext/standard/php_rand.h"
@@ -98,6 +101,8 @@ typedef struct st_mysqlnd_ms_list_data
 	char * host;
 	unsigned int port;
 	char * socket;
+	char * emulated_scheme;
+	size_t emulated_scheme_len;
 	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
 
@@ -147,6 +152,35 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 
 
 /* {{{ mysqlnd_ms_user_pick_server */
+static int
+mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, zend_bool persistent TSRMLS_DC)
+{
+	char * tmp = NULL;
+	int scheme_len;
+	*scheme = NULL;
+#ifndef PHP_WIN32
+	if (el->host && !strcasecmp("localhost", el->host)) {
+		scheme_len = mnd_sprintf(&tmp, 0, "unix://%s", el->socket? el->socket : "/tmp/mysql.sock");
+#else
+	if (el->host && !strcmp(".", host) {
+		scheme_len = mnd_sprintf(&tmp, 0, "pipe://%s", el->socket? el->socket : "\\\\.\\pipe\\MySQL");
+#endif
+	} else {
+		if (!el->port) {
+			el->port = 3306;
+		}
+		scheme_len = mnd_sprintf(&tmp, 0, "tcp://%s:%u", el->host? el->host:"localhost", el->port);
+	}
+	if (tmp) {
+		*scheme = mnd_pestrndup(tmp, scheme_len, persistent);
+		efree(tmp); /* allocated by spprintf */
+	}
+	return scheme_len;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_user_pick_server */
 static MYSQLND *
 mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
@@ -181,7 +215,12 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
 			{
-				add_next_index_stringl(args[param], el->conn->scheme, el->conn->scheme_len, 1);
+				if (el->conn->state == CONN_ALLOCED) {
+					/* lazy */
+					add_next_index_stringl(args[param], el->emulated_scheme, el->emulated_scheme_len, 1);
+				} else {
+					add_next_index_stringl(args[param], el->conn->scheme, el->conn->scheme_len, 1);
+				}
 			}
 
 			/* slave list*/
@@ -191,7 +230,12 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 				for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
 						el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
 				{
-					add_next_index_stringl(args[param], el->conn->scheme, el->conn->scheme_len, 1);
+					if (el->conn->state == CONN_ALLOCED) {
+						/* lazy */
+						add_next_index_stringl(args[param], el->emulated_scheme, el->emulated_scheme_len, 1);
+					} else {
+						add_next_index_stringl(args[param], el->conn->scheme, el->conn->scheme_len, 1);
+					}
 				}
 			}
 			/* last used connection */
@@ -222,18 +266,41 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 					for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); !ret && el && el->conn;
 							el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
 					{
-						if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
-							ret = el->conn;
-							DBG_INF_FMT("Userfunc chose master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
+						if (el->conn->state == CONN_ALLOCED) {
+							/* lazy */
+						} else {
+							if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
+								ret = el->conn;
+								DBG_INF_FMT("Userfunc chose master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
+							}
 						}
 					}
 					if (slave_list) {
 						for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); !ret && el && el->conn;
 								el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
 						{
-							if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
-								ret = el->conn;
-								DBG_INF_FMT("Userfunc chose slave host : [%*s]", el->conn->scheme_len, el->conn->scheme);
+							if (el->conn->state == CONN_ALLOCED) {
+								/* lazy */
+								if (!strncasecmp(el->emulated_scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->emulated_scheme_len))) {
+									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
+									if (PASS == orig_mysqlnd_conn_methods->connect(el->conn, el->host, (*conn_data_pp)->user,
+																				   (*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																				   (*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																				   el->port, el->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+									{
+										ret = el->conn;
+										DBG_INF("Connected");
+									} else {
+										php_error_docref(NULL TSRMLS_CC, E_WARNING, "Callback chose %s but connection failed", el->emulated_scheme);
+										DBG_ERR("Connect failed, falling back to the master");
+										ret = conn; /* use the master */
+									}
+								}
+							} else {
+								if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
+									ret = el->conn;
+									DBG_INF_FMT("Userfunc chose slave host : [%*s]", el->conn->scheme_len, el->conn->scheme);
+								}
 							}
 						}
 					}
@@ -279,6 +346,9 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 	if (element->socket) {
 		mnd_pefree(element->socket, element->persistent);
 		element->socket = NULL;
+	}
+	if (element->emulated_scheme) {
+		mnd_pefree(element->emulated_scheme, element->persistent);
 	}
 	element->persistent = FALSE;
 	DBG_VOID_RETURN;
@@ -362,6 +432,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			new_element.conn = conn;
 			new_element.host = host? mnd_pestrdup(host, conn->persistent) : NULL;
 			new_element.persistent = conn->persistent;
+			new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
+																				   conn->persistent TSRMLS_CC);
 			zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 		}
 	} else {
@@ -426,6 +498,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				new_element.persistent = conn->persistent;
 				new_element.port = port_to_use;
 				new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
+				new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
+																					   conn->persistent TSRMLS_CC);
 				zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 			}
 			mnd_efree(master);
@@ -469,6 +543,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 							new_element.persistent = conn->persistent;
 							new_element.port = port_to_use;
 							new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
+							new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
+																								   conn->persistent TSRMLS_CC);
 							zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 						} else {
@@ -521,6 +597,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						new_element.persistent = conn->persistent;
 						new_element.port = port_to_use;
 						new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
+						new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &(new_element.emulated_scheme),
+																							   conn->persistent TSRMLS_CC);
 						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &new_element);
 						DBG_INF_FMT("Slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 					} else {
@@ -850,15 +928,15 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 					element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
 				}
 				if (element && element->conn) {
-				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
+					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
 
 					if (element->conn->state == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
 						if (PASS == orig_mysqlnd_conn_methods->connect(element->conn, element->host, (*conn_data_pp)->user,
-																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
-																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
-																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+																		(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																		(*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																		element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
 						{
 							DBG_INF("Connected");
 							(*conn_data_pp)->random_once = element->conn;
