@@ -30,6 +30,8 @@
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #ifndef mnd_emalloc
 #include "ext/mysqlnd/mysqlnd_alloc.h"
+#else
+#define mnd_sprintf spprintf
 #endif
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_ini.h"
