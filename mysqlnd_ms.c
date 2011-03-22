@@ -294,8 +294,8 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 										DBG_INF("Connected");
 									} else {
 										php_error_docref(NULL TSRMLS_CC, E_WARNING, "Callback chose %s but connection failed", el->emulated_scheme);
-										DBG_ERR("Connect failed, falling back to the master");
-										ret = conn; /* use the master */
+										DBG_ERR("Connect failed, forwarding error to the user");
+										ret = el->conn; /* no automatic action: leave it to the user to decide! */
 									}
 								}
 							} else {
