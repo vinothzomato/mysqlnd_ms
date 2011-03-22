@@ -30,7 +30,8 @@
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #ifndef mnd_emalloc
 #include "ext/mysqlnd/mysqlnd_alloc.h"
-#else
+#endif
+#ifndef mnd_sprintf
 #define mnd_sprintf spprintf
 #endif
 #include "mysqlnd_ms.h"
@@ -217,7 +218,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
 			{
-				if (el->conn->state == CONN_ALLOCED) {
+				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 					/* lazy */
 					add_next_index_stringl(args[param], el->emulated_scheme, el->emulated_scheme_len, 1);
 				} else {
@@ -232,7 +233,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 				for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
 						el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
 				{
-					if (el->conn->state == CONN_ALLOCED) {
+					if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 						/* lazy */
 						add_next_index_stringl(args[param], el->emulated_scheme, el->emulated_scheme_len, 1);
 					} else {
@@ -268,7 +269,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 					for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); !ret && el && el->conn;
 							el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
 					{
-						if (el->conn->state == CONN_ALLOCED) {
+						if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 							/* lazy */
 						} else {
 							if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
@@ -281,7 +282,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 						for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); !ret && el && el->conn;
 								el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
 						{
-							if (el->conn->state == CONN_ALLOCED) {
+							if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 								/* lazy */
 								if (!strncasecmp(el->emulated_scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->emulated_scheme_len))) {
 									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
@@ -759,7 +760,7 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 			if (connection) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-				if (connection->state == CONN_ALLOCED) {
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
 					if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
@@ -839,7 +840,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			if (element && element->conn) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
 
-				if (element->conn->state == CONN_ALLOCED) {
+				if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
 					if (PASS == orig_mysqlnd_conn_methods->connect(element->conn, element->host, (*conn_data_pp)->user,
@@ -932,7 +933,7 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 				if (element && element->conn) {
 					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
 
-					if (element->conn->state == CONN_ALLOCED) {
+					if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
 						if (PASS == orig_mysqlnd_conn_methods->connect(element->conn, element->host, (*conn_data_pp)->user,
