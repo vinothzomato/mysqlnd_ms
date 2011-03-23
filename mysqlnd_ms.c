@@ -40,17 +40,17 @@
 #include "ext/standard/php_rand.h"
 
 
-#define MASTER_NAME			"master"
-#define SLAVE_NAME			"slave"
-#define PICK_NAME			"pick"
-#define PICK_RANDOM			"random"
-#define PICK_RANDOM_ONCE 	"random_once"
-#define PICK_RROBIN			"roundrobin"
-#define PICK_USER			"user"
-#define LAZY_NAME			"lazy_connections"
-#define FAILOVER_NAME		"failover"
-#define FAILOVER_DISABLED 	"disabled"
-#define FAILOVER_MASTER		"master"
+#define MASTER_NAME				"master"
+#define SLAVE_NAME				"slave"
+#define PICK_NAME				"pick"
+#define PICK_RANDOM				"random"
+#define PICK_RANDOM_ONCE 		"random_once"
+#define PICK_RROBIN				"roundrobin"
+#define PICK_USER				"user"
+#define LAZY_NAME				"lazy_connections"
+#define FAILOVER_NAME			"failover"
+#define FAILOVER_DISABLED 		"disabled"
+#define FAILOVER_MASTER			"master"
 
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
@@ -490,7 +490,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				}
 			}
 
-			ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+			if (use_lazy_connections) {
+				DBG_INF("Lazy master connection");
+				ret = PASS;
+			} else {
+				ret = orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+			}
 
 			if (ret != PASS) {
 				mnd_efree(master);
@@ -538,7 +543,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 							}
 						}
 
-						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+						if (use_lazy_connections)
+							DBG_INF("Lazy master connections");
+							ret = PASS;
+						} else {
+							ret = orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
+						}
 
 						if (ret == PASS) {
 							MYSQLND_MS_LIST_DATA new_element = {0};
@@ -588,7 +598,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 
 					if (use_lazy_connections) {
-						DBG_INF("Lazy connection");
+						DBG_INF("Lazy slave connections");
 						ret = PASS;
 					} else {
 						ret = orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
@@ -781,6 +791,11 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 				} else {
 					DBG_RETURN(element->conn);
 				}
+			} else {
+				if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
+					DBG_INF("Failover disabled");
+					DBG_RETURN(connection);
+				}
 			}
 		}
 		/* fall-through */
@@ -791,10 +806,23 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
 			DBG_INF("Using master connection");
 			if (connection) {
-				DBG_RETURN(connection);
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
+																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						DBG_RETURN(connection);
+					}
+				}
 			}
+			DBG_RETURN(connection);
+			break;
 		}
-		/* fall-through */
+
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN((*conn_data_pp)->last_used_connection);
@@ -829,6 +857,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			MYSQLND_MS_LIST_DATA * element;
 			unsigned long rnd_idx;
 			uint i = 0;
+			MYSQLND * connection;
 
 			rnd_idx = php_rand(TSRMLS_C);
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
@@ -838,27 +867,33 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			while (i++ < rnd_idx) {
 				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
 			}
-			if (element && element->conn) {
-				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
+			connection = (element && element->conn) ? element->conn : NULL;
+			if (connection) {
+				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-				if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
-					if (PASS == orig_mysqlnd_conn_methods->connect(element->conn, element->host, (*conn_data_pp)->user,
+					if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
 																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
 																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
 																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
-						DBG_RETURN(element->conn);
+						DBG_RETURN(connection);
 					}
 					if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
 					  DBG_INF("Failover disabled");
-					  DBG_RETURN(element->conn);
+					  DBG_RETURN(connection);
 					}
 					DBG_INF("Connect failed, falling back to the master");
 				} else {
-					DBG_RETURN(element->conn);
+					DBG_RETURN(connection);
+				}
+			} else {
+				if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
+					DBG_INF("Failover disabled");
+					DBG_RETURN(connection);
 				}
 			}
 		}
@@ -870,6 +905,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			MYSQLND_MS_LIST_DATA * element;
 			unsigned long rnd_idx;
 			uint i = 0;
+			MYSQLND * connection = NULL;
 
 			rnd_idx = php_rand(TSRMLS_C);
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
@@ -879,12 +915,27 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			while (i++ < rnd_idx) {
 				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
 			}
-			if (element && element->conn) {
-				DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
-				DBG_RETURN(element->conn);
+			connection = (element && element->conn)? element->conn : NULL;
+			DBG_INF("Using master connection");
+			if (connection) {
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
+																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+						DBG_RETURN(connection);
+					}
+				}
 			}
+			DBG_RETURN(connection);
+			break;
 		}
-		/* fall-through */
+
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN((*conn_data_pp)->last_used_connection);
@@ -922,6 +973,7 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 				MYSQLND_MS_LIST_DATA * element;
 				unsigned long rnd_idx;
 				uint i = 0;
+				MYSQLND * connection = NULL;
 
 				rnd_idx = php_rand(TSRMLS_C);
 				RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
@@ -931,29 +983,35 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 				while (i++ < rnd_idx) {
 					element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
 				}
-				if (element && element->conn) {
-					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
+				connection = (element && element->conn)? element->conn : NULL;
+				if (connection) {
+					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-					if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
+					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == orig_mysqlnd_conn_methods->connect(element->conn, element->host, (*conn_data_pp)->user,
+						if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
 																		(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
 																		(*conn_data_pp)->db, (*conn_data_pp)->db_len,
 																		element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
 						{
 							DBG_INF("Connected");
-							(*conn_data_pp)->random_once = element->conn;
-							DBG_RETURN(element->conn);
+							(*conn_data_pp)->random_once = connection;
+							DBG_RETURN(connection);
 						}
 						if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
 						  DBG_INF("Failover disabled");
-						  DBG_RETURN(element->conn);
+						  DBG_RETURN(connection);
 						}
 						DBG_INF("Connect failed, falling back to the master");
 					} else {
-						(*conn_data_pp)->random_once = element->conn;
-						DBG_RETURN(element->conn);
+						(*conn_data_pp)->random_once = connection;
+						DBG_RETURN(connection);
+					}
+				} else {
+					if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
+						DBG_INF("Failover disabled");
+						DBG_RETURN(connection);
 					}
 				}
 			}
@@ -965,6 +1023,7 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 			MYSQLND_MS_LIST_DATA * element;
 			unsigned long rnd_idx;
 			uint i = 0;
+			MYSQLND * connection = NULL;
 
 			rnd_idx = php_rand(TSRMLS_C);
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
@@ -974,12 +1033,27 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 			while (i++ < rnd_idx) {
 				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
 			}
-			if (element && element->conn) {
-				DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
-				DBG_RETURN(element->conn);
+
+			connection = (element && element->conn)? element->conn : NULL;
+			DBG_INF("Using master connection");
+			if (connection) {
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->user,
+																	(*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
+																	(*conn_data_pp)->db, (*conn_data_pp)->db_len,
+																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+						DBG_RETURN(connection);
+					}
+				}
 			}
+			DBG_RETURN(connection);
+			break;
 		}
-		/* fall-through */
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN((*conn_data_pp)->last_used_connection);

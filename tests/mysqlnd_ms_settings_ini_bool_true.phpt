@@ -9,6 +9,7 @@ $settings = array(
 	"name_of_a_config_section" => array(
 		'master' => array('forced_master_hostname_abstract_name'),
 		'slave' => array('forced_slave_hostname_abstract_name'),
+		'lazy_connections' => 0,
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_ini_bool_true.ini", $settings))

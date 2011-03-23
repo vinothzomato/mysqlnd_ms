@@ -12,7 +12,7 @@ $settings = array(
 	),
 );
 /* in the hope that few Mysql test server are configures to handle 5000 connections */
-for ($i = 0; $i < 5000; $i++)
+for ($i = 0; $i < 1; $i++)
 	$settings['do_not_overload_mysql']['slave'][] = $host;
 
 if ($error = create_config("test_mysqlnd_ms_settings_force_many_slaves.ini", $settings))
@@ -39,6 +39,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_force_many_slaves.ini
 		var_dump($rows);
 	}
 	$res->close();
+
+	if (!$res = $link->query("DROP TABLE IF EXISTS test"))
+		printf("[004] [%d] %s\n", $link->errno, $link->error);
+
 
 	print "done!";
 ?>

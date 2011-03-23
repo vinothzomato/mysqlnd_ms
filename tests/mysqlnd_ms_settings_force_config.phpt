@@ -9,14 +9,22 @@ $settings = array(
 	"name_of_a_config_section" => array(
 		'master' => array('forced_master_hostname_abstract_name'),
 		'slave' => array('forced_slave_hostname_abstract_name'),
+		'lazy_connections' => 0,
 	),
 
 	"192.168.14.17" => array(
 		'master' => array('forced_master_hostname_ip'),
 		'slave' => array('forced_slave_hostname_ip'),
+		'lazy_connections' => 0,
 	),
 
 	"my_orginal_mysql_server_host" => array(
+		'master' => array('forced_master_hostname_orgname'),
+		'slave' => array('forced_slave_hostname_orgname'),
+		 'lazy_connections' => 0,
+	),
+
+	"lazy_default_and_no_error" => array(
 		'master' => array('forced_master_hostname_orgname'),
 		'slave' => array('forced_slave_hostname_orgname'),
 	),
@@ -85,6 +93,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 		printf("[006] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+	$link = @my_mysqli_connect("lazy_default_and_no_error", $user, $passwd, $db, $port, $socket);
+	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+		printf("[007] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	} else {
+		printf("[008] No error because no connection yet [%d] '%s'\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
+
+	/* error is delayed due to lazy */
+	@$link->query("DROP TABLE IF EXISTS test");
+	if (isset($connect_errno_codes[mysqli_errno($link)])) {
+		printf("[009] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+	} else {
+		printf("[010] Unexpected error [%d] '%s'\n", mysqli_errno($link), mysqli_error($link));
+	}
+
 	print "done!";
 ?>
 --CLEAN--
@@ -101,4 +124,6 @@ Warning: mysqli_real_connect(): (mysqlnd_ms) Exclusive usage of configuration en
 
 Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section in %s on line %d
 [005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [2000] (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section
+[008] No error because no connection yet [%d] ''
+[009] [%d] %s
 done!
