@@ -1645,15 +1645,20 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
 			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
 	{
-		if (PASS != orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+		/* lazy connection ? */
+		if ((CONN_GET_STATE(el->conn) != CONN_ALLOCED) &&
+			(PASS != orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC))) {
 			ret = FAIL;
 		}
+
 	}
 
 	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->slave_connections, &pos); el && el->conn;
 			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->slave_connections, &pos))
 	{
-		if (PASS != orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+		/* lazy connection ? */
+		if ((CONN_GET_STATE(el->conn) != CONN_ALLOCED) &&
+			(PASS != orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC))) {
 			ret = FAIL;
 		}
 	}
