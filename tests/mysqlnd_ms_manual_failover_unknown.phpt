@@ -43,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_unknown.ini
 	function run_query($offset, $link, $query) {
 		global $connect_errno_codes;
 
-		if (!($res = $link->query($query))) {
+		if (!($res = @$link->query($query))) {
 			if (isset($connect_errno_codes[$link->errno]))
 			  printf("[%03d + 01] Expected connect error, [%d] %s\n", $offset, $link->errno, $link->error);
 			else
@@ -91,13 +91,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_unknown.ini
 --EXPECTF--
 [010 + 04] Thread %d, DROP TABLE IF EXISTS test
 [020 + 05] Thread %d, Slave 1
-
-Warning: mysqli::query(): [%d] %s
 [030 + 01] Expected connect error, [%d] %s
 [040 + 05] Thread %d, Slave 3
 [050 + 05] Thread %d, Slave 1
-
-Warning: mysqli::query(): [%d] %s
 [060 + 01] Expected connect error, [%d] %s
 [070 + 05] Thread %d, Slave 3
 Thread ID %d, role master
