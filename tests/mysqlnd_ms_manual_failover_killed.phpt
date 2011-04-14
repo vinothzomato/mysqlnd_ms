@@ -26,7 +26,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_killed.ini
 	function run_query($offset, $link, $query) {
 		global $connect_errno_codes;
 
-		if (!($res = $link->query($query))) {
+		if (!($res = @$link->query($query))) {
 			printf("[%03d + 01] [%d] %s\n", $offset, $link->errno, $link->error);
 			return 0;
 		}
@@ -92,10 +92,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_killed.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_failover_killed.ini'.\n");
 ?>
 --EXPECTF--
-
-Warning: mysqli::query(): MySQL server has gone away in %s on line %d
-
-Warning: mysqli::query(): Error reading result set's header in %s on line %d
 [060 + 01] [2006] MySQL server has gone away
 [090 + 01] [2006] MySQL server has gone away
 Slave 2, %d
