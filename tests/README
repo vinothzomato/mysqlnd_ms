@@ -20,8 +20,16 @@ MySQL replication slave. They do not need to be related in any way. We
 are not testing replication as such. All we need is two distrinct MySQL servers
 to get two distinct connection URIs.
 
-All configures hosts must use the same user, password, port and socket settings.
+All configures hosts must use the same user, password settings.
+Using host[:port|socket] you can set the port respectively socket of the
+master and slave server. If not give, MYSQL_TEST_SOCKET and MYSQL_TEST_PORT
+are used.
 
 (export NAME=default_value_if_not_set)
 export MYSQL_TEST_MASTER_HOST="localhost"
 export MYSQL_TEST_SLAVE_HOST="localhost"
+
+Example using host[:port|socket] syntax:
+
+export MYSQL_TEST_MASTER_HOST="127.0.0.1:3307"
+export MYSQL_TEST_SLAVE_HOST="localhost:/tmp/mysql2.sock"

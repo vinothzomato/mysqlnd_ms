@@ -57,8 +57,8 @@ function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
 	return $row['charset'];
 }
 
-$master_charset = test_for_charset($master_host, $user, $passwd, $db, $port, $socket);
-$slave_charset = test_for_charset($slave_host, $user, $passwd, $db, $port, $socket);
+$master_charset = test_for_charset($master_host, $user, $passwd, $db, $master_port, $master_socket);
+$slave_charset = test_for_charset($slave_host, $user, $passwd, $db, $slave_port, $slave_socket);
 
 if ($master_charset != $slave_charset) {
 	die(sprintf("skip Master (%s) and slave (%s) must use the same default charset.", $master_charset, $slave_charset));

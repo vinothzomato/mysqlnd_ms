@@ -20,15 +20,15 @@ if ($error = create_config("test_mysqlnd_ms_change_user.ini", $settings))
 function test_mysql_access($host, $user, $passwd, $db, $port, $socket) {
 
 	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
-		die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
+		die(sprintf("skip Cannot connect to %s (port '%d', socket '%s') [%d] %s", $host, $port, $socket, mysqli_connect_errno(), mysqli_connect_error()));
 
 	return $link->select_db("mysql");
 }
 
-if (!test_mysql_access($master_host, $user, $passwd, $db, $port, $socket))
+if (!test_mysql_access($master_host, $user, $passwd, $db, $master_port, $master_socket))
 	die("skip Master server account cannot access mysql database");
 
-if (!test_mysql_access($slave_host, $user, $passwd, $db, $port, $socket))
+if (!test_mysql_access($slave_host, $user, $passwd, $db, $slave_port, $slave_socket))
 	die("skip Slave server account cannot access mysql database");
 ?>
 --INI--

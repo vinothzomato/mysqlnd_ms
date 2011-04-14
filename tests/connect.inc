@@ -21,10 +21,34 @@
 		ini_set('mysqli.default_socket', $socket);
 	}
 
-	/* We assume that user/password/port/socket are the same for all machines */
+	/* We assume that user/password are the same for all machines but alternative port/socket can be configured like host[;port|socket] */
 	$master_host = getenv("MYSQL_TEST_MASTER_HOST") ? getenv("MYSQL_TEST_MASTER_HOST") : $host;
-	$slave_host = getenv("MYSQL_TEST_SLAVE_HOST") ? getenv("MYSQL_TEST_SLAVE_HOST") : $host;
+	$master_socket = $socket;
+	$master_port = $port;
+	if (false !== ($pos = strpos($master_host, ':'))) {
+		if ('/' == substr($master_host, $pos + 1, 1)) {
+			$master_socket = substr($master_host, $pos + 1);
+			$master_port = NULL;
+		} else {
+			$master_socket = NULL;
+			$master_port = substr($master_host, $pos + 1);
+		}
+		$master_host = substr($master_host, 0, $pos);
+	}
 
+	$slave_host = getenv("MYSQL_TEST_SLAVE_HOST") ? getenv("MYSQL_TEST_SLAVE_HOST") : $host;
+	$slave_socket = $socket;
+	$slave_port = $port;
+	if (false !== ($pos = strpos($slave_host, ':'))) {
+		if ('/' == substr($slave_host, $pos + 1, 1)) {
+			$slave_socket = substr($slave_host, $pos + 1);
+			$slave_port = NULL;
+		} else {
+			$slave_socket = NULL;
+			$slave_port = substr($slave_host, $pos + 1);
+		}
+		$slave_host = substr($slave_host, 0, $pos);
+	}
 	/* Development setting: test experimal features and/or feature requests that never worked before? */
 	$TEST_EXPERIMENTAL = (in_array(getenv("MYSQL_TEST_EXPERIMENTAL"), array(0, 1))) ?
 				((1 == getenv("MYSQL_TEST_EXPERIMENTAL")) ? true : false) :
