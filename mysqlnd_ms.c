@@ -51,6 +51,7 @@
 #define FAILOVER_NAME			"failover"
 #define FAILOVER_DISABLED 		"disabled"
 #define FAILOVER_MASTER			"master"
+#define MASTER_ON_WRITE_NAME    "master_on_write"
 
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
@@ -88,6 +89,8 @@ typedef struct st_mysqlnd_ms_connection_data
 	enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
 	enum mysqlnd_ms_server_failover_strategy failover_strategy;
 	MYSQLND * random_once;
+	zend_bool flag_master_on_write;
+	zend_bool master_used;
 
 	char * user;
 	char * passwd;
@@ -682,6 +685,22 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				}
 			}
 
+			{
+				char * master_on_write = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
+													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
+
+				(*conn_data_pp)->flag_master_on_write = FALSE;
+				(*conn_data_pp)->master_used = FALSE;
+
+				if (value_exists && master_on_write) {
+					DBG_INF("Master on write active");
+					(*conn_data_pp)->flag_master_on_write = !mysqlnd_ms_ini_string_is_bool_false(master_on_write);
+				}
+				if (master_on_write) {
+					mnd_efree(master_on_write);
+				}
+			}
+
 		} while (0);
 		mysqlnd_ms_ini_reset_section(&mysqlnd_ms_config, host, host_len, FALSE TSRMLS_CC);
 		if (!hotloading) {
@@ -702,13 +721,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 /* {{{ mysqlnd_ms_query_is_select */
 enum enum_which_server
-mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
+mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC)
 {
 	enum enum_which_server ret = USE_MASTER;
 	struct st_qc_token_and_value token;
-	zend_bool forced = FALSE;
 	struct st_mysqlnd_tok_scanner * scanner;
 	DBG_ENTER("mysqlnd_ms_query_is_select");
+	*forced = FALSE;
 	if (!query) {
 		DBG_RETURN(USE_MASTER);
 	}
@@ -718,29 +737,29 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len TSRMLS_DC)
 		if (!strncasecmp(Z_STRVAL(token.value), MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1)) {
 			DBG_INF("forced master");
 			ret = USE_MASTER;
-			forced = TRUE;
+			*forced = TRUE;
 		} else if (!strncasecmp(Z_STRVAL(token.value), SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1)) {
 			DBG_INF("forced slave");
 			ret = USE_SLAVE;
-			forced = TRUE;
+			*forced = TRUE;
 		} else if (!strncasecmp(Z_STRVAL(token.value), LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
 			DBG_INF("forced last used");
 			ret = USE_LAST_USED;
-			forced = TRUE;
+			*forced = TRUE;
 #ifdef ALL_SERVER_DISPATCH
 		} else if (!strncasecmp(Z_STRVAL(token.value), ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1)) {
 			DBG_INF("forced all server");
 			ret = USE_ALL;
-			forced = TRUE;
+			*forced = TRUE;
 #endif
 		}
 		zval_dtor(&token.value);
 		token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
 	}
-	if (forced == FALSE && token.token == QC_TOKEN_SELECT) {
+	if (*forced == FALSE && token.token == QC_TOKEN_SELECT) {
 		ret = USE_SLAVE;
 #ifdef ALL_SERVER_DISPATCH
-	} else if (forced == FALSE && token.token == QC_TOKEN_SET) {
+	} else if (*forced == FALSE && token.token == QC_TOKEN_SET) {
 		ret = USE_ALL;
 #endif
 	}
@@ -756,13 +775,36 @@ static MYSQLND *
 mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	zend_bool forced;
+	enum enum_which_server which_server;
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
 	*use_all = 0;
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(conn);
 	}
-	switch (mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC)) {
+	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
+	if ((*conn_data_pp)->flag_master_on_write) {
+		if (which_server != USE_MASTER) {
+			if ((*conn_data_pp)->master_used && !forced) {
+				switch (which_server) {
+					case USE_MASTER:
+					case USE_LAST_USED:
+						break;
+					case USE_SLAVE:
+					case USE_ALL:
+					default:
+						DGB_INF("Enforcing use of master after write");
+						which_server = USE_MASTER;
+						break;
+				}
+			}
+		} else {
+			DGB_INF("Use of master detected");
+			(*conn_data_pp)->master_used = TRUE;
+		}
+	}
+	switch (which_server) {
 		case USE_SLAVE:
 		{
 			zend_llist * l = &(*conn_data_pp)->slave_connections;
@@ -843,13 +885,36 @@ static MYSQLND *
 mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	zend_bool forced;
+	enum enum_which_server which_server;
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
 	*use_all = 0;
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(conn);
 	}
-	switch (mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC)) {
+	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
+	if ((*conn_data_pp)->flag_master_on_write) {
+		if (which_server != USE_MASTER) {
+			if ((*conn_data_pp)->master_used && !forced) {
+				switch (which_server) {
+					case USE_MASTER:
+					case USE_LAST_USED:
+						break;
+					case USE_SLAVE:
+					case USE_ALL:
+					default:
+						DGB_INF("Enforcing use of master after write");
+						which_server = USE_MASTER;
+						break;
+				}
+			}
+		} else {
+			DGB_INF("Use of master detected");
+			(*conn_data_pp)->master_used = TRUE;
+		}
+	}
+	switch (which_server) {
 		case USE_SLAVE:
 		{
 			zend_llist_position	pos;
@@ -956,13 +1021,36 @@ static MYSQLND *
 mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	zend_bool forced;
+	enum enum_which_server which_server;
 	DBG_ENTER("mysqlnd_ms_choose_connection_random_once");
 
 	*use_all = 0;
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(conn);
 	}
-	switch (mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC)) {
+	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
+	if ((*conn_data_pp)->flag_master_on_write) {
+		if (which_server != USE_MASTER) {
+			if ((*conn_data_pp)->master_used && !forced) {
+				switch (which_server) {
+					case USE_MASTER:
+					case USE_LAST_USED:
+						break;
+					case USE_SLAVE:
+					case USE_ALL:
+					default:
+						DBG_INF("Enforcing use of master after write");
+						which_server = USE_MASTER;
+						break;
+				}
+			}
+		} else {
+			DBG_INF("Use of master detected");
+			(*conn_data_pp)->master_used = TRUE;
+		}
+	}
+	switch (which_server) {
 		case USE_SLAVE:
 			if ((*conn_data_pp)->random_once) {
 				DBG_INF_FMT("Using last random connection "MYSQLND_LLU_SPEC, (*conn_data_pp)->random_once->thread_id);

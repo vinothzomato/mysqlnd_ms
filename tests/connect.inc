@@ -293,6 +293,10 @@
 					if (!fwrite($fp, sprintf("failover=%s\n", $config['failover'])))
 							return sprintf("Cannot write failover policy settings to file.");
 				}
+				if (isset($config['master_on_write'])) {
+					if (!fwrite($fp, sprintf("master_on_write=%s\n", $config['master_on_write'])))
+							return sprintf("Cannot write master_on_write policy settings to file.");
+				}
 			}
 			fclose($fp);
 			return '';

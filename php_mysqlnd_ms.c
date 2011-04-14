@@ -222,12 +222,13 @@ static PHP_FUNCTION(mysqlnd_ms_query_is_select)
 {
 	char * query;
 	int query_len;
+	zend_bool forced;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &query, &query_len) == FAILURE) {
 		return;
 	}
 
-	RETURN_LONG(mysqlnd_ms_query_is_select(query, query_len TSRMLS_CC));
+	RETURN_LONG(mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC));
 }
 /* }}} */
 
