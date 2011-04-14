@@ -1,5 +1,5 @@
 --TEST--
-multi query (does not work with lazy_connections)
+multi query and lazy connections
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -8,18 +8,18 @@ require_once("connect.inc");
 $settings = array(
 	$host => array(
 		'master' => array($master_host),
-		'slave' => array($slave_host, $slave_host),
+		'slave' => array($slave_host),
 		'pick' => array("roundrobin"),
-		'lazy_connections' => 0,
+		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_multi_query.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_limits_multi_query_lazy.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_multi_query_lazy.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -38,7 +38,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	run_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(3, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
 	run_query(4, $link, "SET @myrole='Master 1'");
 	/* slave 1 */
 	run_query(5, $link, "SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL");
@@ -52,39 +51,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 	} while ($link->more_results() && $link->next_result());
 	echo "\n";
 
-	/* slave 2 */
-	run_query(6, $link, "SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL");
-	do {
-		if ($res = $link->store_result()) {
-			$row = $res->fetch_assoc();
-			printf("%s", $row['_msg']);
-			$res->free();
-		}
-	} while ($link->more_results() && $link->next_result());
-	echo "\n";
-
-
-	/* master */
-	run_query(7, $link, "SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
-	do {
-		if ($res = $link->store_result()) {
-			$row = $res->fetch_assoc();
-			printf("%s", $row['_msg']);
-			$res->free();
-		}
-	} while ($link->more_results() && $link->next_result());#
-	echo "\n";
 
 	print "done!";
 
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_multi_query.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_multi_query.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_limits_multi_query_lazy.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_multi_query_lazy.ini'.\n");
 ?>
 --EXPECTF--
-This is Slave 1 speaking!
-This is Slave 2 speaking!
-This is Master 1 speaking!
+
+[005] [0]%s
+
 done!
