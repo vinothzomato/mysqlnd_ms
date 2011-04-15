@@ -32,6 +32,26 @@
 #include "mysqlnd_ms_ini.h"
 #include "ext/standard/php_rand.h"
 
+#define STR_W_LEN(str)  str, (sizeof(str) - 1)
+const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
+{
+	{ STR_W_LEN("use_slave") },
+	{ STR_W_LEN("use_master") },
+	{ STR_W_LEN("use_slave_forced") },
+	{ STR_W_LEN("use_master_forced") },
+	{ STR_W_LEN("use_last_used_forced") },
+	{ STR_W_LEN("non_lazy_connections_slave_success") },
+	{ STR_W_LEN("non_lazy_connections_slave_failure") },
+	{ STR_W_LEN("non_lazy_connections_master_success") },
+	{ STR_W_LEN("non_lazy_connections_master_failure") },
+	{ STR_W_LEN("lazy_connections_slave_success") },
+	{ STR_W_LEN("lazy_connections_slave_failure") },
+	{ STR_W_LEN("lazy_connections_master_success") },
+	{ STR_W_LEN("lazy_connections_master_failure") }
+};
+/* }}} */
+
+
 ZEND_DECLARE_MODULE_GLOBALS(mysqlnd_ms)
 
 unsigned int mysqlnd_ms_plugin_id;
@@ -48,6 +68,7 @@ php_mysqlnd_ms_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 	mysqlnd_ms_globals->force_config_usage = FALSE;
 	mysqlnd_ms_globals->ini_file = NULL;
 	mysqlnd_ms_globals->user_pick_server = NULL;
+	mysqlnd_ms_globals->collect_statistics = FALSE;
 }
 /* }}} */
 
@@ -105,6 +126,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("mysqlnd_ms.enable", "0", PHP_INI_SYSTEM, OnUpdateBool, enable, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.force_config_usage", "0", PHP_INI_SYSTEM, OnUpdateBool, force_config_usage, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.ini_file", NULL, PHP_INI_SYSTEM, OnUpdateString, ini_file, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
+	STD_PHP_INI_ENTRY("mysqlnd_ms.collect_statistics", "0", PHP_INI_SYSTEM, OnUpdateBool, collect_statistics, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 PHP_INI_END()
 /* }}} */
 
@@ -119,6 +141,8 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 		mysqlnd_ms_plugin_id = mysqlnd_plugin_register();
 		mysqlnd_ms_register_hooks();
 		zend_hash_init(&mysqlnd_ms_config, 2, NULL /* hash_func */, mysqlnd_ms_config_dtor /*dtor*/, 1 /* persistent */);
+
+		mysqlnd_stats_init(&mysqlnd_ms_stats, MS_STAT_LAST);
 #ifdef ZTS
 		LOCK_global_config_access = tsrm_mutex_alloc();
 #endif
@@ -233,6 +257,25 @@ static PHP_FUNCTION(mysqlnd_ms_query_is_select)
 /* }}} */
 
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_stats, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto array mysqlnd_ms_get_stats()
+    Return statistics on connections and queries */
+static PHP_FUNCTION(mysqlnd_ms_get_stats)
+{
+	DBG_ENTER("mysqlnd_ms_get_stats");
+	if (zend_parse_parameters_none() == FAILURE) {
+		DBG_VOID_RETURN;
+	}
+
+	mysqlnd_fill_stats_hash(mysqlnd_ms_stats, mysqlnd_ms_stats_values_names, return_value TSRMLS_CC ZEND_FILE_LINE_CC);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
@@ -246,6 +289,7 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
+	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
@@ -263,7 +307,7 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	PHP_RINIT(mysqlnd_ms),
 	PHP_RSHUTDOWN(mysqlnd_ms),
 	PHP_MINFO(mysqlnd_ms),
-	"0.1",
+	MYSQLND_MS_VERSION,
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
 	PHP_GINIT(mysqlnd_ms),
 	NULL,

@@ -42,6 +42,7 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool force_config_usage;
 	const char * ini_file;
 	zval * user_pick_server;
+	zend_bool collect_statistics;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
 
@@ -75,6 +76,30 @@ struct st_mysqlnd_tok_scanner
 #define MYSQLND_MS_VERSION_ID 10000
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
+
+extern MYSQLND_STATS * mysqlnd_ms_stats;
+
+typedef enum mysqlnd_ms_collected_stats
+{
+	MS_STAT_USE_SLAVE,
+	MS_STAT_USE_MASTER,
+	MS_STAT_USE_SLAVE_FORCED,
+	MS_STAT_USE_MASTER_FORCED,
+	MS_STAT_USE_LAST_USED_FORCED,
+	MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
+	MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
+	MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
+	MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
+	MS_STAT_LAZY_CONN_SLAVE_SUCCESS,
+	MS_STAT_LAZY_CONN_SLAVE_FAILURE,
+	MS_STAT_LAZY_CONN_MASTER_SUCCESS,
+	MS_STAT_LAZY_CONN_MASTER_FAILURE,
+	MS_STAT_LAST /* Should be always the last */
+} enum_mysqlnd_ms_collected_stats;
+
+#define MYSQLND_MS_INC_STATISTIC(stat) MYSQLND_INC_STATISTIC(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat))
+#define MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, value) MYSQLND_INC_STATISTIC_W_VALUE(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat), (value))
+
 
 /*
   ALREADY FIXED:

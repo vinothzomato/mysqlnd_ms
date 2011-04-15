@@ -131,6 +131,7 @@ typedef struct st_mysqlnd_ms_list_data
 	array_init((a));	\
 }
 
+MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
 /* {{{ mysqlnd_ms_call_handler */
 static zval *
@@ -297,10 +298,12 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 									{
 										ret = el->conn;
 										DBG_INF("Connected");
+										MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 									} else {
 										php_error_docref(NULL TSRMLS_CC, E_WARNING, "Callback chose %s but connection failed", el->emulated_scheme);
 										DBG_ERR("Connect failed, forwarding error to the user");
 										ret = el->conn; /* no automatic action: leave it to the user to decide! */
+										MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 									}
 								}
 							} else {
@@ -502,8 +505,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 			if (ret != PASS) {
 				mnd_efree(master);
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
 				break;
 			} else {
+				if (!use_lazy_connections)
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
 				MYSQLND_MS_LIST_DATA new_element = {0};
 				new_element.conn = conn;
 				new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
@@ -554,6 +560,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						}
 
 						if (ret == PASS) {
+							if (!use_lazy_connections)
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
 							MYSQLND_MS_LIST_DATA new_element = {0};
 							new_element.conn = tmp_conn;
 							new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
@@ -565,6 +573,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 							zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
 							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 						} else {
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
 							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 						}
 						mnd_efree(master);
@@ -608,6 +617,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 
 					if (ret == PASS) {
+						if (!use_lazy_connections)
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS);
 						MYSQLND_MS_LIST_DATA new_element = {0};
 						new_element.conn = tmp_conn;
 						new_element.host = slave? mnd_pestrdup(slave, conn->persistent) : NULL;
@@ -619,6 +630,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &new_element);
 						DBG_INF_FMT("Slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
 					} else {
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE);
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 					}
 					mnd_efree(slave);
@@ -738,14 +750,17 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 			DBG_INF("forced master");
 			ret = USE_MASTER;
 			*forced = TRUE;
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_FORCED);
 		} else if (!strncasecmp(Z_STRVAL(token.value), SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1)) {
 			DBG_INF("forced slave");
 			ret = USE_SLAVE;
 			*forced = TRUE;
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
 		} else if (!strncasecmp(Z_STRVAL(token.value), LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
 			DBG_INF("forced last used");
 			ret = USE_LAST_USED;
 			*forced = TRUE;
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_LAST_USED_FORCED);
 #ifdef ALL_SERVER_DISPATCH
 		} else if (!strncasecmp(Z_STRVAL(token.value), ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1)) {
 			DBG_INF("forced all server");
@@ -756,12 +771,17 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 		zval_dtor(&token.value);
 		token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
 	}
-	if (*forced == FALSE && token.token == QC_TOKEN_SELECT) {
-		ret = USE_SLAVE;
+	if (*forced == FALSE) {
+		if (token.token == QC_TOKEN_SELECT) {
+			ret = USE_SLAVE;
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 #ifdef ALL_SERVER_DISPATCH
-	} else if (*forced == FALSE && token.token == QC_TOKEN_SET) {
-		ret = USE_ALL;
+		} else if (token.token == QC_TOKEN_SET) {
+			ret = USE_ALL;
 #endif
+		} else {
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+		}
 	}
 	zval_dtor(&token.value);
 	mysqlnd_tok_free_scanner(scanner TSRMLS_CC);
@@ -822,8 +842,10 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 						DBG_RETURN(connection);
 					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 
 					if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
 					  DBG_INF("Failover disabled");
@@ -857,8 +879,10 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 						DBG_RETURN(connection);
 					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 				}
 			}
 			DBG_RETURN(connection);
@@ -945,8 +969,10 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 																	element->port, element->socket, (*conn_data_pp)->mysql_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 						DBG_RETURN(connection);
 					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 					if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
 					  DBG_INF("Failover disabled");
 					  DBG_RETURN(connection);
@@ -993,8 +1019,10 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 					{
 						DBG_INF("Connected");
 						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 						DBG_RETURN(connection);
 					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 				}
 			}
 			DBG_RETURN(connection);
@@ -1085,8 +1113,10 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 						{
 							DBG_INF("Connected");
 							(*conn_data_pp)->random_once = connection;
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 							DBG_RETURN(connection);
 						}
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 						if (SERVER_FAILOVER_DISABLED == (*conn_data_pp)->failover_strategy) {
 						  DBG_INF("Failover disabled");
 						  DBG_RETURN(connection);
@@ -1135,8 +1165,10 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 					{
 						DBG_INF("Connected");
 						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 						DBG_RETURN(connection);
 					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 				}
 			}
 			DBG_RETURN(connection);
