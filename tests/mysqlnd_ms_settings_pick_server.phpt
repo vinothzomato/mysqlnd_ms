@@ -5,7 +5,7 @@ Config settings: pick server = user
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
+if (($master_host == $slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
@@ -160,7 +160,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 	} else {
 		$threads["slave"][$link->thread_id]++;
 	}
-
 	check_master_slave_threads(30, $threads);
 
 	/* Should go to the first master */

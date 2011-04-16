@@ -5,7 +5,7 @@ pick server w lazy and connect error
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
+if (($master_host == $slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
@@ -23,7 +23,6 @@ if ($error = create_config("test_mysqlnd_ms_pick_server.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
-mysqlnd.debug="d:t:O,/tmp//mysqlnd.trace"
 --FILE--
 <?php
 	require_once("connect.inc");

@@ -25,10 +25,10 @@ function test_mysql_access($host, $user, $passwd, $db, $port, $socket) {
 	return $link->select_db("mysql");
 }
 
-if (!test_mysql_access($master_host, $user, $passwd, $db, $port, $socket))
+if (!test_mysql_access($master_host_only, $user, $passwd, $db, $port, $socket))
 	die("skip Master server account cannot access mysql database");
 
-if (!test_mysql_access($slave_host, $user, $passwd, $db, $port, $socket))
+if (!test_mysql_access($slave_host_only, $user, $passwd, $db, $port, $socket))
 	die("skip Slave server account cannot access mysql database");
 ?>
 --INI--
