@@ -207,10 +207,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 --EXPECTF--
 'SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL' => slave (%s)
 '/*ms=slave*/SELECT 'slave connect failure' AS _message FROM DUAL' => slave (%s)
+%A
+%A
 
 Warning: mysqli::query(): [%d] %s
 
 Warning: mysqli::query(): Callback chose %s but connection failed in %s on line %d
-[040 + 01] [2002] Connection refused
+[040 + 01] [2002] %s
 '/*ms=slave*/SELECT 'user driven slave failover' AS _message FROM DUAL' => slave (%s)
 done!
