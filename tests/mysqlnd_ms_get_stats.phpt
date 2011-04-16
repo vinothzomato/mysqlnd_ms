@@ -32,7 +32,6 @@ mysqlnd_ms.collect_statistics=1
 		"use_last_used_sql_hint" 				=> true,
 		"use_slave_callback"					=> true,
 		"use_master_callback"					=> true,
-		"use_last_used_callback" 				=> true,
 		"non_lazy_connections_slave_success"	=> true,
 		"non_lazy_connections_slave_failure"	=> true,
 		"non_lazy_connections_master_success"	=> true,
