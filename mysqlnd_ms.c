@@ -159,7 +159,7 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_user_pick_server */
+/* {{{ mysqlnd_ms_get_scheme_from_list_data */
 static int
 mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, zend_bool persistent TSRMLS_DC)
 {
@@ -280,6 +280,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 							if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
 								ret = el->conn;
 								DBG_INF_FMT("Userfunc chose master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_CALLBACK);
 							}
 						}
 					}
@@ -291,6 +292,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 								/* lazy */
 								if (!strncasecmp(el->emulated_scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->emulated_scheme_len))) {
 									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
+									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 									if (PASS == orig_mysqlnd_conn_methods->connect(el->conn, el->host, (*conn_data_pp)->user,
 																				   (*conn_data_pp)->passwd, (*conn_data_pp)->passwd_len,
 																				   (*conn_data_pp)->db, (*conn_data_pp)->db_len,
@@ -308,6 +310,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 								}
 							} else {
 								if (!strncasecmp(el->conn->scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->conn->scheme_len))) {
+									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 									ret = el->conn;
 									DBG_INF_FMT("Userfunc chose slave host : [%*s]", el->conn->scheme_len, el->conn->scheme);
 								}

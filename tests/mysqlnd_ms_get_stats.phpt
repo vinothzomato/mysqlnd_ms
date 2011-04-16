@@ -27,9 +27,12 @@ mysqlnd_ms.collect_statistics=1
 	$expected = array(
 		"use_slave" 							=> true,
 		"use_master"							=> true,
-		"use_slave_forced"						=> true,
-		"use_master_forced"						=> true,
-		"use_last_used_forced" 					=> true,
+		"use_slave_sql_hint"					=> true,
+		"use_master_sql_hint"					=> true,
+		"use_last_used_sql_hint" 				=> true,
+		"use_slave_callback"					=> true,
+		"use_master_callback"					=> true,
+		"use_last_used_callback" 				=> true,
 		"non_lazy_connections_slave_success"	=> true,
 		"non_lazy_connections_slave_failure"	=> true,
 		"non_lazy_connections_master_success"	=> true,
@@ -72,10 +75,10 @@ mysqlnd_ms.collect_statistics=1
 	$exp_stats['non_lazy_connections_master_success']++;
 
 	run_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	$exp_stats['use_master_forced']++;
+	$exp_stats['use_master_sql_hint']++;
 
 	run_query(5, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$exp_stats['use_slave_forced']++;
+	$exp_stats['use_slave_sql_hint']++;
 
 	$res = run_query(6, $link, "SELECT @myrole AS _role");
 	$exp_stats['use_slave']++;

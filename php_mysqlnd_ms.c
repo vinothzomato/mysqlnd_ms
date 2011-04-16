@@ -37,9 +37,11 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 {
 	{ STR_W_LEN("use_slave") },
 	{ STR_W_LEN("use_master") },
-	{ STR_W_LEN("use_slave_forced") },
-	{ STR_W_LEN("use_master_forced") },
-	{ STR_W_LEN("use_last_used_forced") },
+	{ STR_W_LEN("use_slave_sql_hint") },
+	{ STR_W_LEN("use_master_sql_hint") },
+	{ STR_W_LEN("use_last_used_sql_hint") },
+	{ STR_W_LEN("use_slave_callback") },
+	{ STR_W_LEN("use_master_callback") },
 	{ STR_W_LEN("non_lazy_connections_slave_success") },
 	{ STR_W_LEN("non_lazy_connections_slave_failure") },
 	{ STR_W_LEN("non_lazy_connections_master_success") },
@@ -266,6 +268,10 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 {
 	DBG_ENTER("mysqlnd_ms_get_stats");
 	if (zend_parse_parameters_none() == FAILURE) {
+		DBG_VOID_RETURN;
+	}
+
+	if (!MYSQLND_MS_G(enable)) {
 		DBG_VOID_RETURN;
 	}
 
