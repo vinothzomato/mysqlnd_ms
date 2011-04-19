@@ -30,40 +30,51 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 	* Select/pick a server for running the query on.
 	*
 	*/
-	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection) {
-		global $queries, $host;
+	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
+		global $queries, $host, $autocommit;
 		static $pick_server_last_used = "";
 
+		$args = func_get_args();
+		$num = func_num_args();
+		if ($num != 6) {
+			printf("[003] Number of arguments should be 6 got %d\n", $num);
+			var_dump($args);
+		}
+
+		if ($in_transaction == $autocommit) {
+			printf("[004] in_transaction should be %d\n", !$autocommit);
+		}
+
 		if ("" == $connected_host) {
-			printf("[003] Currently connected host is empty\n");
+			printf("[005] Currently connected host is empty\n");
 		}
 		if (!isset($queries[$query])) {
-			printf("[004] We are asked to handle the query '%s' which has not been issued by us.\n", $query);
+			printf("[006] We are asked to handle the query '%s' which has not been issued by us.\n", $query);
 		} else {
 			unset($queries[$query]);
 		}
 
 		if (!is_array($master)) {
-			printf("[005] No list of master servers given.");
+			printf("[007] No list of master servers given.");
 		} else {
 			/* we can't do much better because we get string representations of the master/slave connections */
 			if (1 != ($tmp = count($master))) {
-				printf("[006] Expecting one entry in the list of masters, found %d. Dumping list.\n", $tmp);
+				printf("[008] Expecting one entry in the list of masters, found %d. Dumping list.\n", $tmp);
 				var_dump($master);
 			}
 		}
 
 		if (!is_array($slaves)) {
-			printf("[005] No list of slave servers given.");
+			printf("[009] No list of slave servers given.");
 		} else {
 			if (1 != ($tmp = count($slaves))) {
-				printf("[006] Expecting one entry in the list of slaves, found %d. Dumping list.\n", $tmp);
+				printf("[010] Expecting one entry in the list of slaves, found %d. Dumping list.\n", $tmp);
 				var_dump($slaves);
 			}
 		}
 
 		if ($last_used_connection != $pick_server_last_used) {
-			printf("[007] Last used connection should be '%s' but got '%s'.\n", $pick_server_last_used, $last_used_connection);
+			printf("[011] Last used connection should be '%s' but got '%s'.\n", $pick_server_last_used, $last_used_connection);
 		}
 
 		$ret = "";
@@ -83,7 +94,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 			  $server = 'slave';
 			  break;
 			default:
-			  printf("[008] Unknown return value from mysqlnd_ms_query_is_select, where = %s .\n", $where);
+			  printf("[012] Unknown return value from mysqlnd_ms_query_is_select, where = %s .\n", $where);
 			  $ret = $master[0];
 			  $server = 'unknown';
 			  break;
@@ -150,6 +161,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 			$host, $user, $db, $port, $socket);
 
 	$threads["connect"] = $link->thread_id;
+	$autocommit = true;
+	$link->autocommit($autocommit);
 
 	/* Should go to the first slave */
 	$query = "SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL";
@@ -198,7 +211,24 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 	}
 	check_master_slave_threads(90, $threads);
 	if ($threads["slave"][$link->thread_id] != 2) {
-		printf("[091] Slave should have run 2 queriesy, records report %d\n", $threads["slave"][$link->thread_id]);
+		printf("[091] Slave should have run 2 queries, records report %d\n", $threads["slave"][$link->thread_id]);
+	}
+
+	$autocommit = false;
+	$link->autocommit($autocommit);
+
+	/* Should go to the first slave with in_transaction = true */
+	$query = sprintf("/*%s*/SELECT 'slave' AS _message FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
+	$expected = array('_message' => 'slave');
+	run_query(100, $link, $query, $expected);
+	if (!isset($threads["slave"][$link->thread_id])) {
+		$threads["slave"][$link->thread_id] = 1;
+	} else {
+		$threads["slave"][$link->thread_id]++;
+	}
+	check_master_slave_threads(110, $threads);
+	if ($threads["slave"][$link->thread_id] != 3) {
+		printf("[111] Slave should have run 3 queries, records report %d\n", $threads["slave"][$link->thread_id]);
 	}
 
 	print "done!";
@@ -212,5 +242,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 'SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL' => slave
 '/*ms=master*/SELECT 'master' AS _message FROM DUAL' => master
 '/*ms=master*/SELECT 'master' AS _message FROM DUAL' => master
+'/*ms=slave*/SELECT 'slave' AS _message FROM DUAL' => slave
+[004] in_transaction should be 1
+[006] We are asked to handle the query 'SET AUTOCOMMIT=0' which has not been issued by us.
+'SET AUTOCOMMIT=0' => master
 '/*ms=slave*/SELECT 'slave' AS _message FROM DUAL' => slave
 done!

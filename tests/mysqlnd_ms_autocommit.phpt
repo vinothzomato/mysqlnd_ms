@@ -1,12 +1,12 @@
 --TEST--
-Limits: autocommit - NOT handled by plugin before PHP 5.3.99
+autocommit - handled by plugin as of PHP 5.3.99
 --SKIPIF--
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if (version_compare(PHP_VERSION, '5.3.99-dev', '>='))
-	die(sprintf("SKIP Requires PHP < 5.3.99, using " . PHP_VERSION));
+if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
+	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 $settings = array(
 	"myapp" => array(
@@ -14,13 +14,13 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_limits_autocommit.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_autocommit.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_autocommit.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -97,9 +97,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_autocommit.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_limits_autocommit.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_autocommit.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_autocommit.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_autocommit.ini'.\n");
 ?>
 --EXPECTF--
-[007] Autocommit should be on, got '0'
-^^^^^done!
+done!

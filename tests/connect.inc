@@ -297,6 +297,10 @@
 					if (!fwrite($fp, sprintf("master_on_write=%s\n", $config['master_on_write'])))
 							return sprintf("Cannot write master_on_write policy settings to file.");
 				}
+				if (isset($config['trx_stickiness'])) {
+					if (!fwrite($fp, sprintf("trx_stickiness=%s\n", $config['trx_stickiness'])))
+							return sprintf("Cannot write trx_stickiness policy settings to file.");
+				}
 			}
 			fclose($fp);
 			return '';

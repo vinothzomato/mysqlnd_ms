@@ -9,7 +9,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
-		'lazy_connections' => 0,
+		'lazy_connections' => 0
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_get_stats.ini", $settings))
@@ -40,6 +40,9 @@ mysqlnd_ms.collect_statistics=1
 		"lazy_connections_slave_failure"		=> true,
 		"lazy_connections_master_success"		=> true,
 		"lazy_connections_master_failure"		=> true,
+		"trx_autocommit_on"						=> true,
+		"trx_autocommit_off"					=> true,
+		"trx_master_forced"						=> true,
 	);
 
 	function run_query($offset, $link, $query, $switch = NULL) {
@@ -93,6 +96,7 @@ mysqlnd_ms.collect_statistics=1
 			printf("[008] Expecting %s = '%s', got '%s'\n", $k, $exp_stats[$k], $v);
 		}
 	}
+
 	print "done!";
 
 ?>

@@ -96,6 +96,9 @@ typedef enum mysqlnd_ms_collected_stats
 	MS_STAT_LAZY_CONN_SLAVE_FAILURE,
 	MS_STAT_LAZY_CONN_MASTER_SUCCESS,
 	MS_STAT_LAZY_CONN_MASTER_FAILURE,
+	MS_STAT_TRX_AUTOCOMMIT_ON,
+	MS_STAT_TRX_AUTOCOMMIT_OFF,
+	MS_STAT_TRX_MASTER_FORCED,
 	MS_STAT_LAST /* Should be always the last */
 } enum_mysqlnd_ms_collected_stats;
 

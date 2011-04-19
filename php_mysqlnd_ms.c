@@ -49,7 +49,10 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("lazy_connections_slave_success") },
 	{ STR_W_LEN("lazy_connections_slave_failure") },
 	{ STR_W_LEN("lazy_connections_master_success") },
-	{ STR_W_LEN("lazy_connections_master_failure") }
+	{ STR_W_LEN("lazy_connections_master_failure") },
+	{ STR_W_LEN("trx_autocommit_on") },
+	{ STR_W_LEN("trx_autocommit_off") },
+	{ STR_W_LEN("trx_master_forced") }
 };
 /* }}} */
 
@@ -194,6 +197,11 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 	snprintf(buf, sizeof(buf), "%s (%d)", MYSQLND_MS_VERSION, MYSQLND_MS_VERSION_ID);
 	php_info_print_table_row(2, "Mysqlnd master/slave plugin version", buf);
 	php_info_print_table_row(2, "Plugin active", MYSQLND_MS_G(enable) ? "yes" : "no");
+#if PHP_VERSION_ID >= 50399
+	php_info_print_table_row(2, "Transaction mode trx_stickiness supported", "yes");
+#else
+	php_info_print_table_row(2, "Transaction mode trx_stickiness supported", "no");
+#endif
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();

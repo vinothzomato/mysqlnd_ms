@@ -51,7 +51,9 @@
 #define FAILOVER_NAME			"failover"
 #define FAILOVER_DISABLED 		"disabled"
 #define FAILOVER_MASTER			"master"
-#define MASTER_ON_WRITE_NAME    "master_on_write"
+#define MASTER_ON_WRITE_NAME	"master_on_write"
+#define TRX_STICKINESS_NAME		"trx_stickiness"
+#define TRX_STICKINESS_MASTER	"master"
 
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
@@ -79,18 +81,32 @@ enum mysqlnd_ms_server_failover_strategy
 
 #define DEFAULT_FAILOVER_STRATEGY SERVER_FAILOVER_DISABLED
 
+enum mysqlnd_ms_trx_stickiness_strategy
+{
+	TRX_STICKINESS_STRATEGY_DISABLED,
+	TRX_STICKINESS_STRATEGY_MASTER
+};
+
+#define DEFAULT_TRX_STICKINESS_STRATEGY TRX_STICKINESS_STRATEGY_DISABLED
+
 typedef struct st_mysqlnd_ms_connection_data
 {
 	char * connect_host;
 	zend_llist master_connections;
 	zend_llist slave_connections;
 	MYSQLND * last_used_connection;
+	MYSQLND * random_once;
+
 	enum mysqlnd_ms_server_pick_strategy pick_strategy;
 	enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
+
 	enum mysqlnd_ms_server_failover_strategy failover_strategy;
-	MYSQLND * random_once;
-	zend_bool flag_master_on_write;
+
+	zend_bool mysqlnd_ms_flag_master_on_write;
 	zend_bool master_used;
+
+	enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
+	zend_bool in_transaction;
 
 	char * user;
 	char * passwd;
@@ -195,7 +211,7 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	zend_llist * master_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
 	zend_llist * slave_list = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
-	zval * args[6];
+	zval * args[7];
 	zval * retval;
 	MYSQLND * ret = NULL;
 
@@ -255,6 +271,14 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 				ZVAL_NULL(args[param]);
 			}
 
+			/* in transaction */
+			param++;
+			MAKE_STD_ZVAL(args[param]);
+			if ((*conn_data_pp)->in_transaction) {
+				ZVAL_TRUE(args[param]);
+			} else {
+				ZVAL_FALSE(args[param]);
+			}
 #ifdef ALL_SERVER_DISPATCH
 			/* use all */
 			use_all_pos = ++param;
@@ -704,15 +728,36 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				char * master_on_write = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
 													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 
-				(*conn_data_pp)->flag_master_on_write = FALSE;
+				(*conn_data_pp)->mysqlnd_ms_flag_master_on_write = FALSE;
 				(*conn_data_pp)->master_used = FALSE;
 
 				if (value_exists && master_on_write) {
 					DBG_INF("Master on write active");
-					(*conn_data_pp)->flag_master_on_write = !mysqlnd_ms_ini_string_is_bool_false(master_on_write);
+					(*conn_data_pp)->mysqlnd_ms_flag_master_on_write = !mysqlnd_ms_ini_string_is_bool_false(master_on_write);
 				}
 				if (master_on_write) {
 					mnd_efree(master_on_write);
+				}
+			}
+
+			{
+				char * trx_strategy = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
+												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
+				(*conn_data_pp)->trx_stickiness_strategy = DEFAULT_TRX_STICKINESS_STRATEGY;
+				(*conn_data_pp)->in_transaction = FALSE;
+
+				if (value_exists && trx_strategy) {
+# if PHP_VERSION_ID >= 50399
+					if (!strncasecmp(TRX_STICKINESS_MASTER, trx_strategy, sizeof(TRX_STICKINESS_MASTER) - 1)) {
+						DBG_INF("Transaction strickiness strategy = master");
+						(*conn_data_pp)->trx_stickiness_strategy = TRX_STICKINESS_STRATEGY_MASTER;
+					}
+# else
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
+# endif
+				}
+				if (trx_strategy) {
+					mnd_efree(trx_strategy);
 				}
 			}
 
@@ -807,7 +852,11 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 		DBG_RETURN(conn);
 	}
 	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-	if ((*conn_data_pp)->flag_master_on_write) {
+	if (((*conn_data_pp)->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && (*conn_data_pp)->in_transaction && !forced) {
+		DBG_INF("Enforcing use of master while in transaction");
+		which_server = USE_MASTER;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
+	} else if ((*conn_data_pp)->mysqlnd_ms_flag_master_on_write) {
 		if (which_server != USE_MASTER) {
 			if ((*conn_data_pp)->master_used && !forced) {
 				switch (which_server) {
@@ -921,7 +970,11 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 		DBG_RETURN(conn);
 	}
 	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-	if ((*conn_data_pp)->flag_master_on_write) {
+	if (((*conn_data_pp)->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && (*conn_data_pp)->in_transaction && !forced) {
+		DBG_INF("Enforcing use of master while in transaction");
+		which_server = USE_MASTER;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
+	} else if ((*conn_data_pp)->mysqlnd_ms_flag_master_on_write) {
 		if (which_server != USE_MASTER) {
 			if ((*conn_data_pp)->master_used && !forced) {
 				switch (which_server) {
@@ -941,6 +994,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 			(*conn_data_pp)->master_used = TRUE;
 		}
 	}
+
 	switch (which_server) {
 		case USE_SLAVE:
 		{
@@ -1061,7 +1115,11 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 		DBG_RETURN(conn);
 	}
 	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-	if ((*conn_data_pp)->flag_master_on_write) {
+	if (((*conn_data_pp)->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && (*conn_data_pp)->in_transaction && !forced) {
+		DBG_INF("Enforcing use of master while in transaction");
+		which_server = USE_MASTER;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
+	} else if ((*conn_data_pp)->mysqlnd_ms_flag_master_on_write) {
 		if (which_server != USE_MASTER) {
 			if ((*conn_data_pp)->master_used && !forced) {
 				switch (which_server) {
@@ -1425,6 +1483,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 		DBG_RETURN(orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent TSRMLS_CC));
 #endif
 	}
+
 	/* search the list of easy handles hanging off the multi-handle */
 	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
 			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
@@ -1764,6 +1823,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	if (!conn_data_pp || !*conn_data_pp) {
 		DBG_RETURN(orig_mysqlnd_conn_methods->set_autocommit(proxy_conn, mode TSRMLS_CC));
 	}
+
 	/* search the list of easy handles hanging off the multi-handle */
 	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(&(*conn_data_pp)->master_connections, &pos); el && el->conn;
 			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(&(*conn_data_pp)->master_connections, &pos))
@@ -1786,6 +1846,15 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 		}
 	}
 
+	if (mode) {
+		(*conn_data_pp)->in_transaction = FALSE;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_AUTOCOMMIT_ON);
+	} else {
+		(*conn_data_pp)->in_transaction = TRUE;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_AUTOCOMMIT_OFF);
+	}
+	DBG_INF_FMT("in_transaction = %d", (*conn_data_pp)->in_transaction);
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1797,6 +1866,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND * conn TSRMLS_DC)
 {
 	enum_func_status ret;
 	DBG_ENTER("mysqlnd_ms::tx_commit");
+
 	ret = orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC);
 	DBG_RETURN(ret);
 }
@@ -1809,6 +1879,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND * conn TSRMLS_DC)
 {
 	enum_func_status ret;
 	DBG_ENTER("mysqlnd_ms::tx_rollback");
+
 	ret = orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
 	DBG_RETURN(ret);
 }
