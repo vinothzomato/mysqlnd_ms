@@ -36,113 +36,112 @@
   <contents>
     <dir name="/">
       <dir name="tests">
-        <file name="mysqlnd_qc_get_normalized_query_trace_log_mq.phpt" role="test" />
         <file name="connect.inc" role="test"/>
         <file name="skipif.inc" role="test"/>
         <file name="README" role="test"/>
-        <file name="mysqlnd_ms_autocommit.phpt" role="test">
-        <file name="mysqlnd_ms_change_user.phpt" role="test">
-        <file name="mysqlnd_ms_charsets.phpt" role="test">
-        <file name="mysqlnd_ms_config_access.phpt" role="test">
-        <file name="mysqlnd_ms_connection_references.phpt" role="test">
-        <file name="mysqlnd_ms_constants.phpt" role="test">
-        <file name="mysqlnd_ms_get_stats.phpt" role="test">
-        <file name="mysqlnd_ms_ini_settings.phpt" role="test">
-        <file name="mysqlnd_ms_insert_affected.phpt" role="test">
-        <file name="mysqlnd_ms_limits_autocommit.phpt" role="test">
-        <file name="mysqlnd_ms_limits_connection_options.phpt" role="test">
-        <file name="mysqlnd_ms_limits_multi_query_lazy.phpt" role="test">
-        <file name="mysqlnd_ms_limits_prepared_statements.phpt" role="test">
-        <file name="mysqlnd_ms_limits_real_query.phpt" role="test">
-        <file name="mysqlnd_ms_limits_sql_prepare.phpt" role="test">
-        <file name="mysqlnd_ms_limits_sql_transactions.phpt" role="test">
-        <file name="mysqlnd_ms_limits_use_db.phpt" role="test">
-        <file name="mysqlnd_ms_limits_use_result.phpt" role="test">
-        <file name="mysqlnd_ms_manual_failover_killed.phpt" role="test">
-        <file name="mysqlnd_ms_manual_failover_unknown.phpt" role="test">
-        <file name="mysqlnd_ms_master_on_write.phpt" role="test">
-        <file name="mysqlnd_ms_multi_master.phpt" role="test">
-        <file name="mysqlnd_ms_multi_query.phpt" role="test">
-        <file name="mysqlnd_ms_no_master.phpt" role="test">
-        <file name="mysqlnd_ms_no_slaves.phpt" role="test">
-        <file name="mysqlnd_ms_phpinfo.phpt" role="test">
-        <file name="mysqlnd_ms_pick_random.phpt" role="test">
-        <file name="mysqlnd_ms_pick_random_once.phpt" role="test">
-        <file name="mysqlnd_ms_pick_round_robin.phpt" role="test">
-        <file name="mysqlnd_ms_ping.phpt" role="test">
-        <file name="mysqlnd_ms_query_is_select.phpt" role="test">
-        <file name="mysqlnd_ms_real_escape.phpt" role="test">
-        <file name="mysqlnd_ms_reflection_extension.phpt" role="test">
-        <file name="mysqlnd_ms_select_db.phpt" role="test">
-        <file name="mysqlnd_ms_settings_default_lazy.phpt" role="test">
-        <file name="mysqlnd_ms_settings_force_config.phpt" role="test">
-        <file name="mysqlnd_ms_settings_ini_bool_false_aus.phpt" role="test">
-        <file name="mysqlnd_ms_settings_ini_bool_false_false.phpt" role="test">
-        <file name="mysqlnd_ms_settings_ini_bool_false_off.phpt" role="test">
-        <file name="mysqlnd_ms_settings_ini_bool_false_zero.phpt" role="test">
-        <file name="mysqlnd_ms_settings_ini_bool_true.phpt" role="test">
-        <file name="mysqlnd_ms_settings_pick_server.phpt" role="test">
-        <file name="mysqlnd_ms_settings_pick_server_fallback.phpt" role="test">
-        <file name="mysqlnd_ms_settings_pick_server_lazy_failure.phpt" role="test">
-        <file name="mysqlnd_ms_settings_pick_server_oo.phpt" role="test">
-        <file name="mysqlnd_ms_settings_slave_unreachable.phpt" role="test">
-        <file name="mysqlnd_ms_settings_trx_stickiness_master.phpt" role="test">
-        <file name="mysqlnd_ms_simple.phpt" role="test">
-        <file name="mysqlnd_ms_sql_hints.phpt" role="test">
-        <file name="mysqlnd_ms_thread_id.phpt" role="test">
+        <file name="mysqlnd_ms_autocommit.phpt" role="test" />
+        <file name="mysqlnd_ms_change_user.phpt" role="test" />
+        <file name="mysqlnd_ms_charsets.phpt" role="test" />
+        <file name="mysqlnd_ms_config_access.phpt" role="test" />
+        <file name="mysqlnd_ms_connection_references.phpt" role="test" />
+        <file name="mysqlnd_ms_constants.phpt" role="test" />
+        <file name="mysqlnd_ms_get_stats.phpt" role="test" />
+        <file name="mysqlnd_ms_ini_settings.phpt" role="test" />
+        <file name="mysqlnd_ms_insert_affected.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_autocommit.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_connection_options.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_multi_query_lazy.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_prepared_statements.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_real_query.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_sql_prepare.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_sql_transactions.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_use_db.phpt" role="test" />
+        <file name="mysqlnd_ms_limits_use_result.phpt" role="test" />
+        <file name="mysqlnd_ms_manual_failover_killed.phpt" role="test" />
+        <file name="mysqlnd_ms_manual_failover_unknown.phpt" role="test" />
+        <file name="mysqlnd_ms_master_on_write.phpt" role="test" />
+        <file name="mysqlnd_ms_multi_master.phpt" role="test" />
+        <file name="mysqlnd_ms_multi_query.phpt" role="test" />
+        <file name="mysqlnd_ms_no_master.phpt" role="test" />
+        <file name="mysqlnd_ms_no_slaves.phpt" role="test" />
+        <file name="mysqlnd_ms_phpinfo.phpt" role="test" />
+        <file name="mysqlnd_ms_pick_random.phpt" role="test" />
+        <file name="mysqlnd_ms_pick_random_once.phpt" role="test" />
+        <file name="mysqlnd_ms_pick_round_robin.phpt" role="test" />
+        <file name="mysqlnd_ms_ping.phpt" role="test" />
+        <file name="mysqlnd_ms_query_is_select.phpt" role="test" />
+        <file name="mysqlnd_ms_real_escape.phpt" role="test" />
+        <file name="mysqlnd_ms_reflection_extension.phpt" role="test" />
+        <file name="mysqlnd_ms_select_db.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_default_lazy.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_force_config.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_ini_bool_false_aus.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_ini_bool_false_false.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_ini_bool_false_off.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_ini_bool_false_zero.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_ini_bool_true.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_pick_server.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_pick_server_fallback.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_pick_server_lazy_failure.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_pick_server_oo.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_slave_unreachable.phpt" role="test" />
+        <file name="mysqlnd_ms_settings_trx_stickiness_master.phpt" role="test" />
+        <file name="mysqlnd_ms_simple.phpt" role="test" />
+        <file name="mysqlnd_ms_sql_hints.phpt" role="test" />
+        <file name="mysqlnd_ms_thread_id.phpt" role="test" />
 
         <dir name="bench">
-         <file name="README" role="test">
-         <file name="abstract.php" role="test">
+         <file name="README" role="test" />
 
-         <dir name="bench">
-          <file name="config.php" role="test">
-          <file name="main.php" role="test">
-          <file name="rb_main.php" role="test">
-          <file name="rb_renderer_normal.php" role="test">
-          <file name="rb_storage_db_normal.php" role="test">
-          <file name="rb_testrunner_normal.php" role="test">
+         <dir name="framework">
+          <file name="abstract.php" role="test" />
+          <file name="config.php" role="test" />
+          <file name="main.php" role="test" />
+          <file name="rb_main.php" role="test" />
+          <file name="rb_renderer_normal.php" role="test" />
+          <file name="rb_storage_db_normal.php" role="test" />
+          <file name="rb_testrunner_normal.php" role="test" />
 
           <dir name="web">
-           <file name="rb_create_csv.php" role="test">
+           <file name="rb_create_csv.php" role="test" />
           </dir>
          </dir>
 
          <dir name="micro_benches">
-          <file name="andrey_stmt1.php" role="test">
-          <file name="andrey_stmt1_php_run_normal.php" role="test">
-          <file name="andrey_stmt2.php" role="test">
-          <file name="georg_bench1.php" role="test">
-          <file name="georg_bench2.php" role="test">
-          <file name="mysqli_affected_rows.php" role="test">
-          <file name="mysqli_connect.php" role="test">
-          <file name="mysqli_connect_and_close.php" role="test">
-          <file name="mysqli_data_seek_random.php" role="test">
-          <file name="mysqli_data_seek_random_php_run_normal.php" role="test">
-          <file name="mysqli_data_seek_sequential.php" role="test">
-          <file name="mysqli_fetch_all_vs_fetch_array.php" role="test">
-          <file name="mysqli_fetch_field_direct.php" role="test">
-          <file name="mysqli_fetch_long_buffered.php" role="test">
-          <file name="mysqli_fetch_long_unbuffered.php" role="test">
-          <file name="mysqli_fetch_long_unbuffered_php_run_normal.php" role="test">
-          <file name="mysqli_insert_id.php" role="test">
-          <file name="mysqli_many_cols_buf.php" role="test">
-          <file name="mysqli_many_cols_unbuf.php" role="test">
-          <file name="mysqli_query_insert_varchar.php" role="test">
-          <file name="mysqli_query_update_varchar.php" role="test">
-          <file name="mysqli_real_connect_and_close.php" role="test">
-          <file name="mysqli_real_query.php" role="test">
-          <file name="mysqli_sel_unbuf.php" role="test">
-          <file name="mysqli_select_varchar_buffered.php" role="test">
-          <file name="mysqli_skeleton.php" role="test">
-          <file name="mysqli_stmt_data_seek_random.php" role="test">
-          <file name="mysqli_stmt_execute.php" role="test">
-          <file name="mysqli_stmt_insert.php" role="test">
-          <file name="mysqli_stmt_many_col.php" role="test">
-          <file name="mysqli_stmt_seek_seq.php" role="test">
-          <file name="mysqli_stmt_sel_buf.php" role="test">
-          <file name="mysqli_stmt_sel_unbuf.php" role="test">
-          <file name="mysqli_variable_command_size.php" role="test">
+          <file name="andrey_stmt1.php" role="test" />
+          <file name="andrey_stmt1_php_run_normal.php" role="test" />
+          <file name="andrey_stmt2.php" role="test" />
+          <file name="georg_bench1.php" role="test" />
+          <file name="georg_bench2.php" role="test" />
+          <file name="mysqli_affected_rows.php" role="test" />
+          <file name="mysqli_connect.php" role="test" />
+          <file name="mysqli_connect_and_close.php" role="test" />
+          <file name="mysqli_data_seek_random.php" role="test" />
+          <file name="mysqli_data_seek_random_php_run_normal.php" role="test" />
+          <file name="mysqli_data_seek_sequential.php" role="test" />
+          <file name="mysqli_fetch_all_vs_fetch_array.php" role="test" />
+          <file name="mysqli_fetch_field_direct.php" role="test" />
+          <file name="mysqli_fetch_long_buffered.php" role="test" />
+          <file name="mysqli_fetch_long_unbuffered.php" role="test" />
+          <file name="mysqli_fetch_long_unbuffered_php_run_normal.php" role="test" />
+          <file name="mysqli_insert_id.php" role="test" />
+          <file name="mysqli_many_cols_buf.php" role="test" />
+          <file name="mysqli_many_cols_unbuf.php" role="test" />
+          <file name="mysqli_query_insert_varchar.php" role="test" />
+          <file name="mysqli_query_update_varchar.php" role="test" />
+          <file name="mysqli_real_connect_and_close.php" role="test" />
+          <file name="mysqli_real_query.php" role="test" />
+          <file name="mysqli_sel_unbuf.php" role="test" />
+          <file name="mysqli_select_varchar_buffered.php" role="test" />
+          <file name="mysqli_skeleton.php" role="test" />
+          <file name="mysqli_stmt_data_seek_random.php" role="test" />
+          <file name="mysqli_stmt_execute.php" role="test" />
+          <file name="mysqli_stmt_insert.php" role="test" />
+          <file name="mysqli_stmt_many_col.php" role="test" />
+          <file name="mysqli_stmt_seek_seq.php" role="test" />
+          <file name="mysqli_stmt_sel_buf.php" role="test" />
+          <file name="mysqli_stmt_sel_unbuf.php" role="test" />
+          <file name="mysqli_variable_command_size.php" role="test" />
          </dir>
 
         </dir>
@@ -178,6 +177,8 @@
 
   <providesextension>mysqlnd_ms</providesextension>
 
+  <extsrcrelease />
+
   <changelog>
     <release>
       <version>
@@ -192,6 +193,6 @@
       <license uri="http://www.php.net/license">PHP License</license>
       <notes>Initial package release. All 1.0 features implemented.</notes>
     </release>
-
   </changelog>
+
 </package>
