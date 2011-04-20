@@ -72,7 +72,7 @@ struct st_mysqlnd_tok_scanner
 #define LAST_USED_SWITCH "ms=last_used"
 #define ALL_SERVER_SWITCH "ms=all"
 
-#define MYSQLND_MS_VERSION "1.0.0-prototype"
+#define MYSQLND_MS_VERSION "1.0.0-alpha"
 #define MYSQLND_MS_VERSION_ID 10000
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
