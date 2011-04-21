@@ -16,7 +16,7 @@
     <email>uw@php_net</email>
     <active>yes</active>
   </lead>
-  <date>2011-04-20</date>
+  <date>2011-04-21</date>
   <time>12:00:00</time>
   <version>
     <release>1.0.1</release>
@@ -184,9 +184,9 @@
         <release>alpha</release>
         <api>stable</api>
       </stability>
-      <date>2010-04-21</date>
+      <date>2011-04-21</date>
       <license uri="http://www.php.net/license">PHP License</license>
-      <notes>Fixed debug build (credits to Vladimir Getmanshchuk!). All 1.0 features implemented.</notes>
+      <notes>Fixed debug build (credits to Vladimir Getmanshchuk). All 1.0 features implemented.</notes>
     </release>
     <release>
       <version>
@@ -197,7 +197,7 @@
         <release>alpha</release>
         <api>stable</api>
       </stability>
-      <date>2010-04-20</date>
+      <date>2011-04-20</date>
       <license uri="http://www.php.net/license">PHP License</license>
       <notes>Initial package release. All 1.0 features implemented.</notes>
     </release>
