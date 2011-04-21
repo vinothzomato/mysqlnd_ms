@@ -5,6 +5,9 @@ Config settings: pick server = user
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (version_compare(PHP_VERSION, '5.3.99-dev', '>='))
+	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
+
 if (($master_host == $slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
@@ -33,6 +36,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
 		global $queries, $host, $autocommit;
 		static $pick_server_last_used = "";
+		flush();
 
 		$args = func_get_args();
 		$num = func_num_args();
