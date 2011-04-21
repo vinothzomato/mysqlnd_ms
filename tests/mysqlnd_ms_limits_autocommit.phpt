@@ -102,4 +102,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_autocommit.ini
 ?>
 --EXPECTF--
 [007] Autocommit should be on, got '0'
-^^^^^done!
+done!
