@@ -3,12 +3,7 @@
   <name>mysqlnd_ms</name>
   <channel>pecl.php.net</channel>
   <summary>A replication and load balancing plugin for mysqlnd</summary>
-  <description>The replication and load balancing plugin is a plugin for the mysqlnd library.
-   It can be used with PHP MySQL extensions (ext/mysql, ext/mysqli, PDO_MySQL). if they are compiled to use mysqlnd.
-   The plugin inspects queries to do read-write splitting. Read-only queries are send to configured MySQL
-   replication slave servers all other queries are redirected to the MySQL replication master server.
-   Very little, if any, application changes required, dependent on the usage scenario required.
-  </description>
+  <description>The replication and load balancing plugin is a plugin for the mysqlnd library. It can be used with PHP MySQL extensions (ext/mysql, ext/mysqli, PDO_MySQL). if they are compiled to use mysqlnd. The plugin inspects queries to do read-write splitting. Read-only queries are send to configured MySQL replication slave servers all other queries are redirected to the MySQL replication master server. Very little, if any, application changes required, dependent on the usage scenario required. </description>
   <lead>
     <name>Andrey Hristov</name>
     <user>andrey</user>
@@ -24,7 +19,7 @@
   <date>2011-04-20</date>
   <time>12:00:00</time>
   <version>
-    <release>1.0.0</release>
+    <release>1.0.1</release>
     <api>1.0.0</api>
   </version>
   <stability>
@@ -180,6 +175,19 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.0.1</release>
+        <api>1.0.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>stable</api>
+      </stability>
+      <date>2010-04-21</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>Fixed debug build (credits to Vladimir Getmanshchuk!). All 1.0 features implemented.</notes>
+    </release>
     <release>
       <version>
         <release>1.0.0</release>
