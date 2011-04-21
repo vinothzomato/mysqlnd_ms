@@ -866,13 +866,13 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 					case USE_SLAVE:
 					case USE_ALL:
 					default:
-						DGB_INF("Enforcing use of master after write");
+						DBG_INF("Enforcing use of master after write");
 						which_server = USE_MASTER;
 						break;
 				}
 			}
 		} else {
-			DGB_INF("Use of master detected");
+			DBG_INF("Use of master detected");
 			(*conn_data_pp)->master_used = TRUE;
 		}
 	}
@@ -984,13 +984,13 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 					case USE_SLAVE:
 					case USE_ALL:
 					default:
-						DGB_INF("Enforcing use of master after write");
+						DBG_INF("Enforcing use of master after write");
 						which_server = USE_MASTER;
 						break;
 				}
 			}
 		} else {
-			DGB_INF("Use of master detected");
+			DBG_INF("Use of master detected");
 			(*conn_data_pp)->master_used = TRUE;
 		}
 	}
