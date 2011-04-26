@@ -16,6 +16,12 @@
     <email>uw@php_net</email>
     <active>yes</active>
   </lead>
+  <lead>
+    <name>Johannes Schlüter</name>
+    <user>johannes</user>
+    <email>johannes@php.net</email>
+    <active>yes</active>
+  </lead>
   <date>2011-04-21</date>
   <time>12:00:00</time>
   <version>
@@ -27,7 +33,7 @@
     <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Initial alpha package release. All 1.0 features implemented.</notes>
+  <notes>Fixed debug build (credits to Vladimir Getmanshchuk). All 1.0 features implemented.</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
