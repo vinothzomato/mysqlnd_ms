@@ -331,7 +331,7 @@ enum_func_status
 mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	const char * ini_file = INI_STR("mysqlnd_ms.ini_file");
+	char * ini_file = INI_STR("mysqlnd_ms.ini_file");
 	DBG_ENTER("mysqlnd_ms_init_server_list");
 	DBG_INF_FMT("ini_file=%s", ini_file? ini_file:"n/a");
 
@@ -347,7 +347,7 @@ mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 		ini_parse_data.current_ini_section = global_section;
 		ini_parse_data.current_ini_section_name = mnd_pestrndup(GLOBAL_SECTION_NAME, sizeof(GLOBAL_SECTION_NAME) - 1, 0);
 
-		fh.filename = INI_STR("mysqlnd_ms.ini_file");
+		fh.filename = ini_file;
 		fh.type = ZEND_HANDLE_FILENAME;
 
 		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_ini_parser_cb, &ini_parse_data TSRMLS_CC)) {
