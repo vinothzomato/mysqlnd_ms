@@ -351,7 +351,14 @@ mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 		fh.type = ZEND_HANDLE_FILENAME;
 
 		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_ini_parser_cb, &ini_parse_data TSRMLS_CC)) {
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to parse server list ini file");
+			char *cwd_ret = NULL;
+			char cwd[MAXPATHLEN];
+#if HAVE_GETCWD
+			cwd_ret = VCWD_GETCWD(cwd, MAXPATHLEN);
+#elif HAVE_GETWD
+			cwd_ret = VCWD_GETWD(cwd);
+#endif
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to parse server list ini file %s (current working dir: %s)", ini_file, cwd_ret ? cwd : "(unknown)");
 			ret = FAIL;
 		}
 		if (ini_parse_data.current_ini_section_name) {
