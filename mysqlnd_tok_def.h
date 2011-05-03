@@ -20,43 +20,14 @@
 /* $Id: header 252479 2008-02-07 19:39:50Z iliaa $ */
 #ifndef MYSQLND_TOK_DEF_H
 #define MYSQLND_TOK_DEF_H
+/* Tokens.  */
+#ifndef YYTOKENTYPE
+# define YYTOKENTYPE
+   /* Put the tokens into the symbol table, so that GDB and other debuggers
+      know about them.  */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-enum {
-QC_TOKEN_ACCESSIBLE = 259,
+enum yytokentype{
+QC_TOKEN_ACCESSIBLE = 258,
 QC_TOKEN_ACTION,
 QC_TOKEN_ADD,
 QC_TOKEN_ADDDATE,
@@ -660,7 +631,9 @@ QC_TOKEN_IDENTIFIER,
 QC_TOKEN_INTNUM,
 QC_TOKEN_FLOATNUM,
 QC_TOKEN_ASSIGN_TO_VAR,
-QC_TOKEN_TILDE
+QC_TOKEN_TILDE,
+QC_TOKEN_END_IN_ENUM
 };
+#endif
 
 #endif /* MYSQLND_MS_TOKENIZE_H */
