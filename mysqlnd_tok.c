@@ -4857,6 +4857,7 @@ static yyconst flex_int16_t yy_chk[15733] =
 Compile with : flex -8 -o mysqlnd_tok.c --reentrant --prefix mysqlnd_tok_ mysqlnd_tok.flex
 */
 
+#include "mysqlnd_tok_def.h"
 #include <string.h>
 #include "php.h"
 #include "php_ini.h"
@@ -4864,7 +4865,6 @@ Compile with : flex -8 -o mysqlnd_tok.c --reentrant --prefix mysqlnd_tok_ mysqln
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #include "mysqlnd_ms.h"
-#include "mysqlnd_ms.tab.h"
 
 int old_yystate;
 
