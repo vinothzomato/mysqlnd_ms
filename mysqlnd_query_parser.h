@@ -653,7 +653,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 38 "mysqlnd_par.grammar"
+#line 38 "mysqlnd_query_parser.grammar"
 
   zval zv;
   const char * kn; /* keyword_name */
@@ -661,7 +661,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 665 "mysqlnd_par.h"
+#line 665 "mysqlnd_query_parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

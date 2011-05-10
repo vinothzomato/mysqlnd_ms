@@ -76,7 +76,7 @@
 /* Copy the first part of user declarations.  */
 
 /* Line 189 of yacc.c  */
-#line 1 "mysqlnd_par.grammar"
+#line 1 "mysqlnd_query_parser.grammar"
 
 /*
   +----------------------------------------------------------------------+
@@ -99,7 +99,7 @@
 
 #include "php.h"
 #include "mysqlnd_ms.h"
-/* Compile with : bison -o mysqlnd_par.c -d mysqlnd_par.grammar --name-prefix=mysqlnd_par_tok_ */
+/* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_par_tok_ */
 
 extern int (*mysqlnd_par_tok_error)(const char * format, ...);
 
@@ -116,7 +116,7 @@ extern int (*mysqlnd_par_tok_error)(const char * format, ...);
 
 
 /* Line 189 of yacc.c  */
-#line 120 "mysqlnd_par.c"
+#line 120 "mysqlnd_query_parser.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -757,7 +757,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 38 "mysqlnd_par.grammar"
+#line 38 "mysqlnd_query_parser.grammar"
 
   zval zv;
   const char * kn; /* keyword_name */
@@ -765,7 +765,7 @@ typedef union YYSTYPE
 
 
 /* Line 214 of yacc.c  */
-#line 769 "mysqlnd_par.c"
+#line 769 "mysqlnd_query_parser.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -776,7 +776,7 @@ typedef union YYSTYPE
 /* Copy the second part of user declarations.  */
 
 /* Line 264 of yacc.c  */
-#line 43 "mysqlnd_par.grammar"
+#line 43 "mysqlnd_query_parser.grammar"
 
 /* so we can override the default declaration */
 #define YY_DECL 
@@ -785,7 +785,7 @@ extern int mysqlnd_par_tok_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS
 
 
 /* Line 264 of yacc.c  */
-#line 789 "mysqlnd_par.c"
+#line 789 "mysqlnd_query_parser.c"
 
 #ifdef short
 # undef short
@@ -3226,14 +3226,14 @@ yyreduce:
         case 11:
 
 /* Line 1455 of yacc.c  */
-#line 673 "mysqlnd_par.grammar"
+#line 673 "mysqlnd_query_parser.grammar"
     { PINFO.statement = STATEMENT_DROP; zval_dtor(&(yyvsp[(1) - (7)].zv)); ;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 691 "mysqlnd_par.grammar"
+#line 691 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_ALTER;
 					zval_dtor(&(yyvsp[(1) - (5)].zv));
@@ -3244,7 +3244,7 @@ yyreduce:
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 700 "mysqlnd_par.grammar"
+#line 700 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_RENAME;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3255,7 +3255,7 @@ yyreduce:
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 713 "mysqlnd_par.grammar"
+#line 713 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_REPLACE;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3266,7 +3266,7 @@ yyreduce:
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 726 "mysqlnd_par.grammar"
+#line 726 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_TRUNCATE;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3276,7 +3276,7 @@ yyreduce:
   case 29:
 
 /* Line 1455 of yacc.c  */
-#line 738 "mysqlnd_par.grammar"
+#line 738 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_DELETE;
 					zval_dtor(&(yyvsp[(1) - (5)].zv));
@@ -3287,7 +3287,7 @@ yyreduce:
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 756 "mysqlnd_par.grammar"
+#line 756 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_UPDATE;
 					zval_dtor(&(yyvsp[(1) - (6)].zv));
@@ -3298,7 +3298,7 @@ yyreduce:
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 770 "mysqlnd_par.grammar"
+#line 770 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_INSERT;
 					zval_dtor(&(yyvsp[(1) - (5)].zv));
@@ -3309,7 +3309,7 @@ yyreduce:
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 782 "mysqlnd_par.grammar"
+#line 782 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_SELECT;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3320,77 +3320,77 @@ yyreduce:
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 789 "mysqlnd_par.grammar"
+#line 789 "mysqlnd_query_parser.grammar"
     { ZVAL_NULL(&(yyval.zv)); ;}
     break;
 
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 792 "mysqlnd_par.grammar"
+#line 792 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (2)].zv)); ;}
     break;
 
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 800 "mysqlnd_par.grammar"
+#line 800 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (3)].zv)); zval_dtor(&(yyvsp[(3) - (3)].zv)); ;}
     break;
 
   case 52:
 
 /* Line 1455 of yacc.c  */
-#line 806 "mysqlnd_par.grammar"
+#line 806 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (1)].zv)); ;}
     break;
 
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 807 "mysqlnd_par.grammar"
+#line 807 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (3)].zv)); zval_dtor(&(yyvsp[(3) - (3)].zv)); ;}
     break;
 
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 810 "mysqlnd_par.grammar"
+#line 810 "mysqlnd_query_parser.grammar"
     { (yyval.zv)=(yyvsp[(1) - (1)].zv); ;}
     break;
 
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 811 "mysqlnd_par.grammar"
+#line 811 "mysqlnd_query_parser.grammar"
     { ZVAL_STRING(&((yyval.zv)), (yyvsp[(1) - (1)].kn), 1); ;}
     break;
 
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 815 "mysqlnd_par.grammar"
+#line 815 "mysqlnd_query_parser.grammar"
     { (yyval.zv) = (yyvsp[(2) - (2)].zv); ;}
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 816 "mysqlnd_par.grammar"
+#line 816 "mysqlnd_query_parser.grammar"
     { (yyval.zv) = (yyvsp[(1) - (1)].zv); ;}
     break;
 
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 817 "mysqlnd_par.grammar"
+#line 817 "mysqlnd_query_parser.grammar"
     { ZVAL_NULL(&(yyval.zv)); ;}
     break;
 
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 821 "mysqlnd_par.grammar"
+#line 821 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("alias");
 
@@ -3409,7 +3409,7 @@ yyreduce:
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 837 "mysqlnd_par.grammar"
+#line 837 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("table");
 					PINFO.table = mnd_pestrndup("DUAL", sizeof("DUAL") - 1, PINFO.persistent);
@@ -3421,7 +3421,7 @@ yyreduce:
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 844 "mysqlnd_par.grammar"
+#line 844 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("table");
 					PINFO.table = mnd_pestrndup(Z_STRVAL((yyvsp[(1) - (1)].zv)), Z_STRLEN((yyvsp[(1) - (1)].zv)), PINFO.persistent);
@@ -3433,7 +3433,7 @@ yyreduce:
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 851 "mysqlnd_par.grammar"
+#line 851 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("db");
 					PINFO.db = mnd_pestrndup(Z_STRVAL((yyvsp[(1) - (1)].zv)), Z_STRLEN((yyvsp[(1) - (1)].zv)), PINFO.persistent);
@@ -3446,7 +3446,7 @@ yyreduce:
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 859 "mysqlnd_par.grammar"
+#line 859 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("table");
 
@@ -3462,7 +3462,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 3466 "mysqlnd_par.c"
+#line 3466 "mysqlnd_query_parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);

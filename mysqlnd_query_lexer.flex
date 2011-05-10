@@ -29,7 +29,7 @@ Compile with : flex mysqlnd_query_lexer.flex
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #include "mysqlnd_ms.h"
-#include "mysqlnd_par.h"
+#include "mysqlnd_query_parser.h"
 
 int old_yystate;
 #define yyerror zend_printf

@@ -39,7 +39,7 @@
 #include "mysqlnd_ms_ini.h"
 #include "ext/standard/php_rand.h"
 
-#include "mysqlnd_par.h"
+#include "mysqlnd_query_parser.h"
 #include "mysqlnd_par_tok.h"
 
 #define MASTER_NAME				"master"
