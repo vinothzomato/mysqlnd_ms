@@ -30,8 +30,6 @@
 #include "ext/mysqlnd/mysqlnd_statistics.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
-#include "mysqlnd_tok.h"
-#include "mysqlnd_tok_def.h"
 
 #ifdef ZTS
 #include "TSRM.h"
@@ -51,21 +49,6 @@ ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 #else
 #define MYSQLND_MS_G(v) (mysqlnd_ms_globals.v)
 #endif
-
-struct st_qc_token_and_value
-{
-	unsigned int token;
-	zval value;
-};
-
-
-struct st_mysqlnd_tok_scanner
-{
-	void * scanner;
-	zval * token_value;
-};
-
-
 
 #define MASTER_SWITCH "ms=master"
 #define SLAVE_SWITCH "ms=slave"
@@ -133,6 +116,53 @@ ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
 
 void mysqlnd_ms_register_hooks();
 enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
+
+
+struct st_qc_token_and_value
+{
+	unsigned int token;
+	zval value;
+};
+
+
+struct st_mysqlnd_tok_scanner
+{
+	void * scanner;
+	zval * token_value;
+};
+
+typedef enum 
+{
+	STATEMENT_SELECT,
+	STATEMENT_INSERT,
+	STATEMENT_UPDATE,
+	STATEMENT_DELETE,
+	STATEMENT_TRUNCATE,
+	STATEMENT_REPLACE,
+	STATEMENT_RENAME,
+	STATEMENT_ALTER,
+	STATEMENT_DROP
+} enum_mysql_statement_type;
+
+struct st_mysqlnd_parse_info
+{
+	char * db;
+	char * table;
+	char * org_table;
+	enum_mysql_statement_type statement;
+	zend_bool persistent;
+};
+
+struct st_mysqlnd_tok_parser
+{
+	struct st_mysqlnd_tok_scanner * scanner;
+	struct st_mysqlnd_parse_info parse_info;
+};
+
+
+#include "mysqlnd_tok.h"
+#include "mysqlnd_tok_def.h"
+
 
 #endif	/* MYSQLND_MS_H */
 
