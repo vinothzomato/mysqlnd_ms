@@ -19,7 +19,7 @@
 */
 
 /*
-Compile with : flex -8 -o mysqlnd_tok.c --reentrant --prefix mysqlnd_tok_ mysqlnd_tok.flex
+Compile with : flex mysqlnd_tok.flex
 */
 
 #include "mysqlnd_tok_def.h"
@@ -40,9 +40,11 @@ int old_yystate;
 
 %}
 
+%option 8bit
 %option reentrant noyywrap nounput
 %option extra-type="zval *"
-%option bison-bridge
+%option prefix="mysqlnd_tok_"
+%option outfile="mysqlnd_tok.c"
 
 %x COMMENT_MODE
 %s BETWEEN_MODE
@@ -769,7 +771,7 @@ mysqlnd_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 	DBG_ENTER("mysqlnd_tok_get_token");
 	
 	/* yylex expects `yyscan_t`, not `yyscan_t*` */
-	if ((ret.token = yylex(NULL, *(yyscan_t *)scanner->scanner))) {
+	if ((ret.token = yylex(*(yyscan_t *)scanner->scanner))) {
 		DBG_INF_FMT("token=%d", ret.token);
 		switch (Z_TYPE_P(scanner->token_value)) {
 			case IS_STRING:

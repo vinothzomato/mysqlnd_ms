@@ -1324,6 +1324,29 @@ mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned in
 #endif
 
 
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, query2)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
+{
+	int ret;
+	struct st_mysqlnd_tok_parser * parser;
+	DBG_ENTER("mysqlnd_ms::query2");
+	parser = mysqlnd_par_tok_create_parser(TSRMLS_C);
+	if (parser) {
+		ret = mysqlnd_par_tok_start_parser(parser, query, query_len TSRMLS_CC);
+		DBG_INF_FMT("mysqlnd_par_tok_start_parser=%d", ret);
+		DBG_INF_FMT("db=%s table=%s org_table=%s",
+				parser->parse_info.db? parser->parse_info.db:"n/a",
+				parser->parse_info.table? parser->parse_info.table:"n/a",
+				parser->parse_info.org_table? parser->parse_info.org_table:"n/a"
+			);
+		mysqlnd_par_tok_free_parser(parser TSRMLS_CC);
+		DBG_RETURN(PASS);
+	}
+	DBG_RETURN(FAIL);
+}
+/* }}} */
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
