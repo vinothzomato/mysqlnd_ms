@@ -39,6 +39,8 @@
 #include "mysqlnd_ms_ini.h"
 #include "ext/standard/php_rand.h"
 
+#include "mysqlnd_par.h"
+#include "mysqlnd_tok.h"
 
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
@@ -784,15 +786,18 @@ enum enum_which_server
 mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC)
 {
 	enum enum_which_server ret = USE_MASTER;
-	struct st_qc_token_and_value token;
+	struct st_qc_token_and_value token = {0};
 	struct st_mysqlnd_tok_scanner * scanner;
 	DBG_ENTER("mysqlnd_ms_query_is_select");
 	*forced = FALSE;
 	if (!query) {
 		DBG_RETURN(USE_MASTER);
 	}
-	scanner = mysqlnd_tok_create_scanner(query, query_len TSRMLS_CC);
-	token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
+
+	scanner = mysqlnd_par_tok_create_scanner(TSRMLS_C);
+	mysqlnd_par_tok_set_string(scanner, query, query_len TSRMLS_CC);
+	token = mysqlnd_par_tok_get_token(scanner TSRMLS_CC);
+	DBG_INF_FMT("token=COMMENT? = %d", token.token == QC_TOKEN_COMMENT);
 	while (token.token == QC_TOKEN_COMMENT) {
 		if (!strncasecmp(Z_STRVAL(token.value), MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1)) {
 			DBG_INF("forced master");
@@ -817,7 +822,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 #endif
 		}
 		zval_dtor(&token.value);
-		token = mysqlnd_tok_get_token(scanner TSRMLS_CC);
+		token = mysqlnd_par_tok_get_token(scanner TSRMLS_CC);
 	}
 	if (*forced == FALSE) {
 		if (token.token == QC_TOKEN_SELECT) {
@@ -832,7 +837,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 		}
 	}
 	zval_dtor(&token.value);
-	mysqlnd_tok_free_scanner(scanner TSRMLS_CC);
+	mysqlnd_par_tok_free_scanner(scanner TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */

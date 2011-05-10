@@ -728,10 +728,6 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 <COMMENT_MODE>.|\n 				{	
 									char * tmp_copy;
 									long tmp_len;
-									DBG_INF("comment mode");
-#if 0
-									printf("yytext=[%s]\n", yytext);
-#endif
 									convert_to_string(token_value);
 									tmp_len = Z_STRLEN_P(token_value);
 									tmp_copy = emalloc(Z_STRLEN_P(token_value) + 2);
@@ -749,7 +745,7 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 
 
 /* {{{ mysqlnd_par_tok_free_scanner */
-static void
+PHPAPI void
 mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_par_tok_free_scanner");
@@ -766,7 +762,7 @@ mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 
 
 /* {{{ mysqlnd_par_tok_create_scanner */
-static struct st_mysqlnd_tok_scanner *
+PHPAPI struct st_mysqlnd_tok_scanner *
 mysqlnd_par_tok_create_scanner(TSRMLS_D)
 {
 	struct st_mysqlnd_tok_scanner * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_tok_scanner));
@@ -786,6 +782,45 @@ mysqlnd_par_tok_create_scanner(TSRMLS_D)
 /* }}} */
 
 
+/* {{{ mysqlnd_par_tok_get_token */
+PHPAPI struct st_qc_token_and_value
+mysqlnd_par_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
+{
+	YYSTYPE lex_val;
+	struct st_qc_token_and_value ret = {0};
+
+	DBG_ENTER("mysqlnd_par_tok_get_token");
+
+	memset(&lex_val, 0, sizeof(lex_val));
+	INIT_ZVAL(lex_val.zv);	
+	/* yylex expects `yyscan_t`, not `yyscan_t*` */
+	if ((ret.token = yylex(&lex_val, *(yyscan_t *)scanner->scanner TSRMLS_CC))) {
+		switch (Z_TYPE(lex_val.zv)) {
+			case IS_STRING:
+				DBG_INF_FMT("strval=%s", Z_STRVAL(lex_val.zv));
+				ret.value = lex_val.zv;
+				break;
+			case IS_LONG:
+				DBG_INF_FMT("lval=%ld", Z_LVAL(lex_val.zv));
+				ret.value = lex_val.zv;
+				break;
+			case IS_DOUBLE:
+				DBG_INF_FMT("dval=%f", Z_DVAL(lex_val.zv));
+				ret.value = lex_val.zv;
+				break;
+			case IS_NULL:
+				if (lex_val.kn) {
+					ZVAL_STRING(&ret.value, lex_val.kn, 1);
+				}
+				break;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_par_tok_create_parser */
 PHPAPI struct st_mysqlnd_tok_parser *
 mysqlnd_par_tok_create_parser(TSRMLS_D)
@@ -800,6 +835,18 @@ mysqlnd_par_tok_create_parser(TSRMLS_D)
 	DBG_INF_FMT("ret->scanner=%p", ret->scanner);
 
 	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_par_tok_set_string */
+PHPAPI void
+mysqlnd_par_tok_set_string(struct st_mysqlnd_tok_scanner * scanner, const char * const s, size_t len TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_par_tok_set_string");
+	/* scan_string/scan_bytes expect `yyscan_t`, not `yyscan_t*` */
+	yy_scan_bytes(s, len, *((yyscan_t *)scanner->scanner));
+	DBG_VOID_RETURN;
 }
 /* }}} */
 
@@ -840,8 +887,8 @@ mysqlnd_par_tok_start_parser(struct st_mysqlnd_tok_parser * parser, const char *
 {
 	int ret;
 	DBG_ENTER("mysqlnd_par_tok_start_parser");
-	/* scan_string/scan_bytes expect `yyscan_t`, not `yyscan_t*` */
-	yy_scan_bytes(query, query_len, *((yyscan_t *)parser->scanner->scanner));
+
+	mysqlnd_par_tok_set_string(parser->scanner, query, query_len TSRMLS_CC);
 
 	DBG_INF("let's run the parser");
 	ret = mysqlnd_par_tok_parse(parser TSRMLS_CC);

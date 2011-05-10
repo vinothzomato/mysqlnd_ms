@@ -160,10 +160,6 @@ struct st_mysqlnd_tok_parser
 };
 
 
-#include "mysqlnd_tok.h"
-#include "mysqlnd_tok_def.h"
-
-
 #endif	/* MYSQLND_MS_H */
 
 

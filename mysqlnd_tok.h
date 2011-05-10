@@ -30,8 +30,15 @@ PHPAPI void mysqlnd_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSR
 PHPAPI struct st_qc_token_and_value mysqlnd_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
 
 
+PHPAPI void mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
+PHPAPI struct st_mysqlnd_tok_scanner * mysqlnd_par_tok_create_scanner(TSRMLS_D);
+PHPAPI struct st_qc_token_and_value mysqlnd_par_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
+PHPAPI void mysqlnd_par_tok_set_string(struct st_mysqlnd_tok_scanner * scanner, const char * const s, size_t len TSRMLS_DC);
+
 PHPAPI struct st_mysqlnd_tok_parser * mysqlnd_par_tok_create_parser(TSRMLS_D);
 PHPAPI void mysqlnd_par_tok_free_parser(struct st_mysqlnd_tok_parser * parser TSRMLS_DC);
 PHPAPI int mysqlnd_par_tok_start_parser(struct st_mysqlnd_tok_parser * parser, const char * const query, const size_t query_len TSRMLS_DC);
+
+
 
 #endif /* MYSQLND_MS_TOKENIZE_H */
