@@ -2,9 +2,9 @@
 #define mysqlnd_par_tok_HEADER_H 1
 #define mysqlnd_par_tok_IN_HEADER 1
 
-#line 6 "mysqlnd_par_tok.lex.h"
+#line 6 "mysqlnd_query_lexer.lex.h"
 
-#line 8 "mysqlnd_par_tok.lex.h"
+#line 8 "mysqlnd_query_lexer.lex.h"
 
 #define  YY_INT_ALIGNED short int
 
@@ -350,6 +350,6 @@ extern int mysqlnd_par_tok_lex \
 #line 744 "mysqlnd_par_tok.flex"
 
 
-#line 354 "mysqlnd_par_tok.lex.h"
+#line 354 "mysqlnd_query_lexer.lex.h"
 #undef mysqlnd_par_tok_IN_HEADER
 #endif /* mysqlnd_par_tok_HEADER_H */

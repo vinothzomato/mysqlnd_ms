@@ -780,8 +780,8 @@ typedef union YYSTYPE
 
 /* so we can override the default declaration */
 #define YY_DECL 
-#include "mysqlnd_par_tok.lex.h"
-extern int mysqlnd_par_tok_lex(YYSTYPE * yylval_param ,yyscan_t yyscanner TSRMLS_DC);
+#include "mysqlnd_query_lexer.lex.h"
+extern int mysqlnd_par_tok_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
 
 
 /* Line 264 of yacc.c  */

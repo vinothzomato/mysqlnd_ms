@@ -1,6 +1,6 @@
-#line 2 "mysqlnd_par_tok.c"
+#line 2 "mysqlnd_query_lexer.c"
 
-#line 4 "mysqlnd_par_tok.c"
+#line 4 "mysqlnd_query_lexer.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -4880,7 +4880,7 @@ int (*mysqlnd_par_tok_error)(const char *format, ...);
 
 
 
-#line 4884 "mysqlnd_par_tok.c"
+#line 4884 "mysqlnd_query_lexer.c"
 
 #define INITIAL 0
 #define COMMENT_MODE 1
@@ -5125,7 +5125,7 @@ YY_DECL
 	const char ** kn = &(yylval_param->kn);
 
 
-#line 5129 "mysqlnd_par_tok.c"
+#line 5129 "mysqlnd_query_lexer.c"
 
     yylval = yylval_param;
 
@@ -8360,7 +8360,7 @@ YY_RULE_SETUP
 #line 744 "mysqlnd_par_tok.flex"
 ECHO;
 	YY_BREAK
-#line 8364 "mysqlnd_par_tok.c"
+#line 8364 "mysqlnd_query_lexer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT_MODE):
 case YY_STATE_EOF(BETWEEN_MODE):

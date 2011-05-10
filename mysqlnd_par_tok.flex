@@ -45,11 +45,11 @@ int (*mysqlnd_par_tok_error)(const char *format, ...);
 
 %option 8bit
 %option prefix="mysqlnd_par_tok_"
-%option outfile="mysqlnd_par_tok.c"
+%option outfile="mysqlnd_query_lexer.c"
 %option reentrant noyywrap nounput
 %option extra-type="zval *"
 %option bison-bridge
-%option header-file="mysqlnd_par_tok.lex.h"
+%option header-file="mysqlnd_query_lexer.lex.h"
 
 %x COMMENT_MODE
 %s BETWEEN_MODE
