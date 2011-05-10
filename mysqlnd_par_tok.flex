@@ -19,7 +19,7 @@
 */
 
 /*
-Compile with : flex mysqlnd_par_tok.flex
+Compile with : flex mysqlnd_query_lexer.flex
 */
 
 #include <string.h>
