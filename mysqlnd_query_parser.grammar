@@ -20,7 +20,7 @@
 
 #include "php.h"
 #include "mysqlnd_ms.h"
-/* Compile with : bison -o mysqlnd_par.c -d mysqlnd_par.grammar --name-prefix=mysqlnd_par_tok_ */
+/* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_par_tok_ */
 
 extern int (*mysqlnd_par_tok_error)(const char * format, ...);
 
