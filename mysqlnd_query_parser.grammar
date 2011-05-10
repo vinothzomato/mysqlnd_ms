@@ -20,9 +20,9 @@
 
 #include "php.h"
 #include "mysqlnd_ms.h"
-/* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_par_tok_ */
+/* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_qp_ */
 
-extern int (*mysqlnd_par_tok_error)(const char * format, ...);
+extern int (*mysqlnd_qp_error)(const char * format, ...);
 
 #if defined(PHP_DEBUG) && !defined(YYDEBUG)
 #define YYDEBUG 1
@@ -44,7 +44,7 @@ extern int (*mysqlnd_par_tok_error)(const char * format, ...);
 /* so we can override the default declaration */
 #define YY_DECL 
 #include "mysqlnd_query_lexer.lex.h"
-extern int mysqlnd_par_tok_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
+extern int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
 %}
 
 %pure_parser /* We should be thread-safe */

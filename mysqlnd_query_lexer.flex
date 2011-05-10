@@ -33,9 +33,9 @@ Compile with : flex mysqlnd_query_lexer.flex
 
 int old_yystate;
 #define yyerror zend_printf
-int (*mysqlnd_par_tok_error)(const char *format, ...);
+int (*mysqlnd_qp_error)(const char *format, ...);
 
-#define YY_DECL int mysqlnd_par_tok_lex(YYSTYPE * yylval_param , yyscan_t yyscanner TSRMLS_DC)
+#define YY_DECL int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC)
 
 #define YY_NO_INPUT
 
@@ -44,7 +44,7 @@ int (*mysqlnd_par_tok_error)(const char *format, ...);
 %}
 
 %option 8bit
-%option prefix="mysqlnd_par_tok_"
+%option prefix="mysqlnd_qp_"
 %option outfile="mysqlnd_query_lexer.c"
 %option reentrant noyywrap nounput
 %option extra-type="zval *"
@@ -829,7 +829,7 @@ mysqlnd_par_tok_create_parser(TSRMLS_D)
 
 	DBG_ENTER("mysqlnd_par_tok_create_parser");
 	DBG_INF_FMT("ret=%p", ret);
-	mysqlnd_par_tok_error = zend_printf;
+	mysqlnd_qp_error = zend_printf;
 
 	ret->scanner = mysqlnd_par_tok_create_scanner(TSRMLS_C);
 	DBG_INF_FMT("ret->scanner=%p", ret->scanner);
@@ -891,7 +891,7 @@ mysqlnd_par_tok_start_parser(struct st_mysqlnd_tok_parser * parser, const char *
 	mysqlnd_par_tok_set_string(parser->scanner, query, query_len TSRMLS_CC);
 
 	DBG_INF("let's run the parser");
-	ret = mysqlnd_par_tok_parse(parser TSRMLS_CC);
+	ret = mysqlnd_qp_parse(parser TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */

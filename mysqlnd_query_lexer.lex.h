@@ -1,6 +1,6 @@
-#ifndef mysqlnd_par_tok_HEADER_H
-#define mysqlnd_par_tok_HEADER_H 1
-#define mysqlnd_par_tok_IN_HEADER 1
+#ifndef mysqlnd_qp_HEADER_H
+#define mysqlnd_qp_HEADER_H 1
+#define mysqlnd_qp_IN_HEADER 1
 
 #line 6 "mysqlnd_query_lexer.lex.h"
 
@@ -204,25 +204,25 @@ struct yy_buffer_state
 	};
 #endif /* !YY_STRUCT_YY_BUFFER_STATE */
 
-void mysqlnd_par_tok_restart (FILE *input_file ,yyscan_t yyscanner );
-void mysqlnd_par_tok__switch_to_buffer (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
-YY_BUFFER_STATE mysqlnd_par_tok__create_buffer (FILE *file,int size ,yyscan_t yyscanner );
-void mysqlnd_par_tok__delete_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
-void mysqlnd_par_tok__flush_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
-void mysqlnd_par_tok_push_buffer_state (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
-void mysqlnd_par_tok_pop_buffer_state (yyscan_t yyscanner );
+void mysqlnd_qp_restart (FILE *input_file ,yyscan_t yyscanner );
+void mysqlnd_qp__switch_to_buffer (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__create_buffer (FILE *file,int size ,yyscan_t yyscanner );
+void mysqlnd_qp__delete_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
+void mysqlnd_qp__flush_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
+void mysqlnd_qp_push_buffer_state (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
+void mysqlnd_qp_pop_buffer_state (yyscan_t yyscanner );
 
-YY_BUFFER_STATE mysqlnd_par_tok__scan_buffer (char *base,yy_size_t size ,yyscan_t yyscanner );
-YY_BUFFER_STATE mysqlnd_par_tok__scan_string (yyconst char *yy_str ,yyscan_t yyscanner );
-YY_BUFFER_STATE mysqlnd_par_tok__scan_bytes (yyconst char *bytes,int len ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__scan_buffer (char *base,yy_size_t size ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__scan_string (yyconst char *yy_str ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__scan_bytes (yyconst char *bytes,int len ,yyscan_t yyscanner );
 
-void *mysqlnd_par_tok_alloc (yy_size_t ,yyscan_t yyscanner );
-void *mysqlnd_par_tok_realloc (void *,yy_size_t ,yyscan_t yyscanner );
-void mysqlnd_par_tok_free (void * ,yyscan_t yyscanner );
+void *mysqlnd_qp_alloc (yy_size_t ,yyscan_t yyscanner );
+void *mysqlnd_qp_realloc (void *,yy_size_t ,yyscan_t yyscanner );
+void mysqlnd_qp_free (void * ,yyscan_t yyscanner );
 
 /* Begin user sect3 */
 
-#define mysqlnd_par_tok_wrap(n) 1
+#define mysqlnd_qp_wrap(n) 1
 #define YY_SKIP_YYWRAP
 
 #define yytext_ptr yytext_r
@@ -244,42 +244,42 @@ void mysqlnd_par_tok_free (void * ,yyscan_t yyscanner );
 
 #define YY_EXTRA_TYPE zval *
 
-int mysqlnd_par_tok_lex_init (yyscan_t* scanner);
+int mysqlnd_qp_lex_init (yyscan_t* scanner);
 
-int mysqlnd_par_tok_lex_init_extra (YY_EXTRA_TYPE user_defined,yyscan_t* scanner);
+int mysqlnd_qp_lex_init_extra (YY_EXTRA_TYPE user_defined,yyscan_t* scanner);
 
 /* Accessor methods to globals.
    These are made visible to non-reentrant scanners for convenience. */
 
-int mysqlnd_par_tok_lex_destroy (yyscan_t yyscanner );
+int mysqlnd_qp_lex_destroy (yyscan_t yyscanner );
 
-int mysqlnd_par_tok_get_debug (yyscan_t yyscanner );
+int mysqlnd_qp_get_debug (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_debug (int debug_flag ,yyscan_t yyscanner );
+void mysqlnd_qp_set_debug (int debug_flag ,yyscan_t yyscanner );
 
-YY_EXTRA_TYPE mysqlnd_par_tok_get_extra (yyscan_t yyscanner );
+YY_EXTRA_TYPE mysqlnd_qp_get_extra (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_extra (YY_EXTRA_TYPE user_defined ,yyscan_t yyscanner );
+void mysqlnd_qp_set_extra (YY_EXTRA_TYPE user_defined ,yyscan_t yyscanner );
 
-FILE *mysqlnd_par_tok_get_in (yyscan_t yyscanner );
+FILE *mysqlnd_qp_get_in (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_in  (FILE * in_str ,yyscan_t yyscanner );
+void mysqlnd_qp_set_in  (FILE * in_str ,yyscan_t yyscanner );
 
-FILE *mysqlnd_par_tok_get_out (yyscan_t yyscanner );
+FILE *mysqlnd_qp_get_out (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_out  (FILE * out_str ,yyscan_t yyscanner );
+void mysqlnd_qp_set_out  (FILE * out_str ,yyscan_t yyscanner );
 
-int mysqlnd_par_tok_get_leng (yyscan_t yyscanner );
+int mysqlnd_qp_get_leng (yyscan_t yyscanner );
 
-char *mysqlnd_par_tok_get_text (yyscan_t yyscanner );
+char *mysqlnd_qp_get_text (yyscan_t yyscanner );
 
-int mysqlnd_par_tok_get_lineno (yyscan_t yyscanner );
+int mysqlnd_qp_get_lineno (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_lineno (int line_number ,yyscan_t yyscanner );
+void mysqlnd_qp_set_lineno (int line_number ,yyscan_t yyscanner );
 
-YYSTYPE * mysqlnd_par_tok_get_lval (yyscan_t yyscanner );
+YYSTYPE * mysqlnd_qp_get_lval (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
+void mysqlnd_qp_set_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -287,9 +287,9 @@ void mysqlnd_par_tok_set_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
 
 #ifndef YY_SKIP_YYWRAP
 #ifdef __cplusplus
-extern "C" int mysqlnd_par_tok_wrap (yyscan_t yyscanner );
+extern "C" int mysqlnd_qp_wrap (yyscan_t yyscanner );
 #else
-extern int mysqlnd_par_tok_wrap (yyscan_t yyscanner );
+extern int mysqlnd_qp_wrap (yyscan_t yyscanner );
 #endif
 #endif
 
@@ -326,10 +326,10 @@ static int yy_flex_strlen (yyconst char * ,yyscan_t yyscanner);
 #ifndef YY_DECL
 #define YY_DECL_IS_OURS 1
 
-extern int mysqlnd_par_tok_lex \
+extern int mysqlnd_qp_lex \
                (YYSTYPE * yylval_param ,yyscan_t yyscanner);
 
-#define YY_DECL int mysqlnd_par_tok_lex \
+#define YY_DECL int mysqlnd_qp_lex \
                (YYSTYPE * yylval_param , yyscan_t yyscanner)
 #endif /* !YY_DECL */
 
@@ -351,5 +351,5 @@ extern int mysqlnd_par_tok_lex \
 
 
 #line 354 "mysqlnd_query_lexer.lex.h"
-#undef mysqlnd_par_tok_IN_HEADER
-#endif /* mysqlnd_par_tok_HEADER_H */
+#undef mysqlnd_qp_IN_HEADER
+#endif /* mysqlnd_qp_HEADER_H */

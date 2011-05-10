@@ -64,13 +64,13 @@
 #define YYLSP_NEEDED 0
 
 /* Substitute the variable and function names.  */
-#define yyparse         mysqlnd_par_tok_parse
-#define yylex           mysqlnd_par_tok_lex
-#define yyerror         mysqlnd_par_tok_error
-#define yylval          mysqlnd_par_tok_lval
-#define yychar          mysqlnd_par_tok_char
-#define yydebug         mysqlnd_par_tok_debug
-#define yynerrs         mysqlnd_par_tok_nerrs
+#define yyparse         mysqlnd_qp_parse
+#define yylex           mysqlnd_qp_lex
+#define yyerror         mysqlnd_qp_error
+#define yylval          mysqlnd_qp_lval
+#define yychar          mysqlnd_qp_char
+#define yydebug         mysqlnd_qp_debug
+#define yynerrs         mysqlnd_qp_nerrs
 
 
 /* Copy the first part of user declarations.  */
@@ -99,9 +99,9 @@
 
 #include "php.h"
 #include "mysqlnd_ms.h"
-/* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_par_tok_ */
+/* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_qp_ */
 
-extern int (*mysqlnd_par_tok_error)(const char * format, ...);
+extern int (*mysqlnd_qp_error)(const char * format, ...);
 
 #if defined(PHP_DEBUG) && !defined(YYDEBUG)
 #define YYDEBUG 1
@@ -781,7 +781,7 @@ typedef union YYSTYPE
 /* so we can override the default declaration */
 #define YY_DECL 
 #include "mysqlnd_query_lexer.lex.h"
-extern int mysqlnd_par_tok_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
+extern int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
 
 
 /* Line 264 of yacc.c  */

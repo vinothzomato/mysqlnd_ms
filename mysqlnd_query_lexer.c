@@ -153,7 +153,7 @@ typedef void* yyscan_t;
 #define YY_STATE_EOF(state) (YY_END_OF_BUFFER + state + 1)
 
 /* Special action meaning "start processing a new file". */
-#define YY_NEW_FILE mysqlnd_par_tok_restart(yyin ,yyscanner )
+#define YY_NEW_FILE mysqlnd_qp_restart(yyin ,yyscanner )
 
 #define YY_END_OF_BUFFER_CHAR 0
 
@@ -263,7 +263,7 @@ struct yy_buffer_state
 	 * possible backing-up.
 	 *
 	 * When we actually see the EOF, we change the status to "new"
-	 * (via mysqlnd_par_tok_restart()), so that the user can continue scanning by
+	 * (via mysqlnd_qp_restart()), so that the user can continue scanning by
 	 * just pointing yyin at a new input file.
 	 */
 #define YY_BUFFER_EOF_PENDING 2
@@ -286,36 +286,36 @@ struct yy_buffer_state
  */
 #define YY_CURRENT_BUFFER_LVALUE yyg->yy_buffer_stack[yyg->yy_buffer_stack_top]
 
-void mysqlnd_par_tok_restart (FILE *input_file ,yyscan_t yyscanner );
-void mysqlnd_par_tok__switch_to_buffer (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
-YY_BUFFER_STATE mysqlnd_par_tok__create_buffer (FILE *file,int size ,yyscan_t yyscanner );
-void mysqlnd_par_tok__delete_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
-void mysqlnd_par_tok__flush_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
-void mysqlnd_par_tok_push_buffer_state (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
-void mysqlnd_par_tok_pop_buffer_state (yyscan_t yyscanner );
+void mysqlnd_qp_restart (FILE *input_file ,yyscan_t yyscanner );
+void mysqlnd_qp__switch_to_buffer (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__create_buffer (FILE *file,int size ,yyscan_t yyscanner );
+void mysqlnd_qp__delete_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
+void mysqlnd_qp__flush_buffer (YY_BUFFER_STATE b ,yyscan_t yyscanner );
+void mysqlnd_qp_push_buffer_state (YY_BUFFER_STATE new_buffer ,yyscan_t yyscanner );
+void mysqlnd_qp_pop_buffer_state (yyscan_t yyscanner );
 
-static void mysqlnd_par_tok_ensure_buffer_stack (yyscan_t yyscanner );
-static void mysqlnd_par_tok__load_buffer_state (yyscan_t yyscanner );
-static void mysqlnd_par_tok__init_buffer (YY_BUFFER_STATE b,FILE *file ,yyscan_t yyscanner );
+static void mysqlnd_qp_ensure_buffer_stack (yyscan_t yyscanner );
+static void mysqlnd_qp__load_buffer_state (yyscan_t yyscanner );
+static void mysqlnd_qp__init_buffer (YY_BUFFER_STATE b,FILE *file ,yyscan_t yyscanner );
 
-#define YY_FLUSH_BUFFER mysqlnd_par_tok__flush_buffer(YY_CURRENT_BUFFER ,yyscanner)
+#define YY_FLUSH_BUFFER mysqlnd_qp__flush_buffer(YY_CURRENT_BUFFER ,yyscanner)
 
-YY_BUFFER_STATE mysqlnd_par_tok__scan_buffer (char *base,yy_size_t size ,yyscan_t yyscanner );
-YY_BUFFER_STATE mysqlnd_par_tok__scan_string (yyconst char *yy_str ,yyscan_t yyscanner );
-YY_BUFFER_STATE mysqlnd_par_tok__scan_bytes (yyconst char *bytes,int len ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__scan_buffer (char *base,yy_size_t size ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__scan_string (yyconst char *yy_str ,yyscan_t yyscanner );
+YY_BUFFER_STATE mysqlnd_qp__scan_bytes (yyconst char *bytes,int len ,yyscan_t yyscanner );
 
-void *mysqlnd_par_tok_alloc (yy_size_t ,yyscan_t yyscanner );
-void *mysqlnd_par_tok_realloc (void *,yy_size_t ,yyscan_t yyscanner );
-void mysqlnd_par_tok_free (void * ,yyscan_t yyscanner );
+void *mysqlnd_qp_alloc (yy_size_t ,yyscan_t yyscanner );
+void *mysqlnd_qp_realloc (void *,yy_size_t ,yyscan_t yyscanner );
+void mysqlnd_qp_free (void * ,yyscan_t yyscanner );
 
-#define yy_new_buffer mysqlnd_par_tok__create_buffer
+#define yy_new_buffer mysqlnd_qp__create_buffer
 
 #define yy_set_interactive(is_interactive) \
 	{ \
 	if ( ! YY_CURRENT_BUFFER ){ \
-        mysqlnd_par_tok_ensure_buffer_stack (yyscanner); \
+        mysqlnd_qp_ensure_buffer_stack (yyscanner); \
 		YY_CURRENT_BUFFER_LVALUE =    \
-            mysqlnd_par_tok__create_buffer(yyin,YY_BUF_SIZE ,yyscanner); \
+            mysqlnd_qp__create_buffer(yyin,YY_BUF_SIZE ,yyscanner); \
 	} \
 	YY_CURRENT_BUFFER_LVALUE->yy_is_interactive = is_interactive; \
 	}
@@ -323,9 +323,9 @@ void mysqlnd_par_tok_free (void * ,yyscan_t yyscanner );
 #define yy_set_bol(at_bol) \
 	{ \
 	if ( ! YY_CURRENT_BUFFER ){\
-        mysqlnd_par_tok_ensure_buffer_stack (yyscanner); \
+        mysqlnd_qp_ensure_buffer_stack (yyscanner); \
 		YY_CURRENT_BUFFER_LVALUE =    \
-            mysqlnd_par_tok__create_buffer(yyin,YY_BUF_SIZE ,yyscanner); \
+            mysqlnd_qp__create_buffer(yyin,YY_BUF_SIZE ,yyscanner); \
 	} \
 	YY_CURRENT_BUFFER_LVALUE->yy_at_bol = at_bol; \
 	}
@@ -334,7 +334,7 @@ void mysqlnd_par_tok_free (void * ,yyscan_t yyscanner );
 
 /* Begin user sect3 */
 
-#define mysqlnd_par_tok_wrap(n) 1
+#define mysqlnd_qp_wrap(n) 1
 #define YY_SKIP_YYWRAP
 
 typedef unsigned char YY_CHAR;
@@ -4870,9 +4870,9 @@ Compile with : flex mysqlnd_query_lexer.flex
 
 int old_yystate;
 #define yyerror zend_printf
-int (*mysqlnd_par_tok_error)(const char *format, ...);
+int (*mysqlnd_qp_error)(const char *format, ...);
 
-#define YY_DECL int mysqlnd_par_tok_lex(YYSTYPE * yylval_param , yyscan_t yyscanner TSRMLS_DC)
+#define YY_DECL int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC)
 
 #define YY_NO_INPUT
 
@@ -4938,42 +4938,42 @@ static int yy_init_globals (yyscan_t yyscanner );
      * from bison output in section 1.*/
     #    define yylval yyg->yylval_r
     
-int mysqlnd_par_tok_lex_init (yyscan_t* scanner);
+int mysqlnd_qp_lex_init (yyscan_t* scanner);
 
-int mysqlnd_par_tok_lex_init_extra (YY_EXTRA_TYPE user_defined,yyscan_t* scanner);
+int mysqlnd_qp_lex_init_extra (YY_EXTRA_TYPE user_defined,yyscan_t* scanner);
 
 /* Accessor methods to globals.
    These are made visible to non-reentrant scanners for convenience. */
 
-int mysqlnd_par_tok_lex_destroy (yyscan_t yyscanner );
+int mysqlnd_qp_lex_destroy (yyscan_t yyscanner );
 
-int mysqlnd_par_tok_get_debug (yyscan_t yyscanner );
+int mysqlnd_qp_get_debug (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_debug (int debug_flag ,yyscan_t yyscanner );
+void mysqlnd_qp_set_debug (int debug_flag ,yyscan_t yyscanner );
 
-YY_EXTRA_TYPE mysqlnd_par_tok_get_extra (yyscan_t yyscanner );
+YY_EXTRA_TYPE mysqlnd_qp_get_extra (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_extra (YY_EXTRA_TYPE user_defined ,yyscan_t yyscanner );
+void mysqlnd_qp_set_extra (YY_EXTRA_TYPE user_defined ,yyscan_t yyscanner );
 
-FILE *mysqlnd_par_tok_get_in (yyscan_t yyscanner );
+FILE *mysqlnd_qp_get_in (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_in  (FILE * in_str ,yyscan_t yyscanner );
+void mysqlnd_qp_set_in  (FILE * in_str ,yyscan_t yyscanner );
 
-FILE *mysqlnd_par_tok_get_out (yyscan_t yyscanner );
+FILE *mysqlnd_qp_get_out (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_out  (FILE * out_str ,yyscan_t yyscanner );
+void mysqlnd_qp_set_out  (FILE * out_str ,yyscan_t yyscanner );
 
-int mysqlnd_par_tok_get_leng (yyscan_t yyscanner );
+int mysqlnd_qp_get_leng (yyscan_t yyscanner );
 
-char *mysqlnd_par_tok_get_text (yyscan_t yyscanner );
+char *mysqlnd_qp_get_text (yyscan_t yyscanner );
 
-int mysqlnd_par_tok_get_lineno (yyscan_t yyscanner );
+int mysqlnd_qp_get_lineno (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_lineno (int line_number ,yyscan_t yyscanner );
+void mysqlnd_qp_set_lineno (int line_number ,yyscan_t yyscanner );
 
-YYSTYPE * mysqlnd_par_tok_get_lval (yyscan_t yyscanner );
+YYSTYPE * mysqlnd_qp_get_lval (yyscan_t yyscanner );
 
-void mysqlnd_par_tok_set_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
+void mysqlnd_qp_set_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
 
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
@@ -4981,9 +4981,9 @@ void mysqlnd_par_tok_set_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
 
 #ifndef YY_SKIP_YYWRAP
 #ifdef __cplusplus
-extern "C" int mysqlnd_par_tok_wrap (yyscan_t yyscanner );
+extern "C" int mysqlnd_qp_wrap (yyscan_t yyscanner );
 #else
-extern int mysqlnd_par_tok_wrap (yyscan_t yyscanner );
+extern int mysqlnd_qp_wrap (yyscan_t yyscanner );
 #endif
 #endif
 
@@ -5085,10 +5085,10 @@ static int input (yyscan_t yyscanner );
 #ifndef YY_DECL
 #define YY_DECL_IS_OURS 1
 
-extern int mysqlnd_par_tok_lex \
+extern int mysqlnd_qp_lex \
                (YYSTYPE * yylval_param ,yyscan_t yyscanner);
 
-#define YY_DECL int mysqlnd_par_tok_lex \
+#define YY_DECL int mysqlnd_qp_lex \
                (YYSTYPE * yylval_param , yyscan_t yyscanner)
 #endif /* !YY_DECL */
 
@@ -5147,12 +5147,12 @@ YY_DECL
 			yyout = stdout;
 
 		if ( ! YY_CURRENT_BUFFER ) {
-			mysqlnd_par_tok_ensure_buffer_stack (yyscanner);
+			mysqlnd_qp_ensure_buffer_stack (yyscanner);
 			YY_CURRENT_BUFFER_LVALUE =
-				mysqlnd_par_tok__create_buffer(yyin,YY_BUF_SIZE ,yyscanner);
+				mysqlnd_qp__create_buffer(yyin,YY_BUF_SIZE ,yyscanner);
 		}
 
-		mysqlnd_par_tok__load_buffer_state(yyscanner );
+		mysqlnd_qp__load_buffer_state(yyscanner );
 		}
 
 	while ( 1 )		/* loops until end-of-file is reached */
@@ -8380,7 +8380,7 @@ case YY_STATE_EOF(BETWEEN_MODE):
 			/* We're scanning a new file or input source.  It's
 			 * possible that this happened because the user
 			 * just pointed yyin at a new source and called
-			 * mysqlnd_par_tok_lex().  If so, then we have to assure
+			 * mysqlnd_qp_lex().  If so, then we have to assure
 			 * consistency between YY_CURRENT_BUFFER and our
 			 * globals.  Here is the right place to do so, because
 			 * this is the first action (other than possibly a
@@ -8440,7 +8440,7 @@ case YY_STATE_EOF(BETWEEN_MODE):
 				{
 				yyg->yy_did_buffer_switch_on_eof = 0;
 
-				if ( mysqlnd_par_tok_wrap(yyscanner ) )
+				if ( mysqlnd_qp_wrap(yyscanner ) )
 					{
 					/* Note: because we've taken care in
 					 * yy_get_next_buffer() to have set up
@@ -8493,7 +8493,7 @@ case YY_STATE_EOF(BETWEEN_MODE):
 			"fatal flex scanner internal error--no action found" );
 	} /* end of action switch */
 		} /* end of scanning one token */
-} /* end of mysqlnd_par_tok_lex */
+} /* end of mysqlnd_qp_lex */
 
 /* yy_get_next_buffer - try to read in a new buffer
  *
@@ -8572,7 +8572,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 
 				b->yy_ch_buf = (char *)
 					/* Include room in for 2 EOB chars. */
-					mysqlnd_par_tok_realloc((void *) b->yy_ch_buf,b->yy_buf_size + 2 ,yyscanner );
+					mysqlnd_qp_realloc((void *) b->yy_ch_buf,b->yy_buf_size + 2 ,yyscanner );
 				}
 			else
 				/* Can't grow it, we don't own it. */
@@ -8604,7 +8604,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 		if ( number_to_move == YY_MORE_ADJ )
 			{
 			ret_val = EOB_ACT_END_OF_FILE;
-			mysqlnd_par_tok_restart(yyin  ,yyscanner);
+			mysqlnd_qp_restart(yyin  ,yyscanner);
 			}
 
 		else
@@ -8621,7 +8621,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 	if ((yy_size_t) (yyg->yy_n_chars + number_to_move) > YY_CURRENT_BUFFER_LVALUE->yy_buf_size) {
 		/* Extend the array by 50%, plus the number we really need. */
 		yy_size_t new_size = yyg->yy_n_chars + number_to_move + (yyg->yy_n_chars >> 1);
-		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) mysqlnd_par_tok_realloc((void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf,new_size ,yyscanner );
+		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) mysqlnd_qp_realloc((void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf,new_size ,yyscanner );
 		if ( ! YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
 			YY_FATAL_ERROR( "out of dynamic memory in yy_get_next_buffer()" );
 	}
@@ -8736,13 +8736,13 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 					 */
 
 					/* Reset buffer status. */
-					mysqlnd_par_tok_restart(yyin ,yyscanner);
+					mysqlnd_qp_restart(yyin ,yyscanner);
 
 					/*FALLTHROUGH*/
 
 				case EOB_ACT_END_OF_FILE:
 					{
-					if ( mysqlnd_par_tok_wrap(yyscanner ) )
+					if ( mysqlnd_qp_wrap(yyscanner ) )
 						return EOF;
 
 					if ( ! yyg->yy_did_buffer_switch_on_eof )
@@ -8774,34 +8774,34 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
  * @param yyscanner The scanner object.
  * @note This function does not reset the start condition to @c INITIAL .
  */
-    void mysqlnd_par_tok_restart  (FILE * input_file , yyscan_t yyscanner)
+    void mysqlnd_qp_restart  (FILE * input_file , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
 	if ( ! YY_CURRENT_BUFFER ){
-        mysqlnd_par_tok_ensure_buffer_stack (yyscanner);
+        mysqlnd_qp_ensure_buffer_stack (yyscanner);
 		YY_CURRENT_BUFFER_LVALUE =
-            mysqlnd_par_tok__create_buffer(yyin,YY_BUF_SIZE ,yyscanner);
+            mysqlnd_qp__create_buffer(yyin,YY_BUF_SIZE ,yyscanner);
 	}
 
-	mysqlnd_par_tok__init_buffer(YY_CURRENT_BUFFER,input_file ,yyscanner);
-	mysqlnd_par_tok__load_buffer_state(yyscanner );
+	mysqlnd_qp__init_buffer(YY_CURRENT_BUFFER,input_file ,yyscanner);
+	mysqlnd_qp__load_buffer_state(yyscanner );
 }
 
 /** Switch to a different input buffer.
  * @param new_buffer The new input buffer.
  * @param yyscanner The scanner object.
  */
-    void mysqlnd_par_tok__switch_to_buffer  (YY_BUFFER_STATE  new_buffer , yyscan_t yyscanner)
+    void mysqlnd_qp__switch_to_buffer  (YY_BUFFER_STATE  new_buffer , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
 	/* TODO. We should be able to replace this entire function body
 	 * with
-	 *		mysqlnd_par_tok_pop_buffer_state();
-	 *		mysqlnd_par_tok_push_buffer_state(new_buffer);
+	 *		mysqlnd_qp_pop_buffer_state();
+	 *		mysqlnd_qp_push_buffer_state(new_buffer);
      */
-	mysqlnd_par_tok_ensure_buffer_stack (yyscanner);
+	mysqlnd_qp_ensure_buffer_stack (yyscanner);
 	if ( YY_CURRENT_BUFFER == new_buffer )
 		return;
 
@@ -8814,17 +8814,17 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 		}
 
 	YY_CURRENT_BUFFER_LVALUE = new_buffer;
-	mysqlnd_par_tok__load_buffer_state(yyscanner );
+	mysqlnd_qp__load_buffer_state(yyscanner );
 
 	/* We don't actually know whether we did this switch during
-	 * EOF (mysqlnd_par_tok_wrap()) processing, but the only time this flag
-	 * is looked at is after mysqlnd_par_tok_wrap() is called, so it's safe
+	 * EOF (mysqlnd_qp_wrap()) processing, but the only time this flag
+	 * is looked at is after mysqlnd_qp_wrap() is called, so it's safe
 	 * to go ahead and always set it.
 	 */
 	yyg->yy_did_buffer_switch_on_eof = 1;
 }
 
-static void mysqlnd_par_tok__load_buffer_state  (yyscan_t yyscanner)
+static void mysqlnd_qp__load_buffer_state  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 	yyg->yy_n_chars = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
@@ -8839,35 +8839,35 @@ static void mysqlnd_par_tok__load_buffer_state  (yyscan_t yyscanner)
  * @param yyscanner The scanner object.
  * @return the allocated buffer state.
  */
-    YY_BUFFER_STATE mysqlnd_par_tok__create_buffer  (FILE * file, int  size , yyscan_t yyscanner)
+    YY_BUFFER_STATE mysqlnd_qp__create_buffer  (FILE * file, int  size , yyscan_t yyscanner)
 {
 	YY_BUFFER_STATE b;
     
-	b = (YY_BUFFER_STATE) mysqlnd_par_tok_alloc(sizeof( struct yy_buffer_state ) ,yyscanner );
+	b = (YY_BUFFER_STATE) mysqlnd_qp_alloc(sizeof( struct yy_buffer_state ) ,yyscanner );
 	if ( ! b )
-		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_par_tok__create_buffer()" );
+		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp__create_buffer()" );
 
 	b->yy_buf_size = size;
 
 	/* yy_ch_buf has to be 2 characters longer than the size given because
 	 * we need to put in 2 end-of-buffer characters.
 	 */
-	b->yy_ch_buf = (char *) mysqlnd_par_tok_alloc(b->yy_buf_size + 2 ,yyscanner );
+	b->yy_ch_buf = (char *) mysqlnd_qp_alloc(b->yy_buf_size + 2 ,yyscanner );
 	if ( ! b->yy_ch_buf )
-		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_par_tok__create_buffer()" );
+		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp__create_buffer()" );
 
 	b->yy_is_our_buffer = 1;
 
-	mysqlnd_par_tok__init_buffer(b,file ,yyscanner);
+	mysqlnd_qp__init_buffer(b,file ,yyscanner);
 
 	return b;
 }
 
 /** Destroy the buffer.
- * @param b a buffer created with mysqlnd_par_tok__create_buffer()
+ * @param b a buffer created with mysqlnd_qp__create_buffer()
  * @param yyscanner The scanner object.
  */
-    void mysqlnd_par_tok__delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner)
+    void mysqlnd_qp__delete_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
@@ -8878,9 +8878,9 @@ static void mysqlnd_par_tok__load_buffer_state  (yyscan_t yyscanner)
 		YY_CURRENT_BUFFER_LVALUE = (YY_BUFFER_STATE) 0;
 
 	if ( b->yy_is_our_buffer )
-		mysqlnd_par_tok_free((void *) b->yy_ch_buf ,yyscanner );
+		mysqlnd_qp_free((void *) b->yy_ch_buf ,yyscanner );
 
-	mysqlnd_par_tok_free((void *) b ,yyscanner );
+	mysqlnd_qp_free((void *) b ,yyscanner );
 }
 
 #ifndef __cplusplus
@@ -8889,21 +8889,21 @@ extern int isatty (int );
     
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
- * such as during a mysqlnd_par_tok_restart() or at EOF.
+ * such as during a mysqlnd_qp_restart() or at EOF.
  */
-    static void mysqlnd_par_tok__init_buffer  (YY_BUFFER_STATE  b, FILE * file , yyscan_t yyscanner)
+    static void mysqlnd_qp__init_buffer  (YY_BUFFER_STATE  b, FILE * file , yyscan_t yyscanner)
 
 {
 	int oerrno = errno;
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
-	mysqlnd_par_tok__flush_buffer(b ,yyscanner);
+	mysqlnd_qp__flush_buffer(b ,yyscanner);
 
 	b->yy_input_file = file;
 	b->yy_fill_buffer = 1;
 
-    /* If b is the current buffer, then mysqlnd_par_tok__init_buffer was _probably_
-     * called from mysqlnd_par_tok_restart() or through yy_get_next_buffer.
+    /* If b is the current buffer, then mysqlnd_qp__init_buffer was _probably_
+     * called from mysqlnd_qp_restart() or through yy_get_next_buffer.
      * In that case, we don't want to reset the lineno or column.
      */
     if (b != YY_CURRENT_BUFFER){
@@ -8920,7 +8920,7 @@ extern int isatty (int );
  * @param b the buffer state to be flushed, usually @c YY_CURRENT_BUFFER.
  * @param yyscanner The scanner object.
  */
-    void mysqlnd_par_tok__flush_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner)
+    void mysqlnd_qp__flush_buffer (YY_BUFFER_STATE  b , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 	if ( ! b )
@@ -8941,7 +8941,7 @@ extern int isatty (int );
 	b->yy_buffer_status = YY_BUFFER_NEW;
 
 	if ( b == YY_CURRENT_BUFFER )
-		mysqlnd_par_tok__load_buffer_state(yyscanner );
+		mysqlnd_qp__load_buffer_state(yyscanner );
 }
 
 /** Pushes the new state onto the stack. The new state becomes
@@ -8950,15 +8950,15 @@ extern int isatty (int );
  *  @param new_buffer The new state.
  *  @param yyscanner The scanner object.
  */
-void mysqlnd_par_tok_push_buffer_state (YY_BUFFER_STATE new_buffer , yyscan_t yyscanner)
+void mysqlnd_qp_push_buffer_state (YY_BUFFER_STATE new_buffer , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 	if (new_buffer == NULL)
 		return;
 
-	mysqlnd_par_tok_ensure_buffer_stack(yyscanner);
+	mysqlnd_qp_ensure_buffer_stack(yyscanner);
 
-	/* This block is copied from mysqlnd_par_tok__switch_to_buffer. */
+	/* This block is copied from mysqlnd_qp__switch_to_buffer. */
 	if ( YY_CURRENT_BUFFER )
 		{
 		/* Flush out information for old buffer. */
@@ -8972,8 +8972,8 @@ void mysqlnd_par_tok_push_buffer_state (YY_BUFFER_STATE new_buffer , yyscan_t yy
 		yyg->yy_buffer_stack_top++;
 	YY_CURRENT_BUFFER_LVALUE = new_buffer;
 
-	/* copied from mysqlnd_par_tok__switch_to_buffer. */
-	mysqlnd_par_tok__load_buffer_state(yyscanner );
+	/* copied from mysqlnd_qp__switch_to_buffer. */
+	mysqlnd_qp__load_buffer_state(yyscanner );
 	yyg->yy_did_buffer_switch_on_eof = 1;
 }
 
@@ -8981,19 +8981,19 @@ void mysqlnd_par_tok_push_buffer_state (YY_BUFFER_STATE new_buffer , yyscan_t yy
  *  The next element becomes the new top.
  *  @param yyscanner The scanner object.
  */
-void mysqlnd_par_tok_pop_buffer_state (yyscan_t yyscanner)
+void mysqlnd_qp_pop_buffer_state (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 	if (!YY_CURRENT_BUFFER)
 		return;
 
-	mysqlnd_par_tok__delete_buffer(YY_CURRENT_BUFFER ,yyscanner);
+	mysqlnd_qp__delete_buffer(YY_CURRENT_BUFFER ,yyscanner);
 	YY_CURRENT_BUFFER_LVALUE = NULL;
 	if (yyg->yy_buffer_stack_top > 0)
 		--yyg->yy_buffer_stack_top;
 
 	if (YY_CURRENT_BUFFER) {
-		mysqlnd_par_tok__load_buffer_state(yyscanner );
+		mysqlnd_qp__load_buffer_state(yyscanner );
 		yyg->yy_did_buffer_switch_on_eof = 1;
 	}
 }
@@ -9001,7 +9001,7 @@ void mysqlnd_par_tok_pop_buffer_state (yyscan_t yyscanner)
 /* Allocates the stack if it does not exist.
  *  Guarantees space for at least one push.
  */
-static void mysqlnd_par_tok_ensure_buffer_stack (yyscan_t yyscanner)
+static void mysqlnd_qp_ensure_buffer_stack (yyscan_t yyscanner)
 {
 	int num_to_alloc;
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
@@ -9013,11 +9013,11 @@ static void mysqlnd_par_tok_ensure_buffer_stack (yyscan_t yyscanner)
 		 * immediate realloc on the next call.
          */
 		num_to_alloc = 1;
-		yyg->yy_buffer_stack = (struct yy_buffer_state**)mysqlnd_par_tok_alloc
+		yyg->yy_buffer_stack = (struct yy_buffer_state**)mysqlnd_qp_alloc
 								(num_to_alloc * sizeof(struct yy_buffer_state*)
 								, yyscanner);
 		if ( ! yyg->yy_buffer_stack )
-			YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_par_tok_ensure_buffer_stack()" );
+			YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp_ensure_buffer_stack()" );
 								  
 		memset(yyg->yy_buffer_stack, 0, num_to_alloc * sizeof(struct yy_buffer_state*));
 				
@@ -9032,12 +9032,12 @@ static void mysqlnd_par_tok_ensure_buffer_stack (yyscan_t yyscanner)
 		int grow_size = 8 /* arbitrary grow size */;
 
 		num_to_alloc = yyg->yy_buffer_stack_max + grow_size;
-		yyg->yy_buffer_stack = (struct yy_buffer_state**)mysqlnd_par_tok_realloc
+		yyg->yy_buffer_stack = (struct yy_buffer_state**)mysqlnd_qp_realloc
 								(yyg->yy_buffer_stack,
 								num_to_alloc * sizeof(struct yy_buffer_state*)
 								, yyscanner);
 		if ( ! yyg->yy_buffer_stack )
-			YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_par_tok_ensure_buffer_stack()" );
+			YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp_ensure_buffer_stack()" );
 
 		/* zero only the new slots.*/
 		memset(yyg->yy_buffer_stack + yyg->yy_buffer_stack_max, 0, grow_size * sizeof(struct yy_buffer_state*));
@@ -9051,7 +9051,7 @@ static void mysqlnd_par_tok_ensure_buffer_stack (yyscan_t yyscanner)
  * @param yyscanner The scanner object.
  * @return the newly allocated buffer state object. 
  */
-YY_BUFFER_STATE mysqlnd_par_tok__scan_buffer  (char * base, yy_size_t  size , yyscan_t yyscanner)
+YY_BUFFER_STATE mysqlnd_qp__scan_buffer  (char * base, yy_size_t  size , yyscan_t yyscanner)
 {
 	YY_BUFFER_STATE b;
     
@@ -9061,9 +9061,9 @@ YY_BUFFER_STATE mysqlnd_par_tok__scan_buffer  (char * base, yy_size_t  size , yy
 		/* They forgot to leave room for the EOB's. */
 		return 0;
 
-	b = (YY_BUFFER_STATE) mysqlnd_par_tok_alloc(sizeof( struct yy_buffer_state ) ,yyscanner );
+	b = (YY_BUFFER_STATE) mysqlnd_qp_alloc(sizeof( struct yy_buffer_state ) ,yyscanner );
 	if ( ! b )
-		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_par_tok__scan_buffer()" );
+		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp__scan_buffer()" );
 
 	b->yy_buf_size = size - 2;	/* "- 2" to take care of EOB's */
 	b->yy_buf_pos = b->yy_ch_buf = base;
@@ -9075,33 +9075,33 @@ YY_BUFFER_STATE mysqlnd_par_tok__scan_buffer  (char * base, yy_size_t  size , yy
 	b->yy_fill_buffer = 0;
 	b->yy_buffer_status = YY_BUFFER_NEW;
 
-	mysqlnd_par_tok__switch_to_buffer(b ,yyscanner );
+	mysqlnd_qp__switch_to_buffer(b ,yyscanner );
 
 	return b;
 }
 
-/** Setup the input buffer state to scan a string. The next call to mysqlnd_par_tok_lex() will
+/** Setup the input buffer state to scan a string. The next call to mysqlnd_qp_lex() will
  * scan from a @e copy of @a str.
  * @param yystr a NUL-terminated string to scan
  * @param yyscanner The scanner object.
  * @return the newly allocated buffer state object.
  * @note If you want to scan bytes that may contain NUL values, then use
- *       mysqlnd_par_tok__scan_bytes() instead.
+ *       mysqlnd_qp__scan_bytes() instead.
  */
-YY_BUFFER_STATE mysqlnd_par_tok__scan_string (yyconst char * yystr , yyscan_t yyscanner)
+YY_BUFFER_STATE mysqlnd_qp__scan_string (yyconst char * yystr , yyscan_t yyscanner)
 {
     
-	return mysqlnd_par_tok__scan_bytes(yystr,strlen(yystr) ,yyscanner);
+	return mysqlnd_qp__scan_bytes(yystr,strlen(yystr) ,yyscanner);
 }
 
-/** Setup the input buffer state to scan the given bytes. The next call to mysqlnd_par_tok_lex() will
+/** Setup the input buffer state to scan the given bytes. The next call to mysqlnd_qp_lex() will
  * scan from a @e copy of @a bytes.
  * @param yybytes the byte buffer to scan
  * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * @param yyscanner The scanner object.
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE mysqlnd_par_tok__scan_bytes  (yyconst char * yybytes, int  _yybytes_len , yyscan_t yyscanner)
+YY_BUFFER_STATE mysqlnd_qp__scan_bytes  (yyconst char * yybytes, int  _yybytes_len , yyscan_t yyscanner)
 {
 	YY_BUFFER_STATE b;
 	char *buf;
@@ -9110,18 +9110,18 @@ YY_BUFFER_STATE mysqlnd_par_tok__scan_bytes  (yyconst char * yybytes, int  _yyby
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
-	buf = (char *) mysqlnd_par_tok_alloc(n ,yyscanner );
+	buf = (char *) mysqlnd_qp_alloc(n ,yyscanner );
 	if ( ! buf )
-		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_par_tok__scan_bytes()" );
+		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp__scan_bytes()" );
 
 	for ( i = 0; i < _yybytes_len; ++i )
 		buf[i] = yybytes[i];
 
 	buf[_yybytes_len] = buf[_yybytes_len+1] = YY_END_OF_BUFFER_CHAR;
 
-	b = mysqlnd_par_tok__scan_buffer(buf,n ,yyscanner);
+	b = mysqlnd_qp__scan_buffer(buf,n ,yyscanner);
 	if ( ! b )
-		YY_FATAL_ERROR( "bad buffer in mysqlnd_par_tok__scan_bytes()" );
+		YY_FATAL_ERROR( "bad buffer in mysqlnd_qp__scan_bytes()" );
 
 	/* It's okay to grow etc. this buffer, and we should throw it
 	 * away when we're done.
@@ -9163,7 +9163,7 @@ static void yy_fatal_error (yyconst char* msg , yyscan_t yyscanner)
 /** Get the user-defined data for this scanner.
  * @param yyscanner The scanner object.
  */
-YY_EXTRA_TYPE mysqlnd_par_tok_get_extra  (yyscan_t yyscanner)
+YY_EXTRA_TYPE mysqlnd_qp_get_extra  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yyextra;
@@ -9172,7 +9172,7 @@ YY_EXTRA_TYPE mysqlnd_par_tok_get_extra  (yyscan_t yyscanner)
 /** Get the current line number.
  * @param yyscanner The scanner object.
  */
-int mysqlnd_par_tok_get_lineno  (yyscan_t yyscanner)
+int mysqlnd_qp_get_lineno  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     
@@ -9185,7 +9185,7 @@ int mysqlnd_par_tok_get_lineno  (yyscan_t yyscanner)
 /** Get the current column number.
  * @param yyscanner The scanner object.
  */
-int mysqlnd_par_tok_get_column  (yyscan_t yyscanner)
+int mysqlnd_qp_get_column  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     
@@ -9198,7 +9198,7 @@ int mysqlnd_par_tok_get_column  (yyscan_t yyscanner)
 /** Get the input stream.
  * @param yyscanner The scanner object.
  */
-FILE *mysqlnd_par_tok_get_in  (yyscan_t yyscanner)
+FILE *mysqlnd_qp_get_in  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yyin;
@@ -9207,7 +9207,7 @@ FILE *mysqlnd_par_tok_get_in  (yyscan_t yyscanner)
 /** Get the output stream.
  * @param yyscanner The scanner object.
  */
-FILE *mysqlnd_par_tok_get_out  (yyscan_t yyscanner)
+FILE *mysqlnd_qp_get_out  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yyout;
@@ -9216,7 +9216,7 @@ FILE *mysqlnd_par_tok_get_out  (yyscan_t yyscanner)
 /** Get the length of the current token.
  * @param yyscanner The scanner object.
  */
-int mysqlnd_par_tok_get_leng  (yyscan_t yyscanner)
+int mysqlnd_qp_get_leng  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yyleng;
@@ -9226,7 +9226,7 @@ int mysqlnd_par_tok_get_leng  (yyscan_t yyscanner)
  * @param yyscanner The scanner object.
  */
 
-char *mysqlnd_par_tok_get_text  (yyscan_t yyscanner)
+char *mysqlnd_qp_get_text  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yytext;
@@ -9236,7 +9236,7 @@ char *mysqlnd_par_tok_get_text  (yyscan_t yyscanner)
  * @param user_defined The data to be associated with this scanner.
  * @param yyscanner The scanner object.
  */
-void mysqlnd_par_tok_set_extra (YY_EXTRA_TYPE  user_defined , yyscan_t yyscanner)
+void mysqlnd_qp_set_extra (YY_EXTRA_TYPE  user_defined , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yyextra = user_defined ;
@@ -9246,13 +9246,13 @@ void mysqlnd_par_tok_set_extra (YY_EXTRA_TYPE  user_defined , yyscan_t yyscanner
  * @param line_number
  * @param yyscanner The scanner object.
  */
-void mysqlnd_par_tok_set_lineno (int  line_number , yyscan_t yyscanner)
+void mysqlnd_qp_set_lineno (int  line_number , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
         /* lineno is only valid if an input buffer exists. */
         if (! YY_CURRENT_BUFFER )
-           yy_fatal_error( "mysqlnd_par_tok_set_lineno called with no buffer" , yyscanner); 
+           yy_fatal_error( "mysqlnd_qp_set_lineno called with no buffer" , yyscanner); 
     
     yylineno = line_number;
 }
@@ -9261,13 +9261,13 @@ void mysqlnd_par_tok_set_lineno (int  line_number , yyscan_t yyscanner)
  * @param line_number
  * @param yyscanner The scanner object.
  */
-void mysqlnd_par_tok_set_column (int  column_no , yyscan_t yyscanner)
+void mysqlnd_qp_set_column (int  column_no , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
         /* column is only valid if an input buffer exists. */
         if (! YY_CURRENT_BUFFER )
-           yy_fatal_error( "mysqlnd_par_tok_set_column called with no buffer" , yyscanner); 
+           yy_fatal_error( "mysqlnd_qp_set_column called with no buffer" , yyscanner); 
     
     yycolumn = column_no;
 }
@@ -9276,27 +9276,27 @@ void mysqlnd_par_tok_set_column (int  column_no , yyscan_t yyscanner)
  * input buffer.
  * @param in_str A readable stream.
  * @param yyscanner The scanner object.
- * @see mysqlnd_par_tok__switch_to_buffer
+ * @see mysqlnd_qp__switch_to_buffer
  */
-void mysqlnd_par_tok_set_in (FILE *  in_str , yyscan_t yyscanner)
+void mysqlnd_qp_set_in (FILE *  in_str , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yyin = in_str ;
 }
 
-void mysqlnd_par_tok_set_out (FILE *  out_str , yyscan_t yyscanner)
+void mysqlnd_qp_set_out (FILE *  out_str , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yyout = out_str ;
 }
 
-int mysqlnd_par_tok_get_debug  (yyscan_t yyscanner)
+int mysqlnd_qp_get_debug  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yy_flex_debug;
 }
 
-void mysqlnd_par_tok_set_debug (int  bdebug , yyscan_t yyscanner)
+void mysqlnd_qp_set_debug (int  bdebug , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yy_flex_debug = bdebug ;
@@ -9304,13 +9304,13 @@ void mysqlnd_par_tok_set_debug (int  bdebug , yyscan_t yyscanner)
 
 /* Accessor methods for yylval and yylloc */
 
-YYSTYPE * mysqlnd_par_tok_get_lval  (yyscan_t yyscanner)
+YYSTYPE * mysqlnd_qp_get_lval  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     return yylval;
 }
 
-void mysqlnd_par_tok_set_lval (YYSTYPE *  yylval_param , yyscan_t yyscanner)
+void mysqlnd_qp_set_lval (YYSTYPE *  yylval_param , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     yylval = yylval_param;
@@ -9318,12 +9318,12 @@ void mysqlnd_par_tok_set_lval (YYSTYPE *  yylval_param , yyscan_t yyscanner)
 
 /* User-visible API */
 
-/* mysqlnd_par_tok_lex_init is special because it creates the scanner itself, so it is
+/* mysqlnd_qp_lex_init is special because it creates the scanner itself, so it is
  * the ONLY reentrant function that doesn't take the scanner as the last argument.
  * That's why we explicitly handle the declaration, instead of using our macros.
  */
 
-int mysqlnd_par_tok_lex_init(yyscan_t* ptr_yy_globals)
+int mysqlnd_qp_lex_init(yyscan_t* ptr_yy_globals)
 
 {
     if (ptr_yy_globals == NULL){
@@ -9331,7 +9331,7 @@ int mysqlnd_par_tok_lex_init(yyscan_t* ptr_yy_globals)
         return 1;
     }
 
-    *ptr_yy_globals = (yyscan_t) mysqlnd_par_tok_alloc ( sizeof( struct yyguts_t ), NULL );
+    *ptr_yy_globals = (yyscan_t) mysqlnd_qp_alloc ( sizeof( struct yyguts_t ), NULL );
 
     if (*ptr_yy_globals == NULL){
         errno = ENOMEM;
@@ -9344,27 +9344,27 @@ int mysqlnd_par_tok_lex_init(yyscan_t* ptr_yy_globals)
     return yy_init_globals ( *ptr_yy_globals );
 }
 
-/* mysqlnd_par_tok_lex_init_extra has the same functionality as mysqlnd_par_tok_lex_init, but follows the
+/* mysqlnd_qp_lex_init_extra has the same functionality as mysqlnd_qp_lex_init, but follows the
  * convention of taking the scanner as the last argument. Note however, that
  * this is a *pointer* to a scanner, as it will be allocated by this call (and
  * is the reason, too, why this function also must handle its own declaration).
- * The user defined value in the first argument will be available to mysqlnd_par_tok_alloc in
+ * The user defined value in the first argument will be available to mysqlnd_qp_alloc in
  * the yyextra field.
  */
 
-int mysqlnd_par_tok_lex_init_extra(YY_EXTRA_TYPE yy_user_defined,yyscan_t* ptr_yy_globals )
+int mysqlnd_qp_lex_init_extra(YY_EXTRA_TYPE yy_user_defined,yyscan_t* ptr_yy_globals )
 
 {
     struct yyguts_t dummy_yyguts;
 
-    mysqlnd_par_tok_set_extra (yy_user_defined, &dummy_yyguts);
+    mysqlnd_qp_set_extra (yy_user_defined, &dummy_yyguts);
 
     if (ptr_yy_globals == NULL){
         errno = EINVAL;
         return 1;
     }
 	
-    *ptr_yy_globals = (yyscan_t) mysqlnd_par_tok_alloc ( sizeof( struct yyguts_t ), &dummy_yyguts );
+    *ptr_yy_globals = (yyscan_t) mysqlnd_qp_alloc ( sizeof( struct yyguts_t ), &dummy_yyguts );
 	
     if (*ptr_yy_globals == NULL){
         errno = ENOMEM;
@@ -9375,7 +9375,7 @@ int mysqlnd_par_tok_lex_init_extra(YY_EXTRA_TYPE yy_user_defined,yyscan_t* ptr_y
     yy_init_globals. Leave at 0x00 for releases. */
     memset(*ptr_yy_globals,0x00,sizeof(struct yyguts_t));
     
-    mysqlnd_par_tok_set_extra (yy_user_defined, *ptr_yy_globals);
+    mysqlnd_qp_set_extra (yy_user_defined, *ptr_yy_globals);
     
     return yy_init_globals ( *ptr_yy_globals );
 }
@@ -9384,7 +9384,7 @@ static int yy_init_globals (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     /* Initialization is the same as for the non-reentrant scanner.
-     * This function is called from mysqlnd_par_tok_lex_destroy(), so don't allocate here.
+     * This function is called from mysqlnd_qp_lex_destroy(), so don't allocate here.
      */
 
     yyg->yy_buffer_stack = 0;
@@ -9408,37 +9408,37 @@ static int yy_init_globals (yyscan_t yyscanner)
 #endif
 
     /* For future reference: Set errno on error, since we are called by
-     * mysqlnd_par_tok_lex_init()
+     * mysqlnd_qp_lex_init()
      */
     return 0;
 }
 
-/* mysqlnd_par_tok_lex_destroy is for both reentrant and non-reentrant scanners. */
-int mysqlnd_par_tok_lex_destroy  (yyscan_t yyscanner)
+/* mysqlnd_qp_lex_destroy is for both reentrant and non-reentrant scanners. */
+int mysqlnd_qp_lex_destroy  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
     /* Pop the buffer stack, destroying each element. */
 	while(YY_CURRENT_BUFFER){
-		mysqlnd_par_tok__delete_buffer(YY_CURRENT_BUFFER ,yyscanner );
+		mysqlnd_qp__delete_buffer(YY_CURRENT_BUFFER ,yyscanner );
 		YY_CURRENT_BUFFER_LVALUE = NULL;
-		mysqlnd_par_tok_pop_buffer_state(yyscanner);
+		mysqlnd_qp_pop_buffer_state(yyscanner);
 	}
 
 	/* Destroy the stack itself. */
-	mysqlnd_par_tok_free(yyg->yy_buffer_stack ,yyscanner);
+	mysqlnd_qp_free(yyg->yy_buffer_stack ,yyscanner);
 	yyg->yy_buffer_stack = NULL;
 
     /* Destroy the start condition stack. */
-        mysqlnd_par_tok_free(yyg->yy_start_stack ,yyscanner );
+        mysqlnd_qp_free(yyg->yy_start_stack ,yyscanner );
         yyg->yy_start_stack = NULL;
 
     /* Reset the globals. This is important in a non-reentrant scanner so the next time
-     * mysqlnd_par_tok_lex() is called, initialization will occur. */
+     * mysqlnd_qp_lex() is called, initialization will occur. */
     yy_init_globals( yyscanner);
 
     /* Destroy the main struct (reentrant only). */
-    mysqlnd_par_tok_free ( yyscanner , yyscanner );
+    mysqlnd_qp_free ( yyscanner , yyscanner );
     yyscanner = NULL;
     return 0;
 }
@@ -9467,12 +9467,12 @@ static int yy_flex_strlen (yyconst char * s , yyscan_t yyscanner)
 }
 #endif
 
-void *mysqlnd_par_tok_alloc (yy_size_t  size , yyscan_t yyscanner)
+void *mysqlnd_qp_alloc (yy_size_t  size , yyscan_t yyscanner)
 {
 	return (void *) malloc( size );
 }
 
-void *mysqlnd_par_tok_realloc  (void * ptr, yy_size_t  size , yyscan_t yyscanner)
+void *mysqlnd_qp_realloc  (void * ptr, yy_size_t  size , yyscan_t yyscanner)
 {
 	/* The cast to (char *) in the following accommodates both
 	 * implementations that use char* generic pointers, and those
@@ -9484,9 +9484,9 @@ void *mysqlnd_par_tok_realloc  (void * ptr, yy_size_t  size , yyscan_t yyscanner
 	return (void *) realloc( (char *) ptr, size );
 }
 
-void mysqlnd_par_tok_free (void * ptr , yyscan_t yyscanner)
+void mysqlnd_qp_free (void * ptr , yyscan_t yyscanner)
 {
-	free( (char *) ptr );	/* see mysqlnd_par_tok_realloc() for (char *) cast */
+	free( (char *) ptr );	/* see mysqlnd_qp_realloc() for (char *) cast */
 }
 
 #define YYTABLES_NAME "yytables"
@@ -9502,7 +9502,7 @@ mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_par_tok_free_scanner");
 	if (scanner) {
-		mysqlnd_par_tok_lex_destroy(*(yyscan_t *) scanner->scanner);
+		mysqlnd_qp_lex_destroy(*(yyscan_t *) scanner->scanner);
 		mnd_efree(scanner->scanner);
 
 		mnd_efree(scanner);
@@ -9523,8 +9523,8 @@ mysqlnd_par_tok_create_scanner(TSRMLS_D)
 
 	ret->scanner = mnd_ecalloc(1, sizeof(yyscan_t));
 
-	if (mysqlnd_par_tok_lex_init_extra(ret->token_value /* yyextra */,(yyscan_t *) ret->scanner)) {
-		DBG_ERR_FMT("mysqlnd_par_tok_lex_init_extra failed");
+	if (mysqlnd_qp_lex_init_extra(ret->token_value /* yyextra */,(yyscan_t *) ret->scanner)) {
+		DBG_ERR_FMT("mysqlnd_qp_lex_init_extra failed");
 		mysqlnd_par_tok_free_scanner(ret TSRMLS_CC);
 		ret = NULL;
 	}
@@ -9545,8 +9545,8 @@ mysqlnd_par_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 
 	memset(&lex_val, 0, sizeof(lex_val));
 	INIT_ZVAL(lex_val.zv);	
-	/* mysqlnd_par_tok_lex expects `yyscan_t`, not `yyscan_t*` */
-	if ((ret.token = mysqlnd_par_tok_lex(&lex_val,*(yyscan_t *)scanner->scanner TSRMLS_CC))) {
+	/* mysqlnd_qp_lex expects `yyscan_t`, not `yyscan_t*` */
+	if ((ret.token = mysqlnd_qp_lex(&lex_val,*(yyscan_t *)scanner->scanner TSRMLS_CC))) {
 		switch (Z_TYPE(lex_val.zv)) {
 			case IS_STRING:
 				DBG_INF_FMT("strval=%s", Z_STRVAL(lex_val.zv));
@@ -9581,7 +9581,7 @@ mysqlnd_par_tok_create_parser(TSRMLS_D)
 
 	DBG_ENTER("mysqlnd_par_tok_create_parser");
 	DBG_INF_FMT("ret=%p", ret);
-	mysqlnd_par_tok_error = zend_printf;
+	mysqlnd_qp_error = zend_printf;
 
 	ret->scanner = mysqlnd_par_tok_create_scanner(TSRMLS_C);
 	DBG_INF_FMT("ret->scanner=%p", ret->scanner);
@@ -9597,7 +9597,7 @@ mysqlnd_par_tok_set_string(struct st_mysqlnd_tok_scanner * scanner, const char *
 {
 	DBG_ENTER("mysqlnd_par_tok_set_string");
 	/* scan_string/scan_bytes expect `yyscan_t`, not `yyscan_t*` */
-	mysqlnd_par_tok__scan_bytes(s,len,*((yyscan_t *)scanner->scanner));
+	mysqlnd_qp__scan_bytes(s,len,*((yyscan_t *)scanner->scanner));
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -9643,7 +9643,7 @@ mysqlnd_par_tok_start_parser(struct st_mysqlnd_tok_parser * parser, const char *
 	mysqlnd_par_tok_set_string(parser->scanner, query, query_len TSRMLS_CC);
 
 	DBG_INF("let's run the parser");
-	ret = mysqlnd_par_tok_parse(parser TSRMLS_CC);
+	ret = mysqlnd_qp_parse(parser TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
