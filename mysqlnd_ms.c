@@ -40,7 +40,7 @@
 #include "ext/standard/php_rand.h"
 
 #include "mysqlnd_par.h"
-#include "mysqlnd_tok.h"
+#include "mysqlnd_par_tok.h"
 
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
