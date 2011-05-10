@@ -125,7 +125,7 @@ struct st_qc_token_and_value
 };
 
 
-struct st_mysqlnd_tok_scanner
+struct st_mysqlnd_query_scanner
 {
 	void * scanner;
 	zval * token_value;
@@ -153,9 +153,9 @@ struct st_mysqlnd_parse_info
 	zend_bool persistent;
 };
 
-struct st_mysqlnd_tok_parser
+struct st_mysqlnd_query_parser
 {
-	struct st_mysqlnd_tok_scanner * scanner;
+	struct st_mysqlnd_query_scanner * scanner;
 	struct st_mysqlnd_parse_info parse_info;
 };
 

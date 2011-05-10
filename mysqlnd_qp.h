@@ -22,22 +22,14 @@
 #ifndef MYSQLND_MS_TOKENIZE_H
 #define MYSQLND_MS_TOKENIZE_H
 
+PHPAPI void mysqlnd_qp_free_scanner(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC);
+PHPAPI struct st_mysqlnd_query_scanner * mysqlnd_qp_create_scanner(TSRMLS_D);
+PHPAPI struct st_qc_token_and_value mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC);
+PHPAPI void mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * const s, size_t len TSRMLS_DC);
 
-PHPAPI struct st_qc_token_and_value mysqlnd_ms_get_token(const char **p, size_t * query_len, const MYSQLND_CHARSET * cset TSRMLS_DC);
-
-PHPAPI struct st_mysqlnd_tok_scanner * mysqlnd_tok_create_scanner(const char * const query, const size_t query_len TSRMLS_DC);
-PHPAPI void mysqlnd_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
-PHPAPI struct st_qc_token_and_value mysqlnd_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
-
-
-PHPAPI void mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
-PHPAPI struct st_mysqlnd_tok_scanner * mysqlnd_par_tok_create_scanner(TSRMLS_D);
-PHPAPI struct st_qc_token_and_value mysqlnd_par_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC);
-PHPAPI void mysqlnd_par_tok_set_string(struct st_mysqlnd_tok_scanner * scanner, const char * const s, size_t len TSRMLS_DC);
-
-PHPAPI struct st_mysqlnd_tok_parser * mysqlnd_par_tok_create_parser(TSRMLS_D);
-PHPAPI void mysqlnd_par_tok_free_parser(struct st_mysqlnd_tok_parser * parser TSRMLS_DC);
-PHPAPI int mysqlnd_par_tok_start_parser(struct st_mysqlnd_tok_parser * parser, const char * const query, const size_t query_len TSRMLS_DC);
+PHPAPI struct st_mysqlnd_query_parser * mysqlnd_qp_create_parser(TSRMLS_D);
+PHPAPI void mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC);
+PHPAPI int mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * const query, const size_t query_len TSRMLS_DC);
 
 
 

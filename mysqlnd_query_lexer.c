@@ -9496,11 +9496,11 @@ void mysqlnd_qp_free (void * ptr , yyscan_t yyscanner)
 
 
 
-/* {{{ mysqlnd_par_tok_free_scanner */
+/* {{{ mysqlnd_qp_free_scanner */
 PHPAPI void
-mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
+mysqlnd_qp_free_scanner(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_par_tok_free_scanner");
+	DBG_ENTER("mysqlnd_qp_free_scanner");
 	if (scanner) {
 		mysqlnd_qp_lex_destroy(*(yyscan_t *) scanner->scanner);
 		mnd_efree(scanner->scanner);
@@ -9513,19 +9513,19 @@ mysqlnd_par_tok_free_scanner(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_par_tok_create_scanner */
-PHPAPI struct st_mysqlnd_tok_scanner *
-mysqlnd_par_tok_create_scanner(TSRMLS_D)
+/* {{{ mysqlnd_qp_create_scanner */
+PHPAPI struct st_mysqlnd_query_scanner *
+mysqlnd_qp_create_scanner(TSRMLS_D)
 {
-	struct st_mysqlnd_tok_scanner * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_tok_scanner));
+	struct st_mysqlnd_query_scanner * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_query_scanner));
 
-	DBG_ENTER("mysqlnd_par_tok_create_scanner");
+	DBG_ENTER("mysqlnd_qp_create_scanner");
 
 	ret->scanner = mnd_ecalloc(1, sizeof(yyscan_t));
 
 	if (mysqlnd_qp_lex_init_extra(ret->token_value /* yyextra */,(yyscan_t *) ret->scanner)) {
 		DBG_ERR_FMT("mysqlnd_qp_lex_init_extra failed");
-		mysqlnd_par_tok_free_scanner(ret TSRMLS_CC);
+		mysqlnd_qp_free_scanner(ret TSRMLS_CC);
 		ret = NULL;
 	}
 	DBG_INF_FMT("ret=%p", ret);
@@ -9534,14 +9534,14 @@ mysqlnd_par_tok_create_scanner(TSRMLS_D)
 /* }}} */
 
 
-/* {{{ mysqlnd_par_tok_get_token */
+/* {{{ mysqlnd_qp_get_token */
 PHPAPI struct st_qc_token_and_value
-mysqlnd_par_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
+mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 {
 	YYSTYPE lex_val;
 	struct st_qc_token_and_value ret = {0};
 
-	DBG_ENTER("mysqlnd_par_tok_get_token");
+	DBG_ENTER("mysqlnd_qp_get_token");
 
 	memset(&lex_val, 0, sizeof(lex_val));
 	INIT_ZVAL(lex_val.zv);	
@@ -9573,17 +9573,17 @@ mysqlnd_par_tok_get_token(struct st_mysqlnd_tok_scanner * scanner TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_par_tok_create_parser */
-PHPAPI struct st_mysqlnd_tok_parser *
-mysqlnd_par_tok_create_parser(TSRMLS_D)
+/* {{{ mysqlnd_qp_create_parser */
+PHPAPI struct st_mysqlnd_query_parser *
+mysqlnd_qp_create_parser(TSRMLS_D)
 {
-	struct st_mysqlnd_tok_parser * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_tok_parser));
+	struct st_mysqlnd_query_parser * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_query_parser));
 
-	DBG_ENTER("mysqlnd_par_tok_create_parser");
+	DBG_ENTER("mysqlnd_qp_create_parser");
 	DBG_INF_FMT("ret=%p", ret);
 	mysqlnd_qp_error = zend_printf;
 
-	ret->scanner = mysqlnd_par_tok_create_scanner(TSRMLS_C);
+	ret->scanner = mysqlnd_qp_create_scanner(TSRMLS_C);
 	DBG_INF_FMT("ret->scanner=%p", ret->scanner);
 
 	DBG_RETURN(ret);
@@ -9591,11 +9591,11 @@ mysqlnd_par_tok_create_parser(TSRMLS_D)
 /* }}} */
 
 
-/* {{{ mysqlnd_par_tok_set_string */
+/* {{{ mysqlnd_qp_set_string */
 PHPAPI void
-mysqlnd_par_tok_set_string(struct st_mysqlnd_tok_scanner * scanner, const char * const s, size_t len TSRMLS_DC)
+mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * const s, size_t len TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_par_tok_set_string");
+	DBG_ENTER("mysqlnd_qp_set_string");
 	/* scan_string/scan_bytes expect `yyscan_t`, not `yyscan_t*` */
 	mysqlnd_qp__scan_bytes(s,len,*((yyscan_t *)scanner->scanner));
 	DBG_VOID_RETURN;
@@ -9603,13 +9603,13 @@ mysqlnd_par_tok_set_string(struct st_mysqlnd_tok_scanner * scanner, const char *
 /* }}} */
 
 
-/* {{{ mysqlnd_par_tok_free_parser */
+/* {{{ mysqlnd_qp_free_parser */
 PHPAPI void
-mysqlnd_par_tok_free_parser(struct st_mysqlnd_tok_parser * parser TSRMLS_DC)
+mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_par_tok_free_parser");
+	DBG_ENTER("mysqlnd_qp_free_parser");
 	if (parser) {
-		mysqlnd_par_tok_free_scanner(parser->scanner TSRMLS_CC);
+		mysqlnd_qp_free_scanner(parser->scanner TSRMLS_CC);
 
 		{
 			struct st_mysqlnd_parse_info * pi = &parser->parse_info;
@@ -9631,16 +9631,16 @@ mysqlnd_par_tok_free_parser(struct st_mysqlnd_tok_parser * parser TSRMLS_DC)
 }
 /* }}} */
 
-extern int mysqlnd_par_tok_parse (void * TSRMLS_DC);
+extern int mysqlnd_qp_parse (void * TSRMLS_DC);
 
-/* {{{ mysqlnd_par_tok_start_parser */
+/* {{{ mysqlnd_qp_start_parser */
 PHPAPI int
-mysqlnd_par_tok_start_parser(struct st_mysqlnd_tok_parser * parser, const char * const query, const size_t query_len TSRMLS_DC)
+mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * const query, const size_t query_len TSRMLS_DC)
 {
 	int ret;
-	DBG_ENTER("mysqlnd_par_tok_start_parser");
+	DBG_ENTER("mysqlnd_qp_start_parser");
 
-	mysqlnd_par_tok_set_string(parser->scanner, query, query_len TSRMLS_CC);
+	mysqlnd_qp_set_string(parser->scanner, query, query_len TSRMLS_CC);
 
 	DBG_INF("let's run the parser");
 	ret = mysqlnd_qp_parse(parser TSRMLS_CC);

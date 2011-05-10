@@ -40,7 +40,7 @@
 #include "ext/standard/php_rand.h"
 
 #include "mysqlnd_query_parser.h"
-#include "mysqlnd_par_tok.h"
+#include "mysqlnd_qp.h"
 
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
@@ -787,16 +787,16 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 {
 	enum enum_which_server ret = USE_MASTER;
 	struct st_qc_token_and_value token = {0};
-	struct st_mysqlnd_tok_scanner * scanner;
+	struct st_mysqlnd_query_scanner * scanner;
 	DBG_ENTER("mysqlnd_ms_query_is_select");
 	*forced = FALSE;
 	if (!query) {
 		DBG_RETURN(USE_MASTER);
 	}
 
-	scanner = mysqlnd_par_tok_create_scanner(TSRMLS_C);
-	mysqlnd_par_tok_set_string(scanner, query, query_len TSRMLS_CC);
-	token = mysqlnd_par_tok_get_token(scanner TSRMLS_CC);
+	scanner = mysqlnd_qp_create_scanner(TSRMLS_C);
+	mysqlnd_qp_set_string(scanner, query, query_len TSRMLS_CC);
+	token = mysqlnd_qp_get_token(scanner TSRMLS_CC);
 	DBG_INF_FMT("token=COMMENT? = %d", token.token == QC_TOKEN_COMMENT);
 	while (token.token == QC_TOKEN_COMMENT) {
 		if (!strncasecmp(Z_STRVAL(token.value), MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1)) {
@@ -822,7 +822,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 #endif
 		}
 		zval_dtor(&token.value);
-		token = mysqlnd_par_tok_get_token(scanner TSRMLS_CC);
+		token = mysqlnd_qp_get_token(scanner TSRMLS_CC);
 	}
 	if (*forced == FALSE) {
 		if (token.token == QC_TOKEN_SELECT) {
@@ -837,7 +837,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 		}
 	}
 	zval_dtor(&token.value);
-	mysqlnd_par_tok_free_scanner(scanner TSRMLS_CC);
+	mysqlnd_qp_free_scanner(scanner TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1333,18 +1333,18 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query2)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
 {
 	int ret;
-	struct st_mysqlnd_tok_parser * parser;
+	struct st_mysqlnd_query_parser * parser;
 	DBG_ENTER("mysqlnd_ms::query2");
-	parser = mysqlnd_par_tok_create_parser(TSRMLS_C);
+	parser = mysqlnd_qp_create_parser(TSRMLS_C);
 	if (parser) {
-		ret = mysqlnd_par_tok_start_parser(parser, query, query_len TSRMLS_CC);
-		DBG_INF_FMT("mysqlnd_par_tok_start_parser=%d", ret);
+		ret = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
+		DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
 		DBG_INF_FMT("db=%s table=%s org_table=%s",
 				parser->parse_info.db? parser->parse_info.db:"n/a",
 				parser->parse_info.table? parser->parse_info.table:"n/a",
 				parser->parse_info.org_table? parser->parse_info.org_table:"n/a"
 			);
-		mysqlnd_par_tok_free_parser(parser TSRMLS_CC);
+		mysqlnd_qp_free_parser(parser TSRMLS_CC);
 		DBG_RETURN(PASS);
 	}
 	DBG_RETURN(FAIL);

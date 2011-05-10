@@ -110,8 +110,8 @@ extern int (*mysqlnd_qp_error)(const char * format, ...);
 #endif
 
 #define YYPARSE_PARAM my_parser TSRMLS_DC
-#define PINFO (((struct st_mysqlnd_tok_parser *) my_parser)->parse_info)
-#define YYLEX_PARAM *(yyscan_t *)(((struct st_mysqlnd_tok_parser *) my_parser)->scanner->scanner) TSRMLS_CC
+#define PINFO (((struct st_mysqlnd_query_parser *) my_parser)->parse_info)
+#define YYLEX_PARAM *(yyscan_t *)(((struct st_mysqlnd_query_parser *) my_parser)->scanner->scanner) TSRMLS_CC
 
 
 
