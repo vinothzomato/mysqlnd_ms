@@ -9,12 +9,26 @@ define('RB_USE_TEST_ENV', true);
 // PHP binaries to use
 //
 
+/* Yes, a global variable... this is a little tool not a design study */
 
-$rb_binaries = array();
-
+/* 
+$rb_binaries = array(
+  'PHP mysqlnd_ms' => array(
+	'binary' => getenv("TEST_PHP_EXECUTABLE"),
+	'ini' => getcwd() . DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . 'micro_benches' . DIRECTORY_SEPARATOR . 'mysqlnd_ms_php.ini'
+  ),
+  'PHP' => array(
+	'binary' => getenv("TEST_PHP_EXECUTABLE"),
+	'ini' => NULL
+  ),
+);
+*/
+$rb_binary = array();
 if (empty($rb_binaries) && RB_USE_TEST_ENV) {
   // fallback to run-test settings
-  $rb_binaries['PHP'] = getenv("TEST_PHP_EXECUTABLE");
+
+  // Format: rb_binaries[display name] = array('binary' => executable, 'ini' => ini file or NULL)
+  $rb_binaries['PHP'] = array('binary' => getenv("TEST_PHP_EXECUTABLE"), 'ini' => NULL);
 }
 
 

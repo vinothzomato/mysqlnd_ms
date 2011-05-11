@@ -25,8 +25,11 @@ class rb_main {
     sort($this->files);
 
     foreach ($this->options['binaries'] as $binary_label => $binary) {
-      if (!file_exists($binary))
-        throw new Exception(sprintf("Cannot find binary '%s' => '%s'\n", $binary_label, $binary));
+      if (!file_exists($binary['binary']))
+        throw new Exception(sprintf("Cannot find binary '%s' => '%s'\n", $binary_label, $binary['binary']));
+
+      if (!is_null($binary['ini']) && !file_exists($binary['ini']))
+        throw new Exception(sprintf("Cannot find ini '%s' => '%s'\n", $binary_label, $binary['ini']));
 
       foreach ($testrunner as $k => $runner) {
 
@@ -42,7 +45,7 @@ class rb_main {
         foreach ($this->files as $k => $file) {
           $results = $runner->runTest($file, $binary, $this->options);
           if ($save_results)
-            $runner->saveResults($this->run_label, $this->run_datetime, $file, $binary, $binary_label, $results);          
+            $runner->saveResults($this->run_label, $this->run_datetime, $file, $binary['binary'], $binary_label, $results);
         }
 
       }

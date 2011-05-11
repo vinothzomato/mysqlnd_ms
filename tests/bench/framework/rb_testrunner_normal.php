@@ -49,14 +49,14 @@ class rb_testrunner_normal extends rb_testrunner {
     fwrite($fp, $code);
     fclose($fp);
 
-    $cmd = sprintf('%s -f %s', $binary, $mycode);
+    $cmd = sprintf('%s %s -f %s', $binary['binary'], (is_null($binary['ini'])) ? '' : sprintf(' -c %s ', $binary['ini']), $mycode);
     if ($options['verbose']) {
       printf("  ...'%s'\n", $cmd);
       flush();
     }
     exec($cmd, $output, $ret);
     if ($ret !== 0 || empty($output) || $output[0] != 'done!') {      
-      throw new Exception(sprintf("Cannot fetch output from %s, return code: %d, output: %s\n", $binary, $ret, implode('', $output)));      
+      throw new Exception(sprintf("Cannot fetch output from %s, return code: %d, output: %s\n", $binary['binary'], $ret, implode('', $output)));      
     }
 
     if (!$tmp = file_get_contents($results))
