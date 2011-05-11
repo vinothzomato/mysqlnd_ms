@@ -110,7 +110,7 @@ enum enum_which_server
 };
 
 extern unsigned int mysqlnd_ms_plugin_id;
-extern HashTable mysqlnd_ms_config;
+extern struct st_mysqlnd_ms_ini_config * mysqlnd_ms_ini_config;
 ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
 
 

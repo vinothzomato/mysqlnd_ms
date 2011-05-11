@@ -62,7 +62,7 @@ ZEND_DECLARE_MODULE_GLOBALS(mysqlnd_ms)
 unsigned int mysqlnd_ms_plugin_id;
 
 static zend_bool mysqlns_ms_global_config_loaded = FALSE;
-HashTable mysqlnd_ms_config;
+struct st_mysqlnd_ms_ini_config * mysqlnd_ms_ini_config = NULL;
 
 
 /* {{{ php_mysqlnd_ms_config_init_globals */
@@ -86,27 +86,16 @@ static PHP_GINIT_FUNCTION(mysqlnd_ms)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_config_dtor */
-static void
-mysqlnd_ms_config_dtor(void * data)
-{
-	TSRMLS_FETCH();
-	zend_hash_destroy(*(HashTable **)data);
-	mnd_free(*(HashTable **)data);
-}
-/* }}} */
-
-
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION(mysqlnd_ms)
 {
 	if (MYSQLND_MS_G(enable)) {
-		MYSQLND_MS_CONFIG_LOCK;
+		MYSQLND_MS_CONFIG_LOCK(mysqlnd_ms_ini_config);
 		if (FALSE == mysqlns_ms_global_config_loaded) {
-			mysqlnd_ms_config_init_server_list(&mysqlnd_ms_config TSRMLS_CC);
+			mysqlnd_ms_config_init_server_list(mysqlnd_ms_ini_config TSRMLS_CC);
 			mysqlns_ms_global_config_loaded = TRUE;
 		}
-		MYSQLND_MS_CONFIG_UNLOCK;
+		MYSQLND_MS_CONFIG_UNLOCK(mysqlnd_ms_ini_config);
 	}
 	return SUCCESS;
 }
@@ -145,12 +134,9 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	if (MYSQLND_MS_G(enable)) {
 		mysqlnd_ms_plugin_id = mysqlnd_plugin_register();
 		mysqlnd_ms_register_hooks();
-		zend_hash_init(&mysqlnd_ms_config, 2, NULL /* hash_func */, mysqlnd_ms_config_dtor /*dtor*/, 1 /* persistent */);
-
 		mysqlnd_stats_init(&mysqlnd_ms_stats, MS_STAT_LAST);
-#ifdef ZTS
-		LOCK_global_config_access = tsrm_mutex_alloc();
-#endif
+
+		mysqlnd_ms_ini_config = mysqlnd_ms_config_init(TSRMLS_C);
 	}
 
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_VERSION", MYSQLND_MS_VERSION, CONST_CS | CONST_PERSISTENT);
@@ -176,10 +162,8 @@ PHP_MSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
 	UNREGISTER_INI_ENTRIES();
 	if (MYSQLND_MS_G(enable)) {
-		zend_hash_destroy(&mysqlnd_ms_config);
-#ifdef ZTS
-		tsrm_mutex_free(LOCK_global_config_access);
-#endif
+		mysqlnd_ms_config_free(mysqlnd_ms_ini_config TSRMLS_CC);
+		mysqlnd_ms_ini_config = NULL;
 	}
 	return SUCCESS;
 }

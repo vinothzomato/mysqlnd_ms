@@ -23,21 +23,29 @@
 #define MYSQLND_MS_INI_H
 
 #ifdef ZTS
-extern MUTEX_T LOCK_global_config_access;
-#define MYSQLND_MS_CONFIG_LOCK tsrm_mutex_lock(LOCK_global_config_access)
-#define MYSQLND_MS_CONFIG_UNLOCK tsrm_mutex_unlock(LOCK_global_config_access)
+#define MYSQLND_MS_CONFIG_LOCK(cfg) tsrm_mutex_lock(cfg->LOCK_access)
+#define MYSQLND_MS_CONFIG_UNLOCK(cfg) tsrm_mutex_unlock(cfg->LOCK_access)
 
 #else
-#define MYSQLND_MS_CONFIG_LOCK
-#define MYSQLND_MS_CONFIG_UNLOCK
+#define MYSQLND_MS_CONFIG_LOCK(cfg)
+#define MYSQLND_MS_CONFIG_UNLOCK(cfg)
 #endif
 
 #define GLOBAL_SECTION_NAME "global"
 
-enum_func_status mysqlnd_ms_config_init_server_list(HashTable * configuration TSRMLS_DC);
-zend_bool mysqlnd_ms_config_ini_section_exists(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
-char * mysqlnd_ms_config_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
-char * mysqlnd_ms_config_ini_reset_section(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
+struct st_mysqlnd_ms_ini_config {
+	HashTable config;
+#ifdef ZTS
+	MUTEX_T LOCK_access;
+#endif	
+};
+
+struct st_mysqlnd_ms_ini_config * mysqlnd_ms_config_init(TSRMLS_D);
+void mysqlnd_ms_config_free(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC);
+enum_func_status mysqlnd_ms_config_init_server_list(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC);
+zend_bool mysqlnd_ms_config_ini_section_exists(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
+char * mysqlnd_ms_config_ini_string(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
+void mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
 
 
 #endif	/* MYSQLND_MS_INI_H */
