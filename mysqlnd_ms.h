@@ -97,7 +97,7 @@ typedef enum mysqlnd_ms_collected_stats
   hotloading.
   Maybe not use `hotloading? FALSE:TRUE` but an expclicit lock around
   the array extraction of master[] and slave[] and pass FALSE to
-  mysqlnd_ms_ini_string(), meaning it should not try to get a lock.
+  mysqlnd_ms_config_ini_string(), meaning it should not try to get a lock.
 */
 #define MYSLQND_MS_HOTLOADING FALSE
 

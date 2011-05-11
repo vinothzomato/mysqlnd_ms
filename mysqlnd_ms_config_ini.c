@@ -31,7 +31,7 @@
 #include "Zend/zend_ini.h"
 #include "Zend/zend_ini_scanner.h"
 #include "mysqlnd_ms.h"
-#include "mysqlnd_ms_ini.h"
+#include "mysqlnd_ms_config_ini.h"
 
 
 #ifndef zend_llist_get_current
@@ -56,7 +56,7 @@ zend_llist_get_current_ex(zend_llist *l, zend_llist_position *pos)
 MUTEX_T LOCK_global_config_access;
 #endif
 
-struct st_mysqlnd_ms_ini_entry
+struct st_mysqlnd_ms_config_ini_entry
 {
 	union {
 		struct {
@@ -68,7 +68,7 @@ struct st_mysqlnd_ms_ini_entry
 	zend_uchar type;
 };
 
-struct st_mysqlnd_ms_ini_parser_cb_data
+struct st_mysqlnd_ms_config_ini_parser_cb_data
 {
 	HashTable * global_ini;
 	HashTable * current_ini_section;
@@ -76,9 +76,9 @@ struct st_mysqlnd_ms_ini_parser_cb_data
 };
 
 
-/* {{{ mysqlnd_ms_ini_list_entry_dtor */
+/* {{{ mysqlnd_ms_config_ini_list_entry_dtor */
 static void
-mysqlnd_ms_ini_list_entry_dtor(void * pDest)
+mysqlnd_ms_config_ini_list_entry_dtor(void * pDest)
 {
 	char * str = *(char **) pDest;
 	TSRMLS_FETCH();
@@ -91,7 +91,7 @@ mysqlnd_ms_ini_list_entry_dtor(void * pDest)
 static void
 mysqlnd_ms_global_configuration_section_dtor(void * data)
 {
-	struct st_mysqlnd_ms_ini_entry * entry = * (struct st_mysqlnd_ms_ini_entry **) data;
+	struct st_mysqlnd_ms_config_ini_entry * entry = * (struct st_mysqlnd_ms_config_ini_entry **) data;
 	TSRMLS_FETCH();
 	switch (entry->type) {
 		case IS_STRING:
@@ -109,13 +109,13 @@ mysqlnd_ms_global_configuration_section_dtor(void * data)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_ini_parser_cb */
+/* {{{ mysqlnd_ms_config_ini_parser_cb */
 static void
-mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_type, void * cb_data TSRMLS_DC)
+mysqlnd_ms_config_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_type, void * cb_data TSRMLS_DC)
 {
-	struct st_mysqlnd_ms_ini_parser_cb_data * parser_data = (struct st_mysqlnd_ms_ini_parser_cb_data *) cb_data;
+	struct st_mysqlnd_ms_config_ini_parser_cb_data * parser_data = (struct st_mysqlnd_ms_config_ini_parser_cb_data *) cb_data;
 
-	DBG_ENTER("mysqlnd_ms_ini_parser_cb");
+	DBG_ENTER("mysqlnd_ms_config_ini_parser_cb");
 	DBG_INF_FMT("key=%p value=%p", key, value);
 	DBG_INF_FMT("current_section=[%s] [%p]", parser_data->current_ini_section_name, parser_data->current_ini_section);
 
@@ -127,7 +127,7 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 	switch (callback_type) {
 		case ZEND_INI_PARSER_ENTRY:
 		{
-			struct st_mysqlnd_ms_ini_entry * new_entry = NULL;
+			struct st_mysqlnd_ms_config_ini_entry * new_entry = NULL;
 			DBG_INF("ZEND_INI_PARSER_ENTRY");
 
 			if (!value) {
@@ -137,16 +137,16 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 			convert_to_string_ex(&key);
 			convert_to_string_ex(&value);
 
-			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_ini_entry));
+			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_ini_entry));
 			new_entry->type = IS_STRING;
 			new_entry->value.str.len = Z_STRLEN_P(value);
 			new_entry->value.str.c = mnd_pestrndup(Z_STRVAL_P(value), Z_STRLEN_P(value), 1);
 
 			if (FAILURE == zend_hash_add(parser_data->current_ini_section, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1,
-										 &new_entry, sizeof(struct st_mysqlnd_ms_ini_entry *), NULL))
+										 &new_entry, sizeof(struct st_mysqlnd_ms_config_ini_entry *), NULL))
 			{
 				if (SUCCESS == zend_hash_update(parser_data->current_ini_section, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1,
-												&new_entry, sizeof(struct st_mysqlnd_ms_ini_entry *), NULL))
+												&new_entry, sizeof(struct st_mysqlnd_ms_config_ini_entry *), NULL))
 				{
 					DBG_ERR_FMT("Option [%s] already defined in section [%s]. Overwriting",
 									 Z_STRVAL_P(key), parser_data->current_ini_section_name? parser_data->current_ini_section_name:"n/a");
@@ -175,8 +175,8 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 		}
 		case ZEND_INI_PARSER_POP_ENTRY:
 		{
-			struct st_mysqlnd_ms_ini_entry ** entry_pp = NULL;
-			struct st_mysqlnd_ms_ini_entry * entry = NULL;
+			struct st_mysqlnd_ms_config_ini_entry ** entry_pp = NULL;
+			struct st_mysqlnd_ms_config_ini_entry * entry = NULL;
 			char * value_copy;
 			zend_bool newly_created = FALSE;
 			DBG_INF("ZEND_INI_PARSER_POP_ENTRY");
@@ -197,13 +197,13 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 			}
 
 			if (!entry) {
-				entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_ini_entry));
+				entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_ini_entry));
 				entry->type = IS_ARRAY;
 				entry->value.list = mnd_calloc(1, sizeof(zend_llist));
-				zend_llist_init(entry->value.list, sizeof(char *), (llist_dtor_func_t) mysqlnd_ms_ini_list_entry_dtor, 1 /* persistent */);
+				zend_llist_init(entry->value.list, sizeof(char *), (llist_dtor_func_t) mysqlnd_ms_config_ini_list_entry_dtor, 1 /* persistent */);
 
 				zend_hash_update(parser_data->current_ini_section, Z_STRVAL_P(key), Z_STRLEN_P(key) + 1, &entry,
-								 sizeof(struct st_mysqlnd_ms_ini_entry *), NULL);
+								 sizeof(struct st_mysqlnd_ms_config_ini_entry *), NULL);
 				newly_created = TRUE;
 			}
 
@@ -226,15 +226,15 @@ mysqlnd_ms_ini_parser_cb(zval * key, zval * value, zval * arg3, int callback_typ
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_ini_string */
+/* {{{ mysqlnd_ms_config_ini_string */
 char *
-mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len,
+mysqlnd_ms_config_ini_string(HashTable * config, const char * section, size_t section_len, const char * name, size_t name_len,
 					  zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC)
 {
 	zend_bool tmp_bool;
 	char * ret = NULL;
 	HashTable ** ini_section;
-	DBG_ENTER("mysqlnd_ms_ini_string");
+	DBG_ENTER("mysqlnd_ms_config_ini_string");
 	DBG_INF_FMT("name=%s", name);
 	if (exists) {
 		*exists = 0;
@@ -251,8 +251,8 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 		MYSQLND_MS_CONFIG_LOCK;
 	}
 	if (zend_hash_find(config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
-		struct st_mysqlnd_ms_ini_entry ** ini_section_entry_pp;
-		struct st_mysqlnd_ms_ini_entry * ini_section_entry;
+		struct st_mysqlnd_ms_config_ini_entry ** ini_section_entry_pp;
+		struct st_mysqlnd_ms_config_ini_entry * ini_section_entry;
 
 		if (zend_hash_find(*(HashTable **)ini_section, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
 			ini_section_entry = *ini_section_entry_pp;
@@ -276,7 +276,7 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 					break;
 				}
 				default:
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Unknown entry type in mysqlnd_ms_ini_string");
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Unknown entry type in mysqlnd_ms_config_ini_string");
 			}
 		}
 	}
@@ -291,13 +291,13 @@ mysqlnd_ms_ini_string(HashTable * config, const char * section, size_t section_l
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_ini_string_array_reset_pos */
+/* {{{ mysqlnd_ms_config_ini_string_array_reset_pos */
 char *
-mysqlnd_ms_ini_reset_section(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
+mysqlnd_ms_config_ini_reset_section(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
 {
 	char * ret = NULL;
 	HashTable ** ini_section;
-	DBG_ENTER("mysqlnd_ms_ini_string_array_reset_pos");
+	DBG_ENTER("mysqlnd_ms_config_ini_string_array_reset_pos");
 	DBG_INF_FMT("section=%s", section);
 
 	if (use_lock) {
@@ -305,7 +305,7 @@ mysqlnd_ms_ini_reset_section(HashTable * config, const char * section, size_t se
 	}
 	if (zend_hash_find(config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
 		HashPosition pos;
-		struct st_mysqlnd_ms_ini_entry ** ini_section_entry_pp;
+		struct st_mysqlnd_ms_config_ini_entry ** ini_section_entry_pp;
 
 		zend_hash_internal_pointer_reset_ex(*(HashTable **)ini_section, &pos);
 		while (zend_hash_get_current_data_ex(*(HashTable **)ini_section, (void **) &ini_section_entry_pp, &pos) == SUCCESS) {
@@ -326,18 +326,18 @@ mysqlnd_ms_ini_reset_section(HashTable * config, const char * section, size_t se
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_init_server_list */
+/* {{{ mysqlnd_ms_config_init_server_list */
 enum_func_status
-mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
+mysqlnd_ms_config_init_server_list(HashTable * configuration TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	char * ini_file = INI_STR("mysqlnd_ms.ini_file");
-	DBG_ENTER("mysqlnd_ms_init_server_list");
+	DBG_ENTER("mysqlnd_ms_config_init_server_list");
 	DBG_INF_FMT("ini_file=%s", ini_file? ini_file:"n/a");
 
 	if (ini_file) {
 		HashTable * global_section = mnd_calloc(1, sizeof(HashTable));
-		struct st_mysqlnd_ms_ini_parser_cb_data ini_parse_data = {0};
+		struct st_mysqlnd_ms_config_ini_parser_cb_data ini_parse_data = {0};
 		zend_file_handle fh = {0};
 
 		zend_hash_init(global_section, 2, NULL /* hash_func */, mysqlnd_ms_global_configuration_section_dtor /*dtor*/, 1 /* persistent */);
@@ -350,7 +350,7 @@ mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 		fh.filename = ini_file;
 		fh.type = ZEND_HANDLE_FILENAME;
 
-		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_ini_parser_cb, &ini_parse_data TSRMLS_CC)) {
+		if (FAILURE == zend_parse_ini_file(&fh, 0, ZEND_INI_SCANNER_NORMAL, mysqlnd_ms_config_ini_parser_cb, &ini_parse_data TSRMLS_CC)) {
 			char *cwd_ret = NULL;
 			char cwd[MAXPATHLEN];
 #if HAVE_GETCWD
@@ -371,13 +371,13 @@ mysqlnd_ms_init_server_list(HashTable * configuration TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_ini_section_exists */
+/* {{{ mysqlnd_ms_config_ini_section_exists */
 zend_bool
-mysqlnd_ms_ini_section_exists(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
+mysqlnd_ms_config_ini_section_exists(HashTable * config, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
 {
 	zend_bool ret = FALSE;
 	char ** ini_entry;
-	DBG_ENTER("mysqlnd_ms_ini_section_exists");
+	DBG_ENTER("mysqlnd_ms_config_ini_section_exists");
 	DBG_INF_FMT("section=[%s] len=[%d]", section? section:"n/a", section_len);
 
 	if (config && section && section_len) {

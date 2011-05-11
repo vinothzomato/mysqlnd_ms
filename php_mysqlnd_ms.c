@@ -29,7 +29,7 @@
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #include "mysqlnd_ms.h"
-#include "mysqlnd_ms_ini.h"
+#include "mysqlnd_ms_config_ini.h"
 #include "ext/standard/php_rand.h"
 
 #define STR_W_LEN(str)  str, (sizeof(str) - 1)
@@ -65,9 +65,9 @@ static zend_bool mysqlns_ms_global_config_loaded = FALSE;
 HashTable mysqlnd_ms_config;
 
 
-/* {{{ php_mysqlnd_ms_init_globals */
+/* {{{ php_mysqlnd_ms_config_init_globals */
 static void
-php_mysqlnd_ms_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
+php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 {
 	mysqlnd_ms_globals->enable = FALSE;
 	mysqlnd_ms_globals->force_config_usage = FALSE;
@@ -81,7 +81,7 @@ php_mysqlnd_ms_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 /* {{{ PHP_GINIT_FUNCTION */
 static PHP_GINIT_FUNCTION(mysqlnd_ms)
 {
-	php_mysqlnd_ms_init_globals(mysqlnd_ms_globals);
+	php_mysqlnd_ms_config_init_globals(mysqlnd_ms_globals);
 }
 /* }}} */
 
@@ -103,7 +103,7 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 	if (MYSQLND_MS_G(enable)) {
 		MYSQLND_MS_CONFIG_LOCK;
 		if (FALSE == mysqlns_ms_global_config_loaded) {
-			mysqlnd_ms_init_server_list(&mysqlnd_ms_config TSRMLS_CC);
+			mysqlnd_ms_config_init_server_list(&mysqlnd_ms_config TSRMLS_CC);
 			mysqlns_ms_global_config_loaded = TRUE;
 		}
 		MYSQLND_MS_CONFIG_UNLOCK;
@@ -139,7 +139,7 @@ PHP_INI_END()
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION(mysqlnd_ms)
 {
-	ZEND_INIT_MODULE_GLOBALS(mysqlnd_ms, php_mysqlnd_ms_init_globals, NULL);
+	ZEND_INIT_MODULE_GLOBALS(mysqlnd_ms, php_mysqlnd_ms_config_init_globals, NULL);
 	REGISTER_INI_ENTRIES();
 
 	if (MYSQLND_MS_G(enable)) {
