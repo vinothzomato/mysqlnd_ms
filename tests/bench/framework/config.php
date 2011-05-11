@@ -59,7 +59,7 @@ if (!RB_USE_TEST_ENV) {
     define('RB_DB_DB', $tmp);
   else
      define('RB_DB_DB', 'microbench');
-    
+
   if ($tmp = getenv('MYSQL_TEST_HOST'))
     define('RB_DB_HOST', $tmp);
   else
@@ -88,9 +88,9 @@ if (!RB_USE_TEST_ENV) {
 // run oprofile by default?
 define('RB_DEFAULT_OPROFILE', false);
 // binaries and co
-define('RB_OPROFILE_OPCONTROL', (RB_USE_ENV && getenv('MYSQL_TEST_OPCONTROL')) ? getenv('MYSQL_TEST_OPCONTROL') : '/usr/bin/opcontrol');
-define('RB_OPROFILE_OPREPORT',  (RB_USE_ENV && getenv('MYSQL_TEST_OPREPORT')) ? getenv('MYSQL_TEST_OPREPORT') : '/usr/bin/opreport');
-define('RB_OPROFILE_VMLINUX',   (RB_USE_ENV && getenv('MYSQL_TEST_VMLINUX')) ? getenv('MYSQL_TEST_VMLINUX') : '/usr/src/linux/vmlinux');
+define('RB_OPROFILE_OPCONTROL', (RB_USE_TEST_ENV && getenv('MYSQL_TEST_OPCONTROL')) ? getenv('MYSQL_TEST_OPCONTROL') : '/usr/bin/opcontrol');
+define('RB_OPROFILE_OPREPORT',  (RB_USE_TEST_ENV && getenv('MYSQL_TEST_OPREPORT')) ? getenv('MYSQL_TEST_OPREPORT') : '/usr/bin/opreport');
+define('RB_OPROFILE_VMLINUX',   (RB_USE_TEST_ENV && getenv('MYSQL_TEST_VMLINUX')) ? getenv('MYSQL_TEST_VMLINUX') : '/usr/src/linux/vmlinux');
 
 //
 // program options
