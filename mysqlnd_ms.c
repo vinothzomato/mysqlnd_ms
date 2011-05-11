@@ -535,8 +535,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
 				break;
 			} else {
-				if (!use_lazy_connections)
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
 				MYSQLND_MS_LIST_DATA new_element = {0};
 				new_element.conn = conn;
 				new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
@@ -546,6 +544,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
 																					   conn->persistent TSRMLS_CC);
 				zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
+				if (!use_lazy_connections) {
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
+				}
 			}
 			mnd_efree(master);
 			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
@@ -614,8 +615,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				char * slave = mysqlnd_ms_ini_string(&mysqlnd_ms_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
 													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
-					have_slaves = TRUE;
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
+					have_slaves = TRUE;
 
 					{
 						char * colon_pos;
@@ -644,8 +645,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					}
 
 					if (ret == PASS) {
-						if (!use_lazy_connections)
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS);
 						MYSQLND_MS_LIST_DATA new_element = {0};
 						new_element.conn = tmp_conn;
 						new_element.host = slave? mnd_pestrdup(slave, conn->persistent) : NULL;
@@ -656,6 +655,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 																							   conn->persistent TSRMLS_CC);
 						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &new_element);
 						DBG_INF_FMT("Slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
+
+						if (!use_lazy_connections) {
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS);
+						}
 					} else {
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE);
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
