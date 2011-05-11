@@ -55,8 +55,8 @@ ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 #define LAST_USED_SWITCH "ms=last_used"
 #define ALL_SERVER_SWITCH "ms=all"
 
-#define MYSQLND_MS_VERSION "1.0.1-alpha"
-#define MYSQLND_MS_VERSION_ID 10001
+#define MYSQLND_MS_VERSION "1.0.2-alpha"
+#define MYSQLND_MS_VERSION_ID 10002
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
 
