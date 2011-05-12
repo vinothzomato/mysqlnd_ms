@@ -38,6 +38,16 @@
 #define zend_llist_get_current(l) zend_llist_get_current_ex(l, NULL)
 #endif
 
+#define GLOBAL_SECTION_NAME "global"
+
+struct st_mysqlnd_ms_ini_config {
+	HashTable config;
+#ifdef ZTS
+	MUTEX_T LOCK_access;
+#endif	
+};
+
+
 /* {{{ zend_llist_get_current_ex */
 static void *
 zend_llist_get_current_ex(zend_llist *l, zend_llist_position *pos)
@@ -224,7 +234,7 @@ mysqlnd_ms_config_ini_parser_cb(zval * key, zval * value, zval * arg3, int callb
 
 
 /* {{{ mysqlnd_ms_config_ini_string */
-char *
+PHPAPI char *
 mysqlnd_ms_config_ini_string(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len,
 							 const char * name, size_t name_len,
 					  		 zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC)
@@ -295,7 +305,7 @@ mysqlnd_ms_config_ini_string(struct st_mysqlnd_ms_ini_config * cfg, const char *
 
 
 /* {{{ mysqlnd_ms_config_ini_string_array_reset_pos */
-void
+PHPAPI void
 mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_config_ini_string_array_reset_pos");
@@ -330,7 +340,7 @@ mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const
 
 
 /* {{{ mysqlnd_ms_config_init_server_list */
-enum_func_status
+PHPAPI enum_func_status
 mysqlnd_ms_config_init_server_list(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
@@ -375,7 +385,7 @@ mysqlnd_ms_config_init_server_list(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_
 
 
 /* {{{ mysqlnd_ms_config_ini_section_exists */
-zend_bool
+PHPAPI zend_bool
 mysqlnd_ms_config_ini_section_exists(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
 {
 	zend_bool ret = FALSE;
@@ -411,7 +421,7 @@ mysqlnd_ms_config_dtor(void * data)
 
 
 /* {{{ mysqlnd_ms_config_init */
-struct st_mysqlnd_ms_ini_config *
+PHPAPI struct st_mysqlnd_ms_ini_config *
 mysqlnd_ms_config_init(TSRMLS_D)
 {
 	struct st_mysqlnd_ms_ini_config * ret;
@@ -427,7 +437,7 @@ mysqlnd_ms_config_init(TSRMLS_D)
 
 
 /* {{{ mysqlnd_ms_config_free */
-void
+PHPAPI void
 mysqlnd_ms_config_free(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_config_free");
@@ -443,6 +453,29 @@ mysqlnd_ms_config_free(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC)
 }
 /* }}} */
 
+
+/* {{{ mysqlnd_ms_config_ini_lock */
+PHPAPI void
+mysqlnd_ms_config_ini_lock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_config_ini_lock");
+	DBG_INF_FMT("mutex=%p file=%s line=%u", cfg->LOCK_access, file, line);
+	tsrm_mutex_lock(cfg->LOCK_access);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_config_ini_unlock */
+PHPAPI void
+mysqlnd_ms_config_ini_unlock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_config_ini_lock");
+	DBG_INF_FMT("mutex=%p file=%s line=%u", cfg->LOCK_access, file, line);
+	tsrm_mutex_unlock(cfg->LOCK_access);
+	DBG_VOID_RETURN;
+}
+/* }}} */
 
 
 /*
