@@ -108,6 +108,7 @@ mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_json_config * cfg, con
 /* }}} */
 
 
+#ifdef ZTS
 /* {{{ mysqlnd_ms_config_json_lock */
 PHPAPI void
 mysqlnd_ms_config_json_lock(struct st_mysqlnd_ms_json_config * cfg, const char * const file, unsigned int line TSRMLS_DC)
@@ -130,4 +131,4 @@ mysqlnd_ms_config_json_unlock(struct st_mysqlnd_ms_json_config * cfg, const char
 	DBG_VOID_RETURN;
 }
 /* }}} */
-
+#endif
