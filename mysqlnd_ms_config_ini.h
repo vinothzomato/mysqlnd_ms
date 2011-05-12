@@ -19,21 +19,21 @@
 */
 
 /* $Id: header 252479 2008-02-07 19:39:50Z iliaa $ */
-#ifndef MYSQLND_MS_INI_H
-#define MYSQLND_MS_INI_H
+#ifndef MYSQLND_MS_CONFIG_INI_H
+#define MYSQLND_MS_CONFIG_INI_H
 
 struct st_mysqlnd_ms_ini_config;
 
-struct st_mysqlnd_ms_ini_config * mysqlnd_ms_config_init(TSRMLS_D);
-void mysqlnd_ms_config_free(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC);
-enum_func_status mysqlnd_ms_config_init_server_list(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC);
-zend_bool mysqlnd_ms_config_ini_section_exists(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
-char * mysqlnd_ms_config_ini_string(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
-void mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
+PHPAPI struct st_mysqlnd_ms_ini_config * mysqlnd_ms_config_init(TSRMLS_D);
+PHPAPI void mysqlnd_ms_config_free(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC);
+PHPAPI enum_func_status mysqlnd_ms_config_init_server_list(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC);
+PHPAPI zend_bool mysqlnd_ms_config_ini_section_exists(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
+PHPAPI char * mysqlnd_ms_config_ini_string(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
+PHPAPI void mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
 
 #ifdef ZTS
-void mysqlnd_ms_config_ini_lock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
-void mysqlnd_ms_config_ini_unlock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
+PHPAPI void mysqlnd_ms_config_ini_lock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
+PHPAPI void mysqlnd_ms_config_ini_unlock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
 #define MYSQLND_MS_CONFIG_LOCK(cfg) mysqlnd_ms_config_ini_lock((cfg), __FILE__, __LINE__ TSRMLS_CC)
 #define MYSQLND_MS_CONFIG_UNLOCK(cfg) mysqlnd_ms_config_ini_unlock((cfg), __FILE__, __LINE__ TSRMLS_CC)
 #else
@@ -42,7 +42,7 @@ void mysqlnd_ms_config_ini_unlock(struct st_mysqlnd_ms_ini_config * cfg, const c
 #endif
 
 
-#endif	/* MYSQLND_MS_INI_H */
+#endif	/* MYSQLND_MS_CONFIG_INI_H */
 
 
 /*

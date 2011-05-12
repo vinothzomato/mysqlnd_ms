@@ -454,6 +454,7 @@ mysqlnd_ms_config_free(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC)
 /* }}} */
 
 
+#ifdef ZTS
 /* {{{ mysqlnd_ms_config_ini_lock */
 PHPAPI void
 mysqlnd_ms_config_ini_lock(struct st_mysqlnd_ms_ini_config * cfg, const char * const file, unsigned int line TSRMLS_DC)
@@ -476,7 +477,7 @@ mysqlnd_ms_config_ini_unlock(struct st_mysqlnd_ms_ini_config * cfg, const char *
 	DBG_VOID_RETURN;
 }
 /* }}} */
-
+#endif
 
 /*
  * Local variables:
