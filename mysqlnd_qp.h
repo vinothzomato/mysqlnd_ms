@@ -17,7 +17,7 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: header 252479 2008-02-07 19:39:50Z iliaa $ */
+/* $Id$ */
 
 #ifndef MYSQLND_MS_TOKENIZE_H
 #define MYSQLND_MS_TOKENIZE_H
