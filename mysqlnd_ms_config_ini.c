@@ -308,7 +308,7 @@ mysqlnd_ms_config_ini_string(struct st_mysqlnd_ms_ini_config * cfg, const char *
 PHPAPI void
 mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_ms_config_ini_string_array_reset_pos");
+	DBG_ENTER("mysqlnd_ms_config_ini_reset_section");
 	DBG_INF_FMT("section=%s", section);
 
 	if (cfg) {
@@ -341,7 +341,7 @@ mysqlnd_ms_config_ini_reset_section(struct st_mysqlnd_ms_ini_config * cfg, const
 
 /* {{{ mysqlnd_ms_config_init_server_list */
 PHPAPI enum_func_status
-mysqlnd_ms_config_init_server_list(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC)
+mysqlnd_ms_config_ini_load_configuration(struct st_mysqlnd_ms_ini_config * cfg TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	char * ini_file = INI_STR("mysqlnd_ms.ini_file");

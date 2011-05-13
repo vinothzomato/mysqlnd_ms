@@ -92,7 +92,7 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 	if (MYSQLND_MS_G(enable)) {
 		MYSQLND_MS_CONFIG_LOCK(mysqlnd_ms_ini_config);
 		if (FALSE == mysqlns_ms_global_config_loaded) {
-			mysqlnd_ms_config_init_server_list(mysqlnd_ms_ini_config TSRMLS_CC);
+			mysqlnd_ms_config_ini_load_configuration(mysqlnd_ms_ini_config TSRMLS_CC);
 			mysqlns_ms_global_config_loaded = TRUE;
 		}
 		MYSQLND_MS_CONFIG_UNLOCK(mysqlnd_ms_ini_config);
@@ -278,6 +278,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
 	ZEND_MOD_REQUIRED("standard")
+	ZEND_MOD_REQUIRED("json")
 	{NULL, NULL, NULL}
 };
 /* }}} */
