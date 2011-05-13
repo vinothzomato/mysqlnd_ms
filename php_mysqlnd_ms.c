@@ -29,7 +29,7 @@
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #include "mysqlnd_ms.h"
-#include "mysqlnd_ms_config_ini.h"
+#include "mysqlnd_ms_config_json.h"
 #include "ext/standard/php_rand.h"
 
 #define STR_W_LEN(str)  str, (sizeof(str) - 1)
@@ -62,7 +62,7 @@ ZEND_DECLARE_MODULE_GLOBALS(mysqlnd_ms)
 unsigned int mysqlnd_ms_plugin_id;
 
 static zend_bool mysqlns_ms_global_config_loaded = FALSE;
-struct st_mysqlnd_ms_ini_config * mysqlnd_ms_ini_config = NULL;
+struct st_mysqlnd_ms_json_config * mysqlnd_ms_json_config = NULL;
 
 
 /* {{{ php_mysqlnd_ms_config_init_globals */
@@ -90,12 +90,12 @@ static PHP_GINIT_FUNCTION(mysqlnd_ms)
 PHP_RINIT_FUNCTION(mysqlnd_ms)
 {
 	if (MYSQLND_MS_G(enable)) {
-		MYSQLND_MS_CONFIG_LOCK(mysqlnd_ms_ini_config);
+		MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 		if (FALSE == mysqlns_ms_global_config_loaded) {
-			mysqlnd_ms_config_ini_load_configuration(mysqlnd_ms_ini_config TSRMLS_CC);
+			mysqlnd_ms_config_json_load_configuration(mysqlnd_ms_json_config TSRMLS_CC);
 			mysqlns_ms_global_config_loaded = TRUE;
 		}
-		MYSQLND_MS_CONFIG_UNLOCK(mysqlnd_ms_ini_config);
+		MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 	}
 	return SUCCESS;
 }
@@ -120,6 +120,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("mysqlnd_ms.enable", "0", PHP_INI_SYSTEM, OnUpdateBool, enable, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.force_config_usage", "0", PHP_INI_SYSTEM, OnUpdateBool, force_config_usage, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.ini_file", NULL, PHP_INI_SYSTEM, OnUpdateString, ini_file, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
+	STD_PHP_INI_ENTRY("mysqlnd_ms.json_config", NULL, PHP_INI_SYSTEM, OnUpdateString, json_config, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.collect_statistics", "0", PHP_INI_SYSTEM, OnUpdateBool, collect_statistics, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 PHP_INI_END()
 /* }}} */
@@ -136,7 +137,7 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 		mysqlnd_ms_register_hooks();
 		mysqlnd_stats_init(&mysqlnd_ms_stats, MS_STAT_LAST);
 
-		mysqlnd_ms_ini_config = mysqlnd_ms_config_init(TSRMLS_C);
+		mysqlnd_ms_json_config = mysqlnd_ms_config_json_init(TSRMLS_C);
 	}
 
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_VERSION", MYSQLND_MS_VERSION, CONST_CS | CONST_PERSISTENT);
@@ -162,8 +163,8 @@ PHP_MSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
 	UNREGISTER_INI_ENTRIES();
 	if (MYSQLND_MS_G(enable)) {
-		mysqlnd_ms_config_free(mysqlnd_ms_ini_config TSRMLS_CC);
-		mysqlnd_ms_ini_config = NULL;
+		mysqlnd_ms_config_json_free(mysqlnd_ms_json_config TSRMLS_CC);
+		mysqlnd_ms_json_config = NULL;
 	}
 	return SUCCESS;
 }

@@ -39,6 +39,7 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool enable;
 	zend_bool force_config_usage;
 	const char * ini_file;
+	const char * json_config;
 	zval * user_pick_server;
 	zend_bool collect_statistics;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
@@ -110,7 +111,7 @@ enum enum_which_server
 };
 
 extern unsigned int mysqlnd_ms_plugin_id;
-extern struct st_mysqlnd_ms_ini_config * mysqlnd_ms_ini_config;
+extern struct st_mysqlnd_ms_json_config * mysqlnd_ms_json_config;
 ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
 
 

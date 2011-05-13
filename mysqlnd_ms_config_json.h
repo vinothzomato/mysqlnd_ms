@@ -24,12 +24,12 @@
 
 struct st_mysqlnd_ms_json_config;
 
-PHPAPI struct st_mysqlnd_ms_json_config * mysqlnd_ms_json_config_init(TSRMLS_D);
-PHPAPI void mysqlnd_ms_json_config_free(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
-PHPAPI enum_func_status mysqlnd_ms_json_config_init_load_configuration(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
-PHPAPI zend_bool mysqlnd_ms_json_config_ini_section_exists(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
-PHPAPI char * mysqlnd_ms_json_config_ini_string(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
-PHPAPI void mysqlnd_ms_json_config_ini_reset_section(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
+PHPAPI struct st_mysqlnd_ms_json_config * mysqlnd_ms_config_json_init(TSRMLS_D);
+PHPAPI void mysqlnd_ms_config_json_free(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
+PHPAPI enum_func_status mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
+PHPAPI zend_bool mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
+PHPAPI char * mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
+PHPAPI void mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
 
 
 #ifdef ZTS

@@ -36,7 +36,7 @@
 #define mnd_sprintf spprintf
 #endif
 #include "mysqlnd_ms.h"
-#include "mysqlnd_ms_config_ini.h"
+#include "mysqlnd_ms_config_json.h"
 #include "ext/standard/php_rand.h"
 
 #include "mysqlnd_query_parser.h"
@@ -61,6 +61,7 @@ static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 static struct st_mysqlnd_conn_methods *orig_mysqlnd_conn_methods;
 
 static void mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC);
+
 
 
 enum mysqlnd_ms_server_pick_strategy
@@ -393,9 +394,9 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_config_ini_string_is_bool_true */
+/* {{{ mysqlnd_ms_config_json_string_is_bool_true */
 static zend_bool
-mysqlnd_ms_config_ini_string_is_bool_false(const char * value)
+mysqlnd_ms_config_json_string_is_bool_false(const char * value)
 {
 	if (!value) {
 		return TRUE;
@@ -438,13 +439,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 	DBG_ENTER("mysqlnd_ms::connect");
 	if (hotloading) {
-		MYSQLND_MS_CONFIG_LOCK(mysqlnd_ms_ini_config);
+		MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 	}
-	section_found = mysqlnd_ms_config_ini_section_exists(mysqlnd_ms_ini_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
+	section_found = mysqlnd_ms_config_json_section_exists(mysqlnd_ms_json_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
 	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section (%s)", host);
 		if (hotloading) {
-			MYSQLND_MS_CONFIG_UNLOCK(mysqlnd_ms_ini_config);
+			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
 		SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section");
 		DBG_RETURN(FAIL);
@@ -483,10 +484,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			char * master;
 
 			if (!hotloading) {
-				MYSQLND_MS_CONFIG_LOCK(mysqlnd_ms_ini_config);
+				MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 			}
 
-			master = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+			master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
 			if (FALSE == value_exists) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
@@ -494,13 +495,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				DBG_RETURN(FAIL);
 			}
 
-			lazy_connections = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
+			lazy_connections = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
 													 &use_lazy_connections, &use_lazy_connections_list_value, FALSE TSRMLS_CC);
 			/* ignore if lazy_connections ini entry exists or not */
 			use_lazy_connections = TRUE;
 			if (lazy_connections) {
 				/* lazy_connections ini entry exists, disabled? */
-				use_lazy_connections = !mysqlnd_ms_config_ini_string_is_bool_false(lazy_connections);
+				use_lazy_connections = !mysqlnd_ms_config_json_string_is_bool_false(lazy_connections);
 				mnd_efree(lazy_connections);
 				lazy_connections = NULL;
 			}
@@ -555,7 +556,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			if (is_list_value) {
 				DBG_INF("We have more master connections. Connect...");
 				do {
-					master = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+					master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 												   &value_exists, &is_list_value, FALSE TSRMLS_CC);
 					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
 					if (value_exists && master) {
@@ -612,7 +613,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 #endif
 			/* create slave slave_connections */
 			do {
-				char * slave = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+				char * slave = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
 													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
@@ -675,7 +676,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 			{
-				char * pick_strategy = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
+				char * pick_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 				(*conn_data_pp)->pick_strategy = (*conn_data_pp)->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
 
@@ -691,7 +692,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						(*conn_data_pp)->pick_strategy = SERVER_PICK_USER;
 						if (is_list_value) {
 							mnd_efree(pick_strategy);
-							pick_strategy = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
+							pick_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, PICK_NAME, sizeof(PICK_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 							if (pick_strategy) {
 								if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
@@ -711,7 +712,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 			{
-				char * failover_strategy = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
+				char * failover_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 				(*conn_data_pp)->failover_strategy = DEFAULT_FAILOVER_STRATEGY;
 
@@ -728,7 +729,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 			{
-				char * master_on_write = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
+				char * master_on_write = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
 													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 
 				(*conn_data_pp)->mysqlnd_ms_flag_master_on_write = FALSE;
@@ -736,7 +737,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 				if (value_exists && master_on_write) {
 					DBG_INF("Master on write active");
-					(*conn_data_pp)->mysqlnd_ms_flag_master_on_write = !mysqlnd_ms_config_ini_string_is_bool_false(master_on_write);
+					(*conn_data_pp)->mysqlnd_ms_flag_master_on_write = !mysqlnd_ms_config_json_string_is_bool_false(master_on_write);
 				}
 				if (master_on_write) {
 					mnd_efree(master_on_write);
@@ -744,7 +745,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 			{
-				char * trx_strategy = mysqlnd_ms_config_ini_string(mysqlnd_ms_ini_config, host, host_len, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
+				char * trx_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
 												  				&value_exists, &is_list_value, FALSE TSRMLS_CC);
 				(*conn_data_pp)->trx_stickiness_strategy = DEFAULT_TRX_STICKINESS_STRATEGY;
 				(*conn_data_pp)->in_transaction = FALSE;
@@ -765,14 +766,14 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 		} while (0);
-		mysqlnd_ms_config_ini_reset_section(mysqlnd_ms_ini_config, host, host_len, FALSE TSRMLS_CC);
+		mysqlnd_ms_config_json_reset_section(mysqlnd_ms_json_config, host, host_len, FALSE TSRMLS_CC);
 		if (!hotloading) {
-			MYSQLND_MS_CONFIG_UNLOCK(mysqlnd_ms_ini_config);
+			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
 	}
 
 	if (hotloading) {
-		MYSQLND_MS_CONFIG_UNLOCK(mysqlnd_ms_ini_config);
+		MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 	}
 	if (ret == PASS) {
 		(*conn_data_pp)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
