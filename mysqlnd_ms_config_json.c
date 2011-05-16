@@ -101,6 +101,9 @@ mysqlnd_ms_config_json_section_dtor(void * data)
 	struct st_mysqlnd_ms_config_json_entry * entry = * (struct st_mysqlnd_ms_config_json_entry **) data;
 	TSRMLS_FETCH();
 	switch (entry->type) {
+		case IS_DOUBLE:
+		case IS_LONG:
+			break;
 		case IS_STRING:
 			mnd_free(entry->value.str.c);
 			break;
@@ -109,7 +112,8 @@ mysqlnd_ms_config_json_section_dtor(void * data)
 			mnd_free(entry->value.ht);
 			break;
 		default:
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Unknown entry type in mysqlnd_ms_config_json_section_dtor");
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+					" Unknown entry type %d  in mysqlnd_ms_config_json_section_dtor", entry->type);
 	}
 	mnd_free(entry);
 }
@@ -312,22 +316,37 @@ mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char
 			struct st_mysqlnd_ms_config_json_entry * ini_section_entry = NULL;
 
 			switch ((*ini_section)->type) {
+				case IS_LONG:
+				case IS_DOUBLE:
 				case IS_STRING:
 					ini_section_entry = *ini_section;
 					break;
-				case IS_LONG:
-				case IS_DOUBLE:
 					break;
 				case IS_ARRAY: {
 					struct st_mysqlnd_ms_config_json_entry ** ini_section_entry_pp;
-						if (zend_hash_find((*ini_section)->value.ht, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
+					if (zend_hash_find((*ini_section)->value.ht, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
 						ini_section_entry = *ini_section_entry_pp;
 					}
 					break;
 				}
 			}	
 			if (ini_section_entry) {
+				const char * spec_type;
 				switch (ini_section_entry->type) {
+					case IS_LONG:
+						spec_type = MYSQLND_LL_SPEC;
+						goto long_or_double_to_str;
+					case IS_DOUBLE:
+						spec_type = "%f";
+long_or_double_to_str:
+						{
+							char * tmp_buf;
+							int tmp_buf_len = spprintf(&tmp_buf, 0, spec_type, ini_section_entry->value.lval);
+							ret = mnd_pestrndup(tmp_buf, tmp_buf_len, 0);
+							efree(tmp_buf);
+						}
+						*exists = 1;
+						break;
 					case IS_STRING:
 						ret = mnd_pestrndup(ini_section_entry->value.str.c, ini_section_entry->value.str.len, 0);
 						*exists = 1;
@@ -355,8 +374,9 @@ mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char
 						break;
 					}
 					default:
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Unknown entry type in mysqlnd_ms_config_json_string");
-					break;
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+									" Unknown entry type %d in mysqlnd_ms_config_json_string", ini_section_entry->type);
+						break;
 				}
 			}
 		} /* if (zend_hash... */
