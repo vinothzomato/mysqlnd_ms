@@ -11,7 +11,7 @@
 	$host      = getenv("MYSQL_TEST_HOST")     ? getenv("MYSQL_TEST_HOST") : "localhost";
 	$port      = getenv("MYSQL_TEST_PORT")     ? getenv("MYSQL_TEST_PORT") : 3306;
 	$user      = getenv("MYSQL_TEST_USER")     ? getenv("MYSQL_TEST_USER") : "root";
-	$passwd    = getenv("MYSQL_TEST_PASSWD")   ? getenv("MYSQL_TEST_PASSWD") : "";
+	$passwd    = getenv("MYSQL_TEST_PASSWD")   ? getenv("MYSQL_TEST_PASSWD") : "root";
 	$db        = getenv("MYSQL_TEST_DB")       ? getenv("MYSQL_TEST_DB") : "test";
 	$engine    = getenv("MYSQL_TEST_ENGINE")   ? getenv("MYSQL_TEST_ENGINE") : "MyISAM";
 	$socket    = getenv("MYSQL_TEST_SOCKET")   ? getenv("MYSQL_TEST_SOCKET") : null;
@@ -255,7 +255,66 @@
 	}
 
 	if (!function_exists("create_config")) {
-		function create_config($file, $settings, $replace_file = true) {
+		function create_config($file, $settings, $replace_file = true, $format = 'json') {
+
+			switch ($format) {
+			  case 'json':
+				return create_config_json($file, $settings, $replace_file);
+				break;
+			  case 'ini':
+			  default:
+				return create_config_ini($file, $settings, $replace_file);
+				break;
+			}
+
+		}
+
+		function create_config_json($file, $settings, $replace_file) {
+
+			if ($replace_file && file_exists($file) && !@unlink($file))
+				return sprintf("Cannot unlink existing file '%s'.", $file);
+
+			if (!$fp = @fopen($file, "w"))
+				return sprintf("Cannot open file '%s' for writing.", $file);
+
+			$json = array();
+			foreach ($settings as $application => $config) {
+				$json[$application] = array();
+				if (isset($config['master'])) {
+					foreach ($config['master'] as $host) {
+						$json[$application]['master'][] = (string)$host;
+					}
+				}
+				if (isset($config['slave'])) {
+					foreach ($config['slave'] as $host) {
+						$json[$application]['slave'][] = (string)$host;
+					}
+				}
+				if (isset($config['pick'])) {
+					foreach ($config['pick'] as $method) {
+						$json[$application]['pick'][] = (string)$method;
+					}
+				}
+				if (isset($config['lazy_connections'])) {
+				  $json[$application]['lazy_connections'] = (string)$config['lazy_connections'];
+				}
+				if (isset($config['failover'])) {
+				  $json[$application]['failover'] = (string)$config['failover'];
+				}
+				if (isset($config['master_on_write'])) {
+				  $json[$application]['master_on_write'] = (string)$config['master_on_write'];
+				}
+				if (isset($config['trx_stickiness'])) {
+				  $json[$application]['trx_stickiness'] = (string)$config['trx_stickiness'];
+				}
+				
+			}
+			fwrite($fp, json_encode($json));
+			fclose($fp);
+			return '';
+		}
+
+		function create_config_ini($file, $settings, $replace_file) {
 
 			if ($replace_file && file_exists($file) && !@unlink($file))
 				return sprintf("Cannot unlink existing file '%s'.", $file);
