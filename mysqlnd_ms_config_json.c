@@ -230,7 +230,11 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 			if (str_data_len <= 0) {
 				break;
 			}
+#if PHP_VERSION_ID >= 50399
 			php_json_decode_ex(&json_data, str_data, str_data_len, PHP_JSON_OBJECT_AS_ARRAY, JSON_PARSER_DEFAULT_DEPTH TSRMLS_CC);
+#else
+			php_json_decode(&json_data, str_data, str_data_len, 1 /* assoc */, JSON_PARSER_DEFAULT_DEPTH TSRMLS_CC);
+#endif
 			cfg->config = mysqlnd_ms_zval_data_to_hashtable(&json_data TSRMLS_CC);
 			zval_dtor(&json_data);
 			efree(str_data);
