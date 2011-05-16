@@ -167,7 +167,6 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 }
 /* }}} */
 
-/* zend_hash_next_index_insert(Z_ARRVAL_P(arg), &tmp, sizeof(zval *), NULL); */
 
 /* {{{ mysqlnd_ms_zval_data_to_hashtable */
 static HashTable *
