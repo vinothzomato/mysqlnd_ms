@@ -8,7 +8,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_simple.ini
 <?php
 require_once("connect.inc");
 require_once('skipif.inc');
-file_put_contents("test_mysqlnd_ms_simple.ini", implode("\n", array("[phpBB]", "master=$host", "slave[]=$host", "slave[]=$host")));
+$settings = array(
+	"phpBB" => array(
+		'master' => array($master_host),
+		'slave' => array($slave_host, $slave_host),
+	),
+);
+if ($error = create_config("test_mysqlnd_ms_simple.ini", $settings))
+	die(sprintf("SKIP %d\n", $error));
 ?>
 --FILE--
 <?php
@@ -26,7 +33,8 @@ file_put_contents("test_mysqlnd_ms_simple.ini", implode("\n", array("[phpBB]", "
 ?>
 --CLEAN--
 <?php
-	unlink("test_mysqlnd_ms_simple.ini");
+	if (!unlink("test_mysqlnd_ms_simple.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_simple.ini'.\n");
 ?>
 --EXPECTF--
 int(%d)

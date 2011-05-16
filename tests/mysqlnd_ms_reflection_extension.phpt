@@ -39,6 +39,7 @@ Version: 1.0.2-alpha
 Dependencies:
   mysqlnd - Required
   standard - Required
+  json - Required
 Functions:
   mysqlnd_ms_set_user_pick_server
   mysqlnd_ms_query_is_select

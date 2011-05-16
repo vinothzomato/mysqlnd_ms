@@ -19,6 +19,9 @@ require_once('skipif.inc');
 		"MYSQLND_MS_QUERY_USE_LAST_USED" => true,
 		"MYSQLND_MS_QUERY_USE_MASTER" => true,
 		"MYSQLND_MS_QUERY_USE_SLAVE" => true,
+
+		/* Temporary? */
+		"MYSQLND_MS_CONFIG_FORMAT" => true
 	);
 
 	$constants = get_defined_constants(true);
@@ -40,6 +43,7 @@ require_once('skipif.inc');
 	print "done!";
 ?>
 --EXPECTF--
+MYSQLND_MS_CONFIG_FORMAT = 'json'
 MYSQLND_MS_LAST_USED_SWITCH = 'ms=last_used'
 MYSQLND_MS_MASTER_SWITCH = 'ms=master'
 MYSQLND_MS_QUERY_USE_LAST_USED = '2'
