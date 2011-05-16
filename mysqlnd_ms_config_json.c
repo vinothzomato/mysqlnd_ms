@@ -209,7 +209,7 @@ PHPAPI enum_func_status
 mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
-	char * json_file_name = INI_STR("mysqlnd_ms.json_config");
+	char * json_file_name = INI_STR("mysqlnd_ms.ini_file");
 	DBG_ENTER("mysqlnd_ms_config_json_load_configuration");
 	DBG_INF_FMT("json_file=%s", json_file_name? json_file_name:"n/a");
 	if (!json_file_name) {
