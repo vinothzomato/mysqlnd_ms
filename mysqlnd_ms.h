@@ -35,11 +35,12 @@
 #include "TSRM.h"
 #endif
 
+#define MYSQLND_MS_CONFIG_FORMAT "json"
+
 ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool enable;
 	zend_bool force_config_usage;
 	const char * ini_file;
-	const char * json_config;
 	zval * user_pick_server;
 	zend_bool collect_statistics;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
