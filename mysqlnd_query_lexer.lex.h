@@ -347,7 +347,7 @@ extern int mysqlnd_qp_lex \
 #undef YY_DECL
 #endif
 
-#line 744 "mysqlnd_query_lexer.flex"
+#line 758 "mysqlnd_query_lexer.flex"
 
 
 #line 354 "mysqlnd_query_lexer.lex.h"

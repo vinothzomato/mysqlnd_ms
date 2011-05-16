@@ -5123,9 +5123,10 @@ YY_DECL
 	DBG_ENTER("my_lex_routine");
 	zval * token_value = &yylval_param->zv;
 	const char ** kn = &(yylval_param->kn);
+	smart_str ** comment = &(yylval_param->comment);
 
 
-#line 5129 "mysqlnd_query_lexer.c"
+#line 5130 "mysqlnd_query_lexer.c"
 
     yylval = yylval_param;
 
@@ -5212,2889 +5213,2889 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 65 "mysqlnd_query_lexer.flex"
+#line 66 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ACCESSIBLE");		DBG_RETURN(QC_TOKEN_ACCESSIBLE); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 66 "mysqlnd_query_lexer.flex"
+#line 67 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ACTION");			DBG_RETURN(QC_TOKEN_ACTION); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 67 "mysqlnd_query_lexer.flex"
+#line 68 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ADD");				DBG_RETURN(QC_TOKEN_ADD); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 68 "mysqlnd_query_lexer.flex"
+#line 69 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ADDDATE");			DBG_RETURN(QC_TOKEN_ADDDATE); }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 69 "mysqlnd_query_lexer.flex"
+#line 70 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AFTER");			DBG_RETURN(QC_TOKEN_AFTER); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 70 "mysqlnd_query_lexer.flex"
+#line 71 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AGAINST");			DBG_RETURN(QC_TOKEN_AGAINST); }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 71 "mysqlnd_query_lexer.flex"
+#line 72 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AGGREGATE");		DBG_RETURN(QC_TOKEN_AGGREGATE); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 72 "mysqlnd_query_lexer.flex"
+#line 73 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ALGORITHM");		DBG_RETURN(QC_TOKEN_ALGORITHM); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 73 "mysqlnd_query_lexer.flex"
+#line 74 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ALL");				DBG_RETURN(QC_TOKEN_ALL); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 74 "mysqlnd_query_lexer.flex"
+#line 75 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ALTER");			DBG_RETURN(QC_TOKEN_ALTER); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 75 "mysqlnd_query_lexer.flex"
+#line 76 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ANALYZE");			DBG_RETURN(QC_TOKEN_ANALYZE); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 76 "mysqlnd_query_lexer.flex"
+#line 77 "mysqlnd_query_lexer.flex"
 { BEGIN INITIAL; *kn = yytext; DBG_INF("QC_TOKEN_BETWEEN_AND");	DBG_RETURN(QC_TOKEN_BETWEEN_AND); }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 77 "mysqlnd_query_lexer.flex"
+#line 78 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AND");				DBG_RETURN(QC_TOKEN_AND); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 78 "mysqlnd_query_lexer.flex"
+#line 79 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ANY");				DBG_RETURN(QC_TOKEN_ANY); }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 79 "mysqlnd_query_lexer.flex"
+#line 80 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AS");				DBG_RETURN(QC_TOKEN_AS); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 80 "mysqlnd_query_lexer.flex"
+#line 81 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ASC");				DBG_RETURN(QC_TOKEN_ASC); }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 81 "mysqlnd_query_lexer.flex"
+#line 82 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ASCII");			DBG_RETURN(QC_TOKEN_ASCII); }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 82 "mysqlnd_query_lexer.flex"
+#line 83 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ASENSITIVE");		DBG_RETURN(QC_TOKEN_ASENSITIVE); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 83 "mysqlnd_query_lexer.flex"
+#line 84 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AT");				DBG_RETURN(QC_TOKEN_AT); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 84 "mysqlnd_query_lexer.flex"
+#line 85 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AUTHORS");			DBG_RETURN(QC_TOKEN_AUTHORS); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 85 "mysqlnd_query_lexer.flex"
+#line 86 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AUTOEXTEND_SIZE");	DBG_RETURN(QC_TOKEN_AUTOEXTEND_SIZE); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 86 "mysqlnd_query_lexer.flex"
+#line 87 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AUTO_INC");			DBG_RETURN(QC_TOKEN_AUTO_INC); }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 87 "mysqlnd_query_lexer.flex"
+#line 88 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AVG_ROW_LENGTH");	DBG_RETURN(QC_TOKEN_AVG_ROW_LENGTH); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 88 "mysqlnd_query_lexer.flex"
+#line 89 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_AVG");				DBG_RETURN(QC_TOKEN_AVG); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 89 "mysqlnd_query_lexer.flex"
+#line 90 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BACKUP");			DBG_RETURN(QC_TOKEN_BACKUP); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 90 "mysqlnd_query_lexer.flex"
+#line 91 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BEFORE");			DBG_RETURN(QC_TOKEN_BEFORE); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 91 "mysqlnd_query_lexer.flex"
+#line 92 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BEGIN");			DBG_RETURN(QC_TOKEN_BEGIN); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 92 "mysqlnd_query_lexer.flex"
+#line 93 "mysqlnd_query_lexer.flex"
 { BEGIN BETWEEN_MODE; *kn = yytext; DBG_INF("QC_TOKEN_BETWEEN");			DBG_RETURN(QC_TOKEN_BETWEEN); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 93 "mysqlnd_query_lexer.flex"
+#line 94 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BIGINT");			DBG_RETURN(QC_TOKEN_BIGINT); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 94 "mysqlnd_query_lexer.flex"
+#line 95 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BINARY");			DBG_RETURN(QC_TOKEN_BINARY); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 95 "mysqlnd_query_lexer.flex"
+#line 96 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BINLOG");			DBG_RETURN(QC_TOKEN_BINLOG); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 96 "mysqlnd_query_lexer.flex"
+#line 97 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BIT");				DBG_RETURN(QC_TOKEN_BIT); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 97 "mysqlnd_query_lexer.flex"
+#line 98 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BLOB");				DBG_RETURN(QC_TOKEN_BLOB); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 98 "mysqlnd_query_lexer.flex"
+#line 99 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BLOCK");			DBG_RETURN(QC_TOKEN_BLOCK); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 99 "mysqlnd_query_lexer.flex"
+#line 100 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BOOLEAN");			DBG_RETURN(QC_TOKEN_BOOLEAN); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 100 "mysqlnd_query_lexer.flex"
+#line 101 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BOOL");				DBG_RETURN(QC_TOKEN_BOOL); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 101 "mysqlnd_query_lexer.flex"
+#line 102 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BOTH");				DBG_RETURN(QC_TOKEN_BOTH); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 102 "mysqlnd_query_lexer.flex"
+#line 103 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BTREE");			DBG_RETURN(QC_TOKEN_BTREE); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 103 "mysqlnd_query_lexer.flex"
+#line 104 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BY");				DBG_RETURN(QC_TOKEN_BY); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 104 "mysqlnd_query_lexer.flex"
+#line 105 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_BYTE");				DBG_RETURN(QC_TOKEN_BYTE); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 105 "mysqlnd_query_lexer.flex"
+#line 106 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CACHE");			DBG_RETURN(QC_TOKEN_CACHE); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 106 "mysqlnd_query_lexer.flex"
+#line 107 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CALL");				DBG_RETURN(QC_TOKEN_CALL); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 107 "mysqlnd_query_lexer.flex"
+#line 108 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CASCADE");			DBG_RETURN(QC_TOKEN_CASCADE); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 108 "mysqlnd_query_lexer.flex"
+#line 109 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CASCADED");			DBG_RETURN(QC_TOKEN_CASCADED); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 109 "mysqlnd_query_lexer.flex"
+#line 110 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CASE");				DBG_RETURN(QC_TOKEN_CASE); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 110 "mysqlnd_query_lexer.flex"
+#line 111 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CAST");				DBG_RETURN(QC_TOKEN_CAST); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 111 "mysqlnd_query_lexer.flex"
+#line 112 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CATALOG_NAME");		DBG_RETURN(QC_TOKEN_CATALOG_NAME); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 112 "mysqlnd_query_lexer.flex"
+#line 113 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHAIN");			DBG_RETURN(QC_TOKEN_CHAIN); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 113 "mysqlnd_query_lexer.flex"
+#line 114 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHANGE");			DBG_RETURN(QC_TOKEN_CHANGE); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 114 "mysqlnd_query_lexer.flex"
+#line 115 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHANGED");			DBG_RETURN(QC_TOKEN_CHANGED); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 115 "mysqlnd_query_lexer.flex"
+#line 116 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHARSET");			DBG_RETURN(QC_TOKEN_CHARSET); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 116 "mysqlnd_query_lexer.flex"
+#line 117 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHAR");				DBG_RETURN(QC_TOKEN_CHAR); }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 117 "mysqlnd_query_lexer.flex"
+#line 118 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHECKSUM");			DBG_RETURN(QC_TOKEN_CHECKSUM); }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 118 "mysqlnd_query_lexer.flex"
+#line 119 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CHECK");			DBG_RETURN(QC_TOKEN_CHECK); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 119 "mysqlnd_query_lexer.flex"
+#line 120 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CIPHER");			DBG_RETURN(QC_TOKEN_CIPHER); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 120 "mysqlnd_query_lexer.flex"
+#line 121 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CLASS_ORIGIN");		DBG_RETURN(QC_TOKEN_CLASS_ORIGIN); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 121 "mysqlnd_query_lexer.flex"
+#line 122 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CLIENT");			DBG_RETURN(QC_TOKEN_CLIENT); }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 122 "mysqlnd_query_lexer.flex"
+#line 123 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CLOSE");			DBG_RETURN(QC_TOKEN_CLOSE); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 123 "mysqlnd_query_lexer.flex"
+#line 124 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COALESCE");			DBG_RETURN(QC_TOKEN_COALESCE); }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 124 "mysqlnd_query_lexer.flex"
+#line 125 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CODE");				DBG_RETURN(QC_TOKEN_CODE); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 125 "mysqlnd_query_lexer.flex"
+#line 126 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COLLATE");			DBG_RETURN(QC_TOKEN_COLLATE); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 126 "mysqlnd_query_lexer.flex"
+#line 127 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COLLATION");		DBG_RETURN(QC_TOKEN_COLLATION); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 127 "mysqlnd_query_lexer.flex"
+#line 128 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COLUMNS");			DBG_RETURN(QC_TOKEN_COLUMNS); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 128 "mysqlnd_query_lexer.flex"
+#line 129 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COLUMN");			DBG_RETURN(QC_TOKEN_COLUMN); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 129 "mysqlnd_query_lexer.flex"
+#line 130 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COLUMN_NAME");		DBG_RETURN(QC_TOKEN_COLUMN_NAME); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 130 "mysqlnd_query_lexer.flex"
+#line 131 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COMMENT");			DBG_RETURN(QC_TOKEN_COMMENT); }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 131 "mysqlnd_query_lexer.flex"
+#line 132 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COMMITTED");		DBG_RETURN(QC_TOKEN_COMMITTED); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 132 "mysqlnd_query_lexer.flex"
+#line 133 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COMMIT");			DBG_RETURN(QC_TOKEN_COMMIT); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 133 "mysqlnd_query_lexer.flex"
+#line 134 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COMPACT");			DBG_RETURN(QC_TOKEN_COMPACT); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 134 "mysqlnd_query_lexer.flex"
+#line 135 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COMPLETION");		DBG_RETURN(QC_TOKEN_COMPLETION); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 135 "mysqlnd_query_lexer.flex"
+#line 136 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COMPRESSED");		DBG_RETURN(QC_TOKEN_COMPRESSED); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 136 "mysqlnd_query_lexer.flex"
+#line 137 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONCURRENT");		DBG_RETURN(QC_TOKEN_CONCURRENT); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 137 "mysqlnd_query_lexer.flex"
+#line 138 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONDITION");		DBG_RETURN(QC_TOKEN_CONDITION); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 138 "mysqlnd_query_lexer.flex"
+#line 139 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONNECTION");		DBG_RETURN(QC_TOKEN_CONNECTION); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 139 "mysqlnd_query_lexer.flex"
+#line 140 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONSISTENT");		DBG_RETURN(QC_TOKEN_CONSISTENT); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 140 "mysqlnd_query_lexer.flex"
+#line 141 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONSTRAINT");		DBG_RETURN(QC_TOKEN_CONSTRAINT); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 141 "mysqlnd_query_lexer.flex"
+#line 142 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONSTRAINT_CATALOG");DBG_RETURN(QC_TOKEN_CONSTRAINT_CATALOG); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 142 "mysqlnd_query_lexer.flex"
+#line 143 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONSTRAINT_NAME");	DBG_RETURN(QC_TOKEN_CONSTRAINT_NAME); }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 143 "mysqlnd_query_lexer.flex"
+#line 144 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONSTRAINT_SCHEMA");DBG_RETURN(QC_TOKEN_CONSTRAINT_SCHEMA); }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 144 "mysqlnd_query_lexer.flex"
+#line 145 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONTAINS");			DBG_RETURN(QC_TOKEN_CONTAINS); }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 145 "mysqlnd_query_lexer.flex"
+#line 146 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONTEXT");			DBG_RETURN(QC_TOKEN_CONTEXT); }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 146 "mysqlnd_query_lexer.flex"
+#line 147 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONTINUE");			DBG_RETURN(QC_TOKEN_CONTINUE); }
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 147 "mysqlnd_query_lexer.flex"
+#line 148 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONTRIBUTORS");		DBG_RETURN(QC_TOKEN_CONTRIBUTORS); }
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 148 "mysqlnd_query_lexer.flex"
+#line 149 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CONVERT");			DBG_RETURN(QC_TOKEN_CONVERT); }
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 149 "mysqlnd_query_lexer.flex"
+#line 150 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_COUNT");			DBG_RETURN(QC_TOKEN_COUNT); }
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 150 "mysqlnd_query_lexer.flex"
+#line 151 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CPU");				DBG_RETURN(QC_TOKEN_CPU); }
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 151 "mysqlnd_query_lexer.flex"
+#line 152 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CREATE");			DBG_RETURN(QC_TOKEN_CREATE); }
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 152 "mysqlnd_query_lexer.flex"
+#line 153 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CROSS");			DBG_RETURN(QC_TOKEN_CROSS); }
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 153 "mysqlnd_query_lexer.flex"
+#line 154 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CUBE");				DBG_RETURN(QC_TOKEN_CUBE); }
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 154 "mysqlnd_query_lexer.flex"
+#line 155 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CURDATE");			DBG_RETURN(QC_TOKEN_CURDATE); }
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 155 "mysqlnd_query_lexer.flex"
+#line 156 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CURRENT_USER");		DBG_RETURN(QC_TOKEN_CURRENT_USER); }
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 156 "mysqlnd_query_lexer.flex"
+#line 157 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CURSOR");			DBG_RETURN(QC_TOKEN_CURSOR); }
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 157 "mysqlnd_query_lexer.flex"
+#line 158 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CURSOR_NAME");		DBG_RETURN(QC_TOKEN_CURSOR_NAME); }
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 158 "mysqlnd_query_lexer.flex"
+#line 159 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CURTIME");			DBG_RETURN(QC_TOKEN_CURTIME); }
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 159 "mysqlnd_query_lexer.flex"
+#line 160 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATABASE");			DBG_RETURN(QC_TOKEN_DATABASE); }
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 160 "mysqlnd_query_lexer.flex"
+#line 161 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATABASES");		DBG_RETURN(QC_TOKEN_DATABASES); }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 161 "mysqlnd_query_lexer.flex"
+#line 162 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATAFILE");			DBG_RETURN(QC_TOKEN_DATAFILE); }
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 162 "mysqlnd_query_lexer.flex"
+#line 163 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATA");				DBG_RETURN(QC_TOKEN_DATA); }
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 163 "mysqlnd_query_lexer.flex"
+#line 164 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATETIME");			DBG_RETURN(QC_TOKEN_DATETIME); }
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 164 "mysqlnd_query_lexer.flex"
+#line 165 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATE_ADD_INTERVAL");DBG_RETURN(QC_TOKEN_DATE_ADD_INTERVAL); }
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 165 "mysqlnd_query_lexer.flex"
+#line 166 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATE_SUB_INTERVAL");DBG_RETURN(QC_TOKEN_DATE_SUB_INTERVAL); }
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 166 "mysqlnd_query_lexer.flex"
+#line 167 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DATE");				DBG_RETURN(QC_TOKEN_DATE); }
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 167 "mysqlnd_query_lexer.flex"
+#line 168 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DAY_HOUR");			DBG_RETURN(QC_TOKEN_DAY_HOUR); }
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
-#line 168 "mysqlnd_query_lexer.flex"
+#line 169 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DAY_MICROSECOND");	DBG_RETURN(QC_TOKEN_DAY_MICROSECOND); }
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
-#line 169 "mysqlnd_query_lexer.flex"
+#line 170 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DAY_MINUTE");		DBG_RETURN(QC_TOKEN_DAY_MINUTE); }
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
-#line 170 "mysqlnd_query_lexer.flex"
+#line 171 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DAY_SECOND");		DBG_RETURN(QC_TOKEN_DAY_SECOND); }
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
-#line 171 "mysqlnd_query_lexer.flex"
+#line 172 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DAY");				DBG_RETURN(QC_TOKEN_DAY); }
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 172 "mysqlnd_query_lexer.flex"
+#line 173 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DEALLOCATE");		DBG_RETURN(QC_TOKEN_DEALLOCATE); }
 	YY_BREAK
 case 109:
 YY_RULE_SETUP
-#line 173 "mysqlnd_query_lexer.flex"
+#line 174 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DECIMAL_NUM");		DBG_RETURN(QC_TOKEN_DECIMAL_NUM); }
 	YY_BREAK
 case 110:
 YY_RULE_SETUP
-#line 174 "mysqlnd_query_lexer.flex"
+#line 175 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DECIMAL");			DBG_RETURN(QC_TOKEN_DECIMAL); }
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
-#line 175 "mysqlnd_query_lexer.flex"
+#line 176 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DECLARE");			DBG_RETURN(QC_TOKEN_DECLARE); }
 	YY_BREAK
 case 112:
 YY_RULE_SETUP
-#line 176 "mysqlnd_query_lexer.flex"
+#line 177 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DEFAULT");			DBG_RETURN(QC_TOKEN_DEFAULT); }
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
-#line 177 "mysqlnd_query_lexer.flex"
+#line 178 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DEFINER");			DBG_RETURN(QC_TOKEN_DEFINER); }
 	YY_BREAK
 case 114:
 YY_RULE_SETUP
-#line 178 "mysqlnd_query_lexer.flex"
+#line 179 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DELAYED");			DBG_RETURN(QC_TOKEN_DELAYED); }
 	YY_BREAK
 case 115:
 YY_RULE_SETUP
-#line 179 "mysqlnd_query_lexer.flex"
+#line 180 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DELAY_KEY_WRITE");	DBG_RETURN(QC_TOKEN_DELAY_KEY_WRITE); }
 	YY_BREAK
 case 116:
 YY_RULE_SETUP
-#line 180 "mysqlnd_query_lexer.flex"
+#line 181 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DELETE");			DBG_RETURN(QC_TOKEN_DELETE); }
 	YY_BREAK
 case 117:
 YY_RULE_SETUP
-#line 181 "mysqlnd_query_lexer.flex"
+#line 182 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DESC");				DBG_RETURN(QC_TOKEN_DESC); }
 	YY_BREAK
 case 118:
 YY_RULE_SETUP
-#line 182 "mysqlnd_query_lexer.flex"
+#line 183 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DESCRIBE");			DBG_RETURN(QC_TOKEN_DESCRIBE); }
 	YY_BREAK
 case 119:
 YY_RULE_SETUP
-#line 183 "mysqlnd_query_lexer.flex"
+#line 184 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DES_KEY_FILE");		DBG_RETURN(QC_TOKEN_DES_KEY_FILE); }
 	YY_BREAK
 case 120:
 YY_RULE_SETUP
-#line 184 "mysqlnd_query_lexer.flex"
+#line 185 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DETERMINISTIC");	DBG_RETURN(QC_TOKEN_DETERMINISTIC); }
 	YY_BREAK
 case 121:
 YY_RULE_SETUP
-#line 185 "mysqlnd_query_lexer.flex"
+#line 186 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DIRECTORY");		DBG_RETURN(QC_TOKEN_DIRECTORY); }
 	YY_BREAK
 case 122:
 YY_RULE_SETUP
-#line 186 "mysqlnd_query_lexer.flex"
+#line 187 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DISABLE");			DBG_RETURN(QC_TOKEN_DISABLE); }
 	YY_BREAK
 case 123:
 YY_RULE_SETUP
-#line 187 "mysqlnd_query_lexer.flex"
+#line 188 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DISCARD");			DBG_RETURN(QC_TOKEN_DISCARD); }
 	YY_BREAK
 case 124:
 YY_RULE_SETUP
-#line 188 "mysqlnd_query_lexer.flex"
+#line 189 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DISK");				DBG_RETURN(QC_TOKEN_DISK); }
 	YY_BREAK
 case 125:
 YY_RULE_SETUP
-#line 189 "mysqlnd_query_lexer.flex"
+#line 190 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DISTINCT");			DBG_RETURN(QC_TOKEN_DISTINCT); }
 	YY_BREAK
 case 126:
 YY_RULE_SETUP
-#line 190 "mysqlnd_query_lexer.flex"
+#line 191 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DIV");				DBG_RETURN(QC_TOKEN_DIV); }
 	YY_BREAK
 case 127:
 YY_RULE_SETUP
-#line 191 "mysqlnd_query_lexer.flex"
+#line 192 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DOUBLE");			DBG_RETURN(QC_TOKEN_DOUBLE); }
 	YY_BREAK
 case 128:
 YY_RULE_SETUP
-#line 192 "mysqlnd_query_lexer.flex"
+#line 193 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DO");				DBG_RETURN(QC_TOKEN_DO); }
 	YY_BREAK
 case 129:
 YY_RULE_SETUP
-#line 193 "mysqlnd_query_lexer.flex"
+#line 194 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DROP");				DBG_RETURN(QC_TOKEN_DROP); }
 	YY_BREAK
 case 130:
 YY_RULE_SETUP
-#line 194 "mysqlnd_query_lexer.flex"
+#line 195 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DUAL");				DBG_RETURN(QC_TOKEN_DUAL); }
 	YY_BREAK
 case 131:
 YY_RULE_SETUP
-#line 195 "mysqlnd_query_lexer.flex"
+#line 196 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DUMPFILE");			DBG_RETURN(QC_TOKEN_DUMPFILE); }
 	YY_BREAK
 case 132:
 YY_RULE_SETUP
-#line 196 "mysqlnd_query_lexer.flex"
+#line 197 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DUPLICATE");		DBG_RETURN(QC_TOKEN_DUPLICATE); }
 	YY_BREAK
 case 133:
 YY_RULE_SETUP
-#line 197 "mysqlnd_query_lexer.flex"
+#line 198 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_DYNAMIC");			DBG_RETURN(QC_TOKEN_DYNAMIC); }
 	YY_BREAK
 case 134:
 YY_RULE_SETUP
-#line 198 "mysqlnd_query_lexer.flex"
+#line 199 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EACH");				DBG_RETURN(QC_TOKEN_EACH); }
 	YY_BREAK
 case 135:
 YY_RULE_SETUP
-#line 199 "mysqlnd_query_lexer.flex"
+#line 200 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ELSE");				DBG_RETURN(QC_TOKEN_ELSE); }
 	YY_BREAK
 case 136:
 YY_RULE_SETUP
-#line 200 "mysqlnd_query_lexer.flex"
+#line 201 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ELSEIF");			DBG_RETURN(QC_TOKEN_ELSEIF); }
 	YY_BREAK
 case 137:
 YY_RULE_SETUP
-#line 201 "mysqlnd_query_lexer.flex"
+#line 202 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ENABLE");			DBG_RETURN(QC_TOKEN_ENABLE); }
 	YY_BREAK
 case 138:
 YY_RULE_SETUP
-#line 202 "mysqlnd_query_lexer.flex"
+#line 203 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ENCLOSED");			DBG_RETURN(QC_TOKEN_ENCLOSED); }
 	YY_BREAK
 case 139:
 YY_RULE_SETUP
-#line 203 "mysqlnd_query_lexer.flex"
+#line 204 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_END");				DBG_RETURN(QC_TOKEN_END); }
 	YY_BREAK
 case 140:
 YY_RULE_SETUP
-#line 204 "mysqlnd_query_lexer.flex"
+#line 205 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ENDS");				DBG_RETURN(QC_TOKEN_ENDS); }
 	YY_BREAK
 case 141:
 YY_RULE_SETUP
-#line 205 "mysqlnd_query_lexer.flex"
+#line 206 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ENGINES");			DBG_RETURN(QC_TOKEN_ENGINES); }
 	YY_BREAK
 case 142:
 YY_RULE_SETUP
-#line 206 "mysqlnd_query_lexer.flex"
+#line 207 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ENGINE");			DBG_RETURN(QC_TOKEN_ENGINE); }
 	YY_BREAK
 case 143:
 YY_RULE_SETUP
-#line 207 "mysqlnd_query_lexer.flex"
+#line 208 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ENUM");				DBG_RETURN(QC_TOKEN_ENUM); }
 	YY_BREAK
 case 144:
 YY_RULE_SETUP
-#line 208 "mysqlnd_query_lexer.flex"
+#line 209 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EQUAL");			DBG_RETURN(QC_TOKEN_EQUAL); }
 	YY_BREAK
 case 145:
 YY_RULE_SETUP
-#line 209 "mysqlnd_query_lexer.flex"
+#line 210 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ERRORS");			DBG_RETURN(QC_TOKEN_ERRORS); }
 	YY_BREAK
 case 146:
 YY_RULE_SETUP
-#line 210 "mysqlnd_query_lexer.flex"
+#line 211 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ESCAPED");			DBG_RETURN(QC_TOKEN_ESCAPED); }
 	YY_BREAK
 case 147:
 YY_RULE_SETUP
-#line 211 "mysqlnd_query_lexer.flex"
+#line 212 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ESCAPE");			DBG_RETURN(QC_TOKEN_ESCAPE); }
 	YY_BREAK
 case 148:
 YY_RULE_SETUP
-#line 212 "mysqlnd_query_lexer.flex"
+#line 213 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EVENTS");			DBG_RETURN(QC_TOKEN_EVENTS); }
 	YY_BREAK
 case 149:
 YY_RULE_SETUP
-#line 213 "mysqlnd_query_lexer.flex"
+#line 214 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EVENT");			DBG_RETURN(QC_TOKEN_EVENT); }
 	YY_BREAK
 case 150:
 YY_RULE_SETUP
-#line 214 "mysqlnd_query_lexer.flex"
+#line 215 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EVERY");			DBG_RETURN(QC_TOKEN_EVERY); }
 	YY_BREAK
 case 151:
 YY_RULE_SETUP
-#line 215 "mysqlnd_query_lexer.flex"
+#line 216 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXECUTE");			DBG_RETURN(QC_TOKEN_EXECUTE); }
 	YY_BREAK
 case 152:
 YY_RULE_SETUP
-#line 216 "mysqlnd_query_lexer.flex"
+#line 217 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXISTS");			DBG_RETURN(QC_TOKEN_EXISTS); }
 	YY_BREAK
 case 153:
 YY_RULE_SETUP
-#line 217 "mysqlnd_query_lexer.flex"
+#line 218 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXIT");				DBG_RETURN(QC_TOKEN_EXIT); }
 	YY_BREAK
 case 154:
 YY_RULE_SETUP
-#line 218 "mysqlnd_query_lexer.flex"
+#line 219 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXPANSION");		DBG_RETURN(QC_TOKEN_EXPANSION); }
 	YY_BREAK
 case 155:
 YY_RULE_SETUP
-#line 219 "mysqlnd_query_lexer.flex"
+#line 220 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXTENDED");			DBG_RETURN(QC_TOKEN_EXTENDED); }
 	YY_BREAK
 case 156:
 YY_RULE_SETUP
-#line 220 "mysqlnd_query_lexer.flex"
+#line 221 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXTENT_SIZE");		DBG_RETURN(QC_TOKEN_EXTENT_SIZE); }
 	YY_BREAK
 case 157:
 YY_RULE_SETUP
-#line 221 "mysqlnd_query_lexer.flex"
+#line 222 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_EXTRACT");			DBG_RETURN(QC_TOKEN_EXTRACT); }
 	YY_BREAK
 case 158:
 YY_RULE_SETUP
-#line 222 "mysqlnd_query_lexer.flex"
+#line 223 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FALSE");			DBG_RETURN(QC_TOKEN_FALSE); }
 	YY_BREAK
 case 159:
 YY_RULE_SETUP
-#line 223 "mysqlnd_query_lexer.flex"
+#line 224 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FAST");				DBG_RETURN(QC_TOKEN_FAST); }
 	YY_BREAK
 case 160:
 YY_RULE_SETUP
-#line 224 "mysqlnd_query_lexer.flex"
+#line 225 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FAULTS");			DBG_RETURN(QC_TOKEN_FAULTS); }
 	YY_BREAK
 case 161:
 YY_RULE_SETUP
-#line 225 "mysqlnd_query_lexer.flex"
+#line 226 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FETCH");			DBG_RETURN(QC_TOKEN_FETCH); }
 	YY_BREAK
 case 162:
 YY_RULE_SETUP
-#line 226 "mysqlnd_query_lexer.flex"
+#line 227 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FILE");				DBG_RETURN(QC_TOKEN_FILE); }
 	YY_BREAK
 case 163:
 YY_RULE_SETUP
-#line 227 "mysqlnd_query_lexer.flex"
+#line 228 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FIRST");			DBG_RETURN(QC_TOKEN_FIRST); }
 	YY_BREAK
 case 164:
 YY_RULE_SETUP
-#line 228 "mysqlnd_query_lexer.flex"
+#line 229 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FIXED");			DBG_RETURN(QC_TOKEN_FIXED); }
 	YY_BREAK
 case 165:
 YY_RULE_SETUP
-#line 229 "mysqlnd_query_lexer.flex"
+#line 230 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FLOAT_NUM");		DBG_RETURN(QC_TOKEN_FLOAT_NUM); }
 	YY_BREAK
 case 166:
 YY_RULE_SETUP
-#line 230 "mysqlnd_query_lexer.flex"
+#line 231 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FLOAT");			DBG_RETURN(QC_TOKEN_FLOAT); }
 	YY_BREAK
 case 167:
 YY_RULE_SETUP
-#line 231 "mysqlnd_query_lexer.flex"
+#line 232 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FLUSH");			DBG_RETURN(QC_TOKEN_FLUSH); }
 	YY_BREAK
 case 168:
 YY_RULE_SETUP
-#line 232 "mysqlnd_query_lexer.flex"
+#line 233 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FORCE");			DBG_RETURN(QC_TOKEN_FORCE); }
 	YY_BREAK
 case 169:
 YY_RULE_SETUP
-#line 233 "mysqlnd_query_lexer.flex"
+#line 234 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FOREIGN");			DBG_RETURN(QC_TOKEN_FOREIGN); }
 	YY_BREAK
 case 170:
 YY_RULE_SETUP
-#line 234 "mysqlnd_query_lexer.flex"
+#line 235 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FOR");				DBG_RETURN(QC_TOKEN_FOR); }
 	YY_BREAK
 case 171:
 YY_RULE_SETUP
-#line 235 "mysqlnd_query_lexer.flex"
+#line 236 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FOUND");			DBG_RETURN(QC_TOKEN_FOUND); }
 	YY_BREAK
 case 172:
 YY_RULE_SETUP
-#line 236 "mysqlnd_query_lexer.flex"
+#line 237 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FRAC_SECOND");		DBG_RETURN(QC_TOKEN_FRAC_SECOND); }
 	YY_BREAK
 case 173:
 YY_RULE_SETUP
-#line 237 "mysqlnd_query_lexer.flex"
+#line 238 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FROM");				DBG_RETURN(QC_TOKEN_FROM); }
 	YY_BREAK
 case 174:
 YY_RULE_SETUP
-#line 238 "mysqlnd_query_lexer.flex"
+#line 239 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FULL");				DBG_RETURN(QC_TOKEN_FULL); }
 	YY_BREAK
 case 175:
 YY_RULE_SETUP
-#line 239 "mysqlnd_query_lexer.flex"
+#line 240 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FULLTEXT");			DBG_RETURN(QC_TOKEN_FULLTEXT); }
 	YY_BREAK
 case 176:
 YY_RULE_SETUP
-#line 240 "mysqlnd_query_lexer.flex"
+#line 241 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_FUNCTION");			DBG_RETURN(QC_TOKEN_FUNCTION); }
 	YY_BREAK
 case 177:
 YY_RULE_SETUP
-#line 241 "mysqlnd_query_lexer.flex"
+#line 242 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GEOMETRYCOLLECTION");DBG_RETURN(QC_TOKEN_GEOMETRYCOLLECTION); }
 	YY_BREAK
 case 178:
 YY_RULE_SETUP
-#line 242 "mysqlnd_query_lexer.flex"
+#line 243 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GEOMETRY");			DBG_RETURN(QC_TOKEN_GEOMETRY); }
 	YY_BREAK
 case 179:
 YY_RULE_SETUP
-#line 243 "mysqlnd_query_lexer.flex"
+#line 244 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GET_FORMAT");		DBG_RETURN(QC_TOKEN_GET_FORMAT); }
 	YY_BREAK
 case 180:
 YY_RULE_SETUP
-#line 244 "mysqlnd_query_lexer.flex"
+#line 245 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GLOBAL");			DBG_RETURN(QC_TOKEN_GLOBAL); }
 	YY_BREAK
 case 181:
 YY_RULE_SETUP
-#line 245 "mysqlnd_query_lexer.flex"
+#line 246 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GRANT");			DBG_RETURN(QC_TOKEN_GRANT); }
 	YY_BREAK
 case 182:
 YY_RULE_SETUP
-#line 246 "mysqlnd_query_lexer.flex"
+#line 247 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GRANTS");			DBG_RETURN(QC_TOKEN_GRANTS); }
 	YY_BREAK
 case 183:
 YY_RULE_SETUP
-#line 247 "mysqlnd_query_lexer.flex"
+#line 248 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GROUP");			DBG_RETURN(QC_TOKEN_GROUP); }
 	YY_BREAK
 case 184:
 YY_RULE_SETUP
-#line 248 "mysqlnd_query_lexer.flex"
+#line 249 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GROUP");			DBG_RETURN(QC_TOKEN_GROUP); }
 	YY_BREAK
 case 185:
 YY_RULE_SETUP
-#line 249 "mysqlnd_query_lexer.flex"
+#line 250 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_GROUP_CONCAT");		DBG_RETURN(QC_TOKEN_GROUP_CONCAT); }
 	YY_BREAK
 case 186:
 YY_RULE_SETUP
-#line 250 "mysqlnd_query_lexer.flex"
+#line 251 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HANDLER");			DBG_RETURN(QC_TOKEN_HANDLER); }
 	YY_BREAK
 case 187:
 YY_RULE_SETUP
-#line 251 "mysqlnd_query_lexer.flex"
+#line 252 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HASH");				DBG_RETURN(QC_TOKEN_HASH); }
 	YY_BREAK
 case 188:
 YY_RULE_SETUP
-#line 252 "mysqlnd_query_lexer.flex"
+#line 253 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HAVING");			DBG_RETURN(QC_TOKEN_HAVING); }
 	YY_BREAK
 case 189:
 YY_RULE_SETUP
-#line 253 "mysqlnd_query_lexer.flex"
+#line 254 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HELP");				DBG_RETURN(QC_TOKEN_HELP); }
 	YY_BREAK
 case 190:
 YY_RULE_SETUP
-#line 254 "mysqlnd_query_lexer.flex"
+#line 255 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HEX_NUM");			DBG_RETURN(QC_TOKEN_HEX_NUM); }
 	YY_BREAK
 case 191:
 YY_RULE_SETUP
-#line 255 "mysqlnd_query_lexer.flex"
+#line 256 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HIGH_PRIORITY");	DBG_RETURN(QC_TOKEN_HIGH_PRIORITY); }
 	YY_BREAK
 case 192:
 YY_RULE_SETUP
-#line 256 "mysqlnd_query_lexer.flex"
+#line 257 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HOST");				DBG_RETURN(QC_TOKEN_HOST); }
 	YY_BREAK
 case 193:
 YY_RULE_SETUP
-#line 257 "mysqlnd_query_lexer.flex"
+#line 258 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HOSTS");			DBG_RETURN(QC_TOKEN_HOSTS); }
 	YY_BREAK
 case 194:
 YY_RULE_SETUP
-#line 258 "mysqlnd_query_lexer.flex"
+#line 259 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HOUR_MICROSECOND");	DBG_RETURN(QC_TOKEN_HOUR_MICROSECOND); }
 	YY_BREAK
 case 195:
 YY_RULE_SETUP
-#line 259 "mysqlnd_query_lexer.flex"
+#line 260 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HOUR_MINUTE");		DBG_RETURN(QC_TOKEN_HOUR_MINUTE); }
 	YY_BREAK
 case 196:
 YY_RULE_SETUP
-#line 260 "mysqlnd_query_lexer.flex"
+#line 261 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HOUR_SECOND");		DBG_RETURN(QC_TOKEN_HOUR_SECOND); }
 	YY_BREAK
 case 197:
 YY_RULE_SETUP
-#line 261 "mysqlnd_query_lexer.flex"
+#line 262 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_HOUR");				DBG_RETURN(QC_TOKEN_HOUR); }
 	YY_BREAK
 case 198:
 YY_RULE_SETUP
-#line 262 "mysqlnd_query_lexer.flex"
+#line 263 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IDENT");			DBG_RETURN(QC_TOKEN_IDENT); }
 	YY_BREAK
 case 199:
 YY_RULE_SETUP
-#line 263 "mysqlnd_query_lexer.flex"
+#line 264 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IDENTIFIED");		DBG_RETURN(QC_TOKEN_IDENTIFIED); }
 	YY_BREAK
 case 200:
 YY_RULE_SETUP
-#line 264 "mysqlnd_query_lexer.flex"
+#line 265 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IDENT_QUOTED");		DBG_RETURN(QC_TOKEN_IDENT_QUOTED); }
 	YY_BREAK
 case 201:
 YY_RULE_SETUP
-#line 265 "mysqlnd_query_lexer.flex"
+#line 266 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IF");				DBG_RETURN(QC_TOKEN_IF); }
 	YY_BREAK
 case 202:
 YY_RULE_SETUP
-#line 266 "mysqlnd_query_lexer.flex"
+#line 267 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IGNORE");			DBG_RETURN(QC_TOKEN_IGNORE); }
 	YY_BREAK
 case 203:
 YY_RULE_SETUP
-#line 267 "mysqlnd_query_lexer.flex"
+#line 268 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IGNORE_SERVER_IDS");DBG_RETURN(QC_TOKEN_IGNORE_SERVER_IDS); }
 	YY_BREAK
 case 204:
 YY_RULE_SETUP
-#line 268 "mysqlnd_query_lexer.flex"
+#line 269 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IMPORT");			DBG_RETURN(QC_TOKEN_IMPORT); }
 	YY_BREAK
 case 205:
 YY_RULE_SETUP
-#line 269 "mysqlnd_query_lexer.flex"
+#line 270 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INDEXES");			DBG_RETURN(QC_TOKEN_INDEXES); }
 	YY_BREAK
 case 206:
 YY_RULE_SETUP
-#line 270 "mysqlnd_query_lexer.flex"
+#line 271 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INDEX");			DBG_RETURN(QC_TOKEN_INDEX); }
 	YY_BREAK
 case 207:
 YY_RULE_SETUP
-#line 271 "mysqlnd_query_lexer.flex"
+#line 272 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INFILE");			DBG_RETURN(QC_TOKEN_INFILE); }
 	YY_BREAK
 case 208:
 YY_RULE_SETUP
-#line 272 "mysqlnd_query_lexer.flex"
+#line 273 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INITIAL_SIZE");		DBG_RETURN(QC_TOKEN_INITIAL_SIZE); }
 	YY_BREAK
 case 209:
 YY_RULE_SETUP
-#line 273 "mysqlnd_query_lexer.flex"
+#line 274 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INNER");			DBG_RETURN(QC_TOKEN_INNER); }
 	YY_BREAK
 case 210:
 YY_RULE_SETUP
-#line 274 "mysqlnd_query_lexer.flex"
+#line 275 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INOUT");			DBG_RETURN(QC_TOKEN_INOUT); }
 	YY_BREAK
 case 211:
 YY_RULE_SETUP
-#line 275 "mysqlnd_query_lexer.flex"
+#line 276 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INSENSITIVE");		DBG_RETURN(QC_TOKEN_INSENSITIVE); }
 	YY_BREAK
 case 212:
 YY_RULE_SETUP
-#line 276 "mysqlnd_query_lexer.flex"
+#line 277 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INSERT");			DBG_RETURN(QC_TOKEN_INSERT); }
 	YY_BREAK
 case 213:
 YY_RULE_SETUP
-#line 277 "mysqlnd_query_lexer.flex"
+#line 278 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INSERT_METHOD");	DBG_RETURN(QC_TOKEN_INSERT_METHOD); }
 	YY_BREAK
 case 214:
 YY_RULE_SETUP
-#line 278 "mysqlnd_query_lexer.flex"
+#line 279 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INSTALL");			DBG_RETURN(QC_TOKEN_INSTALL); }
 	YY_BREAK
 case 215:
 YY_RULE_SETUP
-#line 279 "mysqlnd_query_lexer.flex"
+#line 280 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INTERVAL");			DBG_RETURN(QC_TOKEN_INTERVAL); }
 	YY_BREAK
 case 216:
 YY_RULE_SETUP
-#line 280 "mysqlnd_query_lexer.flex"
+#line 281 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INTO");				DBG_RETURN(QC_TOKEN_INTO); }
 	YY_BREAK
 case 217:
 YY_RULE_SETUP
-#line 281 "mysqlnd_query_lexer.flex"
+#line 282 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INT");				DBG_RETURN(QC_TOKEN_INT); }
 	YY_BREAK
 case 218:
 YY_RULE_SETUP
-#line 282 "mysqlnd_query_lexer.flex"
+#line 283 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_INVOKER");			DBG_RETURN(QC_TOKEN_INVOKER); }
 	YY_BREAK
 case 219:
 YY_RULE_SETUP
-#line 283 "mysqlnd_query_lexer.flex"
+#line 284 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IN");				DBG_RETURN(QC_TOKEN_IN); }
 	YY_BREAK
 case 220:
 YY_RULE_SETUP
-#line 284 "mysqlnd_query_lexer.flex"
+#line 285 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IO");				DBG_RETURN(QC_TOKEN_IO); }
 	YY_BREAK
 case 221:
 YY_RULE_SETUP
-#line 285 "mysqlnd_query_lexer.flex"
+#line 286 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IPC");				DBG_RETURN(QC_TOKEN_IPC); }
 	YY_BREAK
 case 222:
 YY_RULE_SETUP
-#line 286 "mysqlnd_query_lexer.flex"
+#line 287 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_IS");				DBG_RETURN(QC_TOKEN_IS); }
 	YY_BREAK
 case 223:
 YY_RULE_SETUP
-#line 287 "mysqlnd_query_lexer.flex"
+#line 288 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ISOLATION");		DBG_RETURN(QC_TOKEN_ISOLATION); }
 	YY_BREAK
 case 224:
 YY_RULE_SETUP
-#line 288 "mysqlnd_query_lexer.flex"
+#line 289 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ISSUER");			DBG_RETURN(QC_TOKEN_ISSUER); }
 	YY_BREAK
 case 225:
 YY_RULE_SETUP
-#line 289 "mysqlnd_query_lexer.flex"
+#line 290 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ITERATE");			DBG_RETURN(QC_TOKEN_ITERATE); }
 	YY_BREAK
 case 226:
 YY_RULE_SETUP
-#line 290 "mysqlnd_query_lexer.flex"
+#line 291 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_JOIN");				DBG_RETURN(QC_TOKEN_JOIN); }
 	YY_BREAK
 case 227:
 YY_RULE_SETUP
-#line 291 "mysqlnd_query_lexer.flex"
+#line 292 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_KEYS");				DBG_RETURN(QC_TOKEN_KEYS); }
 	YY_BREAK
 case 228:
 YY_RULE_SETUP
-#line 292 "mysqlnd_query_lexer.flex"
+#line 293 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_KEY_BLOCK_SIZE");	DBG_RETURN(QC_TOKEN_KEY_BLOCK_SIZE); }
 	YY_BREAK
 case 229:
 YY_RULE_SETUP
-#line 293 "mysqlnd_query_lexer.flex"
+#line 294 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_KEY");				DBG_RETURN(QC_TOKEN_KEY); }
 	YY_BREAK
 case 230:
 YY_RULE_SETUP
-#line 294 "mysqlnd_query_lexer.flex"
+#line 295 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_KILL");				DBG_RETURN(QC_TOKEN_KILL); }
 	YY_BREAK
 case 231:
 YY_RULE_SETUP
-#line 295 "mysqlnd_query_lexer.flex"
+#line 296 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LANGUAGE");			DBG_RETURN(QC_TOKEN_LANGUAGE); }
 	YY_BREAK
 case 232:
 YY_RULE_SETUP
-#line 296 "mysqlnd_query_lexer.flex"
+#line 297 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LAST");				DBG_RETURN(QC_TOKEN_LAST); }
 	YY_BREAK
 case 233:
 YY_RULE_SETUP
-#line 297 "mysqlnd_query_lexer.flex"
+#line 298 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LEADING");			DBG_RETURN(QC_TOKEN_LEADING); }
 	YY_BREAK
 case 234:
 YY_RULE_SETUP
-#line 298 "mysqlnd_query_lexer.flex"
+#line 299 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LEAVES");			DBG_RETURN(QC_TOKEN_LEAVES); }
 	YY_BREAK
 case 235:
 YY_RULE_SETUP
-#line 299 "mysqlnd_query_lexer.flex"
+#line 300 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LEAVE");			DBG_RETURN(QC_TOKEN_LEAVE); }
 	YY_BREAK
 case 236:
 YY_RULE_SETUP
-#line 300 "mysqlnd_query_lexer.flex"
+#line 301 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LEFT");				DBG_RETURN(QC_TOKEN_LEFT); }
 	YY_BREAK
 case 237:
 YY_RULE_SETUP
-#line 301 "mysqlnd_query_lexer.flex"
+#line 302 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LESS");				DBG_RETURN(QC_TOKEN_LESS); }
 	YY_BREAK
 case 238:
 YY_RULE_SETUP
-#line 302 "mysqlnd_query_lexer.flex"
+#line 303 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LEVEL");			DBG_RETURN(QC_TOKEN_LEVEL); }
 	YY_BREAK
 case 239:
 YY_RULE_SETUP
-#line 303 "mysqlnd_query_lexer.flex"
+#line 304 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LEX_HOSTNAME");		DBG_RETURN(QC_TOKEN_LEX_HOSTNAME); }
 	YY_BREAK
 case 240:
 YY_RULE_SETUP
-#line 304 "mysqlnd_query_lexer.flex"
+#line 305 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LIKE");				DBG_RETURN(QC_TOKEN_LIKE); }
 	YY_BREAK
 case 241:
 YY_RULE_SETUP
-#line 305 "mysqlnd_query_lexer.flex"
+#line 306 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LIMIT");			DBG_RETURN(QC_TOKEN_LIMIT); }
 	YY_BREAK
 case 242:
 YY_RULE_SETUP
-#line 306 "mysqlnd_query_lexer.flex"
+#line 307 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LINEAR");			DBG_RETURN(QC_TOKEN_LINEAR); }
 	YY_BREAK
 case 243:
 YY_RULE_SETUP
-#line 307 "mysqlnd_query_lexer.flex"
+#line 308 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LINES");			DBG_RETURN(QC_TOKEN_LINES); }
 	YY_BREAK
 case 244:
 YY_RULE_SETUP
-#line 308 "mysqlnd_query_lexer.flex"
+#line 309 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LINESTRING");		DBG_RETURN(QC_TOKEN_LINESTRING); }
 	YY_BREAK
 case 245:
 YY_RULE_SETUP
-#line 309 "mysqlnd_query_lexer.flex"
+#line 310 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LIST");				DBG_RETURN(QC_TOKEN_LIST); }
 	YY_BREAK
 case 246:
 YY_RULE_SETUP
-#line 310 "mysqlnd_query_lexer.flex"
+#line 311 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOAD");				DBG_RETURN(QC_TOKEN_LOAD); }
 	YY_BREAK
 case 247:
 YY_RULE_SETUP
-#line 311 "mysqlnd_query_lexer.flex"
+#line 312 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOCAL");			DBG_RETURN(QC_TOKEN_LOCAL); }
 	YY_BREAK
 case 248:
 YY_RULE_SETUP
-#line 312 "mysqlnd_query_lexer.flex"
+#line 313 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOCATOR");			DBG_RETURN(QC_TOKEN_LOCATOR); }
 	YY_BREAK
 case 249:
 YY_RULE_SETUP
-#line 313 "mysqlnd_query_lexer.flex"
+#line 314 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOCKS");			DBG_RETURN(QC_TOKEN_LOCKS); }
 	YY_BREAK
 case 250:
 YY_RULE_SETUP
-#line 314 "mysqlnd_query_lexer.flex"
+#line 315 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOCK");				DBG_RETURN(QC_TOKEN_LOCK); }
 	YY_BREAK
 case 251:
 YY_RULE_SETUP
-#line 315 "mysqlnd_query_lexer.flex"
+#line 316 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOGFILE");			DBG_RETURN(QC_TOKEN_LOGFILE); }
 	YY_BREAK
 case 252:
 YY_RULE_SETUP
-#line 316 "mysqlnd_query_lexer.flex"
+#line 317 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOGS");				DBG_RETURN(QC_TOKEN_LOGS); }
 	YY_BREAK
 case 253:
 YY_RULE_SETUP
-#line 317 "mysqlnd_query_lexer.flex"
+#line 318 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LONGBLOB");			DBG_RETURN(QC_TOKEN_LONGBLOB); }
 	YY_BREAK
 case 254:
 YY_RULE_SETUP
-#line 318 "mysqlnd_query_lexer.flex"
+#line 319 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LONGTEXT");			DBG_RETURN(QC_TOKEN_LONGTEXT); }
 	YY_BREAK
 case 255:
 YY_RULE_SETUP
-#line 319 "mysqlnd_query_lexer.flex"
+#line 320 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LONG_NUM");			DBG_RETURN(QC_TOKEN_LONG_NUM); }
 	YY_BREAK
 case 256:
 YY_RULE_SETUP
-#line 320 "mysqlnd_query_lexer.flex"
+#line 321 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LONG");				DBG_RETURN(QC_TOKEN_LONG); }
 	YY_BREAK
 case 257:
 YY_RULE_SETUP
-#line 321 "mysqlnd_query_lexer.flex"
+#line 322 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOOP");				DBG_RETURN(QC_TOKEN_LOOP); }
 	YY_BREAK
 case 258:
 YY_RULE_SETUP
-#line 322 "mysqlnd_query_lexer.flex"
+#line 323 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_LOW_PRIORITY");		DBG_RETURN(QC_TOKEN_LOW_PRIORITY); }
 	YY_BREAK
 case 259:
 YY_RULE_SETUP
-#line 323 "mysqlnd_query_lexer.flex"
+#line 324 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_CONNECT_RETRY");			DBG_RETURN(QC_TOKEN_MASTER_CONNECT_RETRY); }
 	YY_BREAK
 case 260:
 YY_RULE_SETUP
-#line 324 "mysqlnd_query_lexer.flex"
+#line 325 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_HOST");		DBG_RETURN(QC_TOKEN_MASTER_HOST); }
 	YY_BREAK
 case 261:
 YY_RULE_SETUP
-#line 325 "mysqlnd_query_lexer.flex"
+#line 326 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_LOG_FILE");	DBG_RETURN(QC_TOKEN_MASTER_LOG_FILE); }
 	YY_BREAK
 case 262:
 YY_RULE_SETUP
-#line 326 "mysqlnd_query_lexer.flex"
+#line 327 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_LOG_POS");	DBG_RETURN(QC_TOKEN_MASTER_LOG_POS); }
 	YY_BREAK
 case 263:
 YY_RULE_SETUP
-#line 327 "mysqlnd_query_lexer.flex"
+#line 328 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_PASSWORD");	DBG_RETURN(QC_TOKEN_MASTER_PASSWORD); }
 	YY_BREAK
 case 264:
 YY_RULE_SETUP
-#line 328 "mysqlnd_query_lexer.flex"
+#line 329 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_PORT");		DBG_RETURN(QC_TOKEN_MASTER_PORT); }
 	YY_BREAK
 case 265:
 YY_RULE_SETUP
-#line 329 "mysqlnd_query_lexer.flex"
+#line 330 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SERVER_ID");	DBG_RETURN(QC_TOKEN_MASTER_SERVER_ID); }
 	YY_BREAK
 case 266:
 YY_RULE_SETUP
-#line 330 "mysqlnd_query_lexer.flex"
+#line 331 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL_CAPATH");DBG_RETURN(QC_TOKEN_MASTER_SSL_CAPATH); }
 	YY_BREAK
 case 267:
 YY_RULE_SETUP
-#line 331 "mysqlnd_query_lexer.flex"
+#line 332 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL_CA");	DBG_RETURN(QC_TOKEN_MASTER_SSL_CA); }
 	YY_BREAK
 case 268:
 YY_RULE_SETUP
-#line 332 "mysqlnd_query_lexer.flex"
+#line 333 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL_CERT");	DBG_RETURN(QC_TOKEN_MASTER_SSL_CERT); }
 	YY_BREAK
 case 269:
 YY_RULE_SETUP
-#line 333 "mysqlnd_query_lexer.flex"
+#line 334 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL_CIPHER");DBG_RETURN(QC_TOKEN_MASTER_SSL_CIPHER); }
 	YY_BREAK
 case 270:
 YY_RULE_SETUP
-#line 334 "mysqlnd_query_lexer.flex"
+#line 335 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL_KEY");	DBG_RETURN(QC_TOKEN_MASTER_SSL_KEY); }
 	YY_BREAK
 case 271:
 YY_RULE_SETUP
-#line 335 "mysqlnd_query_lexer.flex"
+#line 336 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL");		DBG_RETURN(QC_TOKEN_MASTER_SSL); }
 	YY_BREAK
 case 272:
 YY_RULE_SETUP
-#line 336 "mysqlnd_query_lexer.flex"
+#line 337 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_SSL_VERIFY_SERVER_CERT");			DBG_RETURN(QC_TOKEN_MASTER_SSL_VERIFY_SERVER_CERT); }
 	YY_BREAK
 case 273:
 YY_RULE_SETUP
-#line 337 "mysqlnd_query_lexer.flex"
+#line 338 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER");			DBG_RETURN(QC_TOKEN_MASTER); }
 	YY_BREAK
 case 274:
 YY_RULE_SETUP
-#line 338 "mysqlnd_query_lexer.flex"
+#line 339 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_USER");		DBG_RETURN(QC_TOKEN_MASTER_USER); }
 	YY_BREAK
 case 275:
 YY_RULE_SETUP
-#line 339 "mysqlnd_query_lexer.flex"
+#line 340 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MASTER_HEARTBEAT_PERIOD");			DBG_RETURN(QC_TOKEN_MASTER_HEARTBEAT_PERIOD); }
 	YY_BREAK
 case 276:
 YY_RULE_SETUP
-#line 340 "mysqlnd_query_lexer.flex"
+#line 341 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MATCH");			DBG_RETURN(QC_TOKEN_MATCH); }
 	YY_BREAK
 case 277:
 YY_RULE_SETUP
-#line 341 "mysqlnd_query_lexer.flex"
+#line 342 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_CONNECTIONS_PER_HOUR");			DBG_RETURN(QC_TOKEN_MAX_CONNECTIONS_PER_HOUR); }
 	YY_BREAK
 case 278:
 YY_RULE_SETUP
-#line 342 "mysqlnd_query_lexer.flex"
+#line 343 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_QUERIES_PER_HOUR");			DBG_RETURN(QC_TOKEN_MAX_QUERIES_PER_HOUR); }
 	YY_BREAK
 case 279:
 YY_RULE_SETUP
-#line 343 "mysqlnd_query_lexer.flex"
+#line 344 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_ROWS");			DBG_RETURN(QC_TOKEN_MAX_ROWS); }
 	YY_BREAK
 case 280:
 YY_RULE_SETUP
-#line 344 "mysqlnd_query_lexer.flex"
+#line 345 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_SIZE");			DBG_RETURN(QC_TOKEN_MAX_SIZE); }
 	YY_BREAK
 case 281:
 YY_RULE_SETUP
-#line 345 "mysqlnd_query_lexer.flex"
+#line 346 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX");			DBG_RETURN(QC_TOKEN_MAX); }
 	YY_BREAK
 case 282:
 YY_RULE_SETUP
-#line 346 "mysqlnd_query_lexer.flex"
+#line 347 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_UPDATES_PER_HOUR");			DBG_RETURN(QC_TOKEN_MAX_UPDATES_PER_HOUR); }
 	YY_BREAK
 case 283:
 YY_RULE_SETUP
-#line 347 "mysqlnd_query_lexer.flex"
+#line 348 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_USER_CONNECTIONS");			DBG_RETURN(QC_TOKEN_MAX_USER_CONNECTIONS); }
 	YY_BREAK
 case 284:
 YY_RULE_SETUP
-#line 348 "mysqlnd_query_lexer.flex"
+#line 349 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MAX_VALUE");		DBG_RETURN(QC_TOKEN_MAX_VALUE); }
 	YY_BREAK
 case 285:
 YY_RULE_SETUP
-#line 349 "mysqlnd_query_lexer.flex"
+#line 350 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MEDIUMBLOB");		DBG_RETURN(QC_TOKEN_MEDIUMBLOB); }
 	YY_BREAK
 case 286:
 YY_RULE_SETUP
-#line 350 "mysqlnd_query_lexer.flex"
+#line 351 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MEDIUMINT");		DBG_RETURN(QC_TOKEN_MEDIUMINT); }
 	YY_BREAK
 case 287:
 YY_RULE_SETUP
-#line 351 "mysqlnd_query_lexer.flex"
+#line 352 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MEDIUMTEXT");		DBG_RETURN(QC_TOKEN_MEDIUMTEXT); }
 	YY_BREAK
 case 288:
 YY_RULE_SETUP
-#line 352 "mysqlnd_query_lexer.flex"
+#line 353 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MEDIUM");			DBG_RETURN(QC_TOKEN_MEDIUM); }
 	YY_BREAK
 case 289:
 YY_RULE_SETUP
-#line 353 "mysqlnd_query_lexer.flex"
+#line 354 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MEMORY");			DBG_RETURN(QC_TOKEN_MEMORY); }
 	YY_BREAK
 case 290:
 YY_RULE_SETUP
-#line 354 "mysqlnd_query_lexer.flex"
+#line 355 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MERGE");			DBG_RETURN(QC_TOKEN_MERGE); }
 	YY_BREAK
 case 291:
 YY_RULE_SETUP
-#line 355 "mysqlnd_query_lexer.flex"
+#line 356 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MESSAGE_TEXT");		DBG_RETURN(QC_TOKEN_MESSAGE_TEXT); }
 	YY_BREAK
 case 292:
 YY_RULE_SETUP
-#line 356 "mysqlnd_query_lexer.flex"
+#line 357 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MICROSECOND");		DBG_RETURN(QC_TOKEN_MICROSECOND); }
 	YY_BREAK
 case 293:
 YY_RULE_SETUP
-#line 357 "mysqlnd_query_lexer.flex"
+#line 358 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MIGRATE");			DBG_RETURN(QC_TOKEN_MIGRATE); }
 	YY_BREAK
 case 294:
 YY_RULE_SETUP
-#line 358 "mysqlnd_query_lexer.flex"
+#line 359 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MINUTE_MICROSECOND");DBG_RETURN(QC_TOKEN_MINUTE_MICROSECOND); }
 	YY_BREAK
 case 295:
 YY_RULE_SETUP
-#line 359 "mysqlnd_query_lexer.flex"
+#line 360 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MINUTE_SECOND");	DBG_RETURN(QC_TOKEN_MINUTE_SECOND); }
 	YY_BREAK
 case 296:
 YY_RULE_SETUP
-#line 360 "mysqlnd_query_lexer.flex"
+#line 361 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MINUTE");			DBG_RETURN(QC_TOKEN_MINUTE); }
 	YY_BREAK
 case 297:
 YY_RULE_SETUP
-#line 361 "mysqlnd_query_lexer.flex"
+#line 362 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MIN_ROWS");			DBG_RETURN(QC_TOKEN_MIN_ROWS); }
 	YY_BREAK
 case 298:
 YY_RULE_SETUP
-#line 362 "mysqlnd_query_lexer.flex"
+#line 363 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MIN");				DBG_RETURN(QC_TOKEN_MIN); }
 	YY_BREAK
 case 299:
 YY_RULE_SETUP
-#line 363 "mysqlnd_query_lexer.flex"
+#line 364 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MODE");				DBG_RETURN(QC_TOKEN_MODE); }
 	YY_BREAK
 case 300:
 YY_RULE_SETUP
-#line 364 "mysqlnd_query_lexer.flex"
+#line 365 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MODIFIES");			DBG_RETURN(QC_TOKEN_MODIFIES); }
 	YY_BREAK
 case 301:
 YY_RULE_SETUP
-#line 365 "mysqlnd_query_lexer.flex"
+#line 366 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MODIFY");			DBG_RETURN(QC_TOKEN_MODIFY); }
 	YY_BREAK
 case 302:
 YY_RULE_SETUP
-#line 366 "mysqlnd_query_lexer.flex"
+#line 367 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MOD");				DBG_RETURN(QC_TOKEN_MOD); }
 	YY_BREAK
 case 303:
 YY_RULE_SETUP
-#line 367 "mysqlnd_query_lexer.flex"
+#line 368 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MONTH");			DBG_RETURN(QC_TOKEN_MONTH); }
 	YY_BREAK
 case 304:
 YY_RULE_SETUP
-#line 368 "mysqlnd_query_lexer.flex"
+#line 369 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MULTILINESTRING");	DBG_RETURN(QC_TOKEN_MULTILINESTRING); }
 	YY_BREAK
 case 305:
 YY_RULE_SETUP
-#line 369 "mysqlnd_query_lexer.flex"
+#line 370 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MULTIPOINT");		DBG_RETURN(QC_TOKEN_MULTIPOINT); }
 	YY_BREAK
 case 306:
 YY_RULE_SETUP
-#line 370 "mysqlnd_query_lexer.flex"
+#line 371 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MULTIPOLYGON");		DBG_RETURN(QC_TOKEN_MULTIPOLYGON); }
 	YY_BREAK
 case 307:
 YY_RULE_SETUP
-#line 371 "mysqlnd_query_lexer.flex"
+#line 372 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MUTEX");			DBG_RETURN(QC_TOKEN_MUTEX); }
 	YY_BREAK
 case 308:
 YY_RULE_SETUP
-#line 372 "mysqlnd_query_lexer.flex"
+#line 373 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_MYSQL_ERRNO");		DBG_RETURN(QC_TOKEN_MYSQL_ERRNO); }
 	YY_BREAK
 case 309:
 YY_RULE_SETUP
-#line 373 "mysqlnd_query_lexer.flex"
+#line 374 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NAMES");			DBG_RETURN(QC_TOKEN_NAMES); }
 	YY_BREAK
 case 310:
 YY_RULE_SETUP
-#line 374 "mysqlnd_query_lexer.flex"
+#line 375 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NAME");				DBG_RETURN(QC_TOKEN_NAME); }
 	YY_BREAK
 case 311:
 YY_RULE_SETUP
-#line 375 "mysqlnd_query_lexer.flex"
+#line 376 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NATIONAL");			DBG_RETURN(QC_TOKEN_NATIONAL); }
 	YY_BREAK
 case 312:
 YY_RULE_SETUP
-#line 376 "mysqlnd_query_lexer.flex"
+#line 377 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NATURAL");			DBG_RETURN(QC_TOKEN_NATURAL); }
 	YY_BREAK
 case 313:
 YY_RULE_SETUP
-#line 377 "mysqlnd_query_lexer.flex"
+#line 378 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NCHAR_STRING");		DBG_RETURN(QC_TOKEN_NCHAR_STRING); }
 	YY_BREAK
 case 314:
 YY_RULE_SETUP
-#line 378 "mysqlnd_query_lexer.flex"
+#line 379 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NCHAR");			DBG_RETURN(QC_TOKEN_NCHAR); }
 	YY_BREAK
 case 315:
 YY_RULE_SETUP
-#line 379 "mysqlnd_query_lexer.flex"
+#line 380 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NDBCLUSTER");		DBG_RETURN(QC_TOKEN_NDBCLUSTER); }
 	YY_BREAK
 case 316:
 YY_RULE_SETUP
-#line 380 "mysqlnd_query_lexer.flex"
+#line 381 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NEG");				DBG_RETURN(QC_TOKEN_NEG); }
 	YY_BREAK
 case 317:
 YY_RULE_SETUP
-#line 381 "mysqlnd_query_lexer.flex"
+#line 382 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NEW");				DBG_RETURN(QC_TOKEN_NEW); }
 	YY_BREAK
 case 318:
 YY_RULE_SETUP
-#line 382 "mysqlnd_query_lexer.flex"
+#line 383 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NEXT");				DBG_RETURN(QC_TOKEN_NEXT); }
 	YY_BREAK
 case 319:
 YY_RULE_SETUP
-#line 383 "mysqlnd_query_lexer.flex"
+#line 384 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NODEGROUP");		DBG_RETURN(QC_TOKEN_NODEGROUP); }
 	YY_BREAK
 case 320:
 YY_RULE_SETUP
-#line 384 "mysqlnd_query_lexer.flex"
+#line 385 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NONE");				DBG_RETURN(QC_TOKEN_NONE); }
 	YY_BREAK
 case 321:
 YY_RULE_SETUP
-#line 385 "mysqlnd_query_lexer.flex"
+#line 386 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NOT");				DBG_RETURN(QC_TOKEN_NOT); }
 	YY_BREAK
 case 322:
 YY_RULE_SETUP
-#line 386 "mysqlnd_query_lexer.flex"
+#line 387 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NOW");				DBG_RETURN(QC_TOKEN_NOW); }
 	YY_BREAK
 case 323:
 YY_RULE_SETUP
-#line 387 "mysqlnd_query_lexer.flex"
+#line 388 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NO");				DBG_RETURN(QC_TOKEN_NO); }
 	YY_BREAK
 case 324:
 YY_RULE_SETUP
-#line 388 "mysqlnd_query_lexer.flex"
+#line 389 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NO_WAIT");			DBG_RETURN(QC_TOKEN_NO_WAIT); }
 	YY_BREAK
 case 325:
 YY_RULE_SETUP
-#line 389 "mysqlnd_query_lexer.flex"
+#line 390 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NO_WRITE_TO_BINLOG");DBG_RETURN(QC_TOKEN_NO_WRITE_TO_BINLOG); }
 	YY_BREAK
 case 326:
 YY_RULE_SETUP
-#line 390 "mysqlnd_query_lexer.flex"
+#line 391 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NULL");				DBG_RETURN(QC_TOKEN_NULL); }
 	YY_BREAK
 case 327:
 YY_RULE_SETUP
-#line 391 "mysqlnd_query_lexer.flex"
+#line 392 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NUM");				DBG_RETURN(QC_TOKEN_NUM); }
 	YY_BREAK
 case 328:
 YY_RULE_SETUP
-#line 392 "mysqlnd_query_lexer.flex"
+#line 393 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NUMERIC");			DBG_RETURN(QC_TOKEN_NUMERIC); }
 	YY_BREAK
 case 329:
 YY_RULE_SETUP
-#line 393 "mysqlnd_query_lexer.flex"
+#line 394 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_NVARCHAR");			DBG_RETURN(QC_TOKEN_NVARCHAR); }
 	YY_BREAK
 case 330:
 YY_RULE_SETUP
-#line 394 "mysqlnd_query_lexer.flex"
+#line 395 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OFFSET");			DBG_RETURN(QC_TOKEN_OFFSET); }
 	YY_BREAK
 case 331:
 YY_RULE_SETUP
-#line 395 "mysqlnd_query_lexer.flex"
+#line 396 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OLD_PASSWORD");		DBG_RETURN(QC_TOKEN_OLD_PASSWORD); }
 	YY_BREAK
 case 332:
 YY_RULE_SETUP
-#line 396 "mysqlnd_query_lexer.flex"
+#line 397 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ON");				DBG_RETURN(QC_TOKEN_ON); }
 	YY_BREAK
 case 333:
 YY_RULE_SETUP
-#line 397 "mysqlnd_query_lexer.flex"
+#line 398 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ONE_SHOT");			DBG_RETURN(QC_TOKEN_ONE_SHOT); }
 	YY_BREAK
 case 334:
 YY_RULE_SETUP
-#line 398 "mysqlnd_query_lexer.flex"
+#line 399 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ONE");				DBG_RETURN(QC_TOKEN_ONE); }
 	YY_BREAK
 case 335:
 YY_RULE_SETUP
-#line 399 "mysqlnd_query_lexer.flex"
+#line 400 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OPEN");				DBG_RETURN(QC_TOKEN_OPEN); }
 	YY_BREAK
 case 336:
 YY_RULE_SETUP
-#line 400 "mysqlnd_query_lexer.flex"
+#line 401 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OPTIMIZE");			DBG_RETURN(QC_TOKEN_OPTIMIZE); }
 	YY_BREAK
 case 337:
 YY_RULE_SETUP
-#line 401 "mysqlnd_query_lexer.flex"
+#line 402 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OPTIONS");			DBG_RETURN(QC_TOKEN_OPTIONS); }
 	YY_BREAK
 case 338:
 YY_RULE_SETUP
-#line 402 "mysqlnd_query_lexer.flex"
+#line 403 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OPTION");			DBG_RETURN(QC_TOKEN_OPTION); }
 	YY_BREAK
 case 339:
 YY_RULE_SETUP
-#line 403 "mysqlnd_query_lexer.flex"
+#line 404 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OPTIONALLY");		DBG_RETURN(QC_TOKEN_OPTIONALLY); }
 	YY_BREAK
 case 340:
 YY_RULE_SETUP
-#line 404 "mysqlnd_query_lexer.flex"
+#line 405 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ORDER");			DBG_RETURN(QC_TOKEN_ORDER); }
 	YY_BREAK
 case 341:
 YY_RULE_SETUP
-#line 405 "mysqlnd_query_lexer.flex"
+#line 406 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OR");				DBG_RETURN(QC_TOKEN_OR); }
 	YY_BREAK
 case 342:
 YY_RULE_SETUP
-#line 406 "mysqlnd_query_lexer.flex"
+#line 407 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OUTER");			DBG_RETURN(QC_TOKEN_OUTER); }
 	YY_BREAK
 case 343:
 YY_RULE_SETUP
-#line 407 "mysqlnd_query_lexer.flex"
+#line 408 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OUTFILE");			DBG_RETURN(QC_TOKEN_OUTFILE); }
 	YY_BREAK
 case 344:
 YY_RULE_SETUP
-#line 408 "mysqlnd_query_lexer.flex"
+#line 409 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OUT");				DBG_RETURN(QC_TOKEN_OUT); }
 	YY_BREAK
 case 345:
 YY_RULE_SETUP
-#line 409 "mysqlnd_query_lexer.flex"
+#line 410 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_OWNER");			DBG_RETURN(QC_TOKEN_OWNER); }
 	YY_BREAK
 case 346:
 YY_RULE_SETUP
-#line 410 "mysqlnd_query_lexer.flex"
+#line 411 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PACK_KEYS");		DBG_RETURN(QC_TOKEN_PACK_KEYS); }
 	YY_BREAK
 case 347:
 YY_RULE_SETUP
-#line 411 "mysqlnd_query_lexer.flex"
+#line 412 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PAGE");				DBG_RETURN(QC_TOKEN_PAGE); }
 	YY_BREAK
 case 348:
 YY_RULE_SETUP
-#line 412 "mysqlnd_query_lexer.flex"
+#line 413 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PARAM_MARKER");		DBG_RETURN(QC_TOKEN_PARAM_MARKER); }
 	YY_BREAK
 case 349:
 YY_RULE_SETUP
-#line 413 "mysqlnd_query_lexer.flex"
+#line 414 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PARSER");			DBG_RETURN(QC_TOKEN_PARSER); }
 	YY_BREAK
 case 350:
 YY_RULE_SETUP
-#line 414 "mysqlnd_query_lexer.flex"
+#line 415 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PARTIAL");			DBG_RETURN(QC_TOKEN_PARTIAL); }
 	YY_BREAK
 case 351:
 YY_RULE_SETUP
-#line 415 "mysqlnd_query_lexer.flex"
+#line 416 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PARTITIONING");		DBG_RETURN(QC_TOKEN_PARTITIONING); }
 	YY_BREAK
 case 352:
 YY_RULE_SETUP
-#line 416 "mysqlnd_query_lexer.flex"
+#line 417 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PARTITIONS");		DBG_RETURN(QC_TOKEN_PARTITIONS); }
 	YY_BREAK
 case 353:
 YY_RULE_SETUP
-#line 417 "mysqlnd_query_lexer.flex"
+#line 418 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PARTITION");		DBG_RETURN(QC_TOKEN_PARTITION); }
 	YY_BREAK
 case 354:
 YY_RULE_SETUP
-#line 418 "mysqlnd_query_lexer.flex"
+#line 419 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PASSWORD");			DBG_RETURN(QC_TOKEN_PASSWORD); }
 	YY_BREAK
 case 355:
 YY_RULE_SETUP
-#line 419 "mysqlnd_query_lexer.flex"
+#line 420 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PHASE");			DBG_RETURN(QC_TOKEN_PHASE); }
 	YY_BREAK
 case 356:
 YY_RULE_SETUP
-#line 420 "mysqlnd_query_lexer.flex"
+#line 421 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PLUGINS");			DBG_RETURN(QC_TOKEN_PLUGINS); }
 	YY_BREAK
 case 357:
 YY_RULE_SETUP
-#line 421 "mysqlnd_query_lexer.flex"
+#line 422 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PLUGIN");			DBG_RETURN(QC_TOKEN_PLUGIN); }
 	YY_BREAK
 case 358:
 YY_RULE_SETUP
-#line 422 "mysqlnd_query_lexer.flex"
+#line 423 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_POINT");			DBG_RETURN(QC_TOKEN_POINT); }
 	YY_BREAK
 case 359:
 YY_RULE_SETUP
-#line 423 "mysqlnd_query_lexer.flex"
+#line 424 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_POLYGON");			DBG_RETURN(QC_TOKEN_POLYGON); }
 	YY_BREAK
 case 360:
 YY_RULE_SETUP
-#line 424 "mysqlnd_query_lexer.flex"
+#line 425 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PORT");				DBG_RETURN(QC_TOKEN_PORT); }
 	YY_BREAK
 case 361:
 YY_RULE_SETUP
-#line 425 "mysqlnd_query_lexer.flex"
+#line 426 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_POSITION");			DBG_RETURN(QC_TOKEN_POSITION); }
 	YY_BREAK
 case 362:
 YY_RULE_SETUP
-#line 426 "mysqlnd_query_lexer.flex"
+#line 427 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PRECISION");		DBG_RETURN(QC_TOKEN_PRECISION); }
 	YY_BREAK
 case 363:
 YY_RULE_SETUP
-#line 427 "mysqlnd_query_lexer.flex"
+#line 428 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PREPARE");			DBG_RETURN(QC_TOKEN_PREPARE); }
 	YY_BREAK
 case 364:
 YY_RULE_SETUP
-#line 428 "mysqlnd_query_lexer.flex"
+#line 429 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PRESERVE");			DBG_RETURN(QC_TOKEN_PRESERVE); }
 	YY_BREAK
 case 365:
 YY_RULE_SETUP
-#line 429 "mysqlnd_query_lexer.flex"
+#line 430 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PREV");				DBG_RETURN(QC_TOKEN_PREV); }
 	YY_BREAK
 case 366:
 YY_RULE_SETUP
-#line 430 "mysqlnd_query_lexer.flex"
+#line 431 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PRIMARY");			DBG_RETURN(QC_TOKEN_PRIMARY); }
 	YY_BREAK
 case 367:
 YY_RULE_SETUP
-#line 431 "mysqlnd_query_lexer.flex"
+#line 432 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PRIVILEGES");		DBG_RETURN(QC_TOKEN_PRIVILEGES); }
 	YY_BREAK
 case 368:
 YY_RULE_SETUP
-#line 432 "mysqlnd_query_lexer.flex"
+#line 433 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PROCEDURE");		DBG_RETURN(QC_TOKEN_PROCEDURE); }
 	YY_BREAK
 case 369:
 YY_RULE_SETUP
-#line 433 "mysqlnd_query_lexer.flex"
+#line 434 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PROCESS");			DBG_RETURN(QC_TOKEN_PROCESS); }
 	YY_BREAK
 case 370:
 YY_RULE_SETUP
-#line 434 "mysqlnd_query_lexer.flex"
+#line 435 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PROCESSLIST");		DBG_RETURN(QC_TOKEN_PROCESSLIST); }
 	YY_BREAK
 case 371:
 YY_RULE_SETUP
-#line 435 "mysqlnd_query_lexer.flex"
+#line 436 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PROFILE");			DBG_RETURN(QC_TOKEN_PROFILE); }
 	YY_BREAK
 case 372:
 YY_RULE_SETUP
-#line 436 "mysqlnd_query_lexer.flex"
+#line 437 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PROFILES");			DBG_RETURN(QC_TOKEN_PROFILES); }
 	YY_BREAK
 case 373:
 YY_RULE_SETUP
-#line 437 "mysqlnd_query_lexer.flex"
+#line 438 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_PURGE");			DBG_RETURN(QC_TOKEN_PURGE); }
 	YY_BREAK
 case 374:
 YY_RULE_SETUP
-#line 438 "mysqlnd_query_lexer.flex"
+#line 439 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_QUARTER");			DBG_RETURN(QC_TOKEN_QUARTER); }
 	YY_BREAK
 case 375:
 YY_RULE_SETUP
-#line 439 "mysqlnd_query_lexer.flex"
+#line 440 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_QUERY");			DBG_RETURN(QC_TOKEN_QUERY); }
 	YY_BREAK
 case 376:
 YY_RULE_SETUP
-#line 440 "mysqlnd_query_lexer.flex"
+#line 441 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_QUICK");			DBG_RETURN(QC_TOKEN_QUICK); }
 	YY_BREAK
 case 377:
 YY_RULE_SETUP
-#line 441 "mysqlnd_query_lexer.flex"
+#line 442 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RANGE");			DBG_RETURN(QC_TOKEN_RANGE); }
 	YY_BREAK
 case 378:
 YY_RULE_SETUP
-#line 442 "mysqlnd_query_lexer.flex"
+#line 443 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_READS");			DBG_RETURN(QC_TOKEN_READS); }
 	YY_BREAK
 case 379:
 YY_RULE_SETUP
-#line 443 "mysqlnd_query_lexer.flex"
+#line 444 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_READ_ONLY");		DBG_RETURN(QC_TOKEN_READ_ONLY); }
 	YY_BREAK
 case 380:
 YY_RULE_SETUP
-#line 444 "mysqlnd_query_lexer.flex"
+#line 445 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_READ");				DBG_RETURN(QC_TOKEN_READ); }
 	YY_BREAK
 case 381:
 YY_RULE_SETUP
-#line 445 "mysqlnd_query_lexer.flex"
+#line 446 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_READ_WRITE");		DBG_RETURN(QC_TOKEN_READ_WRITE); }
 	YY_BREAK
 case 382:
 YY_RULE_SETUP
-#line 446 "mysqlnd_query_lexer.flex"
+#line 447 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REAL");				DBG_RETURN(QC_TOKEN_REAL); }
 	YY_BREAK
 case 383:
 YY_RULE_SETUP
-#line 447 "mysqlnd_query_lexer.flex"
+#line 448 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REBUILD");			DBG_RETURN(QC_TOKEN_REBUILD); }
 	YY_BREAK
 case 384:
 YY_RULE_SETUP
-#line 448 "mysqlnd_query_lexer.flex"
+#line 449 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RECOVER");			DBG_RETURN(QC_TOKEN_RECOVER); }
 	YY_BREAK
 case 385:
 YY_RULE_SETUP
-#line 449 "mysqlnd_query_lexer.flex"
+#line 450 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REDOFILE");			DBG_RETURN(QC_TOKEN_REDOFILE); }
 	YY_BREAK
 case 386:
 YY_RULE_SETUP
-#line 450 "mysqlnd_query_lexer.flex"
+#line 451 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REDO_BUFFER_SIZE");	DBG_RETURN(QC_TOKEN_REDO_BUFFER_SIZE); }
 	YY_BREAK
 case 387:
 YY_RULE_SETUP
-#line 451 "mysqlnd_query_lexer.flex"
+#line 452 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REDUNDANT");		DBG_RETURN(QC_TOKEN_REDUNDANT); }
 	YY_BREAK
 case 388:
 YY_RULE_SETUP
-#line 452 "mysqlnd_query_lexer.flex"
+#line 453 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REFERENCES");		DBG_RETURN(QC_TOKEN_REFERENCES); }
 	YY_BREAK
 case 389:
 YY_RULE_SETUP
-#line 453 "mysqlnd_query_lexer.flex"
+#line 454 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REGEXP");			DBG_RETURN(QC_TOKEN_REGEXP); }
 	YY_BREAK
 case 390:
 YY_RULE_SETUP
-#line 454 "mysqlnd_query_lexer.flex"
+#line 455 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RELAYLOG");			DBG_RETURN(QC_TOKEN_RELAYLOG); }
 	YY_BREAK
 case 391:
 YY_RULE_SETUP
-#line 455 "mysqlnd_query_lexer.flex"
+#line 456 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RELAY_LOG_FILE");	DBG_RETURN(QC_TOKEN_RELAY_LOG_FILE); }
 	YY_BREAK
 case 392:
 YY_RULE_SETUP
-#line 456 "mysqlnd_query_lexer.flex"
+#line 457 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RELAY_LOG_POS");	DBG_RETURN(QC_TOKEN_RELAY_LOG_POS); }
 	YY_BREAK
 case 393:
 YY_RULE_SETUP
-#line 457 "mysqlnd_query_lexer.flex"
+#line 458 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RELAY_THREAD");		DBG_RETURN(QC_TOKEN_RELAY_THREAD); }
 	YY_BREAK
 case 394:
 YY_RULE_SETUP
-#line 458 "mysqlnd_query_lexer.flex"
+#line 459 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RELEASE");			DBG_RETURN(QC_TOKEN_RELEASE); }
 	YY_BREAK
 case 395:
 YY_RULE_SETUP
-#line 459 "mysqlnd_query_lexer.flex"
+#line 460 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RELOAD");			DBG_RETURN(QC_TOKEN_RELOAD); }
 	YY_BREAK
 case 396:
 YY_RULE_SETUP
-#line 460 "mysqlnd_query_lexer.flex"
+#line 461 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REMOVE");			DBG_RETURN(QC_TOKEN_REMOVE); }
 	YY_BREAK
 case 397:
 YY_RULE_SETUP
-#line 461 "mysqlnd_query_lexer.flex"
+#line 462 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RENAME");			DBG_RETURN(QC_TOKEN_RENAME); }
 	YY_BREAK
 case 398:
 YY_RULE_SETUP
-#line 462 "mysqlnd_query_lexer.flex"
+#line 463 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REORGANIZE");		DBG_RETURN(QC_TOKEN_REORGANIZE); }
 	YY_BREAK
 case 399:
 YY_RULE_SETUP
-#line 463 "mysqlnd_query_lexer.flex"
+#line 464 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REPAIR");			DBG_RETURN(QC_TOKEN_REPAIR); }
 	YY_BREAK
 case 400:
 YY_RULE_SETUP
-#line 464 "mysqlnd_query_lexer.flex"
+#line 465 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REPEATABLE");		DBG_RETURN(QC_TOKEN_REPEATABLE); }
 	YY_BREAK
 case 401:
 YY_RULE_SETUP
-#line 465 "mysqlnd_query_lexer.flex"
+#line 466 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REPEAT");			DBG_RETURN(QC_TOKEN_REPEAT); }
 	YY_BREAK
 case 402:
 YY_RULE_SETUP
-#line 466 "mysqlnd_query_lexer.flex"
+#line 467 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REPLACE");			DBG_RETURN(QC_TOKEN_REPLACE); }
 	YY_BREAK
 case 403:
 YY_RULE_SETUP
-#line 467 "mysqlnd_query_lexer.flex"
+#line 468 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REPLICATION");		DBG_RETURN(QC_TOKEN_REPLICATION); }
 	YY_BREAK
 case 404:
 YY_RULE_SETUP
-#line 468 "mysqlnd_query_lexer.flex"
+#line 469 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REQUIRE");			DBG_RETURN(QC_TOKEN_REQUIRE); }
 	YY_BREAK
 case 405:
 YY_RULE_SETUP
-#line 469 "mysqlnd_query_lexer.flex"
+#line 470 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RESET");			DBG_RETURN(QC_TOKEN_RESET); }
 	YY_BREAK
 case 406:
 YY_RULE_SETUP
-#line 470 "mysqlnd_query_lexer.flex"
+#line 471 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RESIGNAL");			DBG_RETURN(QC_TOKEN_RESIGNAL); }
 	YY_BREAK
 case 407:
 YY_RULE_SETUP
-#line 471 "mysqlnd_query_lexer.flex"
+#line 472 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RESOURCES");		DBG_RETURN(QC_TOKEN_RESOURCES); }
 	YY_BREAK
 case 408:
 YY_RULE_SETUP
-#line 472 "mysqlnd_query_lexer.flex"
+#line 473 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RESTORE");			DBG_RETURN(QC_TOKEN_RESTORE); }
 	YY_BREAK
 case 409:
 YY_RULE_SETUP
-#line 473 "mysqlnd_query_lexer.flex"
+#line 474 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RESTRICT");			DBG_RETURN(QC_TOKEN_RESTRICT); }
 	YY_BREAK
 case 410:
 YY_RULE_SETUP
-#line 474 "mysqlnd_query_lexer.flex"
+#line 475 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RESUME");			DBG_RETURN(QC_TOKEN_RESUME); }
 	YY_BREAK
 case 411:
 YY_RULE_SETUP
-#line 475 "mysqlnd_query_lexer.flex"
+#line 476 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RETURNS");			DBG_RETURN(QC_TOKEN_RETURNS); }
 	YY_BREAK
 case 412:
 YY_RULE_SETUP
-#line 476 "mysqlnd_query_lexer.flex"
+#line 477 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RETURN");			DBG_RETURN(QC_TOKEN_RETURN); }
 	YY_BREAK
 case 413:
 YY_RULE_SETUP
-#line 477 "mysqlnd_query_lexer.flex"
+#line 478 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_REVOKE");			DBG_RETURN(QC_TOKEN_REVOKE); }
 	YY_BREAK
 case 414:
 YY_RULE_SETUP
-#line 478 "mysqlnd_query_lexer.flex"
+#line 479 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RIGHT");			DBG_RETURN(QC_TOKEN_RIGHT); }
 	YY_BREAK
 case 415:
 YY_RULE_SETUP
-#line 479 "mysqlnd_query_lexer.flex"
+#line 480 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ROLLBACK");			DBG_RETURN(QC_TOKEN_ROLLBACK); }
 	YY_BREAK
 case 416:
 YY_RULE_SETUP
-#line 480 "mysqlnd_query_lexer.flex"
+#line 481 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ROLLUP");			DBG_RETURN(QC_TOKEN_ROLLUP); }
 	YY_BREAK
 case 417:
 YY_RULE_SETUP
-#line 481 "mysqlnd_query_lexer.flex"
+#line 482 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ROUTINE");			DBG_RETURN(QC_TOKEN_ROUTINE); }
 	YY_BREAK
 case 418:
 YY_RULE_SETUP
-#line 482 "mysqlnd_query_lexer.flex"
+#line 483 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ROWS");				DBG_RETURN(QC_TOKEN_ROWS); }
 	YY_BREAK
 case 419:
 YY_RULE_SETUP
-#line 483 "mysqlnd_query_lexer.flex"
+#line 484 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ROW_FORMAT");		DBG_RETURN(QC_TOKEN_ROW_FORMAT); }
 	YY_BREAK
 case 420:
 YY_RULE_SETUP
-#line 484 "mysqlnd_query_lexer.flex"
+#line 485 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ROW");				DBG_RETURN(QC_TOKEN_ROW); }
 	YY_BREAK
 case 421:
 YY_RULE_SETUP
-#line 485 "mysqlnd_query_lexer.flex"
+#line 486 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_RTREE");			DBG_RETURN(QC_TOKEN_RTREE); }
 	YY_BREAK
 case 422:
 YY_RULE_SETUP
-#line 486 "mysqlnd_query_lexer.flex"
+#line 487 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SAVEPOINT");		DBG_RETURN(QC_TOKEN_SAVEPOINT); }
 	YY_BREAK
 case 423:
 YY_RULE_SETUP
-#line 487 "mysqlnd_query_lexer.flex"
+#line 488 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SCHEDULE");			DBG_RETURN(QC_TOKEN_SCHEDULE); }
 	YY_BREAK
 case 424:
 YY_RULE_SETUP
-#line 488 "mysqlnd_query_lexer.flex"
+#line 489 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SCHEMA_NAME");		DBG_RETURN(QC_TOKEN_SCHEMA_NAME); }
 	YY_BREAK
 case 425:
 YY_RULE_SETUP
-#line 489 "mysqlnd_query_lexer.flex"
+#line 490 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SECOND_MICROSECOND");			DBG_RETURN(QC_TOKEN_SECOND_MICROSECOND); }
 	YY_BREAK
 case 426:
 YY_RULE_SETUP
-#line 490 "mysqlnd_query_lexer.flex"
+#line 491 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SECOND");			DBG_RETURN(QC_TOKEN_SECOND); }
 	YY_BREAK
 case 427:
 YY_RULE_SETUP
-#line 491 "mysqlnd_query_lexer.flex"
+#line 492 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SECURITY");			DBG_RETURN(QC_TOKEN_SECURITY); }
 	YY_BREAK
 case 428:
 YY_RULE_SETUP
-#line 492 "mysqlnd_query_lexer.flex"
+#line 493 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SELECT");			DBG_RETURN(QC_TOKEN_SELECT); }
 	YY_BREAK
 case 429:
 YY_RULE_SETUP
-#line 493 "mysqlnd_query_lexer.flex"
+#line 494 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SENSITIVE");		DBG_RETURN(QC_TOKEN_SENSITIVE); }
 	YY_BREAK
 case 430:
 YY_RULE_SETUP
-#line 494 "mysqlnd_query_lexer.flex"
+#line 495 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SEPARATOR");		DBG_RETURN(QC_TOKEN_SEPARATOR); }
 	YY_BREAK
 case 431:
 YY_RULE_SETUP
-#line 495 "mysqlnd_query_lexer.flex"
+#line 496 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SERIALIZABLE");		DBG_RETURN(QC_TOKEN_SERIALIZABLE); }
 	YY_BREAK
 case 432:
 YY_RULE_SETUP
-#line 496 "mysqlnd_query_lexer.flex"
+#line 497 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SERIAL");			DBG_RETURN(QC_TOKEN_SERIAL); }
 	YY_BREAK
 case 433:
 YY_RULE_SETUP
-#line 497 "mysqlnd_query_lexer.flex"
+#line 498 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SESSION");			DBG_RETURN(QC_TOKEN_SESSION); }
 	YY_BREAK
 case 434:
 YY_RULE_SETUP
-#line 498 "mysqlnd_query_lexer.flex"
+#line 499 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SERVER");			DBG_RETURN(QC_TOKEN_SERVER); }
 	YY_BREAK
 case 435:
 YY_RULE_SETUP
-#line 499 "mysqlnd_query_lexer.flex"
+#line 500 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SERVER_OPTIONS");	DBG_RETURN(QC_TOKEN_SERVER_OPTIONS); }
 	YY_BREAK
 case 436:
 YY_RULE_SETUP
-#line 500 "mysqlnd_query_lexer.flex"
+#line 501 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SET");				DBG_RETURN(QC_TOKEN_SET); }
 	YY_BREAK
 case 437:
 YY_RULE_SETUP
-#line 501 "mysqlnd_query_lexer.flex"
+#line 502 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SHARE");			DBG_RETURN(QC_TOKEN_SHARE); }
 	YY_BREAK
 case 438:
 YY_RULE_SETUP
-#line 502 "mysqlnd_query_lexer.flex"
+#line 503 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SHIFT_LEFT");		DBG_RETURN(QC_TOKEN_SHIFT_LEFT); }
 	YY_BREAK
 case 439:
 YY_RULE_SETUP
-#line 503 "mysqlnd_query_lexer.flex"
+#line 504 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SHIFT_RIGHT");		DBG_RETURN(QC_TOKEN_SHIFT_RIGHT); }
 	YY_BREAK
 case 440:
 YY_RULE_SETUP
-#line 504 "mysqlnd_query_lexer.flex"
+#line 505 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SHOW");				DBG_RETURN(QC_TOKEN_SHOW); }
 	YY_BREAK
 case 441:
 YY_RULE_SETUP
-#line 505 "mysqlnd_query_lexer.flex"
+#line 506 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SHUTDOWN");			DBG_RETURN(QC_TOKEN_SHUTDOWN); }
 	YY_BREAK
 case 442:
 YY_RULE_SETUP
-#line 506 "mysqlnd_query_lexer.flex"
+#line 507 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SIGNAL");			DBG_RETURN(QC_TOKEN_SIGNAL); }
 	YY_BREAK
 case 443:
 YY_RULE_SETUP
-#line 507 "mysqlnd_query_lexer.flex"
+#line 508 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SIGNED");			DBG_RETURN(QC_TOKEN_SIGNED); }
 	YY_BREAK
 case 444:
 YY_RULE_SETUP
-#line 508 "mysqlnd_query_lexer.flex"
+#line 509 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SIMPLE");			DBG_RETURN(QC_TOKEN_SIMPLE); }
 	YY_BREAK
 case 445:
 YY_RULE_SETUP
-#line 509 "mysqlnd_query_lexer.flex"
+#line 510 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SLAVE");			DBG_RETURN(QC_TOKEN_SLAVE); }
 	YY_BREAK
 case 446:
 YY_RULE_SETUP
-#line 510 "mysqlnd_query_lexer.flex"
+#line 511 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SMALLINT");			DBG_RETURN(QC_TOKEN_SMALLINT); }
 	YY_BREAK
 case 447:
 YY_RULE_SETUP
-#line 511 "mysqlnd_query_lexer.flex"
+#line 512 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SNAPSHOT");			DBG_RETURN(QC_TOKEN_SNAPSHOT); }
 	YY_BREAK
 case 448:
 YY_RULE_SETUP
-#line 512 "mysqlnd_query_lexer.flex"
+#line 513 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SOCKET");			DBG_RETURN(QC_TOKEN_SOCKET); }
 	YY_BREAK
 case 449:
 YY_RULE_SETUP
-#line 513 "mysqlnd_query_lexer.flex"
+#line 514 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SONAME");			DBG_RETURN(QC_TOKEN_SONAME); }
 	YY_BREAK
 case 450:
 YY_RULE_SETUP
-#line 514 "mysqlnd_query_lexer.flex"
+#line 515 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SOUNDS");			DBG_RETURN(QC_TOKEN_SOUNDS); }
 	YY_BREAK
 case 451:
 YY_RULE_SETUP
-#line 515 "mysqlnd_query_lexer.flex"
+#line 516 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SOURCE");			DBG_RETURN(QC_TOKEN_SOURCE); }
 	YY_BREAK
 case 452:
 YY_RULE_SETUP
-#line 516 "mysqlnd_query_lexer.flex"
+#line 517 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SPATIAL");			DBG_RETURN(QC_TOKEN_SPATIAL); }
 	YY_BREAK
 case 453:
 YY_RULE_SETUP
-#line 517 "mysqlnd_query_lexer.flex"
+#line 518 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SPECIFIC");			DBG_RETURN(QC_TOKEN_SPECIFIC); }
 	YY_BREAK
 case 454:
 YY_RULE_SETUP
-#line 518 "mysqlnd_query_lexer.flex"
+#line 519 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQLEXCEPTION");		DBG_RETURN(QC_TOKEN_SQLEXCEPTION); }
 	YY_BREAK
 case 455:
 YY_RULE_SETUP
-#line 519 "mysqlnd_query_lexer.flex"
+#line 520 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQLSTATE");			DBG_RETURN(QC_TOKEN_SQLSTATE); }
 	YY_BREAK
 case 456:
 YY_RULE_SETUP
-#line 520 "mysqlnd_query_lexer.flex"
+#line 521 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQLWARNING");		DBG_RETURN(QC_TOKEN_SQLWARNING); }
 	YY_BREAK
 case 457:
 YY_RULE_SETUP
-#line 521 "mysqlnd_query_lexer.flex"
+#line 522 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_BIG_RESULT");	DBG_RETURN(QC_TOKEN_SQL_BIG_RESULT); }
 	YY_BREAK
 case 458:
 YY_RULE_SETUP
-#line 522 "mysqlnd_query_lexer.flex"
+#line 523 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_BUFFER_RESULT");DBG_RETURN(QC_TOKEN_SQL_BUFFER_RESULT); }
 	YY_BREAK
 case 459:
 YY_RULE_SETUP
-#line 523 "mysqlnd_query_lexer.flex"
+#line 524 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_CACHE");		DBG_RETURN(QC_TOKEN_SQL_CACHE); }
 	YY_BREAK
 case 460:
 YY_RULE_SETUP
-#line 524 "mysqlnd_query_lexer.flex"
+#line 525 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_CALC_FOUND_ROWS");			DBG_RETURN(QC_TOKEN_SQL_CALC_FOUND_ROWS); }
 	YY_BREAK
 case 461:
 YY_RULE_SETUP
-#line 525 "mysqlnd_query_lexer.flex"
+#line 526 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_NO_CACHE");		DBG_RETURN(QC_TOKEN_SQL_NO_CACHE); }
 	YY_BREAK
 case 462:
 YY_RULE_SETUP
-#line 526 "mysqlnd_query_lexer.flex"
+#line 527 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_SMALL_RESULT");	DBG_RETURN(QC_TOKEN_SQL_SMALL_RESULT); }
 	YY_BREAK
 case 463:
 YY_RULE_SETUP
-#line 527 "mysqlnd_query_lexer.flex"
+#line 528 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL");			DBG_RETURN(QC_TOKEN_SQL); }
 	YY_BREAK
 case 464:
 YY_RULE_SETUP
-#line 528 "mysqlnd_query_lexer.flex"
+#line 529 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SQL_THREAD");	DBG_RETURN(QC_TOKEN_SQL_THREAD); }
 	YY_BREAK
 case 465:
 YY_RULE_SETUP
-#line 529 "mysqlnd_query_lexer.flex"
+#line 530 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SSL");			DBG_RETURN(QC_TOKEN_SSL); }
 	YY_BREAK
 case 466:
 YY_RULE_SETUP
-#line 530 "mysqlnd_query_lexer.flex"
+#line 531 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STARTING");		DBG_RETURN(QC_TOKEN_STARTING); }
 	YY_BREAK
 case 467:
 YY_RULE_SETUP
-#line 531 "mysqlnd_query_lexer.flex"
+#line 532 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STARTS");		DBG_RETURN(QC_TOKEN_STARTS); }
 	YY_BREAK
 case 468:
 YY_RULE_SETUP
-#line 532 "mysqlnd_query_lexer.flex"
+#line 533 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_START");		DBG_RETURN(QC_TOKEN_START); }
 	YY_BREAK
 case 469:
 YY_RULE_SETUP
-#line 533 "mysqlnd_query_lexer.flex"
+#line 534 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STATUS");		DBG_RETURN(QC_TOKEN_STATUS); }
 	YY_BREAK
 case 470:
 YY_RULE_SETUP
-#line 534 "mysqlnd_query_lexer.flex"
+#line 535 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STDDEV_SAMP");	DBG_RETURN(QC_TOKEN_STDDEV_SAMP); }
 	YY_BREAK
 case 471:
 YY_RULE_SETUP
-#line 535 "mysqlnd_query_lexer.flex"
+#line 536 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STD");			DBG_RETURN(QC_TOKEN_STD); }
 	YY_BREAK
 case 472:
 YY_RULE_SETUP
-#line 536 "mysqlnd_query_lexer.flex"
+#line 537 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STOP");			DBG_RETURN(QC_TOKEN_STOP); }
 	YY_BREAK
 case 473:
 YY_RULE_SETUP
-#line 537 "mysqlnd_query_lexer.flex"
+#line 538 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STORAGE");		DBG_RETURN(QC_TOKEN_STORAGE); }
 	YY_BREAK
 case 474:
 YY_RULE_SETUP
-#line 538 "mysqlnd_query_lexer.flex"
+#line 539 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STRAIGHT_JOIN");DBG_RETURN(QC_TOKEN_STRAIGHT_JOIN); }
 	YY_BREAK
 case 475:
 YY_RULE_SETUP
-#line 539 "mysqlnd_query_lexer.flex"
+#line 540 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_STRING");		DBG_RETURN(QC_TOKEN_STRING); }
 	YY_BREAK
 case 476:
 YY_RULE_SETUP
-#line 540 "mysqlnd_query_lexer.flex"
+#line 541 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUBCLASS_ORIGIN");DBG_RETURN(QC_TOKEN_SUBCLASS_ORIGIN); }
 	YY_BREAK
 case 477:
 YY_RULE_SETUP
-#line 541 "mysqlnd_query_lexer.flex"
+#line 542 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUBDATE");		DBG_RETURN(QC_TOKEN_SUBDATE); }
 	YY_BREAK
 case 478:
 YY_RULE_SETUP
-#line 542 "mysqlnd_query_lexer.flex"
+#line 543 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUBJECT");		DBG_RETURN(QC_TOKEN_SUBJECT); }
 	YY_BREAK
 case 479:
 YY_RULE_SETUP
-#line 543 "mysqlnd_query_lexer.flex"
+#line 544 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUBPARTITIONS");DBG_RETURN(QC_TOKEN_SUBPARTITIONS); }
 	YY_BREAK
 case 480:
 YY_RULE_SETUP
-#line 544 "mysqlnd_query_lexer.flex"
+#line 545 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUBPARTITION");	DBG_RETURN(QC_TOKEN_SUBPARTITION); }
 	YY_BREAK
 case 481:
 YY_RULE_SETUP
-#line 545 "mysqlnd_query_lexer.flex"
+#line 546 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUBSTRING");	DBG_RETURN(QC_TOKEN_SUBSTRING); }
 	YY_BREAK
 case 482:
 YY_RULE_SETUP
-#line 546 "mysqlnd_query_lexer.flex"
+#line 547 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUM");			DBG_RETURN(QC_TOKEN_SUM); }
 	YY_BREAK
 case 483:
 YY_RULE_SETUP
-#line 547 "mysqlnd_query_lexer.flex"
+#line 548 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUPER");		DBG_RETURN(QC_TOKEN_SUPER); }
 	YY_BREAK
 case 484:
 YY_RULE_SETUP
-#line 548 "mysqlnd_query_lexer.flex"
+#line 549 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SUSPEND");		DBG_RETURN(QC_TOKEN_SUSPEND); }
 	YY_BREAK
 case 485:
 YY_RULE_SETUP
-#line 549 "mysqlnd_query_lexer.flex"
+#line 550 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SWAPS");		DBG_RETURN(QC_TOKEN_SWAPS); }
 	YY_BREAK
 case 486:
 YY_RULE_SETUP
-#line 550 "mysqlnd_query_lexer.flex"
+#line 551 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SWITCHES");		DBG_RETURN(QC_TOKEN_SWITCHES); }
 	YY_BREAK
 case 487:
 YY_RULE_SETUP
-#line 551 "mysqlnd_query_lexer.flex"
+#line 552 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_SYSDATE");		DBG_RETURN(QC_TOKEN_SYSDATE); }
 	YY_BREAK
 case 488:
 YY_RULE_SETUP
-#line 552 "mysqlnd_query_lexer.flex"
+#line 553 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TABLES");		DBG_RETURN(QC_TOKEN_TABLES); }
 	YY_BREAK
 case 489:
 YY_RULE_SETUP
-#line 553 "mysqlnd_query_lexer.flex"
+#line 554 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TABLESPACE");	DBG_RETURN(QC_TOKEN_TABLESPACE); }
 	YY_BREAK
 case 490:
 YY_RULE_SETUP
-#line 554 "mysqlnd_query_lexer.flex"
+#line 555 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TABLE_REF_PRIORITY");DBG_RETURN(QC_TOKEN_TABLE_REF_PRIORITY); }
 	YY_BREAK
 case 491:
 YY_RULE_SETUP
-#line 555 "mysqlnd_query_lexer.flex"
+#line 556 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TABLE");		DBG_RETURN(QC_TOKEN_TABLE); }
 	YY_BREAK
 case 492:
 YY_RULE_SETUP
-#line 556 "mysqlnd_query_lexer.flex"
+#line 557 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TABLE_CHECKSUM");DBG_RETURN(QC_TOKEN_TABLE_CHECKSUM); }
 	YY_BREAK
 case 493:
 YY_RULE_SETUP
-#line 557 "mysqlnd_query_lexer.flex"
+#line 558 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TABLE_NAME");	DBG_RETURN(QC_TOKEN_TABLE_NAME); }
 	YY_BREAK
 case 494:
 YY_RULE_SETUP
-#line 558 "mysqlnd_query_lexer.flex"
+#line 559 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TEMPORARY");	DBG_RETURN(QC_TOKEN_TEMPORARY); }
 	YY_BREAK
 case 495:
 YY_RULE_SETUP
-#line 559 "mysqlnd_query_lexer.flex"
+#line 560 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TEMPTABLE");	DBG_RETURN(QC_TOKEN_TEMPTABLE); }
 	YY_BREAK
 case 496:
 YY_RULE_SETUP
-#line 560 "mysqlnd_query_lexer.flex"
+#line 561 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TERMINATED");	DBG_RETURN(QC_TOKEN_TERMINATED); }
 	YY_BREAK
 case 497:
 YY_RULE_SETUP
-#line 561 "mysqlnd_query_lexer.flex"
+#line 562 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TEXT_STRING");	DBG_RETURN(QC_TOKEN_TEXT_STRING); }
 	YY_BREAK
 case 498:
 YY_RULE_SETUP
-#line 562 "mysqlnd_query_lexer.flex"
+#line 563 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TEXT");			DBG_RETURN(QC_TOKEN_TEXT); }
 	YY_BREAK
 case 499:
 YY_RULE_SETUP
-#line 563 "mysqlnd_query_lexer.flex"
+#line 564 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_THAN");			DBG_RETURN(QC_TOKEN_THAN); }
 	YY_BREAK
 case 500:
 YY_RULE_SETUP
-#line 564 "mysqlnd_query_lexer.flex"
+#line 565 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_THEN");			DBG_RETURN(QC_TOKEN_THEN); }
 	YY_BREAK
 case 501:
 YY_RULE_SETUP
-#line 565 "mysqlnd_query_lexer.flex"
+#line 566 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TIMESTAMP");	DBG_RETURN(QC_TOKEN_TIMESTAMP); }
 	YY_BREAK
 case 502:
 YY_RULE_SETUP
-#line 566 "mysqlnd_query_lexer.flex"
+#line 567 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TIMESTAMP_ADD");DBG_RETURN(QC_TOKEN_TIMESTAMP_ADD); }
 	YY_BREAK
 case 503:
 YY_RULE_SETUP
-#line 567 "mysqlnd_query_lexer.flex"
+#line 568 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TIMESTAMP_DIFF");DBG_RETURN(QC_TOKEN_TIMESTAMP_DIFF); }
 	YY_BREAK
 case 504:
 YY_RULE_SETUP
-#line 568 "mysqlnd_query_lexer.flex"
+#line 569 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TIME");			DBG_RETURN(QC_TOKEN_TIME); }
 	YY_BREAK
 case 505:
 YY_RULE_SETUP
-#line 569 "mysqlnd_query_lexer.flex"
+#line 570 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TINYBLOB");		DBG_RETURN(QC_TOKEN_TINYBLOB); }
 	YY_BREAK
 case 506:
 YY_RULE_SETUP
-#line 570 "mysqlnd_query_lexer.flex"
+#line 571 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TINYINT");		DBG_RETURN(QC_TOKEN_TINYINT); }
 	YY_BREAK
 case 507:
 YY_RULE_SETUP
-#line 571 "mysqlnd_query_lexer.flex"
+#line 572 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TINYTEXT");		DBG_RETURN(QC_TOKEN_TINYTEXT); }
 	YY_BREAK
 case 508:
 YY_RULE_SETUP
-#line 572 "mysqlnd_query_lexer.flex"
+#line 573 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TO");			DBG_RETURN(QC_TOKEN_TO); }
 	YY_BREAK
 case 509:
 YY_RULE_SETUP
-#line 573 "mysqlnd_query_lexer.flex"
+#line 574 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRAILING");		DBG_RETURN(QC_TOKEN_TRAILING); }
 	YY_BREAK
 case 510:
 YY_RULE_SETUP
-#line 574 "mysqlnd_query_lexer.flex"
+#line 575 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRANSACTION");	DBG_RETURN(QC_TOKEN_TRANSACTION); }
 	YY_BREAK
 case 511:
 YY_RULE_SETUP
-#line 575 "mysqlnd_query_lexer.flex"
+#line 576 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRIGGERS");		DBG_RETURN(QC_TOKEN_TRIGGERS); }
 	YY_BREAK
 case 512:
 YY_RULE_SETUP
-#line 576 "mysqlnd_query_lexer.flex"
+#line 577 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRIGGER");		DBG_RETURN(QC_TOKEN_TRIGGER); }
 	YY_BREAK
 case 513:
 YY_RULE_SETUP
-#line 577 "mysqlnd_query_lexer.flex"
+#line 578 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRIM");			DBG_RETURN(QC_TOKEN_TRIM); }
 	YY_BREAK
 case 514:
 YY_RULE_SETUP
-#line 578 "mysqlnd_query_lexer.flex"
+#line 579 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRUE");			DBG_RETURN(QC_TOKEN_TRUE); }
 	YY_BREAK
 case 515:
 YY_RULE_SETUP
-#line 579 "mysqlnd_query_lexer.flex"
+#line 580 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TRUNCATE");		DBG_RETURN(QC_TOKEN_TRUNCATE); }
 	YY_BREAK
 case 516:
 YY_RULE_SETUP
-#line 580 "mysqlnd_query_lexer.flex"
+#line 581 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TYPES");		DBG_RETURN(QC_TOKEN_TYPES); }
 	YY_BREAK
 case 517:
 YY_RULE_SETUP
-#line 581 "mysqlnd_query_lexer.flex"
+#line 582 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_TYPE");			DBG_RETURN(QC_TOKEN_TYPE); }
 	YY_BREAK
 case 518:
 YY_RULE_SETUP
-#line 582 "mysqlnd_query_lexer.flex"
+#line 583 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UDF_RETURNS");	DBG_RETURN(QC_TOKEN_UDF_RETURNS); }
 	YY_BREAK
 case 519:
 YY_RULE_SETUP
-#line 583 "mysqlnd_query_lexer.flex"
+#line 584 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ULONGLONG_NUM");DBG_RETURN(QC_TOKEN_ULONGLONG_NUM); }
 	YY_BREAK
 case 520:
 YY_RULE_SETUP
-#line 584 "mysqlnd_query_lexer.flex"
+#line 585 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNCOMMITTED");	DBG_RETURN(QC_TOKEN_UNCOMMITTED); }
 	YY_BREAK
 case 521:
 YY_RULE_SETUP
-#line 585 "mysqlnd_query_lexer.flex"
+#line 586 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNDEFINED");	DBG_RETURN(QC_TOKEN_UNDEFINED); }
 	YY_BREAK
 case 522:
 YY_RULE_SETUP
-#line 586 "mysqlnd_query_lexer.flex"
+#line 587 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNDERSCORE_CHARSET");DBG_RETURN(QC_TOKEN_UNDERSCORE_CHARSET); }
 	YY_BREAK
 case 523:
 YY_RULE_SETUP
-#line 587 "mysqlnd_query_lexer.flex"
+#line 588 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNDOFILE");		DBG_RETURN(QC_TOKEN_UNDOFILE); }
 	YY_BREAK
 case 524:
 YY_RULE_SETUP
-#line 588 "mysqlnd_query_lexer.flex"
+#line 589 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNDO_BUFFER_SIZE");DBG_RETURN(QC_TOKEN_UNDO_BUFFER_SIZE); }
 	YY_BREAK
 case 525:
 YY_RULE_SETUP
-#line 589 "mysqlnd_query_lexer.flex"
+#line 590 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNDO");			DBG_RETURN(QC_TOKEN_UNDO); }
 	YY_BREAK
 case 526:
 YY_RULE_SETUP
-#line 590 "mysqlnd_query_lexer.flex"
+#line 591 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNICODE");		DBG_RETURN(QC_TOKEN_UNICODE); }
 	YY_BREAK
 case 527:
 YY_RULE_SETUP
-#line 591 "mysqlnd_query_lexer.flex"
+#line 592 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNINSTALL");	DBG_RETURN(QC_TOKEN_UNINSTALL); }
 	YY_BREAK
 case 528:
 YY_RULE_SETUP
-#line 592 "mysqlnd_query_lexer.flex"
+#line 593 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNION");		DBG_RETURN(QC_TOKEN_UNION); }
 	YY_BREAK
 case 529:
 YY_RULE_SETUP
-#line 593 "mysqlnd_query_lexer.flex"
+#line 594 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNIQUE");		DBG_RETURN(QC_TOKEN_UNIQUE); }
 	YY_BREAK
 case 530:
 YY_RULE_SETUP
-#line 594 "mysqlnd_query_lexer.flex"
+#line 595 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNKNOWN");		DBG_RETURN(QC_TOKEN_UNKNOWN); }
 	YY_BREAK
 case 531:
 YY_RULE_SETUP
-#line 595 "mysqlnd_query_lexer.flex"
+#line 596 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNLOCK");		DBG_RETURN(QC_TOKEN_UNLOCK); }
 	YY_BREAK
 case 532:
 YY_RULE_SETUP
-#line 596 "mysqlnd_query_lexer.flex"
+#line 597 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNSIGNED");		DBG_RETURN(QC_TOKEN_UNSIGNED); }
 	YY_BREAK
 case 533:
 YY_RULE_SETUP
-#line 597 "mysqlnd_query_lexer.flex"
+#line 598 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UNTIL");		DBG_RETURN(QC_TOKEN_UNTIL); }
 	YY_BREAK
 case 534:
 YY_RULE_SETUP
-#line 598 "mysqlnd_query_lexer.flex"
+#line 599 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UPDATE");		DBG_RETURN(QC_TOKEN_UPDATE); }
 	YY_BREAK
 case 535:
 YY_RULE_SETUP
-#line 599 "mysqlnd_query_lexer.flex"
+#line 600 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UPGRADE");		DBG_RETURN(QC_TOKEN_UPGRADE); }
 	YY_BREAK
 case 536:
 YY_RULE_SETUP
-#line 600 "mysqlnd_query_lexer.flex"
+#line 601 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_USAGE");		DBG_RETURN(QC_TOKEN_USAGE); }
 	YY_BREAK
 case 537:
 YY_RULE_SETUP
-#line 601 "mysqlnd_query_lexer.flex"
+#line 602 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_USER");			DBG_RETURN(QC_TOKEN_USER); }
 	YY_BREAK
 case 538:
 YY_RULE_SETUP
-#line 602 "mysqlnd_query_lexer.flex"
+#line 603 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_USE_FRM");		DBG_RETURN(QC_TOKEN_USE_FRM); }
 	YY_BREAK
 case 539:
 YY_RULE_SETUP
-#line 603 "mysqlnd_query_lexer.flex"
+#line 604 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_USE");			DBG_RETURN(QC_TOKEN_USE); }
 	YY_BREAK
 case 540:
 YY_RULE_SETUP
-#line 604 "mysqlnd_query_lexer.flex"
+#line 605 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_USING");		DBG_RETURN(QC_TOKEN_USING); }
 	YY_BREAK
 case 541:
 YY_RULE_SETUP
-#line 605 "mysqlnd_query_lexer.flex"
+#line 606 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UTC_DATE");		DBG_RETURN(QC_TOKEN_UTC_DATE); }
 	YY_BREAK
 case 542:
 YY_RULE_SETUP
-#line 606 "mysqlnd_query_lexer.flex"
+#line 607 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UTC_TIMESTAMP");DBG_RETURN(QC_TOKEN_UTC_TIMESTAMP); }
 	YY_BREAK
 case 543:
 YY_RULE_SETUP
-#line 607 "mysqlnd_query_lexer.flex"
+#line 608 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_UTC_TIME");		DBG_RETURN(QC_TOKEN_UTC_TIME); }
 	YY_BREAK
 case 544:
 YY_RULE_SETUP
-#line 608 "mysqlnd_query_lexer.flex"
+#line 609 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VALUES");		DBG_RETURN(QC_TOKEN_VALUES); }
 	YY_BREAK
 case 545:
 YY_RULE_SETUP
-#line 609 "mysqlnd_query_lexer.flex"
+#line 610 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VALUE");		DBG_RETURN(QC_TOKEN_VALUE); }
 	YY_BREAK
 case 546:
 YY_RULE_SETUP
-#line 610 "mysqlnd_query_lexer.flex"
+#line 611 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VARBINARY");	DBG_RETURN(QC_TOKEN_VARBINARY); }
 	YY_BREAK
 case 547:
 YY_RULE_SETUP
-#line 611 "mysqlnd_query_lexer.flex"
+#line 612 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VARCHAR");		DBG_RETURN(QC_TOKEN_VARCHAR); }
 	YY_BREAK
 case 548:
 YY_RULE_SETUP
-#line 612 "mysqlnd_query_lexer.flex"
+#line 613 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VARIABLES");	DBG_RETURN(QC_TOKEN_VARIABLES); }
 	YY_BREAK
 case 549:
 YY_RULE_SETUP
-#line 613 "mysqlnd_query_lexer.flex"
+#line 614 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VARIANCE");		DBG_RETURN(QC_TOKEN_VARIANCE); }
 	YY_BREAK
 case 550:
 YY_RULE_SETUP
-#line 614 "mysqlnd_query_lexer.flex"
+#line 615 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VARYING");		DBG_RETURN(QC_TOKEN_VARYING); }
 	YY_BREAK
 case 551:
 YY_RULE_SETUP
-#line 615 "mysqlnd_query_lexer.flex"
+#line 616 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VAR_SAMP");		DBG_RETURN(QC_TOKEN_VAR_SAMP); }
 	YY_BREAK
 case 552:
 YY_RULE_SETUP
-#line 616 "mysqlnd_query_lexer.flex"
+#line 617 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_VIEW");			DBG_RETURN(QC_TOKEN_VIEW); }
 	YY_BREAK
 case 553:
 YY_RULE_SETUP
-#line 617 "mysqlnd_query_lexer.flex"
+#line 618 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WAIT");			DBG_RETURN(QC_TOKEN_WAIT); }
 	YY_BREAK
 case 554:
 YY_RULE_SETUP
-#line 618 "mysqlnd_query_lexer.flex"
+#line 619 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WARNINGS");		DBG_RETURN(QC_TOKEN_WARNINGS); }
 	YY_BREAK
 case 555:
 YY_RULE_SETUP
-#line 619 "mysqlnd_query_lexer.flex"
+#line 620 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WEEK");			DBG_RETURN(QC_TOKEN_WEEK); }
 	YY_BREAK
 case 556:
 YY_RULE_SETUP
-#line 620 "mysqlnd_query_lexer.flex"
+#line 621 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WHEN");			DBG_RETURN(QC_TOKEN_WHEN); }
 	YY_BREAK
 case 557:
 YY_RULE_SETUP
-#line 621 "mysqlnd_query_lexer.flex"
+#line 622 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WHERE");		DBG_RETURN(QC_TOKEN_WHERE); }
 	YY_BREAK
 case 558:
 YY_RULE_SETUP
-#line 622 "mysqlnd_query_lexer.flex"
+#line 623 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WHILE");		DBG_RETURN(QC_TOKEN_WHILE); }
 	YY_BREAK
 case 559:
 YY_RULE_SETUP
-#line 623 "mysqlnd_query_lexer.flex"
+#line 624 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WITH");			DBG_RETURN(QC_TOKEN_WITH); }
 	YY_BREAK
 case 560:
 YY_RULE_SETUP
-#line 624 "mysqlnd_query_lexer.flex"
+#line 625 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WITH_CUBE");	DBG_RETURN(QC_TOKEN_WITH_CUBE); }
 	YY_BREAK
 case 561:
 YY_RULE_SETUP
-#line 625 "mysqlnd_query_lexer.flex"
+#line 626 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WITH_ROLLUP");	DBG_RETURN(QC_TOKEN_WITH_ROLLUP); }
 	YY_BREAK
 case 562:
 YY_RULE_SETUP
-#line 626 "mysqlnd_query_lexer.flex"
+#line 627 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WORK");			DBG_RETURN(QC_TOKEN_WORK); }
 	YY_BREAK
 case 563:
 YY_RULE_SETUP
-#line 627 "mysqlnd_query_lexer.flex"
+#line 628 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WRAPPER");		DBG_RETURN(QC_TOKEN_WRAPPER); }
 	YY_BREAK
 case 564:
 YY_RULE_SETUP
-#line 628 "mysqlnd_query_lexer.flex"
+#line 629 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_WRITE");		DBG_RETURN(QC_TOKEN_WRITE); }
 	YY_BREAK
 case 565:
 YY_RULE_SETUP
-#line 629 "mysqlnd_query_lexer.flex"
+#line 630 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_X509");			DBG_RETURN(QC_TOKEN_X509); }
 	YY_BREAK
 case 566:
 YY_RULE_SETUP
-#line 630 "mysqlnd_query_lexer.flex"
+#line 631 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_XA");			DBG_RETURN(QC_TOKEN_XA); }
 	YY_BREAK
 case 567:
 YY_RULE_SETUP
-#line 631 "mysqlnd_query_lexer.flex"
+#line 632 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_XML");			DBG_RETURN(QC_TOKEN_XML); }
 	YY_BREAK
 case 568:
 YY_RULE_SETUP
-#line 632 "mysqlnd_query_lexer.flex"
+#line 633 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_XOR");			DBG_RETURN(QC_TOKEN_XOR); }
 	YY_BREAK
 case 569:
 YY_RULE_SETUP
-#line 633 "mysqlnd_query_lexer.flex"
+#line 634 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_YEAR_MONTH");	DBG_RETURN(QC_TOKEN_YEAR_MONTH); }
 	YY_BREAK
 case 570:
 YY_RULE_SETUP
-#line 634 "mysqlnd_query_lexer.flex"
+#line 635 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_YEAR");			DBG_RETURN(QC_TOKEN_YEAR); }
 	YY_BREAK
 case 571:
 YY_RULE_SETUP
-#line 635 "mysqlnd_query_lexer.flex"
+#line 636 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_ZEROFILL");		DBG_RETURN(QC_TOKEN_ZEROFILL); }
 	YY_BREAK
 case 572:
 YY_RULE_SETUP
-#line 636 "mysqlnd_query_lexer.flex"
+#line 637 "mysqlnd_query_lexer.flex"
 { *kn = yytext; DBG_INF("QC_TOKEN_CLIENT_FLAG");	DBG_RETURN(QC_TOKEN_CLIENT_FLAG); }
 	YY_BREAK
 /* Integers and Floats */
 case 573:
 YY_RULE_SETUP
-#line 640 "mysqlnd_query_lexer.flex"
+#line 641 "mysqlnd_query_lexer.flex"
 { ZVAL_LONG(token_value, atoi(yytext)); DBG_INF("QC_TOKEN_INTNUM");	DBG_RETURN(QC_TOKEN_INTNUM); }
 	YY_BREAK
 case 574:
-#line 643 "mysqlnd_query_lexer.flex"
-case 575:
 #line 644 "mysqlnd_query_lexer.flex"
-case 576:
+case 575:
 #line 645 "mysqlnd_query_lexer.flex"
-case 577:
+case 576:
 #line 646 "mysqlnd_query_lexer.flex"
+case 577:
+#line 647 "mysqlnd_query_lexer.flex"
 case 578:
 YY_RULE_SETUP
-#line 646 "mysqlnd_query_lexer.flex"
+#line 647 "mysqlnd_query_lexer.flex"
 { ZVAL_DOUBLE(token_value, atof(yytext)); DBG_INF("QC_TOKEN_FLOATNUM");	DBG_RETURN(QC_TOKEN_FLOATNUM); }
 	YY_BREAK
 /* Normal strings */
 case 579:
-#line 650 "mysqlnd_query_lexer.flex"
+#line 651 "mysqlnd_query_lexer.flex"
 case 580:
 YY_RULE_SETUP
-#line 650 "mysqlnd_query_lexer.flex"
+#line 651 "mysqlnd_query_lexer.flex"
 { ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_STRING");	DBG_RETURN(QC_TOKEN_STRING); }
 	YY_BREAK
 case 581:
@@ -8102,7 +8103,7 @@ case 581:
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 651 "mysqlnd_query_lexer.flex"
+#line 652 "mysqlnd_query_lexer.flex"
 { yyerror("Unterminated string %s", yytext); }
 	YY_BREAK
 case 582:
@@ -8110,177 +8111,177 @@ case 582:
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 652 "mysqlnd_query_lexer.flex"
+#line 653 "mysqlnd_query_lexer.flex"
 { yyerror("Unterminated string %s", yytext); }
 	YY_BREAK
 /* Hex and Bit strings */
 case 583:
-#line 656 "mysqlnd_query_lexer.flex"
+#line 657 "mysqlnd_query_lexer.flex"
 case 584:
 YY_RULE_SETUP
-#line 656 "mysqlnd_query_lexer.flex"
+#line 657 "mysqlnd_query_lexer.flex"
 { ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_STRING");	DBG_RETURN(QC_TOKEN_STRING); }
 	YY_BREAK
 case 585:
-#line 658 "mysqlnd_query_lexer.flex"
+#line 659 "mysqlnd_query_lexer.flex"
 case 586:
 YY_RULE_SETUP
-#line 658 "mysqlnd_query_lexer.flex"
+#line 659 "mysqlnd_query_lexer.flex"
 { ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_STRING");	DBG_RETURN(QC_TOKEN_STRING); }
 	YY_BREAK
 /* Operators */
 case 587:
 YY_RULE_SETUP
-#line 661 "mysqlnd_query_lexer.flex"
+#line 662 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_PLUS");			DBG_RETURN(QC_TOKEN_PLUS); }
 	YY_BREAK
 case 588:
 YY_RULE_SETUP
-#line 662 "mysqlnd_query_lexer.flex"
+#line 663 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_MINUS");		DBG_RETURN(QC_TOKEN_MINUS); }
 	YY_BREAK
 case 589:
 YY_RULE_SETUP
-#line 663 "mysqlnd_query_lexer.flex"
+#line 664 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_COMMA");		DBG_RETURN(QC_TOKEN_COMMA); }
 	YY_BREAK
 case 590:
 YY_RULE_SETUP
-#line 664 "mysqlnd_query_lexer.flex"
+#line 665 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_SEMICOLON");	DBG_RETURN(QC_TOKEN_SEMICOLON); }
 	YY_BREAK
 case 591:
 YY_RULE_SETUP
-#line 665 "mysqlnd_query_lexer.flex"
+#line 666 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_BRACKET_OPEN");	DBG_RETURN(QC_TOKEN_BRACKET_OPEN); }
 	YY_BREAK
 case 592:
 YY_RULE_SETUP
-#line 666 "mysqlnd_query_lexer.flex"
+#line 667 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_BRACKET_CLOSE");DBG_RETURN(QC_TOKEN_BRACKET_CLOSE); }
 	YY_BREAK
 case 593:
 YY_RULE_SETUP
-#line 667 "mysqlnd_query_lexer.flex"
+#line 668 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_STAR");			DBG_RETURN(QC_TOKEN_STAR); }
 	YY_BREAK
 case 594:
 YY_RULE_SETUP
-#line 668 "mysqlnd_query_lexer.flex"
+#line 669 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_DOT");			DBG_RETURN(QC_TOKEN_DOT); }
 	YY_BREAK
 case 595:
 YY_RULE_SETUP
-#line 669 "mysqlnd_query_lexer.flex"
+#line 670 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_NOT");			DBG_RETURN(QC_TOKEN_NOT); }
 	YY_BREAK
 case 596:
 YY_RULE_SETUP
-#line 670 "mysqlnd_query_lexer.flex"
+#line 671 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_XOR");			DBG_RETURN(QC_TOKEN_XOR); }
 	YY_BREAK
 case 597:
 YY_RULE_SETUP
-#line 671 "mysqlnd_query_lexer.flex"
+#line 672 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_MOD");			DBG_RETURN(QC_TOKEN_MOD); }
 	YY_BREAK
 case 598:
 YY_RULE_SETUP
-#line 672 "mysqlnd_query_lexer.flex"
+#line 673 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_DIV");			DBG_RETURN(QC_TOKEN_DIV); }
 	YY_BREAK
 case 599:
 YY_RULE_SETUP
-#line 673 "mysqlnd_query_lexer.flex"
+#line 674 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_TILDE");		DBG_RETURN(QC_TOKEN_TILDE); }
 	YY_BREAK
 case 600:
 YY_RULE_SETUP
-#line 674 "mysqlnd_query_lexer.flex"
+#line 675 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_GLOBAL_VAR");	DBG_RETURN(QC_TOKEN_GLOBAL_VAR); }
 	YY_BREAK
 case 601:
 YY_RULE_SETUP
-#line 675 "mysqlnd_query_lexer.flex"
+#line 676 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_SESSION_VAR");	DBG_RETURN(QC_TOKEN_SESSION_VAR); }
 	YY_BREAK
 case 602:
 YY_RULE_SETUP
-#line 676 "mysqlnd_query_lexer.flex"
+#line 677 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_AND");			DBG_RETURN(QC_TOKEN_AND); }
 	YY_BREAK
 case 603:
 YY_RULE_SETUP
-#line 677 "mysqlnd_query_lexer.flex"
+#line 678 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_BIT_AND");		DBG_RETURN(QC_TOKEN_BIT_AND); }
 	YY_BREAK
 case 604:
 YY_RULE_SETUP
-#line 678 "mysqlnd_query_lexer.flex"
+#line 679 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_OR");			DBG_RETURN(QC_TOKEN_OR); }
 	YY_BREAK
 case 605:
 YY_RULE_SETUP
-#line 679 "mysqlnd_query_lexer.flex"
+#line 680 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_BIT_OR");		DBG_RETURN(QC_TOKEN_BIT_OR); }
 	YY_BREAK
 case 606:
 YY_RULE_SETUP
-#line 680 "mysqlnd_query_lexer.flex"
+#line 681 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_EQ");			DBG_RETURN(QC_TOKEN_EQ); }
 	YY_BREAK
 case 607:
 YY_RULE_SETUP
-#line 681 "mysqlnd_query_lexer.flex"
+#line 682 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_NE_TRIPLE");	DBG_RETURN(QC_TOKEN_NE_TRIPLE); }
 	YY_BREAK
 case 608:
 YY_RULE_SETUP
-#line 682 "mysqlnd_query_lexer.flex"
+#line 683 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_GE");			DBG_RETURN(QC_TOKEN_GE); }
 	YY_BREAK
 case 609:
 YY_RULE_SETUP
-#line 683 "mysqlnd_query_lexer.flex"
+#line 684 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_GT");			DBG_RETURN(QC_TOKEN_GT); }
 	YY_BREAK
 case 610:
 YY_RULE_SETUP
-#line 684 "mysqlnd_query_lexer.flex"
+#line 685 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_LE");			DBG_RETURN(QC_TOKEN_LE); }
 	YY_BREAK
 case 611:
 YY_RULE_SETUP
-#line 685 "mysqlnd_query_lexer.flex"
+#line 686 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_LT");			DBG_RETURN(QC_TOKEN_LT); }
 	YY_BREAK
 case 612:
-#line 687 "mysqlnd_query_lexer.flex"
+#line 688 "mysqlnd_query_lexer.flex"
 case 613:
 YY_RULE_SETUP
-#line 687 "mysqlnd_query_lexer.flex"
+#line 688 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_SHIFT_LEFT");	DBG_RETURN(QC_TOKEN_SHIFT_LEFT); }
 	YY_BREAK
 case 614:
 YY_RULE_SETUP
-#line 688 "mysqlnd_query_lexer.flex"
+#line 689 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_SHIFT_RIGHT");	DBG_RETURN(QC_TOKEN_SHIFT_RIGHT); }
 	YY_BREAK
 case 615:
 YY_RULE_SETUP
-#line 689 "mysqlnd_query_lexer.flex"
+#line 690 "mysqlnd_query_lexer.flex"
 { DBG_INF("QC_TOKEN_ASSIGN_TO_VAR");DBG_RETURN(QC_TOKEN_ASSIGN_TO_VAR); }
 	YY_BREAK
 /* normal identifier */
 case 616:
 YY_RULE_SETUP
-#line 692 "mysqlnd_query_lexer.flex"
+#line 693 "mysqlnd_query_lexer.flex"
 { ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_IDENTIFIER"); DBG_RETURN(QC_TOKEN_IDENTIFIER); }
 	YY_BREAK
 /* quoted identifier */
 case 617:
 YY_RULE_SETUP
-#line 695 "mysqlnd_query_lexer.flex"
+#line 696 "mysqlnd_query_lexer.flex"
 {
 									ZVAL_STRINGL(token_value, yytext + 1, yyleng - 2, 1);
 									DBG_INF("QC_TOKEN_IDENTIFIER");
@@ -8290,7 +8291,7 @@ YY_RULE_SETUP
 /* Comments */
 case 618:
 YY_RULE_SETUP
-#line 702 "mysqlnd_query_lexer.flex"
+#line 703 "mysqlnd_query_lexer.flex"
 ;							{
 									ZVAL_STRINGL(token_value, yytext + 1, yyleng - 1, 1);
 									DBG_INF("QC_TOKEN_COMMENT");
@@ -8299,7 +8300,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 619:
 YY_RULE_SETUP
-#line 708 "mysqlnd_query_lexer.flex"
+#line 709 "mysqlnd_query_lexer.flex"
 {
 									ZVAL_STRINGL(token_value, yytext + 2, yyleng - 2, 1);
 									DBG_INF("QC_TOKEN_COMMENT");
@@ -8308,59 +8309,72 @@ YY_RULE_SETUP
 	YY_BREAK
 case 620:
 YY_RULE_SETUP
-#line 714 "mysqlnd_query_lexer.flex"
+#line 715 "mysqlnd_query_lexer.flex"
 {
 									old_yystate = YY_START;
 									DBG_INF("entering COMMENT_MODE");
 									BEGIN COMMENT_MODE;
+									if (*comment) {
+										mnd_efree(*comment);
+										*comment = NULL;
+									}
+									*comment = mnd_ecalloc(1, sizeof(smart_str));
+
 									ZVAL_NULL(token_value);
 								}
 	YY_BREAK
 case 621:
 YY_RULE_SETUP
-#line 721 "mysqlnd_query_lexer.flex"
+#line 728 "mysqlnd_query_lexer.flex"
 {
 									BEGIN old_yystate;
 									DBG_INF("leaving COMMENT_MODE");
 									DBG_INF("QC_TOKEN_COMMENT");
+
+									smart_str_appendc(*comment, '\0');
+									/*
+									  we need to copy the smart_str by value before we set token_value
+									  because comment and token_value are the vary same thing (part of an union)
+									  if we write something to token_value we will lose comment;
+									*/
+									{
+										smart_str * ss_copy = *comment;
+										ZVAL_STRINGL(token_value, (*comment)->c, (*comment)->len, 1);
+										
+										smart_str_free(ss_copy);
+										mnd_efree(ss_copy);
+									}
+									DBG_INF_FMT("token_value is now:%s", Z_STRVAL_P(token_value));
+									
 									DBG_RETURN(QC_TOKEN_COMMENT);
 								}
 	YY_BREAK
 case 622:
 /* rule 622 can match eol */
 YY_RULE_SETUP
-#line 728 "mysqlnd_query_lexer.flex"
-{	
-									char * tmp_copy;
-									long tmp_len;
-									convert_to_string(token_value);
-									tmp_len = Z_STRLEN_P(token_value);
-									tmp_copy = emalloc(Z_STRLEN_P(token_value) + 2);
-									memcpy(tmp_copy, Z_STRVAL_P(token_value), Z_STRLEN_P(token_value));
-									tmp_copy[Z_STRLEN_P(token_value)] = yytext[0];
-									tmp_copy[Z_STRLEN_P(token_value) + 1] = '\0';
-									zval_dtor(token_value);
-									ZVAL_STRINGL(token_value, tmp_copy, tmp_len + 1, 0);
+#line 751 "mysqlnd_query_lexer.flex"
+{
+									smart_str_appendc(*comment, yytext[0]);
 								}
 	YY_BREAK
 /* the rest */
 case 623:
 /* rule 623 can match eol */
 YY_RULE_SETUP
-#line 742 "mysqlnd_query_lexer.flex"
+#line 756 "mysqlnd_query_lexer.flex"
 /* whitespace */
 	YY_BREAK
 case 624:
 YY_RULE_SETUP
-#line 743 "mysqlnd_query_lexer.flex"
+#line 757 "mysqlnd_query_lexer.flex"
 { yyerror("report to the developer '%c'\n", *yytext); }
 	YY_BREAK
 case 625:
 YY_RULE_SETUP
-#line 744 "mysqlnd_query_lexer.flex"
+#line 758 "mysqlnd_query_lexer.flex"
 ECHO;
 	YY_BREAK
-#line 8364 "mysqlnd_query_lexer.c"
+#line 8378 "mysqlnd_query_lexer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT_MODE):
 case YY_STATE_EOF(BETWEEN_MODE):
@@ -9491,7 +9505,7 @@ void mysqlnd_qp_free (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 744 "mysqlnd_query_lexer.flex"
+#line 758 "mysqlnd_query_lexer.flex"
 
 
 
@@ -9547,6 +9561,7 @@ mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 	INIT_ZVAL(lex_val.zv);	
 	/* mysqlnd_qp_lex expects `yyscan_t`, not `yyscan_t*` */
 	if ((ret.token = mysqlnd_qp_lex(&lex_val,*(yyscan_t *)scanner->scanner TSRMLS_CC))) {
+		DBG_INF_FMT("token=%d", ret.token);
 		switch (Z_TYPE(lex_val.zv)) {
 			case IS_STRING:
 				DBG_INF_FMT("strval=%s", Z_STRVAL(lex_val.zv));

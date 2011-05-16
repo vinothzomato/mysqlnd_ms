@@ -657,11 +657,12 @@ typedef union YYSTYPE
 
   zval zv;
   const char * kn; /* keyword_name */
+  smart_str * comment;
 
 
 
 /* Line 1676 of yacc.c  */
-#line 665 "mysqlnd_query_parser.h"
+#line 666 "mysqlnd_query_parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

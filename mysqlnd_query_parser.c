@@ -761,11 +761,12 @@ typedef union YYSTYPE
 
   zval zv;
   const char * kn; /* keyword_name */
+  smart_str * comment;
 
 
 
 /* Line 214 of yacc.c  */
-#line 769 "mysqlnd_query_parser.c"
+#line 770 "mysqlnd_query_parser.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -776,7 +777,7 @@ typedef union YYSTYPE
 /* Copy the second part of user declarations.  */
 
 /* Line 264 of yacc.c  */
-#line 43 "mysqlnd_query_parser.grammar"
+#line 44 "mysqlnd_query_parser.grammar"
 
 /* so we can override the default declaration */
 #define YY_DECL 
@@ -785,7 +786,7 @@ extern int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
 
 
 /* Line 264 of yacc.c  */
-#line 789 "mysqlnd_query_parser.c"
+#line 790 "mysqlnd_query_parser.c"
 
 #ifdef short
 # undef short
@@ -1242,44 +1243,44 @@ static const yytype_int16 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   662,   662,   663,   664,   665,   666,   667,   668,   669,
-     670,   673,   675,   676,   679,   680,   683,   684,   685,   690,
-     699,   706,   707,   712,   719,   720,   725,   731,   732,   737,
-     744,   745,   748,   749,   750,   755,   762,   763,   769,   776,
-     777,   781,   788,   789,   792,   793,   796,   797,   800,   802,
-     803,   804,   806,   807,   810,   811,   815,   816,   817,   820,
-     836,   843,   851,   850,   871,   872,   876,   877,   878,   879,
-     880,   881,   882,   883,   884,   885,   886,   887,   888,   889,
-     890,   891,   892,   893,   894,   895,   896,   897,   898,   899,
-     900,   901,   902,   903,   904,   905,   906,   907,   908,   909,
-     910,   911,   912,   913,   914,   915,   916,   917,   918,   919,
-     920,   921,   922,   923,   924,   927,   928,   929,   930,   931,
-     932,   933,   934,   935,   936,   937,   938,   939,   940,   941,
-     942,   943,   944,   945,   946,   947,   948,   949,   950,   951,
-     952,   953,   954,   955,   956,   957,   958,   959,   960,   961,
-     962,   963,   964,   965,   966,   967,   968,   969,   970,   971,
-     972,   973,   974,   975,   976,   977,   978,   979,   980,   981,
-     982,   983,   984,   985,   986,   987,   988,   989,   990,   991,
-     992,   993,   994,   995,   996,   997,   998,   999,  1000,  1001,
-    1002,  1003,  1004,  1005,  1006,  1007,  1008,  1009,  1010,  1011,
-    1012,  1013,  1014,  1015,  1016,  1017,  1018,  1019,  1020,  1021,
-    1022,  1023,  1024,  1025,  1026,  1027,  1028,  1029,  1030,  1031,
-    1032,  1033,  1034,  1035,  1036,  1037,  1038,  1039,  1040,  1041,
-    1042,  1043,  1044,  1045,  1046,  1047,  1048,  1049,  1050,  1051,
-    1052,  1053,  1054,  1055,  1056,  1057,  1058,  1059,  1060,  1061,
-    1062,  1063,  1064,  1065,  1066,  1067,  1068,  1069,  1070,  1071,
-    1072,  1073,  1074,  1075,  1076,  1077,  1078,  1079,  1080,  1081,
-    1082,  1083,  1084,  1085,  1086,  1087,  1088,  1089,  1090,  1091,
-    1092,  1093,  1094,  1095,  1096,  1097,  1098,  1099,  1100,  1101,
-    1102,  1103,  1104,  1105,  1106,  1107,  1108,  1109,  1110,  1111,
-    1112,  1113,  1114,  1115,  1116,  1117,  1118,  1119,  1120,  1121,
-    1122,  1123,  1124,  1125,  1126,  1127,  1128,  1129,  1130,  1131,
-    1132,  1133,  1134,  1135,  1136,  1137,  1138,  1139,  1140,  1141,
-    1142,  1143,  1144,  1145,  1146,  1147,  1148,  1149,  1150,  1151,
-    1152,  1153,  1154,  1155,  1156,  1157,  1158,  1159,  1160,  1161,
-    1162,  1163,  1164,  1165,  1166,  1167,  1168,  1169,  1170,  1171,
-    1172,  1173,  1174,  1175,  1176,  1177,  1178,  1179,  1180,  1181,
-    1182,  1183,  1184,  1185
+       0,   663,   663,   664,   665,   666,   667,   668,   669,   670,
+     671,   674,   676,   677,   680,   681,   684,   685,   686,   691,
+     700,   707,   708,   713,   720,   721,   726,   732,   733,   738,
+     745,   746,   749,   750,   751,   756,   763,   764,   770,   777,
+     778,   782,   789,   790,   793,   794,   797,   798,   801,   803,
+     804,   805,   807,   808,   811,   812,   816,   817,   818,   821,
+     837,   844,   852,   851,   872,   873,   877,   878,   879,   880,
+     881,   882,   883,   884,   885,   886,   887,   888,   889,   890,
+     891,   892,   893,   894,   895,   896,   897,   898,   899,   900,
+     901,   902,   903,   904,   905,   906,   907,   908,   909,   910,
+     911,   912,   913,   914,   915,   916,   917,   918,   919,   920,
+     921,   922,   923,   924,   925,   928,   929,   930,   931,   932,
+     933,   934,   935,   936,   937,   938,   939,   940,   941,   942,
+     943,   944,   945,   946,   947,   948,   949,   950,   951,   952,
+     953,   954,   955,   956,   957,   958,   959,   960,   961,   962,
+     963,   964,   965,   966,   967,   968,   969,   970,   971,   972,
+     973,   974,   975,   976,   977,   978,   979,   980,   981,   982,
+     983,   984,   985,   986,   987,   988,   989,   990,   991,   992,
+     993,   994,   995,   996,   997,   998,   999,  1000,  1001,  1002,
+    1003,  1004,  1005,  1006,  1007,  1008,  1009,  1010,  1011,  1012,
+    1013,  1014,  1015,  1016,  1017,  1018,  1019,  1020,  1021,  1022,
+    1023,  1024,  1025,  1026,  1027,  1028,  1029,  1030,  1031,  1032,
+    1033,  1034,  1035,  1036,  1037,  1038,  1039,  1040,  1041,  1042,
+    1043,  1044,  1045,  1046,  1047,  1048,  1049,  1050,  1051,  1052,
+    1053,  1054,  1055,  1056,  1057,  1058,  1059,  1060,  1061,  1062,
+    1063,  1064,  1065,  1066,  1067,  1068,  1069,  1070,  1071,  1072,
+    1073,  1074,  1075,  1076,  1077,  1078,  1079,  1080,  1081,  1082,
+    1083,  1084,  1085,  1086,  1087,  1088,  1089,  1090,  1091,  1092,
+    1093,  1094,  1095,  1096,  1097,  1098,  1099,  1100,  1101,  1102,
+    1103,  1104,  1105,  1106,  1107,  1108,  1109,  1110,  1111,  1112,
+    1113,  1114,  1115,  1116,  1117,  1118,  1119,  1120,  1121,  1122,
+    1123,  1124,  1125,  1126,  1127,  1128,  1129,  1130,  1131,  1132,
+    1133,  1134,  1135,  1136,  1137,  1138,  1139,  1140,  1141,  1142,
+    1143,  1144,  1145,  1146,  1147,  1148,  1149,  1150,  1151,  1152,
+    1153,  1154,  1155,  1156,  1157,  1158,  1159,  1160,  1161,  1162,
+    1163,  1164,  1165,  1166,  1167,  1168,  1169,  1170,  1171,  1172,
+    1173,  1174,  1175,  1176,  1177,  1178,  1179,  1180,  1181,  1182,
+    1183,  1184,  1185,  1186
 };
 #endif
 
@@ -3226,14 +3227,14 @@ yyreduce:
         case 11:
 
 /* Line 1455 of yacc.c  */
-#line 673 "mysqlnd_query_parser.grammar"
+#line 674 "mysqlnd_query_parser.grammar"
     { PINFO.statement = STATEMENT_DROP; zval_dtor(&(yyvsp[(1) - (7)].zv)); ;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 691 "mysqlnd_query_parser.grammar"
+#line 692 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_ALTER;
 					zval_dtor(&(yyvsp[(1) - (5)].zv));
@@ -3244,7 +3245,7 @@ yyreduce:
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 700 "mysqlnd_query_parser.grammar"
+#line 701 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_RENAME;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3255,7 +3256,7 @@ yyreduce:
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 713 "mysqlnd_query_parser.grammar"
+#line 714 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_REPLACE;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3266,7 +3267,7 @@ yyreduce:
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 726 "mysqlnd_query_parser.grammar"
+#line 727 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_TRUNCATE;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3276,7 +3277,7 @@ yyreduce:
   case 29:
 
 /* Line 1455 of yacc.c  */
-#line 738 "mysqlnd_query_parser.grammar"
+#line 739 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_DELETE;
 					zval_dtor(&(yyvsp[(1) - (5)].zv));
@@ -3287,7 +3288,7 @@ yyreduce:
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 756 "mysqlnd_query_parser.grammar"
+#line 757 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_UPDATE;
 					zval_dtor(&(yyvsp[(1) - (6)].zv));
@@ -3298,7 +3299,7 @@ yyreduce:
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 770 "mysqlnd_query_parser.grammar"
+#line 771 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_INSERT;
 					zval_dtor(&(yyvsp[(1) - (5)].zv));
@@ -3309,7 +3310,7 @@ yyreduce:
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 782 "mysqlnd_query_parser.grammar"
+#line 783 "mysqlnd_query_parser.grammar"
     {
 					PINFO.statement = STATEMENT_SELECT;
 					zval_dtor(&(yyvsp[(1) - (4)].zv));
@@ -3320,77 +3321,77 @@ yyreduce:
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 789 "mysqlnd_query_parser.grammar"
+#line 790 "mysqlnd_query_parser.grammar"
     { ZVAL_NULL(&(yyval.zv)); ;}
     break;
 
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 792 "mysqlnd_query_parser.grammar"
+#line 793 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (2)].zv)); ;}
     break;
 
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 800 "mysqlnd_query_parser.grammar"
+#line 801 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (3)].zv)); zval_dtor(&(yyvsp[(3) - (3)].zv)); ;}
     break;
 
   case 52:
 
 /* Line 1455 of yacc.c  */
-#line 806 "mysqlnd_query_parser.grammar"
+#line 807 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (1)].zv)); ;}
     break;
 
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 807 "mysqlnd_query_parser.grammar"
+#line 808 "mysqlnd_query_parser.grammar"
     { zval_dtor(&(yyvsp[(1) - (3)].zv)); zval_dtor(&(yyvsp[(3) - (3)].zv)); ;}
     break;
 
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 810 "mysqlnd_query_parser.grammar"
+#line 811 "mysqlnd_query_parser.grammar"
     { (yyval.zv)=(yyvsp[(1) - (1)].zv); ;}
     break;
 
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 811 "mysqlnd_query_parser.grammar"
+#line 812 "mysqlnd_query_parser.grammar"
     { ZVAL_STRING(&((yyval.zv)), (yyvsp[(1) - (1)].kn), 1); ;}
     break;
 
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 815 "mysqlnd_query_parser.grammar"
+#line 816 "mysqlnd_query_parser.grammar"
     { (yyval.zv) = (yyvsp[(2) - (2)].zv); ;}
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 816 "mysqlnd_query_parser.grammar"
+#line 817 "mysqlnd_query_parser.grammar"
     { (yyval.zv) = (yyvsp[(1) - (1)].zv); ;}
     break;
 
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 817 "mysqlnd_query_parser.grammar"
+#line 818 "mysqlnd_query_parser.grammar"
     { ZVAL_NULL(&(yyval.zv)); ;}
     break;
 
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 821 "mysqlnd_query_parser.grammar"
+#line 822 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("alias");
 
@@ -3409,7 +3410,7 @@ yyreduce:
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 837 "mysqlnd_query_parser.grammar"
+#line 838 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("table");
 					PINFO.table = mnd_pestrndup("DUAL", sizeof("DUAL") - 1, PINFO.persistent);
@@ -3421,7 +3422,7 @@ yyreduce:
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 844 "mysqlnd_query_parser.grammar"
+#line 845 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("table");
 					PINFO.table = mnd_pestrndup(Z_STRVAL((yyvsp[(1) - (1)].zv)), Z_STRLEN((yyvsp[(1) - (1)].zv)), PINFO.persistent);
@@ -3433,7 +3434,7 @@ yyreduce:
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 851 "mysqlnd_query_parser.grammar"
+#line 852 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("db");
 					PINFO.db = mnd_pestrndup(Z_STRVAL((yyvsp[(1) - (1)].zv)), Z_STRLEN((yyvsp[(1) - (1)].zv)), PINFO.persistent);
@@ -3446,7 +3447,7 @@ yyreduce:
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 859 "mysqlnd_query_parser.grammar"
+#line 860 "mysqlnd_query_parser.grammar"
     {
 					DBG_BLOCK_ENTER("table");
 
@@ -3462,7 +3463,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 3466 "mysqlnd_query_parser.c"
+#line 3467 "mysqlnd_query_parser.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);

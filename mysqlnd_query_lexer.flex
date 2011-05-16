@@ -60,6 +60,7 @@ int (*mysqlnd_qp_error)(const char *format, ...);
 	DBG_ENTER("my_lex_routine");
 	zval * token_value = &yylval_param->zv;
 	const char ** kn = &(yylval_param->kn);
+	smart_str ** comment = &(yylval_param->comment);
 %}
 
 (?i:ACCESSIBLE)						{ *kn = yytext; DBG_INF("QC_TOKEN_ACCESSIBLE");		DBG_RETURN(QC_TOKEN_ACCESSIBLE); }
@@ -715,6 +716,12 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 									old_yystate = YY_START;
 									DBG_INF("entering COMMENT_MODE");
 									BEGIN COMMENT_MODE;
+									if (*comment) {
+										mnd_efree(*comment);
+										*comment = NULL;
+									}
+									*comment = mnd_ecalloc(1, sizeof(smart_str));
+
 									ZVAL_NULL(token_value);
 								}
 
@@ -722,20 +729,27 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 									BEGIN old_yystate;
 									DBG_INF("leaving COMMENT_MODE");
 									DBG_INF("QC_TOKEN_COMMENT");
+
+									smart_str_appendc(*comment, '\0');
+									/*
+									  we need to copy the smart_str by value before we set token_value
+									  because comment and token_value are the vary same thing (part of an union)
+									  if we write something to token_value we will lose comment;
+									*/
+									{
+										smart_str * ss_copy = *comment;
+										ZVAL_STRINGL(token_value, (*comment)->c, (*comment)->len, 1);
+										
+										smart_str_free(ss_copy);
+										mnd_efree(ss_copy);
+									}
+									DBG_INF_FMT("token_value is now:%s", Z_STRVAL_P(token_value));
+									
 									DBG_RETURN(QC_TOKEN_COMMENT);
 								}
 
-<COMMENT_MODE>.|\n 				{	
-									char * tmp_copy;
-									long tmp_len;
-									convert_to_string(token_value);
-									tmp_len = Z_STRLEN_P(token_value);
-									tmp_copy = emalloc(Z_STRLEN_P(token_value) + 2);
-									memcpy(tmp_copy, Z_STRVAL_P(token_value), Z_STRLEN_P(token_value));
-									tmp_copy[Z_STRLEN_P(token_value)] = yytext[0];
-									tmp_copy[Z_STRLEN_P(token_value) + 1] = '\0';
-									zval_dtor(token_value);
-									ZVAL_STRINGL(token_value, tmp_copy, tmp_len + 1, 0);
+<COMMENT_MODE>.|\n 				{
+									smart_str_appendc(*comment, yytext[0]);
 								}
 
 	/* the rest */
@@ -795,6 +809,7 @@ mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 	INIT_ZVAL(lex_val.zv);	
 	/* yylex expects `yyscan_t`, not `yyscan_t*` */
 	if ((ret.token = yylex(&lex_val, *(yyscan_t *)scanner->scanner TSRMLS_CC))) {
+		DBG_INF_FMT("token=%d", ret.token);
 		switch (Z_TYPE(lex_val.zv)) {
 			case IS_STRING:
 				DBG_INF_FMT("strval=%s", Z_STRVAL(lex_val.zv));
