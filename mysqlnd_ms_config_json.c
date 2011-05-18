@@ -341,7 +341,9 @@ mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char
 long_or_double_to_str:
 						{
 							char * tmp_buf;
-							int tmp_buf_len = spprintf(&tmp_buf, 0, spec_type, ini_section_entry->value.lval);
+							int tmp_buf_len = spprintf(&tmp_buf, 0, spec_type,
+										ini_section_entry->type==IS_LONG? ini_section_entry->value.lval:
+																		  ini_section_entry->value.dval);
 							ret = mnd_pestrndup(tmp_buf, tmp_buf_len, 0);
 							efree(tmp_buf);
 						}
@@ -362,9 +364,22 @@ long_or_double_to_str:
 									ret = mnd_pestrndup((*value)->value.str.c, (*value)->value.str.len, 0);
 									*exists = 1;
 									break;
-								case IS_ARRAY:
-								case IS_DOUBLE:
 								case IS_LONG:
+									spec_type = MYSQLND_LL_SPEC;
+									goto long_or_double_to_str2;
+								case IS_DOUBLE:
+									spec_type = "%f";
+long_or_double_to_str2:
+									{
+										char * tmp_buf;
+										int tmp_buf_len = spprintf(&tmp_buf, 0, spec_type,
+													(*value)->type==IS_LONG? (*value)->value.lval:(*value)->value.dval);
+										ret = mnd_pestrndup(tmp_buf, tmp_buf_len, 0);
+										efree(tmp_buf);
+									}
+									*exists = 1;
+									break;
+								case IS_ARRAY:
 									DBG_ERR("still unsupported type");
 									/* to do */
 									break;
@@ -386,6 +401,275 @@ long_or_double_to_str:
 	}
 
 	DBG_INF_FMT("ret=%s", ret? ret:"n/a");
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_str_to_long_long */
+static long long
+mysqlnd_ms_str_to_long_long(const char * const s, zend_bool * valid)
+{
+	long long ret;
+	char * end_ptr;
+	errno = 0;
+	ret = strtoll(s, &end_ptr, 10);
+	if (
+			(
+				(errno == ERANGE && (ret == LLONG_MAX || ret == LLONG_MIN))
+				||
+				(errno != 0 && ret == 0)
+			)
+			||
+			end_ptr == s
+		)
+	{
+		*valid = 0;
+		return 0;
+	}
+	*valid = 1;
+	return ret;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_config_json_int */
+PHPAPI int64_t
+mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len,
+						   const char * name, size_t name_len,
+						   zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC)
+{
+	zend_bool tmp_bool;
+	int64_t ret = 0;
+
+	DBG_ENTER("mysqlnd_ms_config_json_int");
+	DBG_INF_FMT("name=%s", name);
+	
+	if (!cfg) {
+		DBG_RETURN(ret);
+	}
+	
+	if (exists) {
+		*exists = 0;
+	} else {
+		exists = &tmp_bool;
+	}
+	if (is_list_value) {
+		*is_list_value = 0;
+	} else {
+		is_list_value = &tmp_bool;
+	}
+
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_JSON_LOCK(cfg);
+	}
+	if (cfg->config) {
+		struct st_mysqlnd_ms_config_json_entry ** ini_section;
+		if (zend_hash_find(cfg->config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+			struct st_mysqlnd_ms_config_json_entry * ini_section_entry = NULL;
+
+			switch ((*ini_section)->type) {
+				case IS_LONG:
+				case IS_DOUBLE:
+				case IS_STRING:
+					ini_section_entry = *ini_section;
+					break;
+				case IS_ARRAY: {
+					struct st_mysqlnd_ms_config_json_entry ** ini_section_entry_pp;
+					if (zend_hash_find((*ini_section)->value.ht, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
+						ini_section_entry = *ini_section_entry_pp;
+					}
+					break;
+				}
+			}	
+			if (ini_section_entry) {
+				switch (ini_section_entry->type) {
+					case IS_LONG:
+						ret = ini_section_entry->value.lval;
+						*exists = 1;
+						break;
+					case IS_DOUBLE:
+						ret = (int64_t) ini_section_entry->value.dval;
+						*exists = 1;
+						break;
+					case IS_STRING:
+						ret = mysqlnd_ms_str_to_long_long(ini_section_entry->value.str.c, exists);
+						break;
+					case IS_ARRAY:
+					{
+						struct st_mysqlnd_ms_config_json_entry ** value;
+						*is_list_value = 1;
+						DBG_INF_FMT("the list has %d entries", zend_hash_num_elements(ini_section_entry->value.ht));
+						if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {	
+							switch ((*value)->type) {
+								case IS_STRING:
+									ret = mysqlnd_ms_str_to_long_long((*value)->value.str.c, exists);
+									break;
+								case IS_LONG:
+									ret = (*value)->value.lval;
+									break;
+								case IS_DOUBLE:
+									ret = (int64_t) (*value)->value.dval;
+									*exists = 1;
+									break;
+								case IS_ARRAY:
+									DBG_ERR("still unsupported type");
+									break;
+									/* to do */
+							}
+							zend_hash_move_forward(ini_section_entry->value.ht);
+						}
+						break;
+					}
+					default:
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+									" Unknown entry type %d in mysqlnd_ms_config_json_int", ini_section_entry->type);
+						break;
+				}
+			}
+		} /* if (zend_hash... */
+	} /* if (cfg->config) */
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_JSON_UNLOCK(cfg);
+	}
+
+	DBG_INF_FMT("ret="MYSQLND_LL_SPEC, (long long) ret);
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_str_to_double */
+static double
+mysqlnd_ms_str_to_double(const char * const s, zend_bool * valid)
+{
+	double ret;
+	char * end_ptr;
+	errno = 0;
+	ret = strtod(s, &end_ptr);
+	if (
+			(
+				(errno == ERANGE && (ret == HUGE_VALF || ret == HUGE_VALL))
+				||
+				(errno != 0 && ret == 0)
+			)
+			||
+			end_ptr == s
+		)
+	{
+		*valid = 0;
+		return 0;
+	}
+	*valid = 1;
+	return ret;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_config_json_double */
+PHPAPI double
+mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len,
+							  const char * name, size_t name_len,
+							  zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC)
+{
+	zend_bool tmp_bool;
+	double ret = 0;
+
+	DBG_ENTER("mysqlnd_ms_config_json_double");
+	DBG_INF_FMT("name=%s", name);
+	
+	if (!cfg) {
+		DBG_RETURN(ret);
+	}
+	
+	if (exists) {
+		*exists = 0;
+	} else {
+		exists = &tmp_bool;
+	}
+	if (is_list_value) {
+		*is_list_value = 0;
+	} else {
+		is_list_value = &tmp_bool;
+	}
+
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_JSON_LOCK(cfg);
+	}
+	if (cfg->config) {
+		struct st_mysqlnd_ms_config_json_entry ** ini_section;
+		if (zend_hash_find(cfg->config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+			struct st_mysqlnd_ms_config_json_entry * ini_section_entry = NULL;
+
+			switch ((*ini_section)->type) {
+				case IS_LONG:
+				case IS_DOUBLE:
+				case IS_STRING:
+					ini_section_entry = *ini_section;
+					break;
+				case IS_ARRAY: {
+					struct st_mysqlnd_ms_config_json_entry ** ini_section_entry_pp;
+					if (zend_hash_find((*ini_section)->value.ht, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
+						ini_section_entry = *ini_section_entry_pp;
+					}
+					break;
+				}
+			}	
+			if (ini_section_entry) {
+				switch (ini_section_entry->type) {
+					case IS_LONG:
+						ret = (double) ini_section_entry->value.lval;
+						*exists = 1;
+						break;
+					case IS_DOUBLE:
+						ret = ini_section_entry->value.dval;
+						*exists = 1;
+						break;
+					case IS_STRING:
+						ret = mysqlnd_ms_str_to_double(ini_section_entry->value.str.c, exists);
+						break;
+					case IS_ARRAY:
+					{
+						struct st_mysqlnd_ms_config_json_entry ** value;
+						*is_list_value = 1;
+						DBG_INF_FMT("the list has %d entries", zend_hash_num_elements(ini_section_entry->value.ht));
+						if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {	
+							switch ((*value)->type) {
+								case IS_STRING:
+									ret = mysqlnd_ms_str_to_double((*value)->value.str.c, exists);
+									break;
+								case IS_LONG:
+									ret = (double) (*value)->value.lval;
+									*exists = 1;
+									break;
+								case IS_DOUBLE:
+									ret = (*value)->value.dval;
+									*exists = 1;
+									break;
+								case IS_ARRAY:
+									DBG_ERR("still unsupported type");
+									break;
+									/* to do */
+							}
+							zend_hash_move_forward(ini_section_entry->value.ht);
+						}
+						break;
+					}
+					default:
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+									" Unknown entry type %d in mysqlnd_ms_config_json_double", ini_section_entry->type);
+						break;
+				}
+			}
+		} /* if (zend_hash... */
+	} /* if (cfg->config) */
+	if (use_lock) {
+		MYSQLND_MS_CONFIG_JSON_UNLOCK(cfg);
+	}
+
+	DBG_INF_FMT("ret=%d", ret);
 
 	DBG_RETURN(ret);
 }
