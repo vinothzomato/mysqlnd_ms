@@ -64,6 +64,7 @@ ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
 extern MYSQLND_STATS * mysqlnd_ms_stats;
 
+
 typedef enum mysqlnd_ms_collected_stats
 {
 	MS_STAT_USE_SLAVE,

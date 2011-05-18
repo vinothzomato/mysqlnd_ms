@@ -9,7 +9,7 @@ ARG_ENABLE("mysqlnd_ms", "enable mysqlnd_ms support", "no");
 
 if (PHP_MYSQLND_MS != "no") {
 	ADD_EXTENSION_DEP('mysqlnd_ms', 'mysqlnd');
-	EXTENSION("mysqlnd_ms", "php_mysqlnd_ms.c mysqlnd_ms.c " +
+	EXTENSION("mysqlnd_ms", "php_mysqlnd_ms.c mysqlnd_ms.c mysqlnd_ms_switch.c " +
 							"mysqlnd_ms_config_json.c " +
 							"mysqlnd_query_lexer.c mysqlnd_query_parser.c ");
 }
