@@ -140,8 +140,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_charsets.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_charsets.ini'.\n");
+//	if (!unlink("test_mysqlnd_ms_charsets.ini"))
+//	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_charsets.ini'.\n");
 ?>
 --EXPECTF--
 done!

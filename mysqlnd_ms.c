@@ -129,6 +129,55 @@ mysqlnd_ms_config_json_string_is_bool_false(const char * value)
 }
 /* }}} */
 
+#if 1
+/* {{{ mysqlnd_ms_connect_to_host */
+static enum_func_status
+mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, struct st_mysqlnd_ms_conn_credentials * cred,
+						   zend_bool use_lazy_connections, zend_bool persistent TSRMLS_DC)
+{
+	enum_func_status ret;
+	unsigned int port = cred->port;
+	char * socket = cred->socket;
+	char * colon_pos;
+
+	DBG_ENTER("mysqlnd_ms_connect_to_host");
+	if (host && NULL != (colon_pos = strchr(host, ':'))) {
+		if (colon_pos[1] == '/') {
+			/* unix path */
+			socket = colon_pos + 1;
+			DBG_INF_FMT("overwriting socket : %s", socket);
+		} else if (isdigit(colon_pos[1])) {
+			/* port */
+			port = atoi(colon_pos+1);
+			DBG_INF_FMT("overwriting port : %d", port);
+		}
+		*colon_pos = '\0'; /* strip the tail */
+	}
+
+	if (use_lazy_connections) {
+		DBG_INF("Lazy connection");
+		ret = PASS;
+	} else {
+		ret = ms_orig_mysqlnd_conn_methods->connect(conn, host, cred->user, cred->passwd, cred->passwd_len, cred->db, cred->db_len,
+													port, socket, cred->mysql_flags TSRMLS_CC);
+	}
+
+	if (ret == PASS) {
+		MYSQLND_MS_LIST_DATA new_element = {0};
+		new_element.conn = conn;
+		new_element.host = host? mnd_pestrdup(host, persistent) : NULL;
+		new_element.persistent = persistent;
+		new_element.port = port;
+		new_element.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
+		new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
+																			   persistent TSRMLS_CC);
+		zend_llist_add_element(conn_list, &new_element);
+	}
+	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
+	DBG_RETURN(ret);
+}
+/* }}} */
+#endif
 
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
@@ -201,14 +250,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 			}
 
-			master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
-			if (FALSE == value_exists) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
-				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
-				DBG_RETURN(FAIL);
-			}
-
 			lazy_connections = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
 													 &use_lazy_connections, &use_lazy_connections_list_value, FALSE TSRMLS_CC);
 			/* ignore if lazy_connections ini entry exists or not */
@@ -219,109 +260,52 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				mnd_efree(lazy_connections);
 				lazy_connections = NULL;
 			}
-			{
-				char * colon_pos;
-				port_to_use = port;
-				socket_to_use = socket;
 
-				if (NULL != (colon_pos = strchr(master, ':'))) {
-					if (colon_pos[1] == '/') {
-						/* unix path */
-						socket_to_use = colon_pos + 1;
-						DBG_INF_FMT("overwriting socket : %s", socket_to_use);
-					} else if (isdigit(colon_pos[1])) {
-						/* port */
-						port_to_use = atoi(colon_pos+1);
-						DBG_INF_FMT("overwriting port : %d", port_to_use);
-					}
-					*colon_pos = '\0'; /* strip the tail */
-				}
+			master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
+			if (FALSE == value_exists) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
+				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
+				DBG_RETURN(FAIL);
 			}
-
-			if (use_lazy_connections) {
-				DBG_INF("Lazy master connection");
-				ret = PASS;
-			} else {
-				ret = ms_orig_mysqlnd_conn_methods->connect(conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
-			}
-
+			ret = mysqlnd_ms_connect_to_host(conn, master, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred,
+											 use_lazy_connections, conn->persistent TSRMLS_CC);
+			mnd_efree(master);
+			master = NULL;
 			if (ret != PASS) {
-				mnd_efree(master);
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
 				break;
-			} else {
-				MYSQLND_MS_LIST_DATA new_element = {0};
-				new_element.conn = conn;
-				new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
-				new_element.persistent = conn->persistent;
-				new_element.port = port_to_use;
-				new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
-				new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
-																					   conn->persistent TSRMLS_CC);
-				zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
-				if (!use_lazy_connections) {
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
-				}
 			}
-			mnd_efree(master);
+			if (!use_lazy_connections) {
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
+			}
 			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 #ifdef MYSQLND_MS_MULTIMASTER_ENABLED
 			/* More master connections ? */
 			if (is_list_value) {
 				DBG_INF("We have more master connections. Connect...");
 				do {
-					master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-												   &value_exists, &is_list_value, FALSE TSRMLS_CC);
+					master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len,
+														   MASTER_NAME, sizeof(MASTER_NAME) - 1,
+														   &value_exists, &is_list_value, FALSE TSRMLS_CC);
 					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
 					if (value_exists && master) {
 						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
 
-						{
-							char * colon_pos;
-							port_to_use = port;
-							socket_to_use = socket;
-
-							if (NULL != (colon_pos = strchr(master, ':'))) {
-								if (colon_pos[1] == '/') {
-									/* unix path */
-									socket_to_use = colon_pos + 1;
-									DBG_INF_FMT("overwriting socket : %s", socket_to_use);
-								} else if (isdigit(colon_pos[1])) {
-									/* port */
-									port_to_use = atoi(colon_pos+1);
-									DBG_INF_FMT("overwriting port : %d", port_to_use);
-								}
-								*colon_pos = '\0'; /* strip the tail */
-							}
-						}
-
-						if (use_lazy_connections)
-							DBG_INF("Lazy master connections");
-							ret = PASS;
-						} else {
-							ret = ms_orig_mysqlnd_conn_methods->connect(tmp_conn, master, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
-						}
-
-						if (ret == PASS) {
-							if (!use_lazy_connections)
-								MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
-							MYSQLND_MS_LIST_DATA new_element = {0};
-							new_element.conn = tmp_conn;
-							new_element.host = master? mnd_pestrdup(master, conn->persistent) : NULL;
-							new_element.persistent = conn->persistent;
-							new_element.port = port_to_use;
-							new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
-							new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
-																								   conn->persistent TSRMLS_CC);
-							zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
-							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
-						} else {
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
-							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
-						}
+						ret = mysqlnd_ms_connect_to_host(tmp_conn, master, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred,
+														 use_lazy_connections, conn->persistent TSRMLS_CC);
 						mnd_efree(master);
 						master = NULL;
-					}
+						if (ret != PASS) {
+							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
+						} else {
+							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->thread_id);
+							if (!use_lazy_connections) {
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
+							}
+						}
+					} /* if value_exists */
 				} while (value_exists);
 			}
 #endif
@@ -497,8 +481,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 /* }}} */
 
 
-
-
+#if 0
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, query2) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query2)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
 {
@@ -520,7 +504,7 @@ MYSQLND_METHOD(mysqlnd_ms, query2)(MYSQLND * conn, const char * query, unsigned 
 	DBG_RETURN(FAIL);
 }
 /* }}} */
-
+#endif
 
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
@@ -533,9 +517,14 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 
 	connection = mysqlnd_ms_pick_server(conn, query, query_len, &use_all TSRMLS_CC);
 	DBG_INF_FMT("Connection %p", connection);
-	if (connection->error_info.error_no)
-		  DBG_RETURN(ret);
-		 
+	/*
+	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
+	  as we dump a connection from usage till the end of the script
+	*/
+	if (connection->error_info.error_no) {
+		DBG_RETURN(ret);
+	}
+
 
 #ifdef ALL_SERVER_DISPATCH
 	if (use_all) {
