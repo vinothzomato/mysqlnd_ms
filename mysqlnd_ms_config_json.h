@@ -52,8 +52,6 @@ PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_section(s
 PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry *, const char * section, size_t section_len, zend_bool * exists TSRMLS_DC);
 PHPAPI char * mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
 
-
-
 #ifdef ZTS
 PHPAPI void mysqlnd_ms_config_json_lock(struct st_mysqlnd_ms_json_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
 PHPAPI void mysqlnd_ms_config_json_unlock(struct st_mysqlnd_ms_json_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
@@ -63,7 +61,6 @@ PHPAPI void mysqlnd_ms_config_json_unlock(struct st_mysqlnd_ms_json_config * cfg
 #define MYSQLND_MS_CONFIG_JSON_LOCK(cfg)
 #define MYSQLND_MS_CONFIG_JSON_UNLOCK(cfg)
 #endif
-
 
 #endif	/* MYSQLND_MS_CONFIG_JSON_H */
 
