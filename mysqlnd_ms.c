@@ -129,11 +129,11 @@ mysqlnd_ms_config_json_string_is_bool_false(const char * value)
 }
 /* }}} */
 
-#if 1
+
 /* {{{ mysqlnd_ms_connect_to_host */
 static enum_func_status
 mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, struct st_mysqlnd_ms_conn_credentials * cred,
-						   zend_bool use_lazy_connections, zend_bool persistent TSRMLS_DC)
+						   zend_bool lazy_connections, zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret;
 	unsigned int port = cred->port;
@@ -154,7 +154,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, 
 		*colon_pos = '\0'; /* strip the tail */
 	}
 
-	if (use_lazy_connections) {
+	if (lazy_connections) {
 		DBG_INF("Lazy connection");
 		ret = PASS;
 	} else {
@@ -177,7 +177,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, 
 	DBG_RETURN(ret);
 }
 /* }}} */
-#endif
+
 
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
@@ -227,16 +227,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	(*conn_data_pp)->cred.mysql_flags = mysql_flags;
 
 	if (FALSE == section_found) {
-		ret = ms_orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
-		if (ret == PASS) {
-			MYSQLND_MS_LIST_DATA new_element = {0};
-			new_element.conn = conn;
-			new_element.host = host? mnd_pestrdup(host, conn->persistent) : NULL;
-			new_element.persistent = conn->persistent;
-			new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
-																				   conn->persistent TSRMLS_CC);
-			zend_llist_add_element(&(*conn_data_pp)->master_connections, &new_element);
-		}
+		ret = mysqlnd_ms_connect_to_host(conn, host, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred, FALSE /*lazy*/,
+										 conn->persistent TSRMLS_CC);
 	} else {
 		do {
 			unsigned int port_to_use;
@@ -465,6 +457,7 @@ MYSQLND_METHOD(mysqlnd_ms, query2)(MYSQLND * conn, const char * query, unsigned 
 }
 /* }}} */
 #endif
+
 
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
