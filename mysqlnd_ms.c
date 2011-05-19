@@ -78,7 +78,7 @@ mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, 
 
 
 /* {{{ mysqlnd_ms_conn_list_dtor */
-static void
+void
 mysqlnd_ms_conn_list_dtor(void * pDest)
 {
 	MYSQLND_MS_LIST_DATA * element = (MYSQLND_MS_LIST_DATA *) pDest;
@@ -182,15 +182,16 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, 
 /* {{{ mysqlnd_ms_lb_strategy_setup */
 static void
 mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
-							 const char * const section_name, size_t section_name_len TSRMLS_DC)
+							 struct st_mysqlnd_ms_config_json_entry * the_section TSRMLS_DC)
 {
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 
 	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
 	{
-		char * pick_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, section_name, section_name_len,
-															 PICK_NAME, sizeof(PICK_NAME) - 1,
-												  			 &value_exists, &is_list_value, FALSE TSRMLS_CC);
+		char * pick_strategy =
+			mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
+
 		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
 
 		if (value_exists && pick_strategy) {
@@ -205,9 +206,9 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 				strategies->pick_strategy = SERVER_PICK_USER;
 				if (is_list_value) {
 					mnd_efree(pick_strategy);
-					pick_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, section_name, section_name_len,
-																  PICK_NAME, sizeof(PICK_NAME) - 1,
-										  						  &value_exists, &is_list_value, FALSE TSRMLS_CC);
+					pick_strategy =
+						mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
+																   &value_exists, &is_list_value TSRMLS_CC);
 					if (pick_strategy) {
 						if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
 							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
@@ -226,9 +227,10 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 	}
 
 	{
-		char * failover_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, section_name, section_name_len,
-																 FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
-																 &value_exists, &is_list_value, FALSE TSRMLS_CC);
+		char * failover_strategy =
+			mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
+
 		strategies->failover_strategy = DEFAULT_FAILOVER_STRATEGY;
 
 		if (value_exists && failover_strategy) {
@@ -242,9 +244,9 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 	}
 
 	{
-		char * master_on_write = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, section_name, section_name_len,
-															   MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
-															   &value_exists, &is_list_value, FALSE TSRMLS_CC);
+		char * master_on_write =
+			mysqlnd_ms_config_json_string_from_section(the_section, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->mysqlnd_ms_flag_master_on_write = FALSE;
 		strategies->master_used = FALSE;
@@ -257,9 +259,10 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 	}
 
 	{
-		char * trx_strategy = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, section_name, section_name_len,
-															TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
-															&value_exists, &is_list_value, FALSE TSRMLS_CC);
+		char * trx_strategy =
+			mysqlnd_ms_config_json_string_from_section(the_section, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
+
 		strategies->trx_stickiness_strategy = DEFAULT_TRX_STICKINESS_STRATEGY;
 		strategies->in_transaction = FALSE;
 
@@ -275,6 +278,32 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 			mnd_efree(trx_strategy);
 		}
 	}
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_load_lb_filters */
+static void
+mysqlnd_ms_load_lb_filters(HashTable * filters, struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC)
+{
+	zend_bool value_exists = FALSE, is_list_value = FALSE;
+
+	DBG_ENTER("mysqlnd_ms_load_lb_filters");
+	{
+		do {
+			char * table_filters =
+				mysqlnd_ms_config_json_string_from_section(section, TABLE_FILTERS, sizeof(TABLE_FILTERS) - 1,
+														   &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists && is_list_value && table_filters) {
+
+			}
+			if (table_filters) {
+				mnd_efree(table_filters);
+			}
+		} while (value_exists);
+	}
+
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -331,29 +360,33 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		ret = mysqlnd_ms_connect_to_host(conn, /*safe*/(char *)host, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred, FALSE /*lazy*/,
 										 conn->persistent TSRMLS_CC);
 	} else {
+		struct st_mysqlnd_ms_config_json_entry * the_section;
+		if (!hotloading) {
+			MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
+		}
 		do {
-			zend_bool value_exists = FALSE, is_list_value = FALSE, use_lazy_connections = TRUE, use_lazy_connections_list_value = FALSE, have_slaves = FALSE;
-			char * lazy_connections;
+			zend_bool value_exists = FALSE, is_list_value = FALSE,
+					  use_lazy_connections = TRUE, use_lazy_connections_list_value = FALSE, have_slaves = FALSE;
 			/* create master connection */
 			char * master;
 
-			if (!hotloading) {
-				MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
+			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
+
+			{
+				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1,
+													&use_lazy_connections, &use_lazy_connections_list_value TSRMLS_CC);
+				/* ignore if lazy_connections ini entry exists or not */
+				use_lazy_connections = TRUE;
+				if (lazy_connections) {
+					/* lazy_connections ini entry exists, disabled? */
+					use_lazy_connections = !mysqlnd_ms_config_json_string_is_bool_false(lazy_connections);
+					mnd_efree(lazy_connections);
+					lazy_connections = NULL;
+				}
 			}
 
-			lazy_connections = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, LAZY_NAME, sizeof(LAZY_NAME) - 1,
-													 &use_lazy_connections, &use_lazy_connections_list_value, FALSE TSRMLS_CC);
-			/* ignore if lazy_connections ini entry exists or not */
-			use_lazy_connections = TRUE;
-			if (lazy_connections) {
-				/* lazy_connections ini entry exists, disabled? */
-				use_lazy_connections = !mysqlnd_ms_config_json_string_is_bool_false(lazy_connections);
-				mnd_efree(lazy_connections);
-				lazy_connections = NULL;
-			}
-
-			master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-												  &value_exists, &is_list_value, FALSE TSRMLS_CC);
+			master = mysqlnd_ms_config_json_string_from_section(the_section, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+																&value_exists, &is_list_value TSRMLS_CC);
 			if (FALSE == value_exists) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
 				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
@@ -371,14 +404,14 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
 			}
 			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
+
 #ifdef MYSQLND_MS_MULTIMASTER_ENABLED
 			/* More master connections ? */
 			if (is_list_value) {
 				DBG_INF("We have more master connections. Connect...");
 				do {
-					master = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len,
-														   MASTER_NAME, sizeof(MASTER_NAME) - 1,
-														   &value_exists, &is_list_value, FALSE TSRMLS_CC);
+					master = mysqlnd_ms_config_json_string_from_section(the_section, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+														   &value_exists, &is_list_value TSRMLS_CC);
 					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
 					if (value_exists && master) {
 						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
@@ -402,15 +435,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 #endif
 			/* create slave slave_connections */
 			do {
-				char * slave = mysqlnd_ms_config_json_string(mysqlnd_ms_json_config, host, host_len, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
-													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
+				char * slave = mysqlnd_ms_config_json_string_from_section(the_section, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+																		  &value_exists, &is_list_value TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
 
 					ret = mysqlnd_ms_connect_to_host(tmp_conn, slave, &(*conn_data_pp)->slave_connections, &(*conn_data_pp)->cred,
 													 use_lazy_connections, conn->persistent TSRMLS_CC);
-					mnd_efree(slave);
-					slave = NULL;
 					if (ret != PASS) {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE);
@@ -422,6 +453,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						}
 					}
 				}
+				if (slave) {
+					mnd_efree(slave);
+					slave = NULL;				
+				}
 			} while (value_exists);
 
 			if (FALSE == have_slaves) {
@@ -430,9 +465,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				DBG_RETURN(FAIL);
 			}
 
-			mysqlnd_ms_lb_strategy_setup(&(*conn_data_pp)->stgy, host, host_len TSRMLS_CC);
+			mysqlnd_ms_lb_strategy_setup(&(*conn_data_pp)->stgy, the_section TSRMLS_CC);
 		} while (0);
-		mysqlnd_ms_config_json_reset_section(mysqlnd_ms_json_config, host, host_len, FALSE TSRMLS_CC);
+		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
@@ -447,32 +482,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	DBG_RETURN(ret);
 }
 /* }}} */
-
-
-#if 0
-/* {{{ MYSQLND_METHOD(mysqlnd_ms, query2) */
-static enum_func_status
-MYSQLND_METHOD(mysqlnd_ms, query2)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
-{
-	int ret;
-	struct st_mysqlnd_query_parser * parser;
-	DBG_ENTER("mysqlnd_ms::query2");
-	parser = mysqlnd_qp_create_parser(TSRMLS_C);
-	if (parser) {
-		ret = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
-		DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
-		DBG_INF_FMT("db=%s table=%s org_table=%s",
-				parser->parse_info.db? parser->parse_info.db:"n/a",
-				parser->parse_info.table? parser->parse_info.table:"n/a",
-				parser->parse_info.org_table? parser->parse_info.org_table:"n/a"
-			);
-		mysqlnd_qp_free_parser(parser TSRMLS_CC);
-		DBG_RETURN(PASS);
-	}
-	DBG_RETURN(FAIL);
-}
-/* }}} */
-#endif
 
 
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */

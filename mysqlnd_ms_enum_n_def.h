@@ -35,6 +35,7 @@
 #define MASTER_ON_WRITE_NAME	"master_on_write"
 #define TRX_STICKINESS_NAME		"trx_stickiness"
 #define TRX_STICKINESS_MASTER	"master"
+#define TABLE_FILTERS			"table_filters"
 
 
 enum mysqlnd_ms_server_pick_strategy

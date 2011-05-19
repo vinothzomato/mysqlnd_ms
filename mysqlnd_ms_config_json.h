@@ -46,7 +46,7 @@ PHPAPI char * mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * c
 PHPAPI int64_t mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
 PHPAPI double mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value, zend_bool use_lock TSRMLS_DC);
 
-PHPAPI void mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC);
+PHPAPI void mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * section, zend_bool recursive TSRMLS_DC);
 
 PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_section(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool * exists TSRMLS_DC);
 PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry *, const char * section, size_t section_len, zend_bool * exists TSRMLS_DC);

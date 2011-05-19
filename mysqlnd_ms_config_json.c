@@ -806,7 +806,7 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 
 /* {{{ mysqlnd_ms_config_json_reset_section */
 PHPAPI void
-mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC)
+mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * section, zend_bool recursive TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_config_json_reset_section");
 	DBG_INF_FMT("section=%s", section);
@@ -817,11 +817,12 @@ mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * se
 
 		zend_hash_internal_pointer_reset_ex(section->value.ht, &pos);
 		while (zend_hash_get_current_data_ex(section->value.ht, (void **) &ini_section_entry, &pos) == SUCCESS) {
-			if (IS_ARRAY == (*ini_section_entry)->type) {
-				zend_hash_internal_pointer_reset((*ini_section_entry)->value.ht);
+			if (IS_ARRAY == (*ini_section_entry)->type && recursive) {
+				mysqlnd_ms_config_json_reset_section((*ini_section_entry), recursive TSRMLS_CC);
 			}
 			zend_hash_move_forward_ex(section->value.ht, &pos);
 		}
+		zend_hash_internal_pointer_reset(section->value.ht);
 	}
 
 	DBG_VOID_RETURN;
