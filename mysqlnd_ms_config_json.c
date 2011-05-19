@@ -266,17 +266,34 @@ mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, co
 	DBG_ENTER("mysqlnd_ms_config_json_section_exists");
 	DBG_INF_FMT("section=[%s] len=[%d]", section? section:"n/a", section_len);
 
-	if (cfg && section && section_len) {
-		char ** ini_entry;
+	if (cfg) {
 		if (use_lock) {
 			MYSQLND_MS_CONFIG_JSON_LOCK(cfg);
 		}
-		if (cfg->main_section) {
-			ret = (SUCCESS == zend_hash_find(cfg->main_section->value.ht, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
-		}
+		ret = mysqlnd_ms_config_json_sub_section_exists(cfg->main_section, section, section_len TSRMLS_CC);
 		if (use_lock) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(cfg);
 		}
+	}
+
+	DBG_INF_FMT("ret=%d", ret);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_config_json_sub_section_exists */
+PHPAPI zend_bool
+mysqlnd_ms_config_json_sub_section_exists(struct st_mysqlnd_ms_config_json_entry * main_section,
+										  const char * section, size_t section_len TSRMLS_DC)
+{
+	zend_bool ret = FALSE;
+	DBG_ENTER("mysqlnd_ms_config_json_sub_section_exists");
+	DBG_INF_FMT("section=[%s] len=[%d]", section? section:"n/a", section_len);
+
+	if (main_section && main_section->type == IS_ARRAY && main_section->value.ht && section && section_len) {
+		void ** ini_entry;
+		ret = (SUCCESS == zend_hash_find(main_section->value.ht, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
 	}
 
 	DBG_INF_FMT("ret=%d", ret);
@@ -341,6 +358,7 @@ mysqlnd_ms_config_json_string_aux_inner(struct st_mysqlnd_ms_config_json_entry *
 {
 	char * ret = NULL;
 	DBG_ENTER("mysqlnd_ms_config_json_string_aux_inner");
+
 	if (ini_section_entry) {
 		const char * spec_type;
 		switch (ini_section_entry->type) {
@@ -433,12 +451,7 @@ mysqlnd_ms_config_json_string_aux(HashTable * ht, const char * section_name, siz
 		is_list_value = &tmp_bool;
 	}
 
-	if (!ht) {
-		DBG_RETURN(ret);
-	}
-
-
-	{
+	if (ht) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section;
 		if (zend_hash_find(ht, section_name, section_name_len + 1, (void **) &ini_section) == SUCCESS) {
 			struct st_mysqlnd_ms_config_json_entry * ini_section_entry = NULL;
