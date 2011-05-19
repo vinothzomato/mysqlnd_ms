@@ -25,6 +25,19 @@
 struct st_mysqlnd_ms_json_config;
 struct st_mysqlnd_ms_config_json_entry;
 
+struct knv
+{
+	char * key;
+	union {
+		union {
+			char * s;
+			size_t len;
+		} str;
+		int64_t lval;
+		double dval;
+	} value;
+};
+
 PHPAPI struct st_mysqlnd_ms_json_config * mysqlnd_ms_config_json_init(TSRMLS_D);
 PHPAPI void mysqlnd_ms_config_json_free(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
 PHPAPI enum_func_status mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
@@ -36,6 +49,7 @@ PHPAPI double mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * c
 PHPAPI void mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC);
 
 PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_section(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool * exists TSRMLS_DC);
+PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry *, const char * section, size_t section_len, zend_bool * exists TSRMLS_DC);
 PHPAPI char * mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
 
 
