@@ -118,8 +118,6 @@ ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
 
 
 void mysqlnd_ms_register_hooks();
-enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
-
 
 struct st_qc_token_and_value
 {
