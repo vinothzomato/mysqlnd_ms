@@ -315,55 +315,21 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 													 &value_exists, &is_list_value, FALSE TSRMLS_CC);
 				if (value_exists && is_list_value && slave) {
 					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-					have_slaves = TRUE;
 
-					{
-						char * colon_pos;
-						port_to_use = port;
-						socket_to_use = socket;
-
-						if (NULL != (colon_pos = strchr(slave, ':'))) {
-							if (colon_pos[1] == '/') {
-								/* unix path */
-								socket_to_use = colon_pos + 1;
-								DBG_INF_FMT("overwriting socket : %s", socket_to_use);
-							} else if (isdigit(colon_pos[1])) {
-								/* port */
-								port_to_use = atoi(colon_pos+1);
-								DBG_INF_FMT("overwriting port : %d", port_to_use);
-							}
-							*colon_pos = '\0'; /* strip the tail */
-						}
-					}
-
-					if (use_lazy_connections) {
-						DBG_INF("Lazy slave connections");
-						ret = PASS;
+					ret = mysqlnd_ms_connect_to_host(tmp_conn, slave, &(*conn_data_pp)->slave_connections, &(*conn_data_pp)->cred,
+													 use_lazy_connections, conn->persistent TSRMLS_CC);
+					mnd_efree(slave);
+					slave = NULL;
+					if (ret != PASS) {
+						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE);
 					} else {
-						ret = ms_orig_mysqlnd_conn_methods->connect(tmp_conn, slave, user, passwd, passwd_len, db, db_len, port_to_use, socket_to_use, mysql_flags TSRMLS_CC);
-					}
-
-					if (ret == PASS) {
-						MYSQLND_MS_LIST_DATA new_element = {0};
-						new_element.conn = tmp_conn;
-						new_element.host = slave? mnd_pestrdup(slave, conn->persistent) : NULL;
-						new_element.persistent = conn->persistent;
-						new_element.port = port_to_use;
-						new_element.socket = socket_to_use? mnd_pestrdup(socket_to_use, conn->persistent) : NULL;
-						new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &(new_element.emulated_scheme),
-																							   conn->persistent TSRMLS_CC);
-						zend_llist_add_element(&(*conn_data_pp)->slave_connections, &new_element);
-						DBG_INF_FMT("Slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->m->get_thread_id(tmp_conn TSRMLS_CC));
-
+						have_slaves = TRUE;
+						DBG_INF_FMT("Further slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->thread_id);
 						if (!use_lazy_connections) {
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS);
 						}
-					} else {
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE);
-						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 					}
-					mnd_efree(slave);
-					slave = NULL;
 				}
 			} while (value_exists);
 
