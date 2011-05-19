@@ -386,8 +386,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					} else if (!strncasecmp(FAILOVER_MASTER, failover_strategy, sizeof(FAILOVER_MASTER) - 1)) {
 						(*conn_data_pp)->stgy.failover_strategy = SERVER_FAILOVER_MASTER;
 					}
-				}
-				if (failover_strategy) {
 					mnd_efree(failover_strategy);
 				}
 			}
@@ -402,8 +400,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				if (value_exists && master_on_write) {
 					DBG_INF("Master on write active");
 					(*conn_data_pp)->stgy.mysqlnd_ms_flag_master_on_write = !mysqlnd_ms_config_json_string_is_bool_false(master_on_write);
-				}
-				if (master_on_write) {
 					mnd_efree(master_on_write);
 				}
 			}
@@ -423,8 +419,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 # else
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
 # endif
-				}
-				if (trx_strategy) {
 					mnd_efree(trx_strategy);
 				}
 			}
