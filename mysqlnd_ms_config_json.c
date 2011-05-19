@@ -471,7 +471,7 @@ mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entr
 	DBG_ENTER("mysqlnd_ms_config_json_string");
 	DBG_INF_FMT("name=%s", name);
 	
-	if (!section || section->type != IS_ARRAY || !section->value.ht ) {
+	if (!section || section->type != IS_ARRAY || !section->value.ht) {
 		DBG_RETURN(ret);
 	}
 
@@ -799,35 +799,21 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 
 /* {{{ mysqlnd_ms_config_json_reset_section */
 PHPAPI void
-mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len,
-									 zend_bool use_lock TSRMLS_DC)
+mysqlnd_ms_config_json_reset_section(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_config_json_reset_section");
 	DBG_INF_FMT("section=%s", section);
 
-	if (cfg) {
-		if (use_lock) {
-			MYSQLND_MS_CONFIG_JSON_LOCK(cfg);
-		}
-		if (cfg->config) {
-			struct st_mysqlnd_ms_config_json_entry ** ini_section;
-			if (zend_hash_find(cfg->config, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
-				if ((*ini_section)->type == IS_ARRAY) {
-					struct st_mysqlnd_ms_config_json_entry ** ini_section_entry_pp;
-					HashPosition pos;
+	if (section && section->type == IS_ARRAY && section->value.ht) {
+		struct st_mysqlnd_ms_config_json_entry ** ini_section_entry;
+		HashPosition pos;
 
-					zend_hash_internal_pointer_reset_ex((*ini_section)->value.ht, &pos);
-					while (zend_hash_get_current_data_ex((*ini_section)->value.ht, (void **) &ini_section_entry_pp, &pos) == SUCCESS) {
-						if (IS_ARRAY == (*ini_section_entry_pp)->type) {
-							zend_hash_internal_pointer_reset((*ini_section_entry_pp)->value.ht);
-						}
-						zend_hash_move_forward_ex((*ini_section)->value.ht, &pos);
-					}
-				}
+		zend_hash_internal_pointer_reset_ex(section->value.ht, &pos);
+		while (zend_hash_get_current_data_ex(section->value.ht, (void **) &ini_section_entry, &pos) == SUCCESS) {
+			if (IS_ARRAY == (*ini_section_entry)->type) {
+				zend_hash_internal_pointer_reset((*ini_section_entry)->value.ht);
 			}
-		}
-		if (use_lock) {
-			MYSQLND_MS_CONFIG_JSON_UNLOCK(cfg);
+			zend_hash_move_forward_ex(section->value.ht, &pos);
 		}
 	}
 
