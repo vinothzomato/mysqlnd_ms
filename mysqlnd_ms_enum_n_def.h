@@ -36,6 +36,9 @@
 #define TRX_STICKINESS_NAME		"trx_stickiness"
 #define TRX_STICKINESS_MASTER	"master"
 #define TABLE_FILTERS			"table_filters"
+#define SECT_HOST_NAME			"host"
+#define SECT_PORT_NAME			"port"
+#define SECT_SOCKET_NAME		"socket"
 
 
 enum mysqlnd_ms_server_pick_strategy

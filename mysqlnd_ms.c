@@ -287,21 +287,27 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 static void
 mysqlnd_ms_load_lb_filters(HashTable * filters, struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC)
 {
-	zend_bool value_exists = FALSE, is_list_value = FALSE;
-
 	DBG_ENTER("mysqlnd_ms_load_lb_filters");
-	{
-		do {
-			char * table_filters =
-				mysqlnd_ms_config_json_string_from_section(section, TABLE_FILTERS, sizeof(TABLE_FILTERS) - 1,
-														   &value_exists, &is_list_value TSRMLS_CC);
-			if (value_exists && is_list_value && table_filters) {
 
-			}
-			if (table_filters) {
-				mnd_efree(table_filters);
-			}
-		} while (value_exists);
+	if (section) {
+		zend_bool section_exists;
+		struct st_mysqlnd_ms_config_json_entry * filters_section = 
+			mysqlnd_ms_config_json_sub_section(section, TABLE_FILTERS, sizeof(TABLE_FILTERS) - 1, &section_exists TSRMLS_CC);
+		if (section_exists && filters_section) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			do {
+
+				char * table_filters =
+					mysqlnd_ms_config_json_string_from_section(filters_section, TABLE_FILTERS, sizeof(TABLE_FILTERS) - 1,
+															   &value_exists, &is_list_value TSRMLS_CC);
+				if (value_exists && is_list_value && table_filters) {
+
+				}
+				if (table_filters) {
+					mnd_efree(table_filters);
+				}
+			} while (value_exists);
+		}
 	}
 
 	DBG_VOID_RETURN;
@@ -385,12 +391,15 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				}
 			}
 
-			master = mysqlnd_ms_config_json_string_from_section(the_section, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+			{
+				master = mysqlnd_ms_config_json_string_from_section(the_section, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 																&value_exists, &is_list_value TSRMLS_CC);
-			if (FALSE == value_exists) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
-				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
-				DBG_RETURN(FAIL);
+				if (FALSE == value_exists) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
+					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
+					ret = FAIL;
+					break;
+				}
 			}
 			ret = mysqlnd_ms_connect_to_host(conn, master, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred,
 											 use_lazy_connections, conn->persistent TSRMLS_CC);
@@ -462,7 +471,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			if (FALSE == have_slaves) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find slaves section in config");
 				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find slaves section in config");
-				DBG_RETURN(FAIL);
+				ret = FAIL;
+				break;
 			}
 
 			mysqlnd_ms_lb_strategy_setup(&(*conn_data_pp)->stgy, the_section TSRMLS_CC);
