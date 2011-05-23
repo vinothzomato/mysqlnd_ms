@@ -39,6 +39,10 @@
 #define SECT_HOST_NAME			"host"
 #define SECT_PORT_NAME			"port"
 #define SECT_SOCKET_NAME		"socket"
+#define SECT_USER_NAME			"user"
+#define SECT_PASS_NAME			"password"
+#define SECT_DB_NAME			"db"
+#define SECT_CONNECT_FLAGS_NAME	"connect_flags"
 
 
 enum mysqlnd_ms_server_pick_strategy
@@ -71,8 +75,14 @@ typedef struct st_mysqlnd_ms_list_data
 {
 	MYSQLND * conn;
 	char * host;
+	char * user;
+	char * passwd;
+	size_t passwd_len;
 	unsigned int port;
 	char * socket;
+	char * db;
+	size_t db_len;
+	unsigned long connect_flags;
 	char * emulated_scheme;
 	size_t emulated_scheme_len;
 	zend_bool persistent;

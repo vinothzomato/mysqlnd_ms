@@ -262,10 +262,11 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 								if (!strncasecmp(el->emulated_scheme, Z_STRVAL_P(retval), MIN(Z_STRLEN_P(retval), el->emulated_scheme_len))) {
 									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
-									if (PASS == ms_orig_mysqlnd_conn_methods->connect(el->conn, el->host, (*conn_data_pp)->cred.user,
-																				   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																				   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																				   el->port, el->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+									if (PASS == ms_orig_mysqlnd_conn_methods->connect(el->conn, el->host, el->user,
+																				   el->passwd, el->passwd_len,
+																				   el->db, el->db_len,
+																				   el->port, el->socket,
+																				   el->connect_flags TSRMLS_CC))
 									{
 										ret = el->conn;
 										DBG_INF("Connected");
@@ -361,10 +362,10 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->cred.user,
-																   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																   element->port, element->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket, element->connect_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
@@ -398,10 +399,10 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->cred.user,
-																   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																   element->port, element->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket, element->connect_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
@@ -497,10 +498,10 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->cred.user,
-																   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																   element->port, element->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket, element->connect_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
@@ -546,10 +547,11 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->cred.user,
-																   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																   element->port, element->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket,
+																   element->connect_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
 						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
@@ -647,10 +649,11 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->cred.user,
-																	   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																	   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																	   element->port, element->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																	   element->passwd, element->passwd_len,
+																	   element->db, element->db_len,
+																	   element->port, element->socket,
+																	   element->connect_flags TSRMLS_CC))
 						{
 							DBG_INF("Connected");
 							(*conn_data_pp)->random_once = connection;
@@ -699,10 +702,11 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 					DBG_INF("Lazy connection, trying to connect...");
 					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, (*conn_data_pp)->cred.user,
-																   (*conn_data_pp)->cred.passwd, (*conn_data_pp)->cred.passwd_len,
-																   (*conn_data_pp)->cred.db, (*conn_data_pp)->cred.db_len,
-																   element->port, element->socket, (*conn_data_pp)->cred.mysql_flags TSRMLS_CC))
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket,
+																   element->connect_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
 						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);

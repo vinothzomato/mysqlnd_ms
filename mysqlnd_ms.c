@@ -93,6 +93,18 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		mnd_pefree(element->host, element->persistent);
 		element->host = NULL;
 	}
+	if (element->user) {
+		mnd_pefree(element->user, element->persistent);
+		element->user = NULL;
+	}
+	if (element->passwd) {
+		mnd_pefree(element->passwd, element->persistent);
+		element->passwd = NULL;
+	}
+	if (element->db) {
+		mnd_pefree(element->db, element->persistent);
+		element->db = NULL;
+	}
 	if (element->socket) {
 		mnd_pefree(element->socket, element->persistent);
 		element->socket = NULL;
@@ -130,36 +142,24 @@ mysqlnd_ms_config_json_string_is_bool_false(const char * value)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_connect_to_host */
+/* {{{ mysqlnd_ms_connect_to_host_aux */
 static enum_func_status
-mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, struct st_mysqlnd_ms_conn_credentials * cred,
-						   zend_bool lazy_connections, zend_bool persistent TSRMLS_DC)
+mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_list,
+							   struct st_mysqlnd_ms_conn_credentials * cred,
+							   zend_bool lazy_connections, zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret;
-	unsigned int port = cred->port;
-	char * socket = cred->socket;
-	char * colon_pos;
 
-	DBG_ENTER("mysqlnd_ms_connect_to_host");
-	if (host && NULL != (colon_pos = strchr(host, ':'))) {
-		if (colon_pos[1] == '/') {
-			/* unix path */
-			socket = colon_pos + 1;
-			DBG_INF_FMT("overwriting socket : %s", socket);
-		} else if (isdigit(colon_pos[1])) {
-			/* port */
-			port = atoi(colon_pos+1);
-			DBG_INF_FMT("overwriting port : %d", port);
-		}
-		*colon_pos = '\0'; /* strip the tail */
-	}
-
+	DBG_ENTER("mysqlnd_ms_connect_to_host_aux");
+	DBG_INF_FMT("host:%s port:%d socket:%s", host, cred->port, cred->socket);
 	if (lazy_connections) {
 		DBG_INF("Lazy connection");
 		ret = PASS;
 	} else {
 		ret = ms_orig_mysqlnd_conn_methods->connect(conn, host, cred->user, cred->passwd, cred->passwd_len, cred->db, cred->db_len,
-													port, socket, cred->mysql_flags TSRMLS_CC);
+													cred->port, cred->socket, cred->mysql_flags TSRMLS_CC);
+
+		DBG_INF_FMT("Connection "MYSQLND_LLU_SPEC" established", conn->thread_id);
 	}
 
 	if (ret == PASS) {
@@ -167,14 +167,167 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, char * host, zend_llist * conn_list, 
 		new_element.conn = conn;
 		new_element.host = host? mnd_pestrdup(host, persistent) : NULL;
 		new_element.persistent = persistent;
-		new_element.port = port;
-		new_element.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
+		new_element.port = cred->port;
+
+		new_element.user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
+
+		new_element.passwd_len = cred->passwd_len;
+		new_element.passwd = cred->db? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
+
+		new_element.db_len = cred->db_len;
+		new_element.db = cred->db? mnd_pestrndup(cred->db, cred->db_len, conn->persistent) : NULL;
+
+		new_element.connect_flags = cred->mysql_flags;
+
+		new_element.socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
 		new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
 																			   persistent TSRMLS_CC);
 		zend_llist_add_element(conn_list, &new_element);
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
 	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_connect_to_host */
+static enum_func_status
+mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
+						   struct st_mysqlnd_ms_conn_credentials * master_credentials,
+						   struct st_mysqlnd_ms_config_json_entry * main_section,
+						   const char * const subsection_name, size_t subsection_name_len,
+						   zend_bool lazy_connections, zend_bool persistent,
+						   zend_bool process_all_list_values,
+						   unsigned int success_stat, unsigned int fail_stat TSRMLS_DC)
+{
+	struct st_mysqlnd_ms_conn_credentials cred = *master_credentials;
+	zend_bool value_exists = FALSE, is_list_value = FALSE;
+	struct st_mysqlnd_ms_config_json_entry * subsection = NULL, * parent_subsection = NULL;
+	zend_bool recursive = FALSE;
+	unsigned int i = 0;
+	unsigned int failures = 0;
+	DBG_ENTER("mysqlnd_ms_connect_to_host");
+
+	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(main_section, subsection_name, subsection_name_len TSRMLS_CC)) {	
+		subsection =
+			parent_subsection =
+				mysqlnd_ms_config_json_sub_section(main_section, subsection_name, subsection_name_len, &value_exists TSRMLS_CC);
+
+		recursive =	(TRUE == mysqlnd_ms_config_json_section_is_list(subsection TSRMLS_CC)
+					&& 
+					TRUE == mysqlnd_ms_config_json_section_is_object_list(subsection TSRMLS_CC));
+	}
+	do {
+		char * socket_to_use = NULL;
+		char * user_to_use = NULL;
+		char * pass_to_use = NULL;
+		char * db_to_use = NULL;
+		char * port_str = NULL;
+		char * flags_str = NULL;
+		char * host = NULL;
+
+		if (recursive) {
+			subsection = mysqlnd_ms_config_json_next_sub_section(parent_subsection TSRMLS_CC);
+		}
+		if (!subsection) {
+			break;
+		}
+
+		port_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PORT_NAME, sizeof(SECT_PORT_NAME) - 1,
+															  &value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists && port_str) {
+			cred.port = (unsigned int) atoi(port_str);
+		}
+
+		flags_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_CONNECT_FLAGS_NAME, sizeof(SECT_CONNECT_FLAGS_NAME)-1,
+															   &value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists) {
+			cred.mysql_flags = (unsigned int) atoi(flags_str);
+		}
+
+		socket_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_SOCKET_NAME, sizeof(SECT_SOCKET_NAME) - 1,
+															   &value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists) {
+			cred.socket = socket_to_use;
+		}
+		user_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_USER_NAME, sizeof(SECT_USER_NAME) - 1,
+																 &value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists) {
+			cred.user = user_to_use;
+		}
+		pass_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PASS_NAME, sizeof(SECT_PASS_NAME) - 1,
+																 &value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists) {
+			cred.passwd = pass_to_use;
+			cred.passwd_len = strlen(cred.passwd);
+		}
+
+		db_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_DB_NAME, sizeof(SECT_DB_NAME) - 1,
+															   &value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists) {
+			cred.db = db_to_use;
+			cred.db_len = strlen(cred.db);
+		}
+
+		host = mysqlnd_ms_config_json_string_from_section(subsection, SECT_HOST_NAME, sizeof(SECT_HOST_NAME) - 1,
+														  &value_exists, &is_list_value TSRMLS_CC);
+		if (FALSE == value_exists) {
+			DBG_ERR_FMT("Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+							 MYSQLND_MS_ERROR_PREFIX " Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
+			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 MYSQLND_MS_ERROR_PREFIX " Cannot find ["SECT_HOST_NAME"] in section in config");
+			failures++;
+		} else {
+			MYSQLND * tmp_conn = conn;
+			if (!conn || i > 0) {
+				tmp_conn = mysqlnd_init(persistent);
+			}
+			if (tmp_conn) {
+				enum_func_status status =
+					mysqlnd_ms_connect_to_host_aux(tmp_conn, host, conn_list, &cred, lazy_connections, persistent TSRMLS_CC);
+				if (status != PASS) {
+					failures++;
+					if (!conn) {
+						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
+					}
+					MYSQLND_MS_INC_STATISTIC(fail_stat);
+				} else if (!lazy_connections) {
+					MYSQLND_MS_INC_STATISTIC(success_stat);
+				}
+			} else {
+				failures++;
+				/* Handle OOM!! */
+				MYSQLND_MS_INC_STATISTIC(fail_stat);
+			}
+		}
+		i++; /* to pass only the first conn handle */
+
+		if (port_str) {
+			mnd_efree(port_str);
+		}
+		if (flags_str) {
+			mnd_efree(flags_str);
+		}
+		if (socket_to_use) {
+			mnd_efree(socket_to_use);
+		}
+		if (user_to_use) {
+			mnd_efree(user_to_use);
+		}
+		if (pass_to_use) {
+			mnd_efree(pass_to_use);
+		}
+		if (db_to_use) {
+			mnd_efree(db_to_use);
+		}
+		if (host) {
+			mnd_efree(host);
+			host = NULL;
+		}
+	} while (TRUE == process_all_list_values && TRUE == recursive);
+
+	DBG_RETURN(failures==0 ? PASS:FAIL);
 }
 /* }}} */
 
@@ -363,24 +516,25 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	(*conn_data_pp)->cred.mysql_flags = mysql_flags;
 
 	if (FALSE == section_found) {
-		ret = mysqlnd_ms_connect_to_host(conn, /*safe*/(char *)host, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred, FALSE /*lazy*/,
+		DBG_INF("section not found");
+		ret = mysqlnd_ms_connect_to_host_aux(conn, /*safe*/(char *)host, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred, FALSE /*lazy*/,
 										 conn->persistent TSRMLS_CC);
 	} else {
 		struct st_mysqlnd_ms_config_json_entry * the_section;
+
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 		}
+
 		do {
-			zend_bool value_exists = FALSE, is_list_value = FALSE,
-					  use_lazy_connections = TRUE, use_lazy_connections_list_value = FALSE, have_slaves = FALSE;
+			zend_bool value_exists = FALSE, use_lazy_connections = TRUE;
 			/* create master connection */
-			char * master;
 
 			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
 			{
 				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1,
-													&use_lazy_connections, &use_lazy_connections_list_value TSRMLS_CC);
+													&use_lazy_connections, NULL TSRMLS_CC);
 				/* ignore if lazy_connections ini entry exists or not */
 				use_lazy_connections = TRUE;
 				if (lazy_connections) {
@@ -390,94 +544,36 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					lazy_connections = NULL;
 				}
 			}
-
-			{
-				master = mysqlnd_ms_config_json_string_from_section(the_section, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-																&value_exists, &is_list_value TSRMLS_CC);
-				if (FALSE == value_exists) {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
-					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find master section in config");
-					ret = FAIL;
-					break;
-				}
-			}
-			ret = mysqlnd_ms_connect_to_host(conn, master, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred,
-											 use_lazy_connections, conn->persistent TSRMLS_CC);
-			mnd_efree(master);
-			master = NULL;
-			if (ret != PASS) {
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
+			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
+			ret = mysqlnd_ms_connect_to_host(conn, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred, the_section,
+											 MASTER_NAME, sizeof(MASTER_NAME) - 1, use_lazy_connections,
+											 conn->persistent, FALSE /* multimaster*/,
+											 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
+											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE TSRMLS_CC);
+			if (FAIL == ret) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
+				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
 				break;
 			}
-			if (!use_lazy_connections) {
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
-			}
-			DBG_INF_FMT("Master connection "MYSQLND_LLU_SPEC" established", conn->m->get_thread_id(conn TSRMLS_CC));
 
-#ifdef MYSQLND_MS_MULTIMASTER_ENABLED
-			/* More master connections ? */
-			if (is_list_value) {
-				DBG_INF("We have more master connections. Connect...");
-				do {
-					master = mysqlnd_ms_config_json_string_from_section(the_section, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-														   &value_exists, &is_list_value TSRMLS_CC);
-					DBG_INF_FMT("value_exists=%d master=%s", value_exists, master);
-					if (value_exists && master) {
-						MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-
-						ret = mysqlnd_ms_connect_to_host(tmp_conn, master, &(*conn_data_pp)->master_connections, &(*conn_data_pp)->cred,
-														 use_lazy_connections, conn->persistent TSRMLS_CC);
-						mnd_efree(master);
-						master = NULL;
-						if (ret != PASS) {
-							tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_FAILURE);
-						} else {
-							DBG_INF_FMT("Further master connection "MYSQLND_LLU_SPEC" established", tmp_conn->thread_id);
-							if (!use_lazy_connections) {
-								MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS);
-							}
-						}
-					} /* if value_exists */
-				} while (value_exists);
-			}
-#endif
-			/* create slave slave_connections */
-			do {
-				char * slave = mysqlnd_ms_config_json_string_from_section(the_section, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
-																		  &value_exists, &is_list_value TSRMLS_CC);
-				if (value_exists && is_list_value && slave) {
-					MYSQLND * tmp_conn = mysqlnd_init(conn->persistent);
-
-					ret = mysqlnd_ms_connect_to_host(tmp_conn, slave, &(*conn_data_pp)->slave_connections, &(*conn_data_pp)->cred,
-													 use_lazy_connections, conn->persistent TSRMLS_CC);
-					if (ret != PASS) {
-						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE);
-					} else {
-						have_slaves = TRUE;
-						DBG_INF_FMT("Further slave connection "MYSQLND_LLU_SPEC" established", tmp_conn->thread_id);
-						if (!use_lazy_connections) {
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS);
-						}
-					}
-				}
-				if (slave) {
-					mnd_efree(slave);
-					slave = NULL;				
-				}
-			} while (value_exists);
-
-			if (FALSE == have_slaves) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find slaves section in config");
-				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Cannot find slaves section in config");
-				ret = FAIL;
+			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
+			ret = mysqlnd_ms_connect_to_host(NULL, &(*conn_data_pp)->slave_connections, &(*conn_data_pp)->cred, the_section,
+											 SLAVE_NAME, sizeof(SLAVE_NAME) - 1, use_lazy_connections,
+											 conn->persistent, TRUE /* multi*/,
+											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
+											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE TSRMLS_CC);
+			if (FAIL == ret) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
+				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
 				break;
 			}
 
 			mysqlnd_ms_lb_strategy_setup(&(*conn_data_pp)->stgy, the_section TSRMLS_CC);
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
+
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
