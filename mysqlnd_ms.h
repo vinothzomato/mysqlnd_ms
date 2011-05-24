@@ -119,6 +119,7 @@ ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
 
 void mysqlnd_ms_register_hooks();
 void mysqlnd_ms_conn_list_dtor(void * pDest);
+PHPAPI int mysqlnd_ms_wild_compare(const char * str, const char * wildstr TSRMLS_DC);
 
 
 struct st_qc_token_and_value
