@@ -6,8 +6,9 @@ mysqlnd_ms.ini_file=a_file_by_this_name_better_not_exists.ini
 --FILE--
 <?php
 echo "DONE";
+?>
 --EXPECTF--
 Warning: Unknown: failed to open stream: No such file or directory in Unknown on line 0
 
-Warning: Unknown: (mysqlnd_ms) Failed to parse server list ini file a_file_by_this_name_better_not_exists.ini (current working dir: %s) in Unknown on line 0
+Warning: Unknown: (mysqlnd_ms) Failed to parse server list ini file a_file_by_this_name_better_not_exists.ini in Unknown on line 0
 DONE

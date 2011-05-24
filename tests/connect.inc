@@ -282,12 +282,32 @@
 				$json[$application] = array();
 				if (isset($config['master'])) {
 					foreach ($config['master'] as $host) {
-						$json[$application]['master'][] = (string)$host;
+						$host_config = array();
+						list($real_host, $port) = explode(':', $host);
+						$host_config['host'] = $real_host;
+						if ($port) {
+							if (!is_numeric($port)) {
+								$host_config['socket'] = $port;
+							} else {
+								$host_config['port'] = $port;							
+							}
+						}
+						$json[$application]['master'][] = $host_config;
 					}
 				}
 				if (isset($config['slave'])) {
 					foreach ($config['slave'] as $host) {
-						$json[$application]['slave'][] = (string)$host;
+						$host_config = array();
+						list($real_host, $port) = explode(':', $host);
+						$host_config['host'] = $real_host;
+						if ($port) {
+							if (!is_numeric($port)) {
+								$host_config['socket'] = $port;
+							} else {
+								$host_config['port'] = $port;							
+							}
+						}
+						$json[$application]['slave'][] = $host_config;
 					}
 				}
 				if (isset($config['pick'])) {

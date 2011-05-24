@@ -216,6 +216,16 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 		recursive =	(TRUE == mysqlnd_ms_config_json_section_is_list(subsection TSRMLS_CC)
 					&& 
 					TRUE == mysqlnd_ms_config_json_section_is_object_list(subsection TSRMLS_CC));
+	} else {
+		char error_buf[128];
+		failures++;
+		DBG_ERR_FMT("Cannot find %s section", subsection_name);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot find %s section in config", subsection_name);
+		if (conn) {
+			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Cannot find %s section in config", subsection_name);
+			error_buf[sizeof(error_buf) - 1] = '\0';
+			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+		}
 	}
 	do {
 		char * socket_to_use = NULL;
@@ -552,7 +562,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE TSRMLS_CC);
 			if (FAIL == ret) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
-				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+				SET_CLIENT_ERROR(conn->error_info, CR_CONNECTION_ERROR, UNKNOWN_SQLSTATE,
 					MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
 				break;
 			}
@@ -564,9 +574,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE TSRMLS_CC);
 			if (FAIL == ret) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
-				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-					MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
+				if (!conn->error_info.error_no) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
+					SET_CLIENT_ERROR(conn->error_info, CR_CONNECTION_ERROR, UNKNOWN_SQLSTATE,
+										MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
+				}
 				break;
 			}
 

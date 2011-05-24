@@ -33,12 +33,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_no_master.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_no_master.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_no_master.ini'.\n");
+//	if (!unlink("test_mysqlnd_ms_no_master.ini"))
+//	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_no_master.ini'.\n");
 ?>
 --EXPECTF--
 Warning: mysqli_real_connect(): (mysqlnd_ms) Cannot find master section in config in %s on line %d
 
-Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Cannot find master section in config in %s on line %d
-[001] [2000] (mysqlnd_ms) Cannot find master section in config
+Warning: mysqli_real_connect(): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
+
+Warning: mysqli_real_connect(): (HY000/2002): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
+[001] [2002] (mysqlnd_ms) Error while connecting to the master(s)
 done!
