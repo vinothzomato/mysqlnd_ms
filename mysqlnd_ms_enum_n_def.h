@@ -43,6 +43,7 @@
 #define SECT_PASS_NAME			"password"
 #define SECT_DB_NAME			"db"
 #define SECT_CONNECT_FLAGS_NAME	"connect_flags"
+#define SECT_FILTER_PRIORITY_NAME "priority"
 
 
 enum mysqlnd_ms_server_pick_strategy
@@ -97,6 +98,8 @@ typedef struct st_mysqlnd_ms_connection_data
 	MYSQLND * random_once;
 
 	struct mysqlnd_ms_lb_strategies{
+		HashTable table_filters;
+
 		enum mysqlnd_ms_server_pick_strategy pick_strategy;
 		enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
 
@@ -109,6 +112,7 @@ typedef struct st_mysqlnd_ms_connection_data
 		zend_bool in_transaction;
 	} stgy;
 
+
 	struct st_mysqlnd_ms_conn_credentials {
 		char * user;
 		char * passwd;
@@ -120,6 +124,16 @@ typedef struct st_mysqlnd_ms_connection_data
 		unsigned long mysql_flags;
 	} cred;
 } MYSQLND_MS_CONNECTION_DATA;
+
+struct st_mysqlnd_ms_table_filter
+{
+	char * host_id;
+	size_t host_id_len;
+	char * wild;
+	size_t wild_len;
+	unsigned int priority;
+	struct st_mysqlnd_ms_table_filter * next;
+};
 
 extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 

@@ -396,14 +396,37 @@ mysqlnd_ms_config_json_section_is_object_list(struct st_mysqlnd_ms_config_json_e
 
 /* {{{ mysqlnd_ms_config_json_next_sub_section */
 PHPAPI struct st_mysqlnd_ms_config_json_entry *
-mysqlnd_ms_config_json_next_sub_section(struct st_mysqlnd_ms_config_json_entry * main_section TSRMLS_DC)
+mysqlnd_ms_config_json_next_sub_section(struct st_mysqlnd_ms_config_json_entry * main_section,
+										char ** section_name, size_t * section_name_len, ulong * nkey TSRMLS_DC)
 {
 	struct st_mysqlnd_ms_config_json_entry * ret = NULL;
 	struct st_mysqlnd_ms_config_json_entry ** entry;
 	DBG_ENTER("mysqlnd_ms_config_json_next_sub_section");
 
 	if (SUCCESS == zend_hash_get_current_data(main_section->value.ht, (void **)&entry)) {
+		char * tmp_skey = NULL;
+		uint tmp_skey_len = 0;
+		ulong tmp_nkey = 0;
+		int key_type;
+
+		if (!section_name) {
+			section_name = &tmp_skey;
+		}
+		if (!nkey) {
+			nkey = &tmp_nkey;
+		}
+
+		key_type = zend_hash_get_current_key_ex(main_section->value.ht, section_name, &tmp_skey_len, nkey, 0/*dup*/,NULL/*pos*/);
+
+		if (HASH_KEY_IS_STRING == key_type) {
+			if (section_name_len) {
+				*section_name_len = --tmp_skey_len;
+				DBG_INF_FMT("section(len)=%s(%d)", *section_name, *section_name_len);
+			}
+		}
+
 		ret = *entry;
+
 		zend_hash_move_forward(main_section->value.ht);
 	}
 	DBG_INF_FMT("ret=%p", ret);
@@ -584,7 +607,6 @@ mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entr
 
 	if (section && section->type == IS_ARRAY && section->value.ht) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section_entry;
-		DBG_INF_FMT("Looking for section:%s (len=%d)", name, name_len);
 		if (zend_hash_find(section->value.ht, name, name_len + 1, (void **) &ini_section_entry) == SUCCESS) {
 			ret = mysqlnd_ms_config_json_string_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
 		}
