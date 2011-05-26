@@ -479,6 +479,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 				enum_func_status status =
 					mysqlnd_ms_connect_to_host_aux(tmp_conn, host, conn_list, &cred, lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
 					failures++;
 					if (!conn) {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
