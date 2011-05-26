@@ -41,6 +41,6 @@ Warning: mysqli_real_connect(): (mysqlnd_ms) Cannot find master section in confi
 
 Warning: mysqli_real_connect(): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
 
-Warning: mysqli_real_connect(): (HY000/2002): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
-[001] [2002] (mysqlnd_ms) Error while connecting to the master(s)
+Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Cannot find master section in config in %s on line %d
+[001] [2000] (mysqlnd_ms) Cannot find master section in config
 done!
