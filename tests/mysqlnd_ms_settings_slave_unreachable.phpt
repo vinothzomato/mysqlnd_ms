@@ -48,8 +48,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_unreachable.ini
 			printf("[002] Plugin has failed to connect but connect error is not set, [%d] '%s'\n",
 				mysqli_connect_errno(), mysqli_connect_error());
 		} else {
-			printf("[003] Plugin reports connect error, [%d] '%s'\n",
-				mysqli_connect_errno(), mysqli_connect_error());
+			die(sprintf("[003] Plugin reports connect error, [%d] '%s'\n",
+				mysqli_connect_errno(), mysqli_connect_error()));
 		}
 	} else {
 		printf("[004] Plugin returns valid handle, no API to fetch error codes, connect error: [%d] '%s', error: [%d] '%s'\n",
@@ -105,7 +105,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_unreachable.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_slave_unreachable.ini'.\n");
 ?>
 --EXPECTF--
-[004] Plugin returns valid handle, no API to fetch error codes, connect error: [0] '', error: [0] ''
-Slave %d has run 2 queries.
-Slave %d has run 1 queries.
-done!
+[003] Plugin reports connect error, [2000] '(mysqlnd_ms) Error while connecting to the slaves'
