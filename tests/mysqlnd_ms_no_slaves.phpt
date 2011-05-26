@@ -44,6 +44,6 @@ Warning: mysqli_real_connect(): (mysqlnd_ms) Cannot find slave section in config
 
 Warning: mysqli_real_connect(): (mysqlnd_ms) Error while connecting to the slaves in %s on line %d
 
-Warning: mysqli_real_connect(): (HY000/2002): (mysqlnd_ms) Error while connecting to the slaves in %s on line %d
-[001] [2002] (mysqlnd_ms) Error while connecting to the slaves
+Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Error while connecting to the slaves in %s on line %d
+[001] [2000] (mysqlnd_ms) Error while connecting to the slaves
 done!
