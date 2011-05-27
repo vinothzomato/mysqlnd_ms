@@ -83,6 +83,9 @@ mysqlnd_ms.ini_file=mysqlnd_ms_query_is_select.ini
 --EXPECTF--
 '' => 'master'
 'SELECT 1 FROM DUAL' => 'slave'
+'sElEct 1 from DUAL' => 'slave'
+'sElEct '1' AS _one from dual' => 'slave'
+'sElEct/* insert */ '1'a _two from dual' => 'slave'
 'INSERT INTO test(id) VALUES (1)' => 'master'
 '/*SELECT*/DELETE FROM test' => 'master'
 'CREATE TABLE test(id INT)' => 'master'
