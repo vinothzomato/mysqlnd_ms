@@ -94,8 +94,6 @@ typedef struct st_MYSQLND_MS_CONN_DATA
 	char * connect_host;
 	zend_llist master_connections;
 	zend_llist slave_connections;
-	MYSQLND * last_used_connection;
-	MYSQLND * random_once;
 
 	struct mysqlnd_ms_lb_strategies{
 		HashTable table_filters;
@@ -110,6 +108,9 @@ typedef struct st_MYSQLND_MS_CONN_DATA
 
 		enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
 		zend_bool in_transaction;
+
+		MYSQLND * last_used_conn;
+		MYSQLND * random_once;	
 	} stgy;
 
 

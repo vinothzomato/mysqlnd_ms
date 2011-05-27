@@ -210,8 +210,8 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			/* last used connection */
 			param++;
 			MAKE_STD_ZVAL(args[param]);
-			if ((*conn_data)->last_used_connection) {
-				ZVAL_STRING(args[param], ((*conn_data)->last_used_connection)->scheme, 1);
+			if ((*conn_data)->stgy.last_used_conn) {
+				ZVAL_STRING(args[param], ((*conn_data)->stgy.last_used_conn)->scheme, 1);
 			} else {
 				ZVAL_NULL(args[param]);
 			}
@@ -417,7 +417,7 @@ mysqlnd_ms_choose_connection_rr(MYSQLND * conn, const char * const query, const 
 
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
-			DBG_RETURN((*conn_data)->last_used_connection);
+			DBG_RETURN((*conn_data)->stgy.last_used_conn);
 		case USE_ALL:
 			*use_all = 1;
 			DBG_INF("Dispatch to all connections");
@@ -567,7 +567,7 @@ mysqlnd_ms_choose_connection_random(MYSQLND * conn, const char * const query, co
 
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
-			DBG_RETURN((*conn_data)->last_used_connection);
+			DBG_RETURN((*conn_data)->stgy.last_used_conn);
 		case USE_ALL:
 			*use_all = 1;
 			DBG_INF("Dispatch to all connections");
@@ -623,9 +623,9 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 	}
 	switch (which_server) {
 		case USE_SLAVE:
-			if ((*conn_data)->random_once) {
-				DBG_INF_FMT("Using last random connection "MYSQLND_LLU_SPEC, (*conn_data)->random_once->thread_id);
-				DBG_RETURN((*conn_data)->random_once);
+			if ((*conn_data)->stgy.random_once) {
+				DBG_INF_FMT("Using last random connection "MYSQLND_LLU_SPEC, (*conn_data)->stgy.random_once->thread_id);
+				DBG_RETURN((*conn_data)->stgy.random_once);
 			} else {
 				zend_llist_position	pos;
 				zend_llist * l = slave_connections;
@@ -656,7 +656,7 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 																	   element->connect_flags TSRMLS_CC))
 						{
 							DBG_INF("Connected");
-							(*conn_data)->random_once = connection;
+							(*conn_data)->stgy.random_once = connection;
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 							DBG_RETURN(connection);
 						}
@@ -667,7 +667,7 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 						}
 						DBG_INF("Connect failed, falling back to the master");
 					} else {
-						(*conn_data)->random_once = connection;
+						(*conn_data)->stgy.random_once = connection;
 						DBG_RETURN(connection);
 					}
 				} else {
@@ -721,7 +721,7 @@ mysqlnd_ms_choose_connection_random_once(MYSQLND * conn, const char * const quer
 		}
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
-			DBG_RETURN((*conn_data)->last_used_connection);
+			DBG_RETURN((*conn_data)->stgy.last_used_conn);
 		case USE_ALL:
 			*use_all = 1;
 			DBG_INF("Dispatch to all connections");
@@ -816,7 +816,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 		if (!connection) {
 			connection = conn;
 		}
-		(*conn_data)->last_used_connection = connection;
+		(*conn_data)->stgy.last_used_conn = connection;
 	}
 
 	DBG_RETURN(connection);
