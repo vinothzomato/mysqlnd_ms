@@ -124,6 +124,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	if ($current_charset != $new_charset)
 		printf("[010] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
 
+	if ($link->character_set_name() != $new_charset)
+		printf("[011] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name());
 
 	if (!$res = run_query(11, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_MASTER_SWITCH))
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
@@ -134,6 +136,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	$current_charset = $row['charset'];
 	if ($current_charset != $new_charset)
 		printf("[014] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
+
+	if ($link->character_set_name() != $new_charset)
+		printf("[015] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name);
 
 	print "done!";
 
