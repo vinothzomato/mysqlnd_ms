@@ -342,7 +342,10 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_li
 		DBG_INF_FMT("Connection "MYSQLND_LLU_SPEC" established", conn->thread_id);
 	}
 
-	if (ret == PASS) {
+#if 0
+	if (ret == PASS)
+#endif
+	{
 		MYSQLND_MS_LIST_DATA new_element = {0};
 		new_element.conn = conn;
 		new_element.host = host? mnd_pestrdup(host, persistent) : NULL;
@@ -481,20 +484,22 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 					mysqlnd_ms_connect_to_host_aux(tmp_conn, host, conn_list, &cred, lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
+#if 0
 					failures++;
 					if (!conn) {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 					}
+#endif
 					MYSQLND_MS_INC_STATISTIC(fail_stat);
 				} else {
-					if (FAIL == mysqlnd_ms_load_table_filters(table_filters, subsection, current_subsection_name,
-															  current_subsection_name_len TSRMLS_CC))
-					{
-						failures++;
-					}
 					if (!lazy_connections) {
 						MYSQLND_MS_INC_STATISTIC(success_stat);
 					}
+				}
+				if (FAIL == mysqlnd_ms_load_table_filters(table_filters, subsection, current_subsection_name,
+														  current_subsection_name_len TSRMLS_CC))
+				{
+					failures++;
 				}
 			} else {
 				failures++;
@@ -526,7 +531,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 			mnd_efree(host);
 			host = NULL;
 		}
-	} while (TRUE == process_all_list_values && TRUE == recursive && failures == 0);
+	} while (TRUE == process_all_list_values && TRUE == recursive /* && failures == 0 */ );
 
 	DBG_RETURN(failures==0 ? PASS:FAIL);
 }
@@ -916,8 +921,6 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(const MYSQLND * const proxy_conn, char
 /* }}} */
 
 
-
-
 /* {{{ mysqlnd_ms::change_user */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
@@ -1004,6 +1007,58 @@ MYSQLND_METHOD(mysqlnd_ms, kill)(MYSQLND * proxy_conn, unsigned int pid TSRMLS_D
 	DBG_ENTER("mysqlnd_ms::kill");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	ret = ms_orig_mysqlnd_conn_methods->kill_connection(conn, pid TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms::get_errors */
+static zval *
+MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
+{
+	zval * ret = NULL;
+	zend_llist_position	pos;
+	MYSQLND_MS_LIST_DATA * el;
+	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	zend_llist * master_connections = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
+	zend_llist * slave_connections = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
+
+	DBG_ENTER("mysqlnd_ms::get_errors");
+	if (conn_data_pp && *conn_data_pp) {
+		/* search the list of easy handles hanging off the multi-handle */
+		zend_llist * list[3] = {master_connections, slave_connections, NULL};
+		array_init(ret);
+		do {
+			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
+					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
+			{
+				zval * row = NULL;
+				char * scheme;
+				size_t scheme_len;
+			
+				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+					scheme = el->emulated_scheme;
+					scheme_len = el->emulated_scheme_len;
+				} else {
+					scheme = el->conn->scheme;
+					scheme_len = el->conn->scheme_len;
+				}
+				array_init(row);
+				add_assoc_long_ex(row, "errno", sizeof("errno") - 1, ms_orig_mysqlnd_conn_methods->get_error_no(el->conn TSRMLS_CC));
+				{
+					const char * err = ms_orig_mysqlnd_conn_methods->get_error_str(el->conn TSRMLS_CC);				
+					add_assoc_stringl_ex(row, "error", sizeof("error") - 1, (char*) err, strlen(err), 1 /*dup*/);
+				}
+				{
+					const char * sqlstate = ms_orig_mysqlnd_conn_methods->get_sqlstate(el->conn TSRMLS_CC);				
+					add_assoc_stringl_ex(row, "sqlstate", sizeof("sqlstate") - 1, (char*) sqlstate, strlen(sqlstate), 1 /*dup*/);
+				}
+				
+				add_assoc_zval_ex(ret, scheme, scheme_len, row);
+			}
+		} while (++*list);
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1189,7 +1244,7 @@ MYSQLND_METHOD(mysqlnd_ms, more_results)(const MYSQLND * const proxy_conn TSRMLS
 
 /* {{{ mysqlnd_ms::errno */
 static unsigned int
-MYSQLND_METHOD(mysqlnd_ms, errno)(const MYSQLND * const proxy_conn TSRMLS_DC)
+MYSQLND_METHOD(mysqlnd_ms, error_no)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * const conn = ((*conn_data_pp) && (*conn_data_pp)->last_used_connection)? (*conn_data_pp)->last_used_connection:proxy_conn;
@@ -1390,7 +1445,7 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.set_client_option	= MYSQLND_METHOD(mysqlnd_ms, set_client_option);
 	my_mysqlnd_conn_methods.next_result			= MYSQLND_METHOD(mysqlnd_ms, next_result);
 	my_mysqlnd_conn_methods.more_results		= MYSQLND_METHOD(mysqlnd_ms, more_results);
-	my_mysqlnd_conn_methods.get_error_no		= MYSQLND_METHOD(mysqlnd_ms, errno);
+	my_mysqlnd_conn_methods.get_error_no		= MYSQLND_METHOD(mysqlnd_ms, error_no);
 	my_mysqlnd_conn_methods.get_error_str		= MYSQLND_METHOD(mysqlnd_ms, error);
 	my_mysqlnd_conn_methods.get_sqlstate		= MYSQLND_METHOD(mysqlnd_ms, sqlstate);
 
