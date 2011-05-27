@@ -2,7 +2,7 @@
 autocommit - handled by plugin as of PHP 5.3.99
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))

@@ -2,7 +2,7 @@
 Config settings: pick server = user, fallback
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 if (($master_host == $slave_host)) {
@@ -17,7 +17,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_pick_server_fallback.ini", $settings))
-  die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

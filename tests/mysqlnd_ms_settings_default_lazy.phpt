@@ -2,7 +2,7 @@
 Config settings: many slaves
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 $settings = array(
@@ -16,7 +16,7 @@ for ($i = 0; $i < 1; $i++)
 	$settings['do_not_overload_mysql']['slave'][] = $host;
 
 if ($error = create_config("test_mysqlnd_ms_settings_force_many_slaves.ini", $settings))
-  die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

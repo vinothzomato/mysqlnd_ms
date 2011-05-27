@@ -250,6 +250,24 @@
 			return $charsets;
 		}
 
+		if (extension_loaded("pdo_mysql")) {
+			function my_pdo_connect($host, $user, $passwd, $db, $port, $socket, $options = NULL) {
+
+				if (is_null($options))
+					$options = array(
+					  PDO::ATTR_EMULATE_PREPARES => true,
+					  PDO::MYSQL_ATTR_DIRECT_QUERY => true,
+					);
+
+				if ($port) {
+				  $dsn = sprintf("mysql:host=%s;port=%d;dbname=%s", $host, $port, $db);
+				} else {
+				  $dsn = sprintf("mysql:host=%s;unix_socket=%s;dbname=%s", $host, $socket, $db);
+				}
+				return new PDO($dsn, $user, $passwd, $options);
+			}
+		}
+
 	} else {
 		printf("skip Eeeek/BUG/FIXME - connect.inc included twice! skipif bug?\n");
 	}
@@ -337,7 +355,7 @@
 							if (!is_numeric($port)) {
 								$host_config['socket'] = $port;
 							} else {
-								$host_config['port'] = $port;							
+								$host_config['port'] = $port;
 							}
 						}
 						$json[$application]['master'][] = $host_config;
@@ -352,7 +370,7 @@
 							if (!is_numeric($port)) {
 								$host_config['socket'] = $port;
 							} else {
-								$host_config['port'] = $port;							
+								$host_config['port'] = $port;
 							}
 						}
 						$json[$application]['slave'][] = $host_config;
@@ -375,7 +393,7 @@
 				if (isset($config['trx_stickiness'])) {
 				  $json[$application]['trx_stickiness'] = (string)$config['trx_stickiness'];
 				}
-				
+
 			}
 			fwrite($fp, json_encode($json));
 			fclose($fp);

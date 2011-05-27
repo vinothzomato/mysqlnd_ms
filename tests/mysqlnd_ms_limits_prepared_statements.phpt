@@ -2,7 +2,7 @@
 Limits: all prepared statements go to the master
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 $settings = array(

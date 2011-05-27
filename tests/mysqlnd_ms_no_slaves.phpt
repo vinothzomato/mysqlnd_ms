@@ -2,7 +2,7 @@
 Slaves configured
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 $settings = array(
@@ -11,7 +11,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_no_slaves.ini", $settings))
-  die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

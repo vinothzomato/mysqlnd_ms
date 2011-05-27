@@ -2,7 +2,7 @@
 change_user() - covered by the prototype
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 if ($db == 'mysql')

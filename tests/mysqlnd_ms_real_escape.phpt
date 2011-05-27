@@ -2,7 +2,7 @@
 real escape
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 if (!function_exists("iconv"))

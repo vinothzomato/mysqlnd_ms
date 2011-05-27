@@ -76,7 +76,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_insert_affected.ini
 	if (10 !== $link->affected_rows)
 		printf("[39] Slave 2 affected should be 10 got %d\n", $link->affected_rows);
 
-
 	print "done!";
 
 ?>

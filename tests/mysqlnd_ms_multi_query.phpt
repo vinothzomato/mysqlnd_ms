@@ -2,7 +2,7 @@
 multi query (does not work with lazy_connections)
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 $settings = array(

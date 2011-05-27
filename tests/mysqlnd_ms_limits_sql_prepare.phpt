@@ -2,7 +2,7 @@
 Limits: SQL prepare
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 $settings = array(

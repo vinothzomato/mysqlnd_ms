@@ -2,7 +2,7 @@
 Limits: mysqli_query + MYSQLI_USE_RESULT is NOT handled by the plugin
 --SKIPIF--
 <?php
-require_once('skipif.inc');
+require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
 $settings = array(
