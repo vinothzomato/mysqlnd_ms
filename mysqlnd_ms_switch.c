@@ -831,27 +831,25 @@ mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned in
 					 zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+
 	DBG_ENTER("mysqlnd_ms_query_all");
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->query(proxy_conn, query, query_len TSRMLS_CC));
-	}
-	/* search the list of easy handles hanging off the multi-handle */
-	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_connections, &pos); el && el->conn;
-			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_connections, &pos))
-	{
-		if (PASS != ms_orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
-			ret = FAIL;
-		}
-	}
-
-	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_connections, &pos); el && el->conn;
-			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_connections, &pos))
-	{
-		if (PASS != ms_orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
-			ret = FAIL;
+	} else {
+		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
+		zend_llist ** list = lists;
+		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
+			/* search the list of easy handles hanging off the multi-handle */
+			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
+					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
+			{
+				if (PASS != ms_orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
+					ret = FAIL;
+				}
+			}
 		}
 	}
 

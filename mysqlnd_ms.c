@@ -934,8 +934,6 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 										  TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::select_db");
@@ -949,6 +947,8 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			/* search the list of easy handles hanging off the multi-handle */
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
@@ -1004,8 +1004,6 @@ static zval *
 MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
 {
 	zval * ret = NULL;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::get_errors");
@@ -1015,6 +1013,8 @@ MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND * const proxy_conn, const char * 
 		zend_llist ** list = lists;
 		array_init(ret);
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
 			{
@@ -1055,8 +1055,6 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::select_db");
@@ -1066,6 +1064,8 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			/* search the list of easy handles hanging off the multi-handle */
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
@@ -1087,8 +1087,6 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char * const csname TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::set_charset");
@@ -1098,6 +1096,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			/* search the list of easy handles hanging off the multi-handle */
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
@@ -1119,8 +1119,6 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_mysqlnd_server_option option TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::set_server_option");
@@ -1130,6 +1128,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_m
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			/* search the list of easy handles hanging off the multi-handle */
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
@@ -1151,8 +1151,6 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_mysqlnd_option option, const char * const value TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::set_server_option");
@@ -1162,6 +1160,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			/* search the list of easy handles hanging off the multi-handle */
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
@@ -1313,8 +1313,6 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mode TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms::set_autocommit");
@@ -1324,6 +1322,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
 		while (*++list) {
+			zend_llist_position	pos;
+			MYSQLND_MS_LIST_DATA * el;
 			/* search the list of easy handles hanging off the multi-handle */
 			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
 					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
