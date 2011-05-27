@@ -215,7 +215,7 @@ mysqlnd_ms_load_table_filters(HashTable * filters_ht, struct st_mysqlnd_ms_confi
 
 	if (section && filters_ht) {
 		zend_bool section_exists;
-		struct st_mysqlnd_ms_config_json_entry * filters_section = 
+		struct st_mysqlnd_ms_config_json_entry * filters_section =
 				mysqlnd_ms_config_json_sub_section(section, TABLE_FILTERS, sizeof(TABLE_FILTERS) - 1, &section_exists TSRMLS_CC);
 		zend_bool subsection_is_list = mysqlnd_ms_config_json_section_is_list(filters_section TSRMLS_CC);
 		zend_bool subsection_is_obj_list =
@@ -269,11 +269,11 @@ mysqlnd_ms_load_table_filters(HashTable * filters_ht, struct st_mysqlnd_ms_confi
 							php_error_docref(NULL TSRMLS_CC, E_WARNING,
 									MYSQLND_MS_ERROR_PREFIX "Couldn't add new filter and couldn't find the original %*s",
 									(int) filter_name_len, filter_name);
-							mysqlnd_ms_filter_dtor(&new_filter_entry);							 
+							mysqlnd_ms_filter_dtor(&new_filter_entry);
 						} else {
 							DBG_INF("Added to the existing HT");
 							filter_count++;
-							DBG_INF("re-sorting");			
+							DBG_INF("re-sorting");
 							/* Sort specified array. */
 							zend_hash_sort(*existing_filter, zend_qsort, mysqlnd_ms_filter_compare, 0 /* renumber */ TSRMLS_CC);
 						}
@@ -295,7 +295,7 @@ mysqlnd_ms_load_table_filters(HashTable * filters_ht, struct st_mysqlnd_ms_confi
 									mnd_free(ht_for_new_filter);
 									ht_for_new_filter = NULL;
 									mysqlnd_ms_filter_dtor(&new_filter_entry);
-									new_filter_entry = NULL;						
+									new_filter_entry = NULL;
 								} else if (SUCCESS != zend_hash_next_index_insert(ht_for_new_filter, &new_filter_entry,
 						  				 			 			   				  sizeof(struct st_mysqlnd_ms_table_filter *), NULL))
 								{
@@ -303,10 +303,10 @@ mysqlnd_ms_load_table_filters(HashTable * filters_ht, struct st_mysqlnd_ms_confi
 									php_error_docref(NULL TSRMLS_CC, E_WARNING,
 											MYSQLND_MS_ERROR_PREFIX "Couldn't add new filter and couldn't find the original %*s",
 											(int) filter_name_len, filter_name);
-										mysqlnd_ms_filter_dtor(&new_filter_entry);							 
+										mysqlnd_ms_filter_dtor(&new_filter_entry);
 								} else {
 									DBG_INF("Created, added to global HT and filter added to local HT");
-									filter_count++;						
+									filter_count++;
 								}
 							}
 						}
@@ -331,7 +331,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_li
 	enum_func_status ret;
 
 	DBG_ENTER("mysqlnd_ms_connect_to_host_aux");
-	DBG_INF_FMT("host:%s port:%d socket:%s", host, cred->port, cred->socket);
+	DBG_INF_FMT("conn:%p host:%s port:%d socket:%s", conn, host, cred->port, cred->socket);
 	if (lazy_connections) {
 		DBG_INF("Lazy connection");
 		ret = PASS;
@@ -388,14 +388,15 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 	unsigned int i = 0;
 	unsigned int failures = 0;
 	DBG_ENTER("mysqlnd_ms_connect_to_host");
+	DBG_INF_FMT("conn:%p", conn);
 
-	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(main_section, subsection_name, subsection_name_len TSRMLS_CC)) {	
+	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(main_section, subsection_name, subsection_name_len TSRMLS_CC)) {
 		subsection =
 			parent_subsection =
 				mysqlnd_ms_config_json_sub_section(main_section, subsection_name, subsection_name_len, &value_exists TSRMLS_CC);
 
 		recursive =	(TRUE == mysqlnd_ms_config_json_section_is_list(subsection TSRMLS_CC)
-					&& 
+					&&
 					TRUE == mysqlnd_ms_config_json_section_is_object_list(subsection TSRMLS_CC));
 	} else {
 		char error_buf[128];
@@ -792,7 +793,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 		MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 		zend_llist * master_connections = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
 		zend_llist * slave_connections = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
-		
+
 		mysqlnd_ms_query_all(conn, query, query_len, master_connections, slave_connections TSRMLS_CC);
 	}
 #endif
@@ -935,7 +936,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 	MYSQLND_MS_CONNECTION_DATA ** conn_data_pp = (MYSQLND_MS_CONNECTION_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	zend_llist * master_connections = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->master_connections : NULL;
 	zend_llist * slave_connections = (conn_data_pp && *conn_data_pp)? &(*conn_data_pp)->slave_connections : NULL;
-	
+
 	DBG_ENTER("mysqlnd_ms::select_db");
 	if (!conn_data_pp || !*conn_data_pp) {
 #if PHP_VERSION_ID >= 50399
