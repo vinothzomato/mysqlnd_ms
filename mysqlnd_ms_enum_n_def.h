@@ -89,7 +89,7 @@ typedef struct st_mysqlnd_ms_list_data
 	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
 
-typedef struct st_mysqlnd_ms_connection_data
+typedef struct st_MYSQLND_MS_CONN_DATA
 {
 	char * connect_host;
 	zend_llist master_connections;
@@ -123,7 +123,7 @@ typedef struct st_mysqlnd_ms_connection_data
 		char * socket;
 		unsigned long mysql_flags;
 	} cred;
-} MYSQLND_MS_CONNECTION_DATA;
+} MYSQLND_MS_CONN_DATA;
 
 struct st_mysqlnd_ms_table_filter
 {
