@@ -95,7 +95,7 @@ typedef struct st_MYSQLND_MS_CONN_DATA
 	zend_llist master_connections;
 	zend_llist slave_connections;
 
-	struct mysqlnd_ms_lb_strategies{
+	struct mysqlnd_ms_lb_strategies {
 		HashTable table_filters;
 
 		enum mysqlnd_ms_server_pick_strategy pick_strategy;
