@@ -199,14 +199,15 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_user_pick_server, 0, 0, 1)
 	ZEND_ARG_INFO(0, pick_server_cb)
 ZEND_END_ARG_INFO()
 
-/* {{{ proto bool mysqlnd_ms_set_user_pick_server(string is_select)
-   Sets use_pick function callback */
-static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
-{
-	zval *arg = NULL;
-	char *name;
 
-	DBG_ENTER("zif_mysqlnd_ms_set_user_pick_server");
+/* {{{ mysqlnd_ms_set_user_pick_server */
+static void
+mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAMETERS)
+{
+	zval * arg = NULL;
+	char * name;
+
+	DBG_ENTER("mysqlnd_ms_set_user_pick_server_aux");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &arg) == FAILURE) {
 		DBG_VOID_RETURN;
@@ -231,6 +232,31 @@ static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
 	DBG_VOID_RETURN;
 }
 /* }}} */
+
+
+/* {{{ proto bool mysqlnd_ms_set_user_pick_server(string is_select)
+   Sets use_pick function callback */
+static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
+{
+	mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	if (Z_BVAL_P(return_value) == TRUE) {
+		MYSQLND_MS_G(pick_server_is_multiple) = FALSE;
+	}
+}
+/* }}} */
+
+
+/* {{{ proto bool mysqlnd_ms_set_user_pick_multiple_server(string is_select)
+   Sets use_pick function callback */
+static PHP_FUNCTION(mysqlnd_ms_set_user_pick_multiple_server)
+{
+	mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	if (Z_BVAL_P(return_value) == TRUE) {
+		MYSQLND_MS_G(pick_server_is_multiple) = TRUE;
+	}
+}
+/* }}} */
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_query_is_select, 0, 0, 1)
 	ZEND_ARG_INFO(0, query)
@@ -290,6 +316,7 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 /* {{{ mysqlnd_ms_functions */
 static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
+	PHP_FE(mysqlnd_ms_set_user_pick_multiple_server,	arginfo_mysqlnd_ms_set_user_pick_server)
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */

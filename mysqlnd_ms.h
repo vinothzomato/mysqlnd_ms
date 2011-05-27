@@ -42,6 +42,7 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool force_config_usage;
 	const char * ini_file;
 	zval * user_pick_server;
+	zend_bool pick_server_is_multiple;
 	zend_bool collect_statistics;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 

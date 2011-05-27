@@ -310,6 +310,216 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 /* }}} */
 
 
+/* {{{ my_long_compare */
+static int
+my_long_compare(const void * a, const void * b TSRMLS_DC)
+{
+	Bucket * f = *((Bucket **) a);
+	Bucket * s = *((Bucket **) b);
+	zval * first = *((zval **) f->pData);
+	zval * second = *((zval **) s->pData);
+
+	if (Z_LVAL_P(first) > Z_LVAL_P(second)) {
+		return 1;
+	} else if (Z_LVAL_P(first) == Z_LVAL_P(second)) {
+		return 0;
+	}
+	return -1;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_user_pick_multiple_server */
+static enum_func_status
+mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t query_len,
+									 zend_llist * master_list, zend_llist * slave_list,
+									 zend_llist * selected_masters, zend_llist * selected_slaves
+									 TSRMLS_DC)
+{
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	zval * args[7];
+	zval * retval;
+	enum_func_status ret = FAIL;
+
+	DBG_ENTER("mysqlnd_ms_user_pick_multiple_server");
+	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
+
+	if (master_list && MYSQLND_MS_G(user_pick_server)) {
+		uint param = 0;
+
+		/* connect host */
+		MS_STRING((char *) (*conn_data)->connect_host, args[param]);
+
+		/* query */
+		param++;
+		MS_STRINGL((char *) query, query_len, args[param]);
+		{
+			MYSQLND_MS_LIST_DATA * el;
+			zend_llist_position	pos;
+			/* master list */
+			param++;
+			MS_ARRAY(args[param]);
+			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
+					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+			{
+				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+					/* lazy */
+					add_next_index_stringl(args[param], el->emulated_scheme, el->emulated_scheme_len, 1);
+				} else {
+					add_next_index_stringl(args[param], el->conn->scheme, el->conn->scheme_len, 1);
+				}
+			}
+
+			/* slave list*/
+			param++;
+			MS_ARRAY(args[param]);
+			if (slave_list) {
+				for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
+						el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+				{
+					if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+						/* lazy */
+						add_next_index_stringl(args[param], el->emulated_scheme, el->emulated_scheme_len, 1);
+					} else {
+						add_next_index_stringl(args[param], el->conn->scheme, el->conn->scheme_len, 1);
+					}
+				}
+			}
+			/* last used connection */
+			param++;
+			MAKE_STD_ZVAL(args[param]);
+			if ((*conn_data)->stgy.last_used_conn) {
+				ZVAL_STRING(args[param], ((*conn_data)->stgy.last_used_conn)->scheme, 1);
+			} else {
+				ZVAL_NULL(args[param]);
+			}
+
+			/* in transaction */
+			param++;
+			MAKE_STD_ZVAL(args[param]);
+			if ((*conn_data)->stgy.in_transaction) {
+				ZVAL_TRUE(args[param]);
+			} else {
+				ZVAL_FALSE(args[param]);
+			}
+		}
+
+		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, FALSE /* we will destroy later */ TSRMLS_CC);
+		if (retval) {
+			if (Z_TYPE_P(retval) != IS_ARRAY) {
+				DBG_ERR("The user returned no array");
+			} else {
+				do {
+					HashPosition hash_pos;
+					zval ** users_masters, ** users_slaves;
+					DBG_INF("Checking data validity");
+					/* Check data validity */
+					{
+						zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(retval), &hash_pos);
+						if (SUCCESS != zend_hash_get_current_data_ex(Z_ARRVAL_P(retval), (void **)&users_masters, &hash_pos) ||
+							Z_TYPE_PP(users_masters) != IS_ARRAY ||
+							SUCCESS != zend_hash_move_forward_ex(Z_ARRVAL_P(retval), &hash_pos) ||
+							SUCCESS != zend_hash_get_current_data_ex(Z_ARRVAL_P(retval), (void **)&users_slaves, &hash_pos) ||
+							Z_TYPE_PP(users_slaves) != IS_ARRAY ||
+							(
+								0 == zend_hash_num_elements(Z_ARRVAL_PP(users_masters))
+								&&
+								0 == zend_hash_num_elements(Z_ARRVAL_PP(users_slaves))
+							))
+						{
+							DBG_ERR("Error in validity");
+							break;
+						}
+					}
+					/* convert to long and sort */
+					DBG_INF("Converting and sorting");
+					{
+						zval ** selected_server;
+						/* convert to longs and sort */
+						zend_hash_internal_pointer_reset_ex(Z_ARRVAL_PP(users_masters), &hash_pos);
+						while (SUCCESS == zend_hash_get_current_data_ex(Z_ARRVAL_PP(users_masters), (void **)&selected_server, &hash_pos)) {
+							convert_to_long_ex(selected_server);
+							zend_hash_move_forward_ex(Z_ARRVAL_PP(users_masters), &hash_pos);
+						}
+						if (FAILURE == zend_hash_sort(Z_ARRVAL_PP(users_masters), zend_qsort, my_long_compare, 1 TSRMLS_CC)) {
+							DBG_ERR("Error while sorting the master list");
+							break;
+						}
+						
+						/* convert to longs and sort */
+						zend_hash_internal_pointer_reset_ex(Z_ARRVAL_PP(users_masters), &hash_pos);
+						while (SUCCESS == zend_hash_get_current_data_ex(Z_ARRVAL_PP(users_slaves), (void **)&selected_server, &hash_pos)) {
+							convert_to_long_ex(selected_server);
+							zend_hash_move_forward_ex(Z_ARRVAL_PP(users_slaves), &hash_pos);
+						}
+						if (FAILURE == zend_hash_sort(Z_ARRVAL_PP(users_slaves), zend_qsort, my_long_compare, 1 TSRMLS_CC)) {
+							DBG_ERR("Error while sorting the slave list");
+							break;
+						}
+					}
+					DBG_INF("Extracting into the supplied lists");
+					/* extract into llists */
+					{
+						unsigned int pass;
+						zval ** selected_server;
+
+						for (pass = 0; pass < 2; pass++) {
+							long i = 0;
+							zend_llist_position	list_pos;
+							zend_llist * in_list = (pass == 0)? master_list : slave_list;
+							zend_llist * out_list = (pass == 0)? selected_masters : selected_slaves;
+							MYSQLND_MS_LIST_DATA * el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(in_list, &list_pos);
+							HashTable * conn_hash = (pass == 0)? Z_ARRVAL_PP(users_masters):Z_ARRVAL_PP(users_slaves);
+
+							DBG_INF_FMT("pass=%u", pass);
+							zend_hash_internal_pointer_reset_ex(conn_hash, &hash_pos);
+							while (SUCCESS == zend_hash_get_current_data_ex(conn_hash, (void **)&selected_server, &hash_pos)) {
+								if (Z_LVAL_PP(selected_server) >= 0) {
+									long server_id = Z_LVAL_PP(selected_server);
+									DBG_INF_FMT("i=%ld server_id=%ld llist_count=%d", i, server_id, zend_llist_count(in_list));
+									if (server_id >= zend_llist_count(in_list)) {
+										DBG_ERR("server_id too big, skipping and breaking");
+										break; /* skip impossible indices */
+									}
+									while (i < server_id) {
+										el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(in_list, &list_pos);
+										i++;
+									}
+									if (el && el->conn) {
+										DBG_INF_FMT("gotcha. adding server_id=%ld", server_id);
+										/*
+										  This will copy the whole structure, not the pointer.
+										  This is wanted!!
+										*/
+										zend_llist_add_element(out_list, el);
+									}
+								}
+								zend_hash_move_forward_ex(conn_hash, &hash_pos);
+							}
+						}
+						DBG_INF_FMT("count(master_list)=%d", zend_llist_count(selected_masters));
+						DBG_INF_FMT("count(slave_list)=%d", zend_llist_count(selected_slaves));
+
+						ret = PASS;
+					}
+				} while (0);
+			}
+			zval_ptr_dtor(&retval);
+		}
+		/* destroy the params */
+		{
+			unsigned int i;
+			for (i = 0; i <= param; i++) {
+				zval_ptr_dtor(&args[i]);
+			}
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_choose_connection_rr */
 static MYSQLND *
 mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
@@ -775,20 +985,41 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 	if (conn_data && *conn_data) {
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		enum mysqlnd_ms_server_pick_strategy pick_strategy = stgy->pick_strategy;
+		zend_llist user_selected_masters, user_selected_slaves;
 		zend_llist * master_list = &(*conn_data)->master_connections;
 		zend_llist * slave_list = &(*conn_data)->slave_connections;
 
 		connection = NULL;
 		if (SERVER_PICK_USER == pick_strategy) {
-			connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list, use_all TSRMLS_CC);
-			if (!connection) {
+			if (FALSE == MYSQLND_MS_G(pick_server_is_multiple)) {
+				connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list, use_all TSRMLS_CC);	
+				if (!connection) {
+					pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
+				}
+			} else {
+				/*
+				  No dtor for these lists, because mysqlnd_ms_user_pick_multiple_server()
+				  does shallow (byte) copy and doesn't call any copy_ctor whatsoever on the data
+				  it copies.
+				*/
+				zend_llist_init(&user_selected_masters, sizeof(MYSQLND_MS_LIST_DATA), NULL /*dtor*/, conn->persistent);
+				zend_llist_init(&user_selected_slaves, sizeof(MYSQLND_MS_LIST_DATA), NULL /*dtor*/, conn->persistent);
+
 				pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
+				if (PASS == mysqlnd_ms_user_pick_multiple_server(conn, query, query_len, master_list, slave_list,
+																 &user_selected_masters, &user_selected_slaves TSRMLS_CC))
+				{
+					master_list = &user_selected_masters;
+					slave_list = &user_selected_slaves;
+				}
 			}
 		}
 		if (!connection) {
 			zend_bool forced;
 			enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-			
+			DBG_INF_FMT("count(master_list)=%d", zend_llist_count(master_list));
+			DBG_INF_FMT("count(slave_list)=%d", zend_llist_count(slave_list));
+
 			if (SERVER_PICK_RANDOM == pick_strategy) {
 				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list,
 																 which_server, forced, use_all TSRMLS_CC);
@@ -799,6 +1030,13 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list, 
 															 which_server, forced, use_all TSRMLS_CC);
 			}
+		}
+		/* cleanup if we used multiple pick server */
+		if (&user_selected_masters == master_list) {
+			zend_llist_destroy(&user_selected_masters);
+		}
+		if (&user_selected_slaves == slave_list) {
+			zend_llist_destroy(&user_selected_slaves);
 		}
 		if (!connection) {
 			connection = conn;

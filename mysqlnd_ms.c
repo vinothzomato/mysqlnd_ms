@@ -384,7 +384,6 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 						   zend_bool process_all_list_values,
 						   unsigned int success_stat, unsigned int fail_stat TSRMLS_DC)
 {
-	struct st_mysqlnd_ms_conn_credentials cred = *master_credentials;
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 	struct st_mysqlnd_ms_config_json_entry * subsection = NULL, * parent_subsection = NULL;
 	zend_bool recursive = FALSE;
@@ -413,6 +412,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 		}
 	}
 	do {
+		struct st_mysqlnd_ms_conn_credentials cred = *master_credentials;
 		char * socket_to_use = NULL;
 		char * user_to_use = NULL;
 		char * pass_to_use = NULL;
@@ -547,9 +547,8 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
 	{
-		char * pick_strategy =
-			mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
-													   &value_exists, &is_list_value TSRMLS_CC);
+		char * pick_strategy = mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
+																		  &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
 
