@@ -522,9 +522,10 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 static MYSQLND *
 mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
 								struct mysqlnd_ms_lb_strategies * stgy,
-								zend_llist * master_connections, zend_llist * slave_connections,
-								enum enum_which_server which_server, zend_bool forced TSRMLS_DC)
+								zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
 {
+	zend_bool forced;
+	enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
@@ -631,9 +632,10 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 static MYSQLND *
 mysqlnd_ms_choose_connection_random(const char * const query, const size_t query_len,
 									struct mysqlnd_ms_lb_strategies * stgy,
-									zend_llist * master_connections, zend_llist * slave_connections,
-									enum enum_which_server which_server, zend_bool forced TSRMLS_DC)
+									zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
 {
+	zend_bool forced;
+	enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
 	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
@@ -769,9 +771,10 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 static MYSQLND *
 mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t query_len,
 										 struct mysqlnd_ms_lb_strategies * stgy,
-										 zend_llist * master_connections, zend_llist * slave_connections,
-										 enum enum_which_server which_server, zend_bool forced TSRMLS_DC)
+										 zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
 {
+	zend_bool forced;
+	enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	DBG_ENTER("mysqlnd_ms_choose_connection_random_once");
 
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
@@ -991,20 +994,15 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 			}
 		}
 		if (!connection) {
-			zend_bool forced;
-			enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 			DBG_INF_FMT("count(master_list)=%d", zend_llist_count(master_list));
 			DBG_INF_FMT("count(slave_list)=%d", zend_llist_count(slave_list));
 
 			if (SERVER_PICK_RANDOM == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list,
-																 which_server, forced TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list TSRMLS_CC);
 			} else if (SERVER_PICK_RANDOM_ONCE == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list,
-																	  which_server, forced TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list TSRMLS_CC);
 			} else {
-				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list, 
-															 which_server, forced TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list TSRMLS_CC);
 			}
 		}
 		/* cleanup if we used multiple pick server */
