@@ -551,17 +551,21 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 																		  &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
-
+		strategies->select_servers = DEFAULT_SELECT_SERVERS;
 		if (value_exists && pick_strategy) {
 			/* random is a substing of random_once thus we check first for random_once */
 			if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
+				strategies->select_servers = mysqlnd_ms_select_servers_all;
 			} else if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
+				strategies->select_servers = mysqlnd_ms_select_servers_random_once;
 			} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
+				strategies->select_servers = mysqlnd_ms_select_servers_all;
 			} else if (!strncasecmp(PICK_USER, pick_strategy, sizeof(PICK_USER) - 1)) {
 				strategies->pick_strategy = SERVER_PICK_USER;
+				/* XXX: HANDLE strategies->select_servers !!! */
 				if (is_list_value) {
 					mnd_efree(pick_strategy);
 					pick_strategy =

@@ -55,6 +55,8 @@ enum mysqlnd_ms_server_pick_strategy
 };
 
 #define DEFAULT_PICK_STRATEGY SERVER_PICK_RANDOM_ONCE
+/* depends on the above */
+#define DEFAULT_SELECT_SERVERS mysqlnd_ms_select_servers_random_once
 
 enum mysqlnd_ms_server_failover_strategy
 {
@@ -110,7 +112,12 @@ typedef struct st_MYSQLND_MS_CONN_DATA
 		zend_bool in_transaction;
 
 		MYSQLND * last_used_conn;
-		MYSQLND * random_once_slave;	
+		MYSQLND * random_once_slave;
+		enum_func_status (*select_servers)(enum php_mysqlnd_server_command command,
+						struct mysqlnd_ms_lb_strategies * stgy,
+						zend_llist * master_list, zend_llist * slave_list,
+						zend_llist * selected_masters, zend_llist * selected_slaves
+						TSRMLS_DC);
 	} stgy;
 
 

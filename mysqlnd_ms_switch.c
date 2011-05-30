@@ -518,6 +518,87 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_select_servers_all */
+enum_func_status
+mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
+							  struct mysqlnd_ms_lb_strategies * stgy,
+							  zend_llist * master_list, zend_llist * slave_list,
+							  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	zend_llist * in_lists[] = {NULL, master_list, slave_list, NULL};
+	zend_llist ** in_list = in_lists;
+	zend_llist * out_lists[] = {NULL, selected_masters, selected_slaves, NULL};
+	zend_llist ** out_list = out_lists;
+	DBG_ENTER("mysqlnd_ms_select_servers_all");
+
+	while (*++in_list && *++out_list) {
+		zend_llist_position	pos;
+		MYSQLND_MS_LIST_DATA * el;
+
+		/* search the list of easy handles hanging off the multi-handle */
+		for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*in_list, &pos); el && el->conn;
+				el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*in_list, &pos))
+		{
+			/*
+			  This will copy the whole structure, not the pointer.
+			  This is wanted!!
+			*/
+			zend_llist_add_element(*out_list, el);
+		}
+	}
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_select_servers_random_once */
+enum_func_status
+mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
+									  struct mysqlnd_ms_lb_strategies * stgy,
+									  zend_llist * master_list, zend_llist * slave_list,
+									  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
+{
+	enum_func_status ret = FAIL;
+	zend_llist_position	pos;
+	MYSQLND_MS_LIST_DATA * el;
+	DBG_ENTER("mysqlnd_ms_select_servers_random_once");
+	DBG_INF_FMT("random_once_slave=%p", stgy->random_once_slave);
+	if (!stgy->random_once_slave) {
+		ret = mysqlnd_ms_select_servers_all(command, stgy, master_list, slave_list, selected_masters, selected_slaves TSRMLS_CC);
+		DBG_RETURN(ret);
+	}
+
+	/* search the list of easy handles hanging off the multi-handle */
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+	{
+		/*
+		  This will copy the whole structure, not the pointer.
+		  This is wanted!!
+		*/
+		zend_llist_add_element(selected_masters, el);
+	}
+	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
+			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+	{
+		DBG_INF_FMT("[slave] el->conn=%p", el->conn);
+		if (el->conn == stgy->random_once_slave) {
+			/*
+			  This will copy the whole structure, not the pointer.
+			  This is wanted!!
+			*/
+			zend_llist_add_element(selected_slaves, el);
+			ret = PASS;
+			DBG_INF("bingo!");
+			break;
+		}
+	}
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_choose_connection_rr */
 static MYSQLND *
 mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
