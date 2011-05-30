@@ -1084,7 +1084,23 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 }
 /* }}} */
 
+#define BEGIN_ITERATE_OVER_SERVER_LIST(el) \
+	{ \
+		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL}; \
+		zend_llist ** list = lists; \
+		while (*++list) { \
+			zend_llist_position	pos; \
+			/* search the list of easy handles hanging off the multi-handle */ \
+			for ((el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); (el) && (el)->conn; \
+					(el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos)) \
+			{ \
 
+#define END_ITERATE_OVER_SERVER_LIST \
+			} \
+		} \
+	}
+
+	
 /* {{{ mysqlnd_ms::set_charset */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char * const csname TSRMLS_DC)
@@ -1096,20 +1112,12 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_charset(proxy_conn, csname TSRMLS_CC));
 	} else {
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				if (PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC)) {
-					ret = FAIL;
-				}
-			}
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		if (PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC)) {
+			ret = FAIL;
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	DBG_RETURN(ret);
@@ -1128,20 +1136,12 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_m
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_server_option(proxy_conn, option TSRMLS_CC));
 	} else {
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				if (PASS != ms_orig_mysqlnd_conn_methods->set_server_option(el->conn, option TSRMLS_CC)) {
-					ret = FAIL;
-				}
-			}
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		if (PASS != ms_orig_mysqlnd_conn_methods->set_server_option(el->conn, option TSRMLS_CC)) {
+			ret = FAIL;
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	DBG_RETURN(ret);
@@ -1160,20 +1160,12 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_client_option(proxy_conn, option, value TSRMLS_CC));
 	} else {
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				if (PASS != ms_orig_mysqlnd_conn_methods->set_client_option(el->conn, option, value TSRMLS_CC)) {
-					ret = FAIL;
-				}
-			}
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		if (PASS != ms_orig_mysqlnd_conn_methods->set_client_option(el->conn, option, value TSRMLS_CC)) {
+			ret = FAIL;
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	DBG_RETURN(ret);
@@ -1322,22 +1314,12 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_autocommit(proxy_conn, mode TSRMLS_CC));
 	} else {
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				if ((CONN_GET_STATE(el->conn) != CONN_ALLOCED) &&
-					 PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) 
-				{
-					ret = FAIL;
-				}
-			}
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		if ((CONN_GET_STATE(el->conn) != CONN_ALLOCED) && PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+			ret = FAIL;
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	if (mode) {
