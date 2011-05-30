@@ -818,9 +818,9 @@ mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t 
 	}
 	switch (which_server) {
 		case USE_SLAVE:
-			if (stgy->random_once) {
-				DBG_INF_FMT("Using last random connection "MYSQLND_LLU_SPEC, stgy->random_once->thread_id);
-				DBG_RETURN(stgy->random_once);
+			if (stgy->random_once_slave) {
+				DBG_INF_FMT("Using last random connection "MYSQLND_LLU_SPEC, stgy->random_once_slave->thread_id);
+				DBG_RETURN(stgy->random_once_slave);
 			} else {
 				zend_llist_position	pos;
 				zend_llist * l = slave_connections;
@@ -851,7 +851,7 @@ mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t 
 																	   element->connect_flags TSRMLS_CC))
 						{
 							DBG_INF("Connected");
-							stgy->random_once = connection;
+							stgy->random_once_slave = connection;
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 							DBG_RETURN(connection);
 						}
@@ -862,7 +862,7 @@ mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t 
 						}
 						DBG_INF("Connect failed, falling back to the master");
 					} else {
-						stgy->random_once = connection;
+						stgy->random_once_slave = connection;
 						DBG_RETURN(connection);
 					}
 				} else {

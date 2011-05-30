@@ -110,7 +110,7 @@ typedef struct st_MYSQLND_MS_CONN_DATA
 		zend_bool in_transaction;
 
 		MYSQLND * last_used_conn;
-		MYSQLND * random_once;	
+		MYSQLND * random_once_slave;	
 	} stgy;
 
 
