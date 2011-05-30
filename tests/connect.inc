@@ -345,18 +345,24 @@
 
 			$json = array();
 			foreach ($settings as $application => $config) {
+
 				$json[$application] = array();
 				if (isset($config['master'])) {
 					foreach ($config['master'] as $host) {
 						$host_config = array();
-						list($real_host, $port) = explode(':', $host);
-						$host_config['host'] = $real_host;
-						if ($port) {
-							if (!is_numeric($port)) {
-								$host_config['socket'] = $port;
-							} else {
-								$host_config['port'] = $port;
+						if (false !== stristr($host, ':')) {
+							/* 1.0 legacy */
+							list($real_host, $port) = explode(':', $host);
+							$host_config['host'] = $real_host;
+							if ($port) {
+								if (!is_numeric($port)) {
+									$host_config['socket'] = $port;
+								} else {
+									$host_config['port'] = $port;
+								}
 							}
+						} else {
+							$host_config['host'] = $host;
 						}
 						$json[$application]['master'][] = $host_config;
 					}
@@ -364,19 +370,27 @@
 				if (isset($config['slave'])) {
 					foreach ($config['slave'] as $host) {
 						$host_config = array();
-						list($real_host, $port) = explode(':', $host);
-						$host_config['host'] = $real_host;
-						if ($port) {
-							if (!is_numeric($port)) {
-								$host_config['socket'] = $port;
-							} else {
-								$host_config['port'] = $port;
+						/* 1.0 legacy */
+						if (false !== stristr($host, ':')) {
+							list($real_host, $port) = explode(':', $host);
+							$host_config['host'] = $real_host;
+							if ($port) {
+								if (!is_numeric($port)) {
+									$host_config['socket'] = $port;
+								} else {
+									$host_config['port'] = $port;
+								}
 							}
+						} else {
+							$host_config['host'] = $host;
 						}
 						$json[$application]['slave'][] = $host_config;
 					}
 				}
 				if (isset($config['pick'])) {
+					if (!is_array($config['pick']))
+						$config['pick'] = array($config['pick']);
+
 					foreach ($config['pick'] as $method) {
 						$json[$application]['pick'][] = (string)$method;
 					}
@@ -395,6 +409,7 @@
 				}
 
 			}
+
 			fwrite($fp, json_encode($json));
 			fclose($fp);
 			return '';
