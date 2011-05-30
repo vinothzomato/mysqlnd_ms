@@ -153,7 +153,7 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 /* {{{ mysqlnd_ms_user_pick_server */
 static MYSQLND *
 mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len,
-							zend_llist * master_list, zend_llist * slave_list, zend_bool * use_all TSRMLS_DC)
+							zend_llist * master_list, zend_llist * slave_list TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	zval * args[7];
@@ -163,7 +163,6 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 	DBG_ENTER("mysqlnd_ms_user_pick_server");
 	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
 
-	*use_all = 0;
 	if (master_list && MYSQLND_MS_G(user_pick_server)) {
 		uint param = 0;
 #ifdef ALL_SERVER_DISPATCH
@@ -293,7 +292,6 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 		}
 #ifdef ALL_SERVER_DISPATCH
 		convert_to_boolean(args[use_all_pos]);
-		*use_all = Z_BVAL_P(args[use_all_pos]);
 		Z_DELREF_P(args[use_all_pos]);
 #endif
 		/* destroy the params */
@@ -525,11 +523,10 @@ static MYSQLND *
 mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
 								struct mysqlnd_ms_lb_strategies * stgy,
 								zend_llist * master_connections, zend_llist * slave_connections,
-								enum enum_which_server which_server, zend_bool forced, zend_bool * use_all TSRMLS_DC)
+								enum enum_which_server which_server, zend_bool forced TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
-	*use_all = 0;
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
 		which_server = USE_MASTER;
@@ -541,8 +538,6 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 					case USE_MASTER:
 					case USE_LAST_USED:
 						break;
-					case USE_ALL:
-						*use_all = 1;
 					case USE_SLAVE:
 					default:
 						DBG_INF("Enforcing use of master after write");
@@ -623,10 +618,6 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN(stgy->last_used_conn);
-		case USE_ALL:
-			*use_all = 1;
-			DBG_INF("Dispatch to all connections");
-			DBG_RETURN(NULL);
 		default:
 			/* error */
 			DBG_RETURN(NULL);
@@ -641,11 +632,10 @@ static MYSQLND *
 mysqlnd_ms_choose_connection_random(const char * const query, const size_t query_len,
 									struct mysqlnd_ms_lb_strategies * stgy,
 									zend_llist * master_connections, zend_llist * slave_connections,
-									enum enum_which_server which_server, zend_bool forced, zend_bool * use_all TSRMLS_DC)
+									enum enum_which_server which_server, zend_bool forced TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
-	*use_all = 0;
 	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
@@ -658,8 +648,6 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 					case USE_MASTER:
 					case USE_LAST_USED:
 						break;
-					case USE_ALL:
-						*use_all = 1;
 					case USE_SLAVE:
 					default:
 						DBG_INF("Enforcing use of master after write");
@@ -768,10 +756,6 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN(stgy->last_used_conn);
-		case USE_ALL:
-			*use_all = 1;
-			DBG_INF("Dispatch to all connections");
-			DBG_RETURN(NULL);
 		default:
 			/* error */
 			DBG_RETURN(NULL);
@@ -786,11 +770,10 @@ static MYSQLND *
 mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t query_len,
 										 struct mysqlnd_ms_lb_strategies * stgy,
 										 zend_llist * master_connections, zend_llist * slave_connections,
-										 enum enum_which_server which_server, zend_bool forced, zend_bool * use_all TSRMLS_DC)
+										 enum enum_which_server which_server, zend_bool forced TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_ms_choose_connection_random_once");
 
-	*use_all = 0;
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
 		which_server = USE_MASTER;
@@ -802,8 +785,6 @@ mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t 
 					case USE_MASTER:
 					case USE_LAST_USED:
 						break;
-					case USE_ALL:
-						*use_all = 1;
 					case USE_SLAVE:
 					default:
 						DBG_INF("Enforcing use of master after write");
@@ -917,10 +898,6 @@ mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t 
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN(stgy->last_used_conn);
-		case USE_ALL:
-			*use_all = 1;
-			DBG_INF("Dispatch to all connections");
-			DBG_RETURN(NULL);
 		default:
 			/* error */
 			DBG_RETURN(NULL);
@@ -975,13 +952,12 @@ mysqlnd_ms_choose_connection_partition_by_filter(MYSQLND * conn, const char * qu
 
 /* {{{ mysqlnd_ms_pick_server */
 MYSQLND *
-mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len, zend_bool * use_all TSRMLS_DC)
+mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	MYSQLND * connection = conn;
 	DBG_ENTER("mysqlnd_ms_pick_server");
 
-	*use_all = 0;
 	if (conn_data && *conn_data) {
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		enum mysqlnd_ms_server_pick_strategy pick_strategy = stgy->pick_strategy;
@@ -992,7 +968,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 		connection = NULL;
 		if (SERVER_PICK_USER == pick_strategy) {
 			if (FALSE == MYSQLND_MS_G(pick_server_is_multiple)) {
-				connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list, use_all TSRMLS_CC);	
+				connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list TSRMLS_CC);	
 				if (!connection) {
 					pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
 				}
@@ -1022,13 +998,13 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 
 			if (SERVER_PICK_RANDOM == pick_strategy) {
 				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list,
-																 which_server, forced, use_all TSRMLS_CC);
+																 which_server, forced TSRMLS_CC);
 			} else if (SERVER_PICK_RANDOM_ONCE == pick_strategy) {
 				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list,
-																	  which_server, forced, use_all TSRMLS_CC);
+																	  which_server, forced TSRMLS_CC);
 			} else {
 				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list, 
-															 which_server, forced, use_all TSRMLS_CC);
+															 which_server, forced TSRMLS_CC);
 			}
 		}
 		/* cleanup if we used multiple pick server */

@@ -781,7 +781,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	zend_bool use_all = 0;
 	DBG_ENTER("mysqlnd_ms::query");
 
-	connection = mysqlnd_ms_pick_server(conn, query, query_len, &use_all TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server(conn, query, query_len TSRMLS_CC);
 	DBG_INF_FMT("Connection %p", connection);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
@@ -961,7 +961,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 					ret = FAIL;
 				}
 			}
-		} while (*++list);
+		}
 	}
 
 	DBG_RETURN(ret);

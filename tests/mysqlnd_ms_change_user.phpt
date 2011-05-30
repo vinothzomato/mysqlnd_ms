@@ -88,8 +88,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_change_user.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_change_user.ini'.\n");
+//	if (!unlink("test_mysqlnd_ms_change_user.ini"))
+//	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_change_user.ini'.\n");
 ?>
 --EXPECTF--
 done!
