@@ -47,6 +47,22 @@ static void mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC);
 
 MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
+#define BEGIN_ITERATE_OVER_SERVER_LIST(el) \
+	{ \
+		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL}; \
+		zend_llist ** list = lists; \
+		while (*++list) { \
+			zend_llist_position	pos; \
+			/* search the list of easy handles hanging off the multi-handle */ \
+			for ((el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); (el) && (el)->conn; \
+					(el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos)) \
+			{ \
+
+#define END_ITERATE_OVER_SERVER_LIST \
+			} \
+		} \
+	}
+
 
 /* {{{ mysqlnd_ms_get_scheme_from_list_data */
 static int
@@ -947,25 +963,17 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent TSRMLS_CC));
 #endif
 	} else {
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
 #if PHP_VERSION_ID >= 50399
-																	,passwd_len
+															,passwd_len
 #endif
-																	TSRMLS_CC))
-				{
-					ret = FAIL;
-				}
-			}
+															TSRMLS_CC))
+		{
+			ret = FAIL;
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	DBG_RETURN(ret);
@@ -1011,41 +1019,34 @@ MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND * const proxy_conn, const char * 
 
 	DBG_ENTER("mysqlnd_ms::get_errors");
 	if (conn_data && *conn_data) {
-		/* search the list of easy handles hanging off the multi-handle */
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
+		MYSQLND_MS_LIST_DATA * el;
 		array_init(ret);
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				zval * row = NULL;
-				char * scheme;
-				size_t scheme_len;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		{
+			zval * row = NULL;
+			char * scheme;
+			size_t scheme_len;
 
-				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
-					scheme = el->emulated_scheme;
-					scheme_len = el->emulated_scheme_len;
-				} else {
-					scheme = el->conn->scheme;
-					scheme_len = el->conn->scheme_len;
-				}
-				array_init(row);
-				add_assoc_long_ex(row, "errno", sizeof("errno") - 1, ms_orig_mysqlnd_conn_methods->get_error_no(el->conn TSRMLS_CC));
-				{
-					const char * err = ms_orig_mysqlnd_conn_methods->get_error_str(el->conn TSRMLS_CC);
-					add_assoc_stringl_ex(row, "error", sizeof("error") - 1, (char*) err, strlen(err), 1 /*dup*/);
-				}
-				{
-					const char * sqlstate = ms_orig_mysqlnd_conn_methods->get_sqlstate(el->conn TSRMLS_CC);
-					add_assoc_stringl_ex(row, "sqlstate", sizeof("sqlstate") - 1, (char*) sqlstate, strlen(sqlstate), 1 /*dup*/);
-				}
-
-				add_assoc_zval_ex(ret, scheme, scheme_len, row);
+			if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+				scheme = el->emulated_scheme;
+				scheme_len = el->emulated_scheme_len;
+			} else {
+				scheme = el->conn->scheme;
+				scheme_len = el->conn->scheme_len;
 			}
+			array_init(row);
+			add_assoc_long_ex(row, "errno", sizeof("errno") - 1, ms_orig_mysqlnd_conn_methods->get_error_no(el->conn TSRMLS_CC));
+			{
+				const char * err = ms_orig_mysqlnd_conn_methods->get_error_str(el->conn TSRMLS_CC);
+				add_assoc_stringl_ex(row, "error", sizeof("error") - 1, (char*) err, strlen(err), 1 /*dup*/);
+			}
+			{
+				const char * sqlstate = ms_orig_mysqlnd_conn_methods->get_sqlstate(el->conn TSRMLS_CC);
+				add_assoc_stringl_ex(row, "sqlstate", sizeof("sqlstate") - 1, (char*) sqlstate, strlen(sqlstate), 1 /*dup*/);
+			}
+			add_assoc_zval_ex(ret, scheme, scheme_len, row);
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	DBG_RETURN(ret);
@@ -1064,41 +1065,17 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->select_db(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
-		zend_llist ** list = lists;
-		while (*++list) {
-			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
-			{
-				if (PASS != ms_orig_mysqlnd_conn_methods->select_db(el->conn, db, db_len TSRMLS_CC)) {
-					ret = FAIL;
-				}
-			}
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		if (PASS != ms_orig_mysqlnd_conn_methods->select_db(el->conn, db, db_len TSRMLS_CC)) {
+			ret = FAIL;
 		}
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 
 	DBG_RETURN(ret);
 }
 /* }}} */
-
-#define BEGIN_ITERATE_OVER_SERVER_LIST(el) \
-	{ \
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL}; \
-		zend_llist ** list = lists; \
-		while (*++list) { \
-			zend_llist_position	pos; \
-			/* search the list of easy handles hanging off the multi-handle */ \
-			for ((el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); (el) && (el)->conn; \
-					(el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos)) \
-			{ \
-
-#define END_ITERATE_OVER_SERVER_LIST \
-			} \
-		} \
-	}
 
 	
 /* {{{ mysqlnd_ms::set_charset */
