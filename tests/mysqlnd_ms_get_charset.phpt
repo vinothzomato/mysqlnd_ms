@@ -87,7 +87,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 			printf("[%03d + 03] Expecting max length %d got %d '\n", $offset, $charset['charset'], $charset->max_length);
 
 		if (($charset->min_length < 0) || ($charset->min_length > $expected['max_length']))
-			printf("[%03d + 03] Expecting min length 0..%d got %d\n", $offset, $charset['max_length']. $charset->min_length);
+			printf("[%03d + 04] Expecting min length 0..%d got %d\n", $offset, $charset['max_length']. $charset->min_length);
 
 	}
 
