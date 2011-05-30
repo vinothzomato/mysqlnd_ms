@@ -47,9 +47,11 @@ static void mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC);
 
 MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
-#define BEGIN_ITERATE_OVER_SERVER_LIST(el) \
+#define BEGIN_ITERATE_OVER_SERVER_LIST(el, masters, slaves) \
+{ \
+	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
 	{ \
-		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL}; \
+		zend_llist * lists[] = {NULL, (masters), (slaves), NULL}; \
 		zend_llist ** list = lists; \
 		while (*++list) { \
 			zend_llist_position	pos; \
@@ -61,7 +63,8 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 #define END_ITERATE_OVER_SERVER_LIST \
 			} \
 		} \
-	}
+	} \
+}
 
 
 /* {{{ mysqlnd_ms_get_scheme_from_list_data */
@@ -695,25 +698,24 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	}
 	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
 
-	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-	*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
-	zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-	zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-	(*conn_data)->cred.user = user? mnd_pestrdup(user, conn->persistent) : NULL;
-	(*conn_data)->cred.passwd_len = passwd_len;
-	(*conn_data)->cred.passwd = passwd? mnd_pestrndup(passwd, passwd_len, conn->persistent) : NULL;
-	(*conn_data)->cred.db_len = db_len;
-	(*conn_data)->cred.db = db? mnd_pestrndup(db, db_len, conn->persistent) : NULL;
-	(*conn_data)->cred.port = port;
-	(*conn_data)->cred.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
-	(*conn_data)->cred.mysql_flags = mysql_flags;
-
 	if (FALSE == section_found) {
 		DBG_INF("section not found");
-		ret = mysqlnd_ms_connect_to_host_aux(conn, /*safe*/(char *)host, &(*conn_data)->master_connections, &(*conn_data)->cred, FALSE /*lazy*/,
-										 conn->persistent TSRMLS_CC);
+		ret = ms_orig_mysqlnd_conn_methods->connect(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 	} else {
 		struct st_mysqlnd_ms_config_json_entry * the_section;
+
+		conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+		*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
+		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		(*conn_data)->cred.user = user? mnd_pestrdup(user, conn->persistent) : NULL;
+		(*conn_data)->cred.passwd_len = passwd_len;
+		(*conn_data)->cred.passwd = passwd? mnd_pestrndup(passwd, passwd_len, conn->persistent) : NULL;
+		(*conn_data)->cred.db_len = db_len;
+		(*conn_data)->cred.db = db? mnd_pestrndup(db, db_len, conn->persistent) : NULL;
+		(*conn_data)->cred.port = port;
+		(*conn_data)->cred.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
+		(*conn_data)->cred.mysql_flags = mysql_flags;
 
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
@@ -964,7 +966,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 #endif
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
 #if PHP_VERSION_ID >= 50399
 															,passwd_len
@@ -1021,7 +1023,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND * const proxy_conn, const char * 
 	if (conn_data && *conn_data) {
 		MYSQLND_MS_LIST_DATA * el;
 		array_init(ret);
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
 			zval * row = NULL;
 			char * scheme;
@@ -1066,7 +1068,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->select_db(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->select_db(el->conn, db, db_len TSRMLS_CC)) {
 			ret = FAIL;
 		}
@@ -1090,7 +1092,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_charset(proxy_conn, csname TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC)) {
 			ret = FAIL;
 		}
@@ -1114,7 +1116,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_m
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_server_option(proxy_conn, option TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->set_server_option(el->conn, option TSRMLS_CC)) {
 			ret = FAIL;
 		}
@@ -1138,7 +1140,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_client_option(proxy_conn, option, value TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->set_client_option(el->conn, option, value TSRMLS_CC)) {
 			ret = FAIL;
 		}
@@ -1292,7 +1294,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_autocommit(proxy_conn, mode TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LIST(el);
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if ((CONN_GET_STATE(el->conn) != CONN_ALLOCED) && PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
 			ret = FAIL;
 		}

@@ -526,25 +526,32 @@ mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
 							  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	zend_llist * in_lists[] = {NULL, master_list, slave_list, NULL};
-	zend_llist ** in_list = in_lists;
-	zend_llist * out_lists[] = {NULL, selected_masters, selected_slaves, NULL};
-	zend_llist ** out_list = out_lists;
 	DBG_ENTER("mysqlnd_ms_select_servers_all");
 
-	while (*++in_list && *++out_list) {
+	{
 		zend_llist_position	pos;
 		MYSQLND_MS_LIST_DATA * el;
-
-		/* search the list of easy handles hanging off the multi-handle */
-		for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*in_list, &pos); el && el->conn;
-				el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*in_list, &pos))
-		{
-			/*
-			  This will copy the whole structure, not the pointer.
-			  This is wanted!!
-			*/
-			zend_llist_add_element(*out_list, el);
+		if (zend_llist_count(master_list)) {
+			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
+					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+			{
+				/*
+				  This will copy the whole structure, not the pointer.
+				  This is wanted!!
+				*/
+				zend_llist_add_element(selected_masters, el);
+			}
+		}
+		if (zend_llist_count(slave_list)) {
+			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
+					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+			{
+				/*
+				  This will copy the whole structure, not the pointer.
+				  This is wanted!!
+				*/
+				zend_llist_add_element(selected_slaves, el);
+			}
 		}
 	}
 	DBG_RETURN(ret);
@@ -579,6 +586,7 @@ mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
 		*/
 		zend_llist_add_element(selected_masters, el);
 	}
+
 	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
 			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
 	{
