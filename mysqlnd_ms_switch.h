@@ -21,6 +21,8 @@
 #ifndef MYSQLND_MS_SWITCH_H
 #define MYSQLND_MS_SWITCH_H
 
+struct mysqlnd_ms_lb_strategies;
+
 PHPAPI enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
 MYSQLND * mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
 
