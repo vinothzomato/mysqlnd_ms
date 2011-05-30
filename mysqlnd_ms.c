@@ -243,7 +243,7 @@ mysqlnd_ms_load_table_filters(HashTable * filters_ht, struct st_mysqlnd_ms_confi
 				}
 
 				if ((new_filter_entry->host_id_len = section_name_len) && new_filter_entry->host_id) {
-					new_filter_entry->host_id = mnd_pestrndup(new_filter_entry->host_id, section_name_len, 1);
+					new_filter_entry->host_id = mnd_pestrndup(section_name, section_name_len, 1);
 				}
 
 				str_value = mysqlnd_ms_config_json_string_from_section(current_filter, SECT_FILTER_PRIORITY_NAME,
