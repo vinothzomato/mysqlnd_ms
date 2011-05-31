@@ -602,7 +602,7 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown pick strategy %s", pick_strategy);
 				error_buf[sizeof(error_buf) - 1] = '\0';
-			
+
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 			}
@@ -782,13 +782,15 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
+
+		if (ret == PASS) {
+			(*conn_data)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
+		}
+
 	}
 
 	if (hotloading) {
 		MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
-	}
-	if (ret == PASS) {
-		(*conn_data)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
 	}
 	DBG_RETURN(ret);
 }
@@ -1080,7 +1082,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 }
 /* }}} */
 
-	
+
 /* {{{ mysqlnd_ms::set_charset */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char * const csname TSRMLS_DC)
