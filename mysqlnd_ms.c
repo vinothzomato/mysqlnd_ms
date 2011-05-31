@@ -361,10 +361,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_li
 		DBG_INF_FMT("Connection "MYSQLND_LLU_SPEC" established", conn->thread_id);
 	}
 
-#if 0
-	if (ret == PASS)
-#endif
-	{
+	if (ret == PASS) {
 		MYSQLND_MS_LIST_DATA new_element = {0};
 		new_element.conn = conn;
 		new_element.host = host? mnd_pestrdup(host, persistent) : NULL;
@@ -401,7 +398,8 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 						   HashTable * table_filters,
 						   zend_bool lazy_connections, zend_bool persistent,
 						   zend_bool process_all_list_values,
-						   unsigned int success_stat, unsigned int fail_stat TSRMLS_DC)
+						   unsigned int success_stat, unsigned int fail_stat,
+						   MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 	struct st_mysqlnd_ms_config_json_entry * subsection = NULL, * parent_subsection = NULL;
@@ -493,7 +491,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 			DBG_ERR_FMT("Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
 			php_error_docref(NULL TSRMLS_CC, E_WARNING,
 							 MYSQLND_MS_ERROR_PREFIX " Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
-			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 							 MYSQLND_MS_ERROR_PREFIX " Cannot find ["SECT_HOST_NAME"] in section in config");
 			failures++;
 		} else {
@@ -503,22 +501,21 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 					mysqlnd_ms_connect_to_host_aux(tmp_conn, host, conn_list, &cred, lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
-#if 0
+					(*error_info) = tmp_conn->error_info;
 					failures++;
 					if (!conn) {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
 					}
-#endif
 					MYSQLND_MS_INC_STATISTIC(fail_stat);
 				} else {
 					if (!lazy_connections) {
 						MYSQLND_MS_INC_STATISTIC(success_stat);
 					}
-				}
-				if (FAIL == mysqlnd_ms_load_table_filters(table_filters, subsection, current_subsection_name,
-														  current_subsection_name_len TSRMLS_CC))
-				{
-					failures++;
+					if (FAIL == mysqlnd_ms_load_table_filters(table_filters, subsection, current_subsection_name,
+															  current_subsection_name_len TSRMLS_CC))
+					{
+						failures++;
+					}
 				}
 			} else {
 				failures++;
@@ -560,7 +557,8 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 /* {{{ mysqlnd_ms_lb_strategy_setup */
 static void
 mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
-							 struct st_mysqlnd_ms_config_json_entry * the_section TSRMLS_DC)
+							 struct st_mysqlnd_ms_config_json_entry * the_section,
+							 MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 
@@ -600,6 +598,13 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 						}
 					}
 				}
+			} else {
+				char error_buf[128];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown pick strategy %s", pick_strategy);
+				error_buf[sizeof(error_buf) - 1] = '\0';
+			
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 			}
 		}
 		if (pick_strategy) {
@@ -740,6 +745,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					lazy_connections = NULL;
 				}
 			}
+			SET_EMPTY_ERROR(conn->error_info);
 			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(conn, &(*conn_data)->master_connections, &(*conn_data)->cred, the_section,
 											 MASTER_NAME, sizeof(MASTER_NAME) - 1,
@@ -747,16 +753,14 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 use_lazy_connections,
 											 conn->persistent, FALSE /* multimaster*/,
 											 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
-											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE TSRMLS_CC);
-			if (FAIL == ret) {
+											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
+											 &conn->error_info TSRMLS_CC);
+			if (FAIL == ret || conn->error_info.error_no) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
-				if (!conn->error_info.error_no) {
-					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-						MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
-				}
 				break;
 			}
 
+			SET_EMPTY_ERROR(conn->error_info);
 			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(NULL, &(*conn_data)->slave_connections, &(*conn_data)->cred, the_section,
 											 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
@@ -764,17 +768,14 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 use_lazy_connections,
 											 conn->persistent, TRUE /* multi*/,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
-											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE TSRMLS_CC);
-			if (FAIL == ret) {
-				if (!conn->error_info.error_no) {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
-					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-										MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
-				}
+											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
+											 &conn->error_info TSRMLS_CC);
+			if (FAIL == ret || conn->error_info.error_no) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
 				break;
 			}
 
-			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section TSRMLS_CC);
+			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &conn->error_info TSRMLS_CC);
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
 
