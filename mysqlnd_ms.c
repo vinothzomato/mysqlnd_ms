@@ -803,7 +803,9 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 {
 	MYSQLND * connection;
 	enum_func_status ret = FAIL;
+#ifdef ALL_SERVER_DISPATCH
 	zend_bool use_all = 0;
+#endif
 	DBG_ENTER("mysqlnd_ms::query");
 
 	connection = mysqlnd_ms_pick_server(conn, query, query_len TSRMLS_CC);
