@@ -13,12 +13,12 @@ $settings = array(
 		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_use_result.phpt", $settings))
+if ($error = create_config("test_mysqlnd_ms_use_result.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_use_result.phpt
+mysqlnd_ms.ini_file=test_mysqlnd_ms_use_result.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -64,8 +64,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_use_result.phpt
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_use_result.phpt"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_use_result.phpt'.\n");
+	if (!unlink("test_mysqlnd_ms_use_result.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_use_result.ini'.\n");
 ?>
 --EXPECTF--
 [002 + 03] '1'
