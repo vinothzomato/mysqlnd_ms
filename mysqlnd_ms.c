@@ -1341,6 +1341,23 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND * conn TSRMLS_DC)
 /* }}} */
 #endif
 
+
+/* {{{ mysqlnd_ms::statistic */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND * proxy_conn, char **message, unsigned int * message_len TSRMLS_DC)
+{
+	enum_func_status ret;
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+
+	DBG_ENTER("mysqlnd_ms::statistic");
+	DBG_INF_FMT("conn=%llu", conn->thread_id);
+	ret = ms_orig_mysqlnd_conn_methods->get_server_statistics(conn, message, message_len TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 
 /* {{{ mysqlnd_ms_register_hooks*/
@@ -1382,6 +1399,8 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.tx_commit			= MYSQLND_METHOD(mysqlnd_ms, tx_commit);
 	my_mysqlnd_conn_methods.tx_rollback			= MYSQLND_METHOD(mysqlnd_ms, tx_rollback);
 #endif
+
+	my_mysqlnd_conn_methods.get_server_statistics	= MYSQLND_METHOD(mysqlnd_ms, get_server_statistics);
 	mysqlnd_conn_set_methods(&my_mysqlnd_conn_methods);
 }
 /* }}} */
