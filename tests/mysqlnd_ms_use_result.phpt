@@ -1,0 +1,77 @@
+--TEST--
+Unbuffered query / use_result
+--SKIPIF--
+<?php
+require_once('skipif_mysqli.inc');
+require_once("connect.inc");
+
+$settings = array(
+	"myapp" => array(
+		'master' => array($master_host),
+		'slave' => array($slave_host, $slave_host),
+		'pick' => 'roundrobin',
+		'lazy_connections' => 1,
+	),
+);
+if ($error = create_config("test_mysqlnd_ms_use_result.phpt", $settings))
+	die(sprintf("SKIP %d\n", $error));
+?>
+--INI--
+mysqlnd_ms.enable=1
+mysqlnd_ms.ini_file=test_mysqlnd_ms_use_result.phpt
+--FILE--
+<?php
+	require_once("connect.inc");
+
+	function run_query($offset, $link, $query, $switch = NULL) {
+		if ($switch)
+			$query = sprintf("/*%s*/%s", $switch, $query);
+
+		if (!$link->real_query($query))
+			printf("[%03d + 01] [%d] %s\n", $offset, $link->errno, $link->error);
+
+		if (!($res = $link->use_result()))
+			printf("[%03d + 02] [%d] %s\n", $offset, $link->errno, $link->error);
+
+		while ($row = $res->fetch_assoc())
+			printf("[%03d + 03] '%s'\n", $offset, $row['_one']);
+	}
+
+	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+
+	$threads = array();
+
+	/* slave 1 */
+	run_query(2, $link, "SELECT 1 AS _one FROM DUAL");
+	$threads[$link->thread_id] = array('role' => 'Slave 1', 'stat' => $link->stat());
+
+	/* slave 2 */
+	run_query(3, $link, "SELECT 12 AS _one FROM DUAL");
+	$threads[$link->thread_id] = array('role' => 'Slave 2', 'stat' => $link->stat());
+
+	/* master */
+	run_query(5, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	$threads[$link->thread_id] = array('role' => 'Master', 'stat' => $link->stat());
+
+	foreach ($threads as $thread_id => $details) {
+		printf("%d - %s: '%s'\n", $thread_id, $details['role'], $details['stat']);
+		if ('' == $details['stat'])
+			printf("Server stat must not be empty!\n");
+	}
+
+	print "done!";
+?>
+--CLEAN--
+<?php
+	if (!unlink("test_mysqlnd_ms_use_result.phpt"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_use_result.phpt'.\n");
+?>
+--EXPECTF--
+[002 + 03] '1'
+[003 + 03] '12'
+[005 + 03] '123'
+%d - Slave 1: '%s'
+%d - Slave 2: '%s'
+%d - Master: '%s'
+done!
