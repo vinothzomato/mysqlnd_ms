@@ -108,6 +108,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 		printf("[010] Unexpected error [%d] '%s'\n", mysqli_errno($link), mysqli_error($link));
 	}
 
+	/* error */
+	$link = @my_mysqli_connect("i_hope_there_is_no_such_host", $user, $passwd, $db, $port, $socket);
+	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+		printf("[011] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	} else {
+		printf("[011] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
+
 	print "done!";
 ?>
 --CLEAN--
@@ -126,4 +134,5 @@ Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Exclusive usage of co
 [005] Connection failed. The plugin can't set a specific error code as none exists, we go for unspecific code 2000 (CR_UNKNOWN_ERROR), [2000] (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section
 [008] No error because no connection yet [%d] ''
 [009] [%d] %s
+[011] Is this a valid code? [2000] (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section
 done!
