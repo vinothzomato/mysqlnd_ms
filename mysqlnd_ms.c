@@ -198,6 +198,7 @@ mysqlnd_ms_filter_dtor(void * data)
 }
 /* }}} */
 
+
 /* {{{ mysqlnd_ms_filter_compare (based on array_data_compare) */
 static int
 mysqlnd_ms_filter_comparator(const struct st_mysqlnd_ms_table_filter * a, const struct st_mysqlnd_ms_table_filter * b)
@@ -207,6 +208,7 @@ mysqlnd_ms_filter_comparator(const struct st_mysqlnd_ms_table_filter * a, const 
 	}
 	return 0;
 }
+/* }}} */
 
 
 /* {{{ mysqlnd_ms_filter_compare (based on array_data_compare) */
@@ -1482,7 +1484,6 @@ mysqlnd_ms_register_hooks()
 	mysqlnd_conn_set_methods(&my_mysqlnd_conn_methods);
 }
 /* }}} */
-
 
 
 /*
