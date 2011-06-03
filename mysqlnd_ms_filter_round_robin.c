@@ -31,22 +31,19 @@
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
 #include "mysqlnd_ms.h"
-#include "ext/standard/php_rand.h"
 #include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_enum_n_def.h"
 
-
-/* {{{ mysqlnd_ms_choose_connection_random */
+/* {{{ mysqlnd_ms_choose_connection_rr */
 MYSQLND *
-mysqlnd_ms_choose_connection_random(const char * const query, const size_t query_len,
-									struct mysqlnd_ms_lb_strategies * stgy,
-									zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
+mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
+								struct mysqlnd_ms_lb_strategies * stgy,
+								zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
 {
 	zend_bool forced;
 	enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-	DBG_ENTER("mysqlnd_ms_choose_connection_random");
+	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
-	which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
 		which_server = USE_MASTER;
@@ -70,26 +67,12 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 			stgy->master_used = TRUE;
 		}
 	}
-
 	switch (which_server) {
 		case USE_SLAVE:
 		{
-			zend_llist_position	pos;
 			zend_llist * l = slave_connections;
-			MYSQLND_MS_LIST_DATA * element;
-			unsigned long rnd_idx;
-			uint i = 0;
-			MYSQLND * connection;
-
-			rnd_idx = php_rand(TSRMLS_C);
-			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
-			DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
-
-			element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(l, &pos);
-			while (i++ < rnd_idx) {
-				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
-			}
-			connection = (element && element->conn) ? element->conn : NULL;
+			MYSQLND_MS_LIST_DATA * element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next(l);
+			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
 			if (connection) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
@@ -106,13 +89,14 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 						DBG_RETURN(connection);
 					}
 					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
+
 					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 					  DBG_INF("Failover disabled");
 					  DBG_RETURN(connection);
 					}
 					DBG_INF("Connect failed, falling back to the master");
 				} else {
-					DBG_RETURN(connection);
+					DBG_RETURN(element->conn);
 				}
 			} else {
 				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
@@ -124,22 +108,9 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 		/* fall-through */
 		case USE_MASTER:
 		{
-			zend_llist_position	pos;
 			zend_llist * l = master_connections;
-			MYSQLND_MS_LIST_DATA * element;
-			unsigned long rnd_idx;
-			uint i = 0;
-			MYSQLND * connection = NULL;
-
-			rnd_idx = php_rand(TSRMLS_C);
-			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
-			DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
-
-			element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(l, &pos);
-			while (i++ < rnd_idx) {
-				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
-			}
-			connection = (element && element->conn)? element->conn : NULL;
+			MYSQLND_MS_LIST_DATA * element = zend_llist_get_next(l);
+			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
 			DBG_INF("Using master connection");
 			if (connection) {
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
@@ -148,11 +119,9 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
 																   element->passwd, element->passwd_len,
 																   element->db, element->db_len,
-																   element->port, element->socket,
-																   element->connect_flags TSRMLS_CC))
+																   element->port, element->socket, element->connect_flags TSRMLS_CC))
 					{
 						DBG_INF("Connected");
-						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 						DBG_RETURN(connection);
 					}
@@ -173,6 +142,7 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 	}
 }
 /* }}} */
+
 
 /*
  * Local variables:
