@@ -1302,7 +1302,9 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LIST(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
-		if ((CONN_GET_STATE(el->conn) != CONN_ALLOCED) && PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+		if ((CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) &&
+			PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC))
+		{
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LIST;
