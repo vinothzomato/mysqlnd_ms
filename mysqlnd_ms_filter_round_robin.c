@@ -38,27 +38,32 @@
 MYSQLND *
 mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
 								struct mysqlnd_ms_lb_strategies * stgy,
-								zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
+								zend_llist * master_connections, zend_llist * slave_connections,
+								enum enum_which_server * which_server TSRMLS_DC)
 {
+	enum enum_which_server tmp_which;
 	zend_bool forced;
-	enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
+	if (!which_server) {
+		which_server = &tmp_which;
+	}
+	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
-		which_server = USE_MASTER;
+		*which_server = USE_MASTER;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
 	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
-		if (which_server != USE_MASTER) {
+		if (*which_server != USE_MASTER) {
 			if (stgy->master_used && !forced) {
-				switch (which_server) {
+				switch (*which_server) {
 					case USE_MASTER:
 					case USE_LAST_USED:
 						break;
 					case USE_SLAVE:
 					default:
 						DBG_INF("Enforcing use of master after write");
-						which_server = USE_MASTER;
+						*which_server = USE_MASTER;
 						break;
 				}
 			}
@@ -67,7 +72,7 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 			stgy->master_used = TRUE;
 		}
 	}
-	switch (which_server) {
+	switch (*which_server) {
 		case USE_SLAVE:
 		{
 			zend_llist * l = slave_connections;

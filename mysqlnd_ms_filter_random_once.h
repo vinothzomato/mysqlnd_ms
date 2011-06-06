@@ -22,7 +22,7 @@
 #define MYSQLND_MS_FILTER_RANDOM_ONCE_H
 
 enum_func_status mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command, struct mysqlnd_ms_lb_strategies * stgy, zend_llist * master_list, zend_llist * slave_list, zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC);
-MYSQLND * mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t query_len, struct mysqlnd_ms_lb_strategies * stgy, zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC);
+MYSQLND * mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t query_len, struct mysqlnd_ms_lb_strategies * stgy, zend_llist * master_connections, zend_llist * slave_connections, enum enum_which_server * which_server TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_FILTER_RANDOM_ONCE_H */
 

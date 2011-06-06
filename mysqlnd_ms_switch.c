@@ -312,11 +312,11 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 			DBG_INF_FMT("count(slave_list)=%d", zend_llist_count(slave_list));
 
 			if (SERVER_PICK_RANDOM == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			} else if (SERVER_PICK_RANDOM_ONCE == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			} else {
-				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			}
 		}
 		/* cleanup if we used multiple pick server */

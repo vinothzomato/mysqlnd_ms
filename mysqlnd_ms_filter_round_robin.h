@@ -21,7 +21,7 @@
 #ifndef MYSQLND_MS_FILTER_ROUND_ROBIN_H
 #define MYSQLND_MS_FILTER_ROUND_ROBIN_H
 
-MYSQLND * mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len, struct mysqlnd_ms_lb_strategies * stgy, zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC);
+MYSQLND * mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len, struct mysqlnd_ms_lb_strategies * stgy, zend_llist * master_connections, zend_llist * slave_connections, enum enum_which_server * which_server TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_FILTER_ROUND_ROBIN_H */
 
