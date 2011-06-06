@@ -20,7 +20,9 @@
 /* $Id: mysqlnd_ms.h 311510 2011-05-27 19:36:39Z andrey $ */
 #ifndef MYSQLND_MS_FILTER_TABLE_PARTITION_H
 #define MYSQLND_MS_FILTER_TABLE_PARTITION_H
+struct st_mysqlnd_ms_config_json_entry;
 
+enum_func_status mysqlnd_ms_load_table_filters(HashTable * filters_ht, struct st_mysqlnd_ms_config_json_entry * section, const char * const section_name, size_t section_name_len TSRMLS_DC);
 enum_func_status mysqlnd_ms_choose_connection_table_filter(MYSQLND * conn, const char * query, unsigned int query_len, struct mysqlnd_ms_lb_strategies * stgy, zend_llist ** master_list, zend_llist ** slave_list TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_FILTER_TABLE_PARTITION_H */

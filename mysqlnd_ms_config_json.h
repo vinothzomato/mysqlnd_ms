@@ -60,6 +60,9 @@ mysqlnd_ms_config_json_next_sub_section(struct st_mysqlnd_ms_config_json_entry *
 
 PHPAPI char * mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
 
+
+zend_bool mysqlnd_ms_config_json_string_is_bool_false(const char * value);
+
 #ifdef ZTS
 PHPAPI void mysqlnd_ms_config_json_lock(struct st_mysqlnd_ms_json_config * cfg, const char * const file, unsigned int line TSRMLS_DC);
 PHPAPI void mysqlnd_ms_config_json_unlock(struct st_mysqlnd_ms_json_config * cfg, const char * const file, unsigned int line TSRMLS_DC);

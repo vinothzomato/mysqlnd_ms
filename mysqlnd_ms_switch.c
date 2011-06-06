@@ -44,6 +44,125 @@
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_filter_user.h"
 #include "mysqlnd_ms_filter_random.h"
+#include "mysqlnd_ms_filter_random_once.h"
+#include "mysqlnd_ms_filter_round_robin.h"
+#include "mysqlnd_ms_switch.h"
+
+
+/* {{{ mysqlnd_ms_lb_strategy_setup */
+void
+mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
+							 struct st_mysqlnd_ms_config_json_entry * the_section,
+							 MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
+{
+	zend_bool value_exists = FALSE, is_list_value = FALSE;
+
+	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
+	{
+		char * pick_strategy = mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
+																		  &value_exists, &is_list_value TSRMLS_CC);
+
+		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
+		strategies->select_servers = DEFAULT_SELECT_SERVERS;
+		if (value_exists && pick_strategy) {
+			/* random is a substing of random_once thus we check first for random_once */
+			if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
+				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
+				strategies->select_servers = mysqlnd_ms_select_servers_all;
+			} else if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
+				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
+				strategies->select_servers = mysqlnd_ms_select_servers_random_once;
+			} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
+				strategies->select_servers = mysqlnd_ms_select_servers_all;
+			} else if (!strncasecmp(PICK_USER, pick_strategy, sizeof(PICK_USER) - 1)) {
+				strategies->pick_strategy = SERVER_PICK_USER;
+				/* XXX: HANDLE strategies->select_servers !!! */
+				if (is_list_value) {
+					mnd_efree(pick_strategy);
+					pick_strategy =
+						mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
+																   &value_exists, &is_list_value TSRMLS_CC);
+					if (pick_strategy) {
+						if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
+							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
+						} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
+						} else if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
+							strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
+						}
+					}
+				}
+			} else {
+				char error_buf[128];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown pick strategy %s", pick_strategy);
+				error_buf[sizeof(error_buf) - 1] = '\0';
+
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+			}
+		}
+		if (pick_strategy) {
+			mnd_efree(pick_strategy);
+		}
+	}
+
+	{
+		char * failover_strategy =
+			mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
+
+		strategies->failover_strategy = DEFAULT_FAILOVER_STRATEGY;
+
+		if (value_exists && failover_strategy) {
+			if (!strncasecmp(FAILOVER_DISABLED, failover_strategy, sizeof(FAILOVER_DISABLED) - 1)) {
+				strategies->failover_strategy = SERVER_FAILOVER_DISABLED;
+			} else if (!strncasecmp(FAILOVER_MASTER, failover_strategy, sizeof(FAILOVER_MASTER) - 1)) {
+				strategies->failover_strategy = SERVER_FAILOVER_MASTER;
+			}
+			mnd_efree(failover_strategy);
+		}
+	}
+
+	{
+		char * master_on_write =
+			mysqlnd_ms_config_json_string_from_section(the_section, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
+
+		strategies->mysqlnd_ms_flag_master_on_write = FALSE;
+		strategies->master_used = FALSE;
+
+		if (value_exists && master_on_write) {
+			DBG_INF("Master on write active");
+			strategies->mysqlnd_ms_flag_master_on_write = !mysqlnd_ms_config_json_string_is_bool_false(master_on_write);
+			mnd_efree(master_on_write);
+		}
+	}
+
+	{
+		char * trx_strategy =
+			mysqlnd_ms_config_json_string_from_section(the_section, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
+													   &value_exists, &is_list_value TSRMLS_CC);
+
+		strategies->trx_stickiness_strategy = DEFAULT_TRX_STICKINESS_STRATEGY;
+		strategies->in_transaction = FALSE;
+
+		if (value_exists && trx_strategy) {
+#if PHP_VERSION_ID >= 50399
+			if (!strncasecmp(TRX_STICKINESS_MASTER, trx_strategy, sizeof(TRX_STICKINESS_MASTER) - 1)) {
+				DBG_INF("Transaction strickiness strategy = master");
+				strategies->trx_stickiness_strategy = TRX_STICKINESS_STRATEGY_MASTER;
+			}
+#else
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
+#endif
+			mnd_efree(trx_strategy);
+		}
+	}
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
 
 /* {{{ mysqlnd_ms_query_is_select */
 PHPAPI enum enum_which_server

@@ -966,3 +966,37 @@ mysqlnd_ms_config_json_unlock(struct st_mysqlnd_ms_json_config * cfg, const char
 }
 /* }}} */
 #endif
+
+
+/* {{{ mysqlnd_ms_config_json_string_is_bool_true */
+zend_bool
+mysqlnd_ms_config_json_string_is_bool_false(const char * value)
+{
+	if (!value) {
+		return TRUE;
+	}
+	if (!strncmp("0", value, sizeof("0") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("false", value, sizeof("false") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("off", value, sizeof("off") - 1)) {
+		return TRUE;
+	}
+	if (!strncasecmp("aus", value, sizeof("aus") - 1)) {
+		return TRUE;
+	}
+	return FALSE;
+}
+/* }}} */
+
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: noet sw=4 ts=4 fdm=marker
+ * vim<600: noet sw=4 ts=4
+ */

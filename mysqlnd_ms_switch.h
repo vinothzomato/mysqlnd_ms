@@ -22,7 +22,9 @@
 #define MYSQLND_MS_SWITCH_H
 
 struct mysqlnd_ms_lb_strategies;
+struct st_mysqlnd_ms_config_json_entry;
 
+void mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies, struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_ERROR_INFO * error_info TSRMLS_DC);
 PHPAPI enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
 MYSQLND * mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
 
