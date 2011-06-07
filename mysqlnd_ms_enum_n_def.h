@@ -134,6 +134,9 @@ struct mysqlnd_ms_lb_strategies
 
 	MYSQLND * last_used_conn;
 	MYSQLND * random_once_slave;
+
+	zend_llist * filters;
+
 	enum_func_status (*select_servers)(enum php_mysqlnd_server_command command,
 					struct mysqlnd_ms_lb_strategies * stgy,
 					zend_llist * master_list, zend_llist * slave_list,
