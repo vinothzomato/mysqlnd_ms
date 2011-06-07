@@ -20,7 +20,6 @@
 	if ($socket) {
 		ini_set('mysqli.default_socket', $socket);
 	}
-
 	/* We assume that user/password are the same for all machines but alternative port/socket can be configured like host[;port|socket] */
 	$master_host = $master_host_only = getenv("MYSQL_TEST_MASTER_HOST") ? getenv("MYSQL_TEST_MASTER_HOST") : $host;
 	$master_socket = $socket;
@@ -49,6 +48,7 @@
 		}
 		$slave_host_only = substr($slave_host, 0, $pos);
 	}
+
 	/* Development setting: test experimal features and/or feature requests that never worked before? */
 	$TEST_EXPERIMENTAL = (in_array(getenv("MYSQL_TEST_EXPERIMENTAL"), array(0, 1))) ?
 				((1 == getenv("MYSQL_TEST_EXPERIMENTAL")) ? true : false) :
@@ -348,43 +348,52 @@
 
 				$json[$application] = array();
 				if (isset($config['master'])) {
-					foreach ($config['master'] as $host) {
-						$host_config = array();
-						if (false !== stristr($host, ':')) {
-							/* 1.0 legacy */
-							list($real_host, $port) = explode(':', $host);
-							$host_config['host'] = $real_host;
-							if ($port) {
-								if (!is_numeric($port)) {
-									$host_config['socket'] = $port;
-								} else {
-									$host_config['port'] = $port;
-								}
-							}
+					foreach ($config['master'] as $idx => $host) {
+						if (is_array($host)) {
+							/* 1.1. syntax */
+							$json[$application]['master']['master_' . $idx] = $host;
 						} else {
-							$host_config['host'] = $host;
+							$host_config = array();
+							if (false !== stristr($host, ':')) {
+								/* 1.0 legacy */
+								list($real_host, $port) = explode(':', $host);
+								$host_config['host'] = $real_host;
+								if ($port) {
+									if (!is_numeric($port)) {
+										$host_config['socket'] = $port;
+									} else {
+										$host_config['port'] = $port;
+									}
+								}
+							} else {
+								$host_config['host'] = $host;
+							}
+							$json[$application]['master']['master_' . $idx] = $host_config;
 						}
-						$json[$application]['master'][] = $host_config;
 					}
 				}
 				if (isset($config['slave'])) {
-					foreach ($config['slave'] as $host) {
-						$host_config = array();
-						/* 1.0 legacy */
-						if (false !== stristr($host, ':')) {
-							list($real_host, $port) = explode(':', $host);
-							$host_config['host'] = $real_host;
-							if ($port) {
-								if (!is_numeric($port)) {
-									$host_config['socket'] = $port;
-								} else {
-									$host_config['port'] = $port;
-								}
-							}
+					foreach ($config['slave'] as $idx => $host) {
+						if (is_array($host)) {
+							$json[$application]['slave']['slave_' . $idx] = $host;
 						} else {
-							$host_config['host'] = $host;
+							$host_config = array();
+							/* 1.0 legacy */
+							if (false !== stristr($host, ':')) {
+								list($real_host, $port) = explode(':', $host);
+								$host_config['host'] = $real_host;
+								if ($port) {
+									if (!is_numeric($port)) {
+										$host_config['socket'] = $port;
+									} else {
+										$host_config['port'] = $port;
+									}
+								}
+							} else {
+								$host_config['host'] = $host;
+							}
+							$json[$application]['slave']['slave_' . $idx] = $host_config;
 						}
-						$json[$application]['slave'][] = $host_config;
 					}
 				}
 				if (isset($config['pick'])) {
