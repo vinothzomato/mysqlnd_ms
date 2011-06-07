@@ -55,7 +55,7 @@ struct st_mysqlnd_ms_json_config {
 	struct st_mysqlnd_ms_config_json_entry * main_section;
 #ifdef ZTS
 	MUTEX_T LOCK_access;
-#endif	
+#endif
 };
 
 
@@ -128,7 +128,7 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 {
 	struct st_mysqlnd_ms_config_json_entry * new_entry;
 	DBG_ENTER("mysqlnd_ms_add_zval_to_hash");
-		
+
 	switch (Z_TYPE_P(zv)) {
 		case IS_ARRAY:
 			new_entry = mysqlnd_ms_zval_data_to_hashtable(zv TSRMLS_CC);
@@ -208,7 +208,7 @@ mysqlnd_ms_zval_data_to_hashtable(zval * json_data TSRMLS_DC)
 				zend_hash_move_forward_ex(Z_ARRVAL_P(json_data), &pos);
 			} /* while */
 		} else {
-		
+
 		}
 	}
 	DBG_RETURN(ret);
@@ -332,9 +332,9 @@ mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry * main
 	zend_bool tmp_bool;
 	struct st_mysqlnd_ms_config_json_entry * ret = NULL;
 
-	DBG_ENTER("mysqlnd_ms_config_json_section");
+	DBG_ENTER("mysqlnd_ms_config_json_sub_section");
 	DBG_INF_FMT("section=%s", section);
-	
+
 	if (exists) {
 		*exists = 0;
 	} else {
@@ -346,8 +346,8 @@ mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry * main
 		if (zend_hash_find(main_section->value.ht, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
 			if (ini_section && IS_ARRAY == (*ini_section)->type) {
 				*exists = 1;
-				ret = *ini_section;				
-			}	
+				ret = *ini_section;
+			}
 		}
 	}
 
@@ -478,7 +478,7 @@ mysqlnd_ms_config_json_string_aux_inner(struct st_mysqlnd_ms_config_json_entry *
 				DBG_INF("IS_ARRAY");
 				*is_list_value = 1;
 				DBG_INF_FMT("the list has %d entries", zend_hash_num_elements(ini_section_entry->value.ht));
-				if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {	
+				if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {
 					switch ((*value)->type) {
 						case IS_STRING:
 							ret = mnd_pestrndup((*value)->value.str.c, (*value)->value.str.len, 0);
@@ -536,7 +536,7 @@ mysqlnd_ms_config_json_string_aux(HashTable * ht, const char * section_name, siz
 
 	DBG_ENTER("mysqlnd_ms_config_json_string_aux_inner");
 	DBG_INF_FMT("ht=%p name=%s", ht, name);
-	
+
 	if (exists) {
 		*exists = 0;
 	} else {
@@ -586,13 +586,13 @@ PHPAPI char *
 mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section,
 										   const char * name, size_t name_len,
 										   zend_bool * exists, zend_bool * is_list_value TSRMLS_DC)
-{ 
+{
 	zend_bool tmp_bool;
 	char * ret = NULL;
 
 	DBG_ENTER("mysqlnd_ms_config_json_string_from_section");
 	DBG_INF_FMT("name=%s", name);
-	
+
 
 	if (exists) {
 		*exists = 0;
@@ -627,7 +627,7 @@ mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char
 
 	DBG_ENTER("mysqlnd_ms_config_json_string");
 	DBG_INF_FMT("name=%s", name);
-	
+
 	if (!cfg) {
 		DBG_RETURN(ret);
 	}
@@ -685,7 +685,7 @@ mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * 
 
 	DBG_ENTER("mysqlnd_ms_config_json_int");
 	DBG_INF_FMT("name=%s", name);
-	
+
 	if (exists) {
 		*exists = 0;
 	} else {
@@ -722,7 +722,7 @@ mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * 
 					}
 					break;
 				}
-			}	
+			}
 			if (ini_section_entry) {
 				switch (ini_section_entry->type) {
 					case IS_LONG:
@@ -741,7 +741,7 @@ mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * 
 						struct st_mysqlnd_ms_config_json_entry ** value;
 						*is_list_value = 1;
 						DBG_INF_FMT("the list has %d entries", zend_hash_num_elements(ini_section_entry->value.ht));
-						if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {	
+						if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {
 							switch ((*value)->type) {
 								case IS_STRING:
 									ret = mysqlnd_ms_str_to_long_long((*value)->value.str.c, exists);
@@ -819,11 +819,11 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 
 	DBG_ENTER("mysqlnd_ms_config_json_double");
 	DBG_INF_FMT("name=%s", name);
-	
+
 	if (!cfg) {
 		DBG_RETURN(ret);
 	}
-	
+
 	if (exists) {
 		*exists = 0;
 	} else {
@@ -856,7 +856,7 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 					}
 					break;
 				}
-			}	
+			}
 			if (ini_section_entry) {
 				switch (ini_section_entry->type) {
 					case IS_LONG:
@@ -875,7 +875,7 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 						struct st_mysqlnd_ms_config_json_entry ** value;
 						*is_list_value = 1;
 						DBG_INF_FMT("the list has %d entries", zend_hash_num_elements(ini_section_entry->value.ht));
-						if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {	
+						if (SUCCESS == zend_hash_get_current_data(ini_section_entry->value.ht, (void **)&value)) {
 							switch ((*value)->type) {
 								case IS_STRING:
 									ret = mysqlnd_ms_str_to_double((*value)->value.str.c, exists);
