@@ -51,6 +51,111 @@
 typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
 													   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
+/* {{{ once_specific_dtor */
+static void
+once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_ONCE_DATA * filter = (MYSQLND_MS_FILTER_ONCE_DATA *) pDest;
+	DBG_ENTER("once_specific_dtor");
+
+	filter->unused = FALSE;
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ once_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+once_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_ONCE_DATA * ret;
+	DBG_ENTER("once_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_ONCE_DATA), persistent);
+	if (ret) {
+		ret->parent.specific_dtor = once_specific_dtor;
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
+/* {{{ once_specific_dtor */
+static void
+user_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_USER_DATA * filter = (MYSQLND_MS_FILTER_USER_DATA *) pDest;
+	DBG_ENTER("user_specific_dtor");
+
+	if (filter->user_callback) {
+		zval_ptr_dtor(&filter->user_callback);
+	}
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ once_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_USER_DATA * ret;
+	DBG_ENTER("user_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_USER_DATA), persistent);
+
+	if (ret) {
+		zend_bool value_exists = FALSE, is_list_value = FALSE;
+		char * callback;
+
+		ret->parent.specific_dtor = user_specific_dtor;
+
+		callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1,
+															  &value_exists, &is_list_value TSRMLS_CC);
+
+		if (value_exists) {
+			zval * zv;
+			char * c_name;
+
+			MAKE_STD_ZVAL(zv);
+			ZVAL_STRING(zv, callback, 1);
+			mnd_efree(callback);
+			if (!zend_is_callable(zv, 0, &c_name TSRMLS_CC)) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+								 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", c_name);
+				zval_ptr_dtor(&zv);
+			} else {
+				DBG_INF_FMT("name=%s", c_name);
+				ret->user_callback = zv;
+			}
+			efree(c_name);
+		}
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
+struct st_specific_ctor_with_name
+{
+	const char * name;
+	size_t name_len;
+	func_specific_ctor ctor;
+};
+
+
+static const struct st_specific_ctor_with_name specific_ctors[] =
+{
+	{"once", sizeof("once") -1, once_specific_ctor},
+	{"user", sizeof("user") -1, user_specific_ctor},
+	{NULL, 0, NULL}
+};
+
+
 /* {{{ mysqlnd_ms_filter_list_dtor */
 void
 mysqlnd_ms_filter_list_dtor(void * pDest)
@@ -70,52 +175,6 @@ mysqlnd_ms_filter_list_dtor(void * pDest)
 	}
 }
 /* }}} */
-
-
-/* {{{ once_specific_dtor */
-static void
-once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
-{
-	MYSQLND_MS_FILTER_DATA_ONCE * filter = (MYSQLND_MS_FILTER_DATA_ONCE *) pDest;
-	DBG_ENTER("once_specific_dtor");
-
-	filter->unused = FALSE;
-	mnd_pefree(filter, filter->parent.persistent);
-
-	DBG_VOID_RETURN;
-}
-/* }}} */
-
-
-/* {{{ once_specific_ctor */
-static MYSQLND_MS_FILTER_DATA *
-once_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
-{
-	MYSQLND_MS_FILTER_DATA_ONCE * ret;
-	DBG_ENTER("once_specific_ctor");
-	DBG_INF_FMT("section=%p", section);
-	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA_ONCE), persistent);
-	if (ret) {
-		ret->parent.specific_dtor = once_specific_dtor;
-	}
-	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
-}
-/* }}} */
-
-
-struct st_specific_ctor_with_name
-{
-	const char * name;
-	size_t name_len;
-	func_specific_ctor ctor;
-};
-
-
-static const struct st_specific_ctor_with_name specific_ctors[] =
-{
-	{"once", sizeof("once") -1, once_specific_ctor},
-	{NULL, 0, NULL}
-};
 
 
 /* {{{ mysqlnd_ms_lb_strategy_setup */

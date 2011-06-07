@@ -45,6 +45,7 @@
 #define SECT_CONNECT_FLAGS_NAME	"connect_flags"
 #define SECT_FILTER_PRIORITY_NAME "priority"
 #define SECT_FILTER_NAME		"filters"
+#define SECT_USER_CALLBACK		"callback"
 
 
 enum mysqlnd_ms_server_pick_strategy
@@ -106,7 +107,39 @@ typedef struct st_mysqlnd_ms_filter_once_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
 	zend_bool unused;
-} MYSQLND_MS_FILTER_DATA_ONCE;
+} MYSQLND_MS_FILTER_ONCE_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_user_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+	zval * user_callback;
+} MYSQLND_MS_FILTER_USER_DATA;
+
+
+struct mysqlnd_ms_lb_strategies
+{
+	HashTable table_filters;
+
+	enum mysqlnd_ms_server_pick_strategy pick_strategy;
+	enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
+
+	enum mysqlnd_ms_server_failover_strategy failover_strategy;
+
+	zend_bool mysqlnd_ms_flag_master_on_write;
+	zend_bool master_used;
+
+	enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
+	zend_bool in_transaction;
+
+	MYSQLND * last_used_conn;
+	MYSQLND * random_once_slave;
+	enum_func_status (*select_servers)(enum php_mysqlnd_server_command command,
+					struct mysqlnd_ms_lb_strategies * stgy,
+					zend_llist * master_list, zend_llist * slave_list,
+					zend_llist * selected_masters, zend_llist * selected_slaves
+					TSRMLS_DC);
+};
 
 
 typedef struct st_MYSQLND_MS_CONN_DATA
@@ -115,29 +148,7 @@ typedef struct st_MYSQLND_MS_CONN_DATA
 	zend_llist master_connections;
 	zend_llist slave_connections;
 
-	struct mysqlnd_ms_lb_strategies {
-		HashTable table_filters;
-
-		enum mysqlnd_ms_server_pick_strategy pick_strategy;
-		enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
-
-		enum mysqlnd_ms_server_failover_strategy failover_strategy;
-
-		zend_bool mysqlnd_ms_flag_master_on_write;
-		zend_bool master_used;
-
-		enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
-		zend_bool in_transaction;
-
-		MYSQLND * last_used_conn;
-		MYSQLND * random_once_slave;
-		enum_func_status (*select_servers)(enum php_mysqlnd_server_command command,
-						struct mysqlnd_ms_lb_strategies * stgy,
-						zend_llist * master_list, zend_llist * slave_list,
-						zend_llist * selected_masters, zend_llist * selected_slaves
-						TSRMLS_DC);
-	} stgy;
-
+	struct mysqlnd_ms_lb_strategies stgy;
 
 	struct st_mysqlnd_ms_conn_credentials {
 		char * user;
