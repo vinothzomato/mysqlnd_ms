@@ -469,7 +469,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
 				break;
 			}
-
+			{
+				zend_llist * section_filters = mysqlnd_ms_load_section_filters(the_section, &conn->error_info, conn->persistent TSRMLS_CC);
+				if (section_filters) {
+					zend_llist_destroy(section_filters);
+					mnd_pefree(section_filters, conn->persistent);
+				}
+			}
 			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &conn->error_info TSRMLS_CC);
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);

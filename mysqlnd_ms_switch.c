@@ -48,6 +48,75 @@
 #include "mysqlnd_ms_filter_round_robin.h"
 #include "mysqlnd_ms_switch.h"
 
+typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
+													   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
+
+/* {{{ mysqlnd_ms_filter_list_dtor */
+void
+mysqlnd_ms_filter_list_dtor(void * pDest)
+{
+	MYSQLND_MS_FILTER_DATA * filter = *(MYSQLND_MS_FILTER_DATA **) pDest;
+	TSRMLS_FETCH();
+	if (filter) {
+		zend_bool pers = filter->persistent;
+		if (filter->name) {
+			mnd_pefree(filter->name, pers);
+		}
+		if (filter->specific_dtor) {
+			filter->specific_dtor(filter TSRMLS_CC);
+		} else {
+			mnd_pefree(filter, pers);
+		}
+	}
+}
+/* }}} */
+
+
+/* {{{ once_specific_dtor */
+static void
+once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_DATA_ONCE * filter = (MYSQLND_MS_FILTER_DATA_ONCE *) pDest;
+	DBG_ENTER("once_specific_dtor");
+
+	filter->unused = FALSE;
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ once_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+once_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_DATA_ONCE * ret;
+	DBG_ENTER("once_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA_ONCE), persistent);
+	if (ret) {
+		ret->parent.specific_dtor = once_specific_dtor;
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
+struct st_specific_ctor_with_name
+{
+	const char * name;
+	size_t name_len;
+	func_specific_ctor ctor;
+};
+
+
+static const struct st_specific_ctor_with_name specific_ctors[] =
+{
+	{"once", sizeof("once") -1, once_specific_ctor},
+	{NULL, 0, NULL}
+};
+
 
 /* {{{ mysqlnd_ms_lb_strategy_setup */
 void
@@ -160,6 +229,70 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 		}
 	}
 	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_load_section_filters */
+zend_llist *
+mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info,
+								zend_bool persistent TSRMLS_DC)
+{
+	zend_llist * ret = NULL;
+	DBG_ENTER("mysqlnd_ms_load_section_filters");
+
+	if (section) {
+		ret = mnd_pemalloc(sizeof(zend_llist), persistent);
+	}
+	if (ret) {
+		zend_bool section_exists;
+		struct st_mysqlnd_ms_config_json_entry * filters_section =
+				mysqlnd_ms_config_json_sub_section(section, SECT_FILTER_NAME, sizeof(SECT_FILTER_NAME) - 1, &section_exists TSRMLS_CC);
+		zend_bool subsection_is_list = mysqlnd_ms_config_json_section_is_list(filters_section TSRMLS_CC);
+		zend_bool subsection_is_obj_list =
+				subsection_is_list && mysqlnd_ms_config_json_section_is_object_list(filters_section TSRMLS_CC);
+
+		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
+		if (section_exists && filters_section && subsection_is_obj_list) {
+			do {
+				MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
+				char * filter_name = NULL;
+				size_t filter_name_len = 0;
+				struct st_mysqlnd_ms_config_json_entry * current_filter =
+						mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_name, &filter_name_len, NULL TSRMLS_CC);
+
+				if (!current_filter || !filter_name || !filter_name_len) {
+					DBG_INF("no next sub-section");
+					break;
+				}
+				/* find specific ctor, if available */
+				{
+					unsigned int i = 0;
+					while (specific_ctors[i].name) {					
+						DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
+						if (specific_ctors[i].ctor && !strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len))
+						{
+							new_filter_entry = specific_ctors[i].ctor(current_filter, error_info, persistent TSRMLS_CC);
+							break;
+						}
+						++i;
+					}
+				}
+				if (!error_info->error_no && !new_filter_entry &&
+					!(new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent)))
+				{
+					/* XXX : Report some error, maybe destroy the list */
+					break;
+				}
+				new_filter_entry->persistent = persistent;
+				new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
+				new_filter_entry->name_len = filter_name_len;
+
+				zend_llist_add_element(ret, &new_filter_entry);
+			} while (1);
+		}
+	}
+	DBG_RETURN(ret);
 }
 /* }}} */
 

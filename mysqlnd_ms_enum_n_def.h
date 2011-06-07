@@ -44,6 +44,7 @@
 #define SECT_DB_NAME			"db"
 #define SECT_CONNECT_FLAGS_NAME	"connect_flags"
 #define SECT_FILTER_PRIORITY_NAME "priority"
+#define SECT_FILTER_NAME		"filters"
 
 
 enum mysqlnd_ms_server_pick_strategy
@@ -90,6 +91,23 @@ typedef struct st_mysqlnd_ms_list_data
 	size_t emulated_scheme_len;
 	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_data
+{
+	void (*specific_dtor)(struct st_mysqlnd_ms_filter_data * TSRMLS_DC);
+	char * name;
+	size_t name_len;
+	zend_bool persistent;
+} MYSQLND_MS_FILTER_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_once_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+	zend_bool unused;
+} MYSQLND_MS_FILTER_DATA_ONCE;
+
 
 typedef struct st_MYSQLND_MS_CONN_DATA
 {
