@@ -223,22 +223,9 @@ mysqlnd_ms_choose_connection_table_filter(MYSQLND * conn, const char * query, un
 				parser->parse_info.statement
 			);
 
-		zend_llist_init(*master_list, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-		zend_llist_init(*slave_list, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-#if 0
-		{
-			MYSQLND_MS_LIST_DATA new_element = {0};
-			new_element.conn = conn;
-			new_element.host = host? mnd_pestrdup(host, persistent) : NULL;
-			new_element.persistent = persistent;
-			new_element.port = port;
-			new_element.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
-			new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
-																			   persistent TSRMLS_CC);
-			zend_llist_add_element(*master_list, &new_element);
-		
-		}
-#endif
+		zend_llist_init(*master_list, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		zend_llist_init(*slave_list, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+
 		mysqlnd_qp_free_parser(parser TSRMLS_CC);
 		DBG_RETURN(PASS);
 	}

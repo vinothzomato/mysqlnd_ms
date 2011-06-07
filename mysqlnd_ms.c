@@ -51,13 +51,15 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 { \
 	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
 	{ \
+		MYSQLND_MS_LIST_DATA ** el_pp;\
 		zend_llist * lists[] = {NULL, (masters), (slaves), NULL}; \
 		zend_llist ** list = lists; \
 		while (*++list) { \
 			zend_llist_position	pos; \
 			/* search the list of easy handles hanging off the multi-handle */ \
-			for ((el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); (el) && (el)->conn; \
-					(el) = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos)) \
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(*list, &pos); \
+				 el_pp && ((el) = *el_pp) && (el)->conn; \
+				 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(*list, &pos)) \
 			{ \
 
 #define END_ITERATE_OVER_SERVER_LIST \
@@ -100,10 +102,13 @@ mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, 
 void
 mysqlnd_ms_conn_list_dtor(void * pDest)
 {
-	MYSQLND_MS_LIST_DATA * element = (MYSQLND_MS_LIST_DATA *) pDest;
+	MYSQLND_MS_LIST_DATA * element = pDest? *(MYSQLND_MS_LIST_DATA **) pDest : NULL;
 	TSRMLS_FETCH();
 	DBG_ENTER("mysqlnd_ms_conn_list_dtor");
 	DBG_INF_FMT("conn=%p", element->conn);
+	if (!element) {
+		DBG_VOID_RETURN;
+	}
 	if (element->conn) {
 		mysqlnd_close(element->conn, TRUE);
 		element->conn = NULL;
@@ -131,7 +136,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 	if (element->emulated_scheme) {
 		mnd_pefree(element->emulated_scheme, element->persistent);
 	}
-	element->persistent = FALSE;
+	mnd_pefree(element, element->persistent);
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -172,24 +177,24 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_li
 	}
 
 	if (ret == PASS) {
-		MYSQLND_MS_LIST_DATA new_element = {0};
-		new_element.conn = conn;
-		new_element.host = host? mnd_pestrdup(host, persistent) : NULL;
-		new_element.persistent = persistent;
-		new_element.port = cred->port;
+		MYSQLND_MS_LIST_DATA * new_element = mnd_pecalloc(1, sizeof(MYSQLND_MS_LIST_DATA), persistent);
+		new_element->conn = conn;
+		new_element->host = host? mnd_pestrdup(host, persistent) : NULL;
+		new_element->persistent = persistent;
+		new_element->port = cred->port;
 
-		new_element.user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
+		new_element->user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
 
-		new_element.passwd_len = cred->passwd_len;
-		new_element.passwd = cred->db? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
+		new_element->passwd_len = cred->passwd_len;
+		new_element->passwd = cred->db? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
 
-		new_element.db_len = cred->db_len;
-		new_element.db = cred->db? mnd_pestrndup(cred->db, cred->db_len, conn->persistent) : NULL;
+		new_element->db_len = cred->db_len;
+		new_element->db = cred->db? mnd_pestrndup(cred->db, cred->db_len, conn->persistent) : NULL;
 
-		new_element.connect_flags = cred->mysql_flags;
+		new_element->connect_flags = cred->mysql_flags;
 
-		new_element.socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
-		new_element.emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(&new_element, &new_element.emulated_scheme,
+		new_element->socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
+		new_element->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(new_element, &new_element->emulated_scheme,
 																			   persistent TSRMLS_CC);
 		zend_llist_add_element(conn_list, &new_element);
 	}
@@ -321,11 +326,13 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 					if (!lazy_connections) {
 						MYSQLND_MS_INC_STATISTIC(success_stat);
 					}
+#if 0
 					if (FAIL == mysqlnd_ms_load_table_filters(table_filters, subsection, current_subsection_name,
 															  current_subsection_name_len TSRMLS_CC))
 					{
 						failures++;
 					}
+#endif
 				}
 			} else {
 				failures++;
@@ -406,8 +413,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 		conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 		*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
-		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 		(*conn_data)->cred.user = user? mnd_pestrdup(user, conn->persistent) : NULL;
 		(*conn_data)->cred.passwd_len = passwd_len;
 		(*conn_data)->cred.passwd = passwd? mnd_pestrndup(passwd, passwd_len, conn->persistent) : NULL;

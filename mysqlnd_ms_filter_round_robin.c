@@ -76,8 +76,18 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 		case USE_SLAVE:
 		{
 			zend_llist * l = slave_connections;
-			MYSQLND_MS_LIST_DATA * element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next(l);
-			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
+			MYSQLND_MS_LIST_DATA ** element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next(l);
+			MYSQLND_MS_LIST_DATA * element = element_pp? *element_pp : NULL;
+			MYSQLND * connection = NULL;
+			if (!element) {
+				element_pp = (MYSQLND_MS_LIST_DATA **)zend_llist_get_first(l);
+				if (element_pp) {
+					element = *element_pp;
+				}
+			}
+			if (element && element->conn) {
+				connection = element->conn;
+			}
 			if (connection) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
@@ -114,8 +124,18 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 		case USE_MASTER:
 		{
 			zend_llist * l = master_connections;
-			MYSQLND_MS_LIST_DATA * element = zend_llist_get_next(l);
-			MYSQLND * connection = (element && element->conn)? element->conn : (((element = zend_llist_get_first(l)) && element->conn)? element->conn : NULL);
+			MYSQLND_MS_LIST_DATA ** element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next(l);
+			MYSQLND_MS_LIST_DATA * element = element_pp? *element_pp : NULL;
+			MYSQLND * connection = NULL;
+			if (!element) {
+				element_pp = (MYSQLND_MS_LIST_DATA **)zend_llist_get_first(l);
+				if (element_pp) {
+					element = *element_pp;
+				}
+			}
+			if (element && element->conn) {
+				connection = element->conn;
+			}
 			DBG_INF("Using master connection");
 			if (connection) {
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {

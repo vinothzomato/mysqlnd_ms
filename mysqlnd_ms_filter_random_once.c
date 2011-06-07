@@ -46,7 +46,7 @@ mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
 {
 	enum_func_status ret = FAIL;
 	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el;
+	MYSQLND_MS_LIST_DATA * el, ** el_pp;
 	DBG_ENTER("mysqlnd_ms_select_servers_random_once");
 	DBG_INF_FMT("random_once_slave=%p", stgy->random_once_slave);
 	if (!stgy->random_once_slave) {
@@ -55,8 +55,8 @@ mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
 	}
 
 	/* search the list of easy handles hanging off the multi-handle */
-	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
-			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+	for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos); el_pp && (el = *el_pp) && el->conn;
+			el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
 	{
 		/*
 		  This will copy the whole structure, not the pointer.
@@ -65,8 +65,8 @@ mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
 		zend_llist_add_element(selected_masters, el);
 	}
 
-	for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
-			el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+	for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos); el_pp && (el = *el_pp) && el->conn;
+			el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
 	{
 		DBG_INF_FMT("[slave] el->conn=%p", el->conn);
 		if (el->conn == stgy->random_once_slave) {

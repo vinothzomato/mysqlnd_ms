@@ -111,13 +111,13 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 		param++;
 		MS_STRINGL((char *) query, query_len, args[param]);
 		{
-			MYSQLND_MS_LIST_DATA * el;
+			MYSQLND_MS_LIST_DATA * el, ** el_pp;
 			zend_llist_position	pos;
 			/* master list */
 			param++;
 			MS_ARRAY(args[param]);
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos); el_pp && (el = *el_pp) && el->conn;
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
 			{
 				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 					/* lazy */
@@ -131,8 +131,8 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 			param++;
 			MS_ARRAY(args[param]);
 			if (slave_list) {
-				for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
-						el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+				for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos); el_pp && (el = *el_pp) && el->conn;
+						el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
 				{
 					if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 						/* lazy */
@@ -172,11 +172,12 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
 				do {
-					MYSQLND_MS_LIST_DATA * el;
+					MYSQLND_MS_LIST_DATA * el, ** el_pp;
 					zend_llist_position	pos;
 
-					for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); !ret && el && el->conn;
-							el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+					for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos);
+						 !ret && el_pp && (el = *el_pp) && el->conn;
+						 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
 					{
 						if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 							/* lazy */
@@ -189,8 +190,9 @@ mysqlnd_ms_user_pick_server(MYSQLND * conn, const char * query, size_t query_len
 						}
 					}
 					if (slave_list) {
-						for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); !ret && el && el->conn;
-								el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+						for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos);
+							 !ret && el_pp && (el = *el_pp) && el->conn;
+							 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
 						{
 							if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 								/* lazy */
@@ -288,13 +290,13 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 		param++;
 		MS_STRINGL((char *) query, query_len, args[param]);
 		{
-			MYSQLND_MS_LIST_DATA * el;
+			MYSQLND_MS_LIST_DATA * el, ** el_pp;
 			zend_llist_position	pos;
 			/* master list */
 			param++;
 			MS_ARRAY(args[param]);
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos); el_pp && (el = *el_pp) && el->conn;
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
 			{
 				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 					/* lazy */
@@ -308,8 +310,8 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 			param++;
 			MS_ARRAY(args[param]);
 			if (slave_list) {
-				for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
-						el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+				for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos); el_pp && (el = *el_pp) && el->conn;
+						el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
 				{
 					if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 						/* lazy */
@@ -402,7 +404,8 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 							zend_llist_position	list_pos;
 							zend_llist * in_list = (pass == 0)? master_list : slave_list;
 							zend_llist * out_list = (pass == 0)? selected_masters : selected_slaves;
-							MYSQLND_MS_LIST_DATA * el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(in_list, &list_pos);
+							MYSQLND_MS_LIST_DATA ** el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(in_list, &list_pos);
+							MYSQLND_MS_LIST_DATA * el = el_pp? *el_pp : NULL;
 							HashTable * conn_hash = (pass == 0)? Z_ARRVAL_PP(users_masters):Z_ARRVAL_PP(users_slaves);
 
 							DBG_INF_FMT("pass=%u", pass);
@@ -416,7 +419,8 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 										break; /* skip impossible indices */
 									}
 									while (i < server_id) {
-										el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(in_list, &list_pos);
+										el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(in_list, &list_pos);
+										el = el_pp ? *el_pp : NULL;
 										i++;
 									}
 									if (el && el->conn) {
@@ -425,7 +429,7 @@ mysqlnd_ms_user_pick_multiple_server(MYSQLND * conn, const char * query, size_t 
 										  This will copy the whole structure, not the pointer.
 										  This is wanted!!
 										*/
-										zend_llist_add_element(out_list, el);
+										zend_llist_add_element(out_list, &el);
 									}
 								}
 								zend_hash_move_forward_ex(conn_hash, &hash_pos);

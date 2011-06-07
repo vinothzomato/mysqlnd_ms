@@ -80,7 +80,7 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 		{
 			zend_llist_position	pos;
 			zend_llist * l = slave_connections;
-			MYSQLND_MS_LIST_DATA * element;
+			MYSQLND_MS_LIST_DATA * element, ** element_pp;
 			unsigned long rnd_idx;
 			uint i = 0;
 			MYSQLND * connection;
@@ -89,11 +89,11 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
 			DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
 
-			element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(l, &pos);
+			element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
 			while (i++ < rnd_idx) {
-				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
+				element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
 			}
-			connection = (element && element->conn) ? element->conn : NULL;
+			connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 			if (connection) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
@@ -130,7 +130,7 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 		{
 			zend_llist_position	pos;
 			zend_llist * l = master_connections;
-			MYSQLND_MS_LIST_DATA * element;
+			MYSQLND_MS_LIST_DATA * element, ** element_pp;
 			unsigned long rnd_idx;
 			uint i = 0;
 			MYSQLND * connection = NULL;
@@ -139,11 +139,11 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
 			DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
 
-			element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(l, &pos);
+			element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
 			while (i++ < rnd_idx) {
-				element = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(l, &pos);
+				element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
 			}
-			connection = (element && element->conn)? element->conn : NULL;
+			connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 			DBG_INF("Using master connection");
 			if (connection) {
 				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {

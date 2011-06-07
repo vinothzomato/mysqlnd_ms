@@ -430,10 +430,10 @@ mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
 
 	{
 		zend_llist_position	pos;
-		MYSQLND_MS_LIST_DATA * el;
+		MYSQLND_MS_LIST_DATA * el, ** el_pp;
 		if (zend_llist_count(master_list)) {
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(master_list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(master_list, &pos))
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos); el_pp && (el = *el_pp) && el->conn;
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
 			{
 				/*
 				  This will copy the whole structure, not the pointer.
@@ -443,8 +443,8 @@ mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
 			}
 		}
 		if (zend_llist_count(slave_list)) {
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(slave_list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(slave_list, &pos))
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos); el_pp && (el = *el_pp) && el->conn;
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
 			{
 				/*
 				  This will copy the whole structure, not the pointer.
@@ -487,8 +487,8 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 				  does shallow (byte) copy and doesn't call any copy_ctor whatsoever on the data
 				  it copies.
 				*/
-				zend_llist_init(&user_selected_masters, sizeof(MYSQLND_MS_LIST_DATA), NULL /*dtor*/, conn->persistent);
-				zend_llist_init(&user_selected_slaves, sizeof(MYSQLND_MS_LIST_DATA), NULL /*dtor*/, conn->persistent);
+				zend_llist_init(&user_selected_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
+				zend_llist_init(&user_selected_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
 
 				pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
 				if (PASS == mysqlnd_ms_user_pick_multiple_server(conn, query, query_len, master_list, slave_list,
@@ -546,10 +546,10 @@ mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned in
 		zend_llist ** list = lists;
 		while (*++list) {
 			zend_llist_position	pos;
-			MYSQLND_MS_LIST_DATA * el;
+			MYSQLND_MS_LIST_DATA * el, ** el_pp;
 			/* search the list of easy handles hanging off the multi-handle */
-			for (el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_first_ex(*list, &pos); el && el->conn;
-					el = (MYSQLND_MS_LIST_DATA *) zend_llist_get_next_ex(*list, &pos))
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(*list, &pos); el_pp && (el = *el_pp) && el->conn;
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(*list, &pos))
 			{
 				if (PASS != ms_orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
 					ret = FAIL;
