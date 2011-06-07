@@ -142,7 +142,7 @@ struct mysqlnd_ms_lb_strategies
 };
 
 
-typedef struct st_MYSQLND_MS_CONN_DATA
+typedef struct st_mysqlnd_ms_conn_data
 {
 	char * connect_host;
 	zend_llist master_connections;
