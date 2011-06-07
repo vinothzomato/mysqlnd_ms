@@ -435,6 +435,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
+#if 1
 			{
 				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1,
 													&use_lazy_connections, NULL TSRMLS_CC);
@@ -447,6 +448,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					lazy_connections = NULL;
 				}
 			}
+#else
+			use_lazy_connections = FALSE;
+#endif
 			SET_EMPTY_ERROR(conn->error_info);
 			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(conn, &(*conn_data)->master_connections, &(*conn_data)->cred, the_section,

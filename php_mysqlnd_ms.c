@@ -239,21 +239,6 @@ mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAMETERS)
 static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
 {
 	mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAM_PASSTHRU);
-	if (Z_BVAL_P(return_value) == TRUE) {
-		MYSQLND_MS_G(pick_server_is_multiple) = FALSE;
-	}
-}
-/* }}} */
-
-
-/* {{{ proto bool mysqlnd_ms_set_user_pick_multiple_server(string is_select)
-   Sets use_pick function callback */
-static PHP_FUNCTION(mysqlnd_ms_set_user_pick_multiple_server)
-{
-	mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAM_PASSTHRU);
-	if (Z_BVAL_P(return_value) == TRUE) {
-		MYSQLND_MS_G(pick_server_is_multiple) = TRUE;
-	}
 }
 /* }}} */
 
@@ -316,7 +301,6 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 /* {{{ mysqlnd_ms_functions */
 static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
-	PHP_FE(mysqlnd_ms_set_user_pick_multiple_server,	arginfo_mysqlnd_ms_set_user_pick_server)
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */

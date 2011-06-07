@@ -99,6 +99,7 @@ typedef struct st_mysqlnd_ms_filter_data
 	void (*specific_dtor)(struct st_mysqlnd_ms_filter_data * TSRMLS_DC);
 	char * name;
 	size_t name_len;
+	enum mysqlnd_ms_server_pick_strategy pick_type;
 	zend_bool persistent;
 } MYSQLND_MS_FILTER_DATA;
 
@@ -136,12 +137,6 @@ struct mysqlnd_ms_lb_strategies
 	MYSQLND * random_once_slave;
 
 	zend_llist * filters;
-
-	enum_func_status (*select_servers)(enum php_mysqlnd_server_command command,
-					struct mysqlnd_ms_lb_strategies * stgy,
-					zend_llist * master_list, zend_llist * slave_list,
-					zend_llist * selected_masters, zend_llist * selected_slaves
-					TSRMLS_DC);
 };
 
 

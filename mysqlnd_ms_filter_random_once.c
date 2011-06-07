@@ -50,7 +50,7 @@ mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
 	DBG_ENTER("mysqlnd_ms_select_servers_random_once");
 	DBG_INF_FMT("random_once_slave=%p", stgy->random_once_slave);
 	if (!stgy->random_once_slave) {
-		ret = mysqlnd_ms_select_servers_all(command, stgy, master_list, slave_list, selected_masters, selected_slaves TSRMLS_CC);
+		ret = mysqlnd_ms_select_servers_all(master_list, slave_list, selected_masters, selected_slaves TSRMLS_CC);
 		DBG_RETURN(ret);
 	}
 

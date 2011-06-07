@@ -145,14 +145,17 @@ struct st_specific_ctor_with_name
 	const char * name;
 	size_t name_len;
 	func_specific_ctor ctor;
+	enum mysqlnd_ms_server_pick_strategy pick_type;
 };
 
 
 static const struct st_specific_ctor_with_name specific_ctors[] =
 {
-	{"once", sizeof("once") -1, once_specific_ctor},
-	{"user", sizeof("user") -1, user_specific_ctor},
-	{NULL, 0, NULL}
+	{"roundrobin",	sizeof("roundrobin") - 1,	NULL, 					SERVER_PICK_RROBIN},
+	{"random",		sizeof("random") - 1,		NULL, 					SERVER_PICK_RANDOM},
+	{"once",		sizeof("once") - 1,			once_specific_ctor, 	SERVER_PICK_RANDOM_ONCE},
+	{"user",		sizeof("user") - 1,			user_specific_ctor,		SERVER_PICK_USER},
+	{NULL,			0,							NULL, 					SERVER_PICK_RROBIN}
 };
 
 
@@ -191,21 +194,16 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 																		  &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
-		strategies->select_servers = DEFAULT_SELECT_SERVERS;
 		if (value_exists && pick_strategy) {
 			/* random is a substing of random_once thus we check first for random_once */
 			if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
-				strategies->select_servers = mysqlnd_ms_select_servers_all;
 			} else if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
-				strategies->select_servers = mysqlnd_ms_select_servers_random_once;
 			} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
-				strategies->select_servers = mysqlnd_ms_select_servers_all;
 			} else if (!strncasecmp(PICK_USER, pick_strategy, sizeof(PICK_USER) - 1)) {
 				strategies->pick_strategy = SERVER_PICK_USER;
-				/* XXX: HANDLE strategies->select_servers !!! */
 				if (is_list_value) {
 					mnd_efree(pick_strategy);
 					pick_strategy =
@@ -314,6 +312,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
 		if (section_exists && filters_section && subsection_is_obj_list) {
 			do {
+				unsigned int i = 0;
 				MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
 				char * filter_name = NULL;
 				size_t filter_name_len = 0;
@@ -325,29 +324,32 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					break;
 				}
 				/* find specific ctor, if available */
-				{
-					unsigned int i = 0;
-					while (specific_ctors[i].name) {					
-						DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
-						if (specific_ctors[i].ctor && !strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len))
-						{
+				while (specific_ctors[i].name) {					
+					DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
+					if (!strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len)) {
+						if (specific_ctors[i].ctor) {
 							new_filter_entry = specific_ctors[i].ctor(current_filter, error_info, persistent TSRMLS_CC);
-							break;
-						}
-						++i;
-					}
-				}
-				if (!error_info->error_no && !new_filter_entry &&
-					!(new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent)))
-				{
-					/* XXX : Report some error, maybe destroy the list */
-					break;
-				}
-				new_filter_entry->persistent = persistent;
-				new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
-				new_filter_entry->name_len = filter_name_len;
+						} else {
+							new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
+							if (new_filter_entry) {
+								new_filter_entry->persistent = persistent;
+								new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
+								new_filter_entry->name_len = filter_name_len;
+								new_filter_entry->pick_type = specific_ctors[i].pick_type;
 
-				zend_llist_add_element(ret, &new_filter_entry);
+								zend_llist_add_element(ret, &new_filter_entry);
+							}
+						}
+						break;
+					}
+					++i;
+				}
+				if (!new_filter_entry) {
+					char error_buf[128];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown filter %s", filter_name);
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					DBG_ERR_FMT("Unknown filter %s", filter_name);
+				}
 			} while (1);
 		}
 	}
@@ -420,9 +422,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 
 /* {{{ mysqlnd_ms_select_servers_all */
 enum_func_status
-mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
-							  struct mysqlnd_ms_lb_strategies * stgy,
-							  zend_llist * master_list, zend_llist * slave_list,
+mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 							  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
@@ -439,7 +439,7 @@ mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
 				  This will copy the whole structure, not the pointer.
 				  This is wanted!!
 				*/
-				zend_llist_add_element(selected_masters, el);
+				zend_llist_add_element(selected_masters, &el);
 			}
 		}
 		if (zend_llist_count(slave_list)) {
@@ -450,7 +450,7 @@ mysqlnd_ms_select_servers_all(enum php_mysqlnd_server_command command,
 				  This will copy the whole structure, not the pointer.
 				  This is wanted!!
 				*/
-				zend_llist_add_element(selected_slaves, el);
+				zend_llist_add_element(selected_slaves, &el);
 			}
 		}
 	}
@@ -476,27 +476,9 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 
 		connection = NULL;
 		if (SERVER_PICK_USER == pick_strategy) {
-			if (FALSE == MYSQLND_MS_G(pick_server_is_multiple)) {
-				connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list TSRMLS_CC);	
-				if (!connection) {
-					pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
-				}
-			} else {
-				/*
-				  No dtor for these lists, because mysqlnd_ms_user_pick_multiple_server()
-				  does shallow (byte) copy and doesn't call any copy_ctor whatsoever on the data
-				  it copies.
-				*/
-				zend_llist_init(&user_selected_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
-				zend_llist_init(&user_selected_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
-
+			connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list TSRMLS_CC);	
+			if (!connection) {
 				pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
-				if (PASS == mysqlnd_ms_user_pick_multiple_server(conn, query, query_len, master_list, slave_list,
-																 &user_selected_masters, &user_selected_slaves TSRMLS_CC))
-				{
-					master_list = &user_selected_masters;
-					slave_list = &user_selected_slaves;
-				}
 			}
 		}
 		if (!connection) {
@@ -518,6 +500,64 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 		if (&user_selected_slaves == slave_list) {
 			zend_llist_destroy(&user_selected_slaves);
 		}
+		if (!connection) {
+			connection = conn;
+		}
+		stgy->last_used_conn = connection;
+	}
+
+	DBG_RETURN(connection);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_pick_server_ex */
+MYSQLND *
+mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+{
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	MYSQLND * connection = conn;
+	DBG_ENTER("mysqlnd_ms_pick_server");
+	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
+
+	if (conn_data && *conn_data) {
+		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
+		zend_llist * filters = stgy->filters;
+		zend_llist selected_masters, selected_slaves;
+		zend_llist * master_list = &(*conn_data)->master_connections;
+		zend_llist * slave_list = &(*conn_data)->slave_connections;
+		MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;
+		zend_llist_position	pos;
+
+		connection = NULL;
+
+		zend_llist_init(&selected_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
+		zend_llist_init(&selected_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
+		mysqlnd_ms_select_servers_all(master_list, slave_list, &selected_masters, &selected_slaves TSRMLS_CC);
+
+		for (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_first_ex(filters, &pos);
+			 filter_pp && (filter = *filter_pp);
+			 filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
+		{
+			if (SERVER_PICK_USER == filter->pick_type) {
+				connection = mysqlnd_ms_user_pick_server(conn, query, query_len, &selected_masters, &selected_slaves TSRMLS_CC);	
+			} else if (SERVER_PICK_RANDOM == filter->pick_type) {
+				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, &selected_masters, &selected_slaves, NULL TSRMLS_CC);
+			} else if (SERVER_PICK_RANDOM_ONCE == filter->pick_type) {
+				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, &selected_masters, &selected_slaves, NULL TSRMLS_CC);
+			} else if (SERVER_PICK_RROBIN == filter->pick_type) {
+				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, &selected_masters, &selected_slaves, NULL TSRMLS_CC);
+			} else {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
+			}
+			if (connection) {
+				/* filter till we get one, for now this is just a hack, not the ultimate solution */
+				break;
+			}
+		}
+		/* cleanup if we used multiple pick server */
+		zend_llist_destroy(&selected_masters);
+		zend_llist_destroy(&selected_slaves);
 		if (!connection) {
 			connection = conn;
 		}
