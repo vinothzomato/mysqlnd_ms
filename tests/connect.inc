@@ -348,10 +348,16 @@
 
 				$json[$application] = array();
 				if (isset($config['master'])) {
+					if (!is_array($config['master']))
+						return sprintf("The master must be set using a hash");
+
+					if (count($config['master']) != 1)
+						return sprintf("You have set more than one master.");
+
 					foreach ($config['master'] as $idx => $host) {
 						if (is_array($host)) {
 							/* 1.1. syntax */
-							$json[$application]['master']['master_' . $idx] = $host;
+							$json[$application]['master'] = $host;
 						} else {
 							$host_config = array();
 							if (false !== stristr($host, ':')) {
@@ -368,7 +374,7 @@
 							} else {
 								$host_config['host'] = $host;
 							}
-							$json[$application]['master']['master_' . $idx] = $host_config;
+							$json[$application]['master'] = $host_config;
 						}
 					}
 				}
