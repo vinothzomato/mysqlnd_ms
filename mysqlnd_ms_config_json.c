@@ -361,7 +361,7 @@ mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry * main
 PHPAPI zend_bool
 mysqlnd_ms_config_json_section_is_list(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_ms_config_json_section");
+	DBG_ENTER("mysqlnd_ms_config_json_section_is_list");
 	DBG_RETURN((section && section->type == IS_ARRAY && section->value.ht)? TRUE:FALSE);
 }
 /* }}} */
@@ -534,7 +534,7 @@ mysqlnd_ms_config_json_string_aux(HashTable * ht, const char * section_name, siz
 	zend_bool tmp_bool;
 	char * ret = NULL;
 
-	DBG_ENTER("mysqlnd_ms_config_json_string_aux_inner");
+	DBG_ENTER("mysqlnd_ms_config_json_string_aux");
 	DBG_INF_FMT("ht=%p name=%s", ht, name);
 
 	if (exists) {
