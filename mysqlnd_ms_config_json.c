@@ -84,6 +84,7 @@ mysqlnd_ms_config_json_section_dtor(void * data)
 		switch (entry->type) {
 			case IS_DOUBLE:
 			case IS_LONG:
+			case IS_NULL:
 				break;
 			case IS_STRING:
 				mnd_free(entry->value.str.c);
@@ -361,8 +362,11 @@ mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry * main
 PHPAPI zend_bool
 mysqlnd_ms_config_json_section_is_list(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC)
 {
+	zend_bool ret;
 	DBG_ENTER("mysqlnd_ms_config_json_section_is_list");
-	DBG_RETURN((section && section->type == IS_ARRAY && section->value.ht)? TRUE:FALSE);
+	ret = (section && section->type == IS_ARRAY && section->value.ht)? TRUE:FALSE;
+	DBG_INF_FMT("ret=%d", ret);
+	DBG_RETURN(ret);
 }
 /* }}} */
 
@@ -470,6 +474,10 @@ mysqlnd_ms_config_json_string_aux_inner(struct st_mysqlnd_ms_config_json_entry *
 			case IS_STRING:
 				DBG_INF("IS_STRING");
 				ret = mnd_pestrndup(ini_section_entry->value.str.c, ini_section_entry->value.str.len, 0);
+				*exists = 1;
+				break;
+			case IS_NULL:
+				DBG_INF("IS_NULL");
 				*exists = 1;
 				break;
 			case IS_ARRAY:
