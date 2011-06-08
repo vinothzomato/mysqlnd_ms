@@ -503,6 +503,39 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_len, zend_bool pick_server TSRMLS_DC) */
+static enum_func_status
+mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_len, zend_bool pick_server TSRMLS_DC)
+{
+  	MYSQLND * connection;
+	enum_func_status ret = FAIL;
+	DBG_ENTER("mysqlnd_ms::do_send_query");
+
+	if (pick_server) {
+		DBG_INF("Must be aync query, blocking and failing");
+		if (conn) {
+			char error_buf[128];
+			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Asynchronous queries are not supported");
+			error_buf[sizeof(error_buf) - 1] = '\0';
+			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, error_buf);
+			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+		}
+	} else {
+	  ret = ms_orig_mysqlnd_conn_methods->send_query(conn, query, query_len TSRMLS_CC);
+	}
+	DBG_RETURN(ret);
+}
+
+
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, send_query) */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, send_query)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
+{
+	return mysqlnd_ms_do_send_query(conn, query, query_len, TRUE TSRMLS_CC);
+}
+/* }}} */
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned int query_len TSRMLS_DC)
@@ -535,7 +568,17 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	}
 #endif
 
-	ret = ms_orig_mysqlnd_conn_methods->query(connection, query, query_len TSRMLS_CC);
+	DBG_INF_FMT("conn=%llu query=%s", connection->thread_id, query);
+
+	if (PASS == mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC) &&
+		PASS == connection->m->reap_query(connection TSRMLS_CC))
+	{
+		ret = PASS;
+		if (connection->last_query_type == QUERY_UPSERT && connection->upsert_status.affected_rows) {
+			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, connection->upsert_status.affected_rows);
+		}
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1157,6 +1200,7 @@ mysqlnd_ms_register_hooks()
 
 	my_mysqlnd_conn_methods.connect				= MYSQLND_METHOD(mysqlnd_ms, connect);
 	my_mysqlnd_conn_methods.query				= MYSQLND_METHOD(mysqlnd_ms, query);
+	my_mysqlnd_conn_methods.send_query			= MYSQLND_METHOD(mysqlnd_ms, send_query);
 	my_mysqlnd_conn_methods.use_result			= MYSQLND_METHOD(mysqlnd_ms, use_result);
 	my_mysqlnd_conn_methods.store_result		= MYSQLND_METHOD(mysqlnd_ms, store_result);
 	my_mysqlnd_conn_methods.free_contents		= MYSQLND_METHOD(mysqlnd_ms, free_contents);
