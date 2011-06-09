@@ -89,7 +89,8 @@ mysqlnd_ms_filter_compare(const void * a, const void * b TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_table_add_rule */
 static enum_func_status
-mysqlnd_ms_table_add_rule(HashTable * master_rules, HashTable * slave_rules,
+mysqlnd_ms_table_add_rule(HashTable * rules_ht,
+						  const char * const section_name, const size_t section_name_len,
 						  const char * const filter_mask, const size_t filter_mask_len,
 						  struct st_mysqlnd_ms_config_json_entry * current_filter,
 						  zend_bool persistent TSRMLS_DC)
@@ -101,21 +102,21 @@ mysqlnd_ms_table_add_rule(HashTable * master_rules, HashTable * slave_rules,
 	do {
 		zend_bool value_exists = FALSE;
 		zend_bool section_exists;
-		struct st_mysqlnd_ms_config_json_entry * slaves_section =
-				mysqlnd_ms_config_json_sub_section(current_filter, SLAVE_NAME, sizeof(SLAVE_NAME) - 1, &section_exists TSRMLS_CC);
+		struct st_mysqlnd_ms_config_json_entry * sub_section =
+				mysqlnd_ms_config_json_sub_section(current_filter, section_name, section_name_len, &section_exists TSRMLS_CC);
 
-		zend_bool subsection_is_list = section_exists? mysqlnd_ms_config_json_section_is_list(slaves_section TSRMLS_CC) : FALSE;
+		zend_bool subsection_is_list = section_exists? mysqlnd_ms_config_json_section_is_list(sub_section TSRMLS_CC) : FALSE;
 		/* we don't need objects, we check for this */
 		zend_bool subsection_isnt_obj_list =
-				subsection_is_list && !mysqlnd_ms_config_json_section_is_object_list(slaves_section TSRMLS_CC)? TRUE:FALSE;
+				subsection_is_list && !mysqlnd_ms_config_json_section_is_object_list(sub_section TSRMLS_CC)? TRUE:FALSE;
 
-		DBG_INF_FMT("getting in? %d", slaves_section && subsection_isnt_obj_list);
-		if (slaves_section && subsection_isnt_obj_list) {
+		DBG_INF_FMT("getting in? %d", sub_section && subsection_isnt_obj_list);
+		if (sub_section && subsection_isnt_obj_list) {
 			zend_bool server_list_is_list_value;
 			do {
 				size_t server_name_len;
 				char * server_name =
-					mysqlnd_ms_config_json_string_from_section(current_filter, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+					mysqlnd_ms_config_json_string_from_section(current_filter, section_name, section_name_len,
 															  &value_exists, &server_list_is_list_value TSRMLS_CC);
 				if (!value_exists) {
 					break;
@@ -135,7 +136,7 @@ mysqlnd_ms_table_add_rule(HashTable * master_rules, HashTable * slave_rules,
 				/* now add */
 				{
 					HashTable ** existing_filter;
-					if (SUCCESS == zend_hash_find(slave_rules, filter_mask, filter_mask_len + 1, (void **) &existing_filter)) {
+					if (SUCCESS == zend_hash_find(rules_ht, filter_mask, filter_mask_len + 1, (void **) &existing_filter)) {
 						DBG_INF("Filter HT already exists");
 						if (!existing_filter ||
 							SUCCESS != zend_hash_next_index_insert(*existing_filter, &new_filter_entry,
@@ -158,7 +159,7 @@ mysqlnd_ms_table_add_rule(HashTable * master_rules, HashTable * slave_rules,
 						DBG_INF("Filter HT doesn't exist, need to create it");
 						if (ht_for_new_filter) {
 							if (SUCCESS == zend_hash_init(ht_for_new_filter, 2, NULL, mysqlnd_ms_filter_dtor, 1/*pers*/)) {
-								if (SUCCESS != zend_hash_add(slave_rules, filter_mask, filter_mask_len + 1, &ht_for_new_filter,
+								if (SUCCESS != zend_hash_add(rules_ht, filter_mask, filter_mask_len + 1, &ht_for_new_filter,
 						  				 			 		 sizeof(HashTable *), NULL))
 								{
 									DBG_ERR_FMT("The hashtable %*s did not exist in the slave_rules but couldn't add",
@@ -224,7 +225,11 @@ mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 					DBG_INF("no next sub-section");
 					break;
 				}
-				if (PASS == mysqlnd_ms_table_add_rule(master_rules, slave_rules, filter_mask, filter_mask_len,
+				if (PASS == mysqlnd_ms_table_add_rule(master_rules, MASTER_NAME, sizeof(MASTER_NAME) - 1,
+													  filter_mask, filter_mask_len,
+													  current_filter, persistent TSRMLS_CC) &&
+					PASS == mysqlnd_ms_table_add_rule(slave_rules, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+													  filter_mask, filter_mask_len,
 													  current_filter, persistent TSRMLS_CC))
 				{
 					filter_count++;
