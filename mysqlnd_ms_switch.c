@@ -151,11 +151,12 @@ struct st_specific_ctor_with_name
 
 static const struct st_specific_ctor_with_name specific_ctors[] =
 {
-	{"roundrobin",	sizeof("roundrobin") - 1,	NULL, 					SERVER_PICK_RROBIN},
-	{"random",		sizeof("random") - 1,		NULL, 					SERVER_PICK_RANDOM},
-	{"once",		sizeof("once") - 1,			once_specific_ctor, 	SERVER_PICK_RANDOM_ONCE},
-	{"user",		sizeof("user") - 1,			user_specific_ctor,		SERVER_PICK_USER},
-	{NULL,			0,							NULL, 					SERVER_PICK_RROBIN}
+	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	NULL, 					SERVER_PICK_RROBIN},
+	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	NULL, 					SERVER_PICK_RANDOM},
+	{PICK_ONCE,		sizeof(PICK_ONCE) - 1,		once_specific_ctor, 	SERVER_PICK_RANDOM_ONCE},
+	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
+	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
+	{NULL,			0,							NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
 };
 
 
@@ -495,10 +496,10 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 		}
 		/* cleanup if we used multiple pick server */
 		if (&user_selected_masters == master_list) {
-			zend_llist_destroy(&user_selected_masters);
+			zend_llist_clean(&user_selected_masters);
 		}
 		if (&user_selected_slaves == slave_list) {
-			zend_llist_destroy(&user_selected_slaves);
+			zend_llist_clean(&user_selected_slaves);
 		}
 		if (!connection) {
 			connection = conn;
@@ -523,45 +524,115 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 	if (conn_data && *conn_data) {
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		zend_llist * filters = stgy->filters;
-		zend_llist selected_masters, selected_slaves;
 		zend_llist * master_list = &(*conn_data)->master_connections;
 		zend_llist * slave_list = &(*conn_data)->slave_connections;
+		zend_llist * selected_masters = NULL, * selected_slaves = NULL;
+		zend_llist * output_masters = NULL, * output_slaves = NULL;
 		MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;
 		zend_llist_position	pos;
 
-		connection = NULL;
+		/* order of allocation and initialisation is important !*/
+		/* 1. */
+		selected_masters = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
+		if (!selected_masters) {
+			goto end;
+		}
+		zend_llist_init(selected_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
 
-		zend_llist_init(&selected_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
-		zend_llist_init(&selected_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
-		mysqlnd_ms_select_servers_all(master_list, slave_list, &selected_masters, &selected_slaves TSRMLS_CC);
+		/* 2. */
+		selected_slaves = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
+		if (!selected_slaves) {
+			goto end;
+		}
+		zend_llist_init(selected_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
+
+		/* 3. */
+		output_masters = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
+		if (!output_masters) {
+			goto end;
+		}
+		zend_llist_init(output_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
+
+		/* 4. */
+		output_slaves = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
+		if (!output_slaves) {
+			goto end;
+		}
+		zend_llist_init(output_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
+
+		mysqlnd_ms_select_servers_all(master_list, slave_list, selected_masters, selected_slaves TSRMLS_CC);
+
+		connection = NULL;
 
 		for (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_first_ex(filters, &pos);
 			 filter_pp && (filter = *filter_pp);
 			 filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
 		{
-			if (SERVER_PICK_USER == filter->pick_type) {
-				connection = mysqlnd_ms_user_pick_server(conn, query, query_len, &selected_masters, &selected_slaves TSRMLS_CC);	
-			} else if (SERVER_PICK_RANDOM == filter->pick_type) {
-				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, &selected_masters, &selected_slaves, NULL TSRMLS_CC);
-			} else if (SERVER_PICK_RANDOM_ONCE == filter->pick_type) {
-				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, &selected_masters, &selected_slaves, NULL TSRMLS_CC);
-			} else if (SERVER_PICK_RROBIN == filter->pick_type) {
-				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, &selected_masters, &selected_slaves, NULL TSRMLS_CC);
-			} else {
-				php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
+			switch (filter->pick_type) {
+				case SERVER_PICK_USER:
+					connection = mysqlnd_ms_user_pick_server_ex((*conn_data)->connect_host, query, query_len,
+																selected_masters, selected_slaves, filter, stgy TSRMLS_CC);
+					break;
+				case SERVER_PICK_USER_MULTI:
+				{
+					if (PASS == mysqlnd_ms_user_pick_multiple_server((*conn_data)->connect_host, query, query_len,
+																	 selected_masters, selected_slaves,
+																	 output_masters, output_slaves,															
+																	 filter, stgy TSRMLS_CC))
+					{
+						/* swap and clean */
+						zend_llist * tmp_sel_masters = selected_masters;
+						zend_llist * tmp_sel_slaves = selected_slaves;
+						zend_llist_clean(selected_masters);
+						zend_llist_clean(selected_slaves);
+						selected_masters = output_masters;
+						selected_slaves = output_slaves;
+						output_masters = tmp_sel_masters;
+						output_slaves = tmp_sel_slaves;
+					}
+					break;
+				}
+				case SERVER_PICK_RANDOM:
+					connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, selected_masters, selected_slaves,
+																	 NULL TSRMLS_CC);
+					break;
+				case SERVER_PICK_RANDOM_ONCE:
+					connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, selected_masters,
+																		  selected_slaves, NULL TSRMLS_CC);
+					break;
+				case SERVER_PICK_RROBIN:
+					connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, selected_masters, selected_slaves,
+																 NULL TSRMLS_CC);
+					break;
+				default:
+					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
 			}
 			if (connection) {
 				/* filter till we get one, for now this is just a hack, not the ultimate solution */
 				break;
 			}
 		}
-		/* cleanup if we used multiple pick server */
-		zend_llist_destroy(&selected_masters);
-		zend_llist_destroy(&selected_slaves);
+		stgy->last_used_conn = connection;
+end:
+		if (selected_masters) {
+			zend_llist_clean(selected_masters);
+			mnd_pefree(selected_masters, conn->persistent);
+		}
+		if (selected_slaves) {
+			zend_llist_clean(selected_slaves);
+			mnd_pefree(selected_slaves, conn->persistent);
+		}
+		if (output_masters) {
+			zend_llist_clean(output_masters);
+			mnd_pefree(output_masters, conn->persistent);
+		}
+		if (output_slaves) {
+			zend_llist_clean(output_slaves);
+			mnd_pefree(output_slaves, conn->persistent);
+		}
 		if (!connection) {
 			connection = conn;
 		}
-		stgy->last_used_conn = connection;
 	}
 
 	DBG_RETURN(connection);

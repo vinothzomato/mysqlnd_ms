@@ -662,7 +662,7 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC)
 
 		DBG_INF_FMT("cleaning the section filters");
 		if ((*data_pp)->stgy.filters) {
-			zend_llist_destroy((*data_pp)->stgy.filters);
+			zend_llist_clean((*data_pp)->stgy.filters);
 			mnd_pefree((*data_pp)->stgy.filters, conn->persistent);
 			(*data_pp)->stgy.filters = NULL;
 		}

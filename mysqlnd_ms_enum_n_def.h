@@ -26,8 +26,10 @@
 #define PICK_NAME				"pick"
 #define PICK_RANDOM				"random"
 #define PICK_RANDOM_ONCE 		"random_once"
+#define PICK_ONCE				"once"
 #define PICK_RROBIN				"roundrobin"
 #define PICK_USER				"user"
+#define PICK_USER_MULTI			"user_multi"
 #define LAZY_NAME				"lazy_connections"
 #define FAILOVER_NAME			"failover"
 #define FAILOVER_DISABLED 		"disabled"
@@ -53,7 +55,9 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_RROBIN,
 	SERVER_PICK_RANDOM,
 	SERVER_PICK_RANDOM_ONCE,
-	SERVER_PICK_USER
+	SERVER_PICK_USER,
+	SERVER_PICK_USER_MULTI,
+	SERVER_PICK_LAST_ENUM_ENTRY
 };
 
 #define DEFAULT_PICK_STRATEGY SERVER_PICK_RANDOM_ONCE
