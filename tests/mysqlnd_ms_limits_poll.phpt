@@ -1,5 +1,5 @@
 --TEST--
-Limits: mysqli_pll()
+Limits: mysqli_poll()
 --SKIPIF--
 <?php
 require_once('skipif.inc');
