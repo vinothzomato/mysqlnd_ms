@@ -140,6 +140,36 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 /* }}} */
 
 
+/* {{{ once_specific_dtor */
+static void
+table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_TABLE_DATA * filter = (MYSQLND_MS_FILTER_TABLE_DATA *) pDest;
+	DBG_ENTER("table_specific_dtor");
+
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ once_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+table_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_TABLE_DATA * ret;
+	DBG_ENTER("table_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
+	if (ret) {
+		ret->parent.specific_dtor = table_specific_dtor;
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
 struct st_specific_ctor_with_name
 {
 	const char * name;
@@ -156,6 +186,7 @@ static const struct st_specific_ctor_with_name specific_ctors[] =
 	{PICK_ONCE,		sizeof(PICK_ONCE) - 1,		once_specific_ctor, 	SERVER_PICK_RANDOM_ONCE},
 	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
 	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
+	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE},
 	{NULL,			0,							NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
 };
 
@@ -592,6 +623,9 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					}
 					break;
 				}
+				case SERVER_PICK_TABLE:
+					/* do nothing for now - stub */
+					break;
 				case SERVER_PICK_RANDOM:
 					connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, selected_masters, selected_slaves,
 																	 NULL TSRMLS_CC);

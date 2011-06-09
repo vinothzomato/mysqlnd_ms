@@ -30,6 +30,7 @@
 #define PICK_RROBIN				"roundrobin"
 #define PICK_USER				"user"
 #define PICK_USER_MULTI			"user_multi"
+#define PICK_TABLE				"table"
 #define LAZY_NAME				"lazy_connections"
 #define FAILOVER_NAME			"failover"
 #define FAILOVER_DISABLED 		"disabled"
@@ -57,6 +58,7 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_RANDOM_ONCE,
 	SERVER_PICK_USER,
 	SERVER_PICK_USER_MULTI,
+	SERVER_PICK_TABLE,
 	SERVER_PICK_LAST_ENUM_ENTRY
 };
 
@@ -120,6 +122,12 @@ typedef struct st_mysqlnd_ms_filter_user_data
 	MYSQLND_MS_FILTER_DATA parent;
 	zval * user_callback;
 } MYSQLND_MS_FILTER_USER_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_table_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+} MYSQLND_MS_FILTER_TABLE_DATA;
 
 
 struct mysqlnd_ms_lb_strategies
