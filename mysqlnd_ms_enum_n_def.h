@@ -38,7 +38,7 @@
 #define MASTER_ON_WRITE_NAME	"master_on_write"
 #define TRX_STICKINESS_NAME		"trx_stickiness"
 #define TRX_STICKINESS_MASTER	"master"
-#define TABLE_FILTERS			"table_filters"
+#define TABLE_RULES				"rules"
 #define SECT_HOST_NAME			"host"
 #define SECT_PORT_NAME			"port"
 #define SECT_SOCKET_NAME		"socket"
@@ -84,6 +84,7 @@ enum mysqlnd_ms_trx_stickiness_strategy
 
 typedef struct st_mysqlnd_ms_list_data
 {
+	char * name_from_config;
 	MYSQLND * conn;
 	char * host;
 	char * user;
@@ -127,6 +128,8 @@ typedef struct st_mysqlnd_ms_filter_user_data
 typedef struct st_mysqlnd_ms_filter_table_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
+	HashTable master_rules;
+	HashTable slave_rules;
 } MYSQLND_MS_FILTER_TABLE_DATA;
 
 
@@ -178,8 +181,9 @@ struct st_mysqlnd_ms_table_filter
 	size_t host_id_len;
 	char * wild;
 	size_t wild_len;
-	unsigned int priority;
 	struct st_mysqlnd_ms_table_filter * next;
+	unsigned int priority;
+	zend_bool persistent;
 };
 
 extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;

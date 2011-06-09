@@ -109,6 +109,10 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 	if (!element) {
 		DBG_VOID_RETURN;
 	}
+	if (element->name_from_config) {
+		mnd_pefree(element->name_from_config, element->persistent);
+		element->name_from_config = NULL;
+	}
 	if (element->conn) {
 		mysqlnd_close(element->conn, TRUE);
 		element->conn = NULL;
@@ -135,6 +139,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 	}
 	if (element->emulated_scheme) {
 		mnd_pefree(element->emulated_scheme, element->persistent);
+		element->emulated_scheme = NULL;
 	}
 	mnd_pefree(element, element->persistent);
 	DBG_VOID_RETURN;
@@ -142,23 +147,9 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_filter_ht_dtor */
-static void
-mysqlnd_ms_filter_ht_dtor(void * data)
-{
-	HashTable * entry = * (HashTable **) data;
-	TSRMLS_FETCH();
-	if (entry) {
-		zend_hash_destroy(entry);
-		mnd_free(entry);
-	}
-}
-/* }}} */
-
-
 /* {{{ mysqlnd_ms_connect_to_host_aux */
 static enum_func_status
-mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_list,
+mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, const char * name_from_config, const char * host, zend_llist * conn_list,
 							   struct st_mysqlnd_ms_conn_credentials * cred,
 							   zend_bool lazy_connections, zend_bool persistent TSRMLS_DC)
 {
@@ -178,6 +169,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, char * host, zend_llist * conn_li
 
 	if (ret == PASS) {
 		MYSQLND_MS_LIST_DATA * new_element = mnd_pecalloc(1, sizeof(MYSQLND_MS_LIST_DATA), persistent);
+		new_element->name_from_config = mnd_pestrdup(name_from_config? name_from_config:"", conn->persistent);
 		new_element->conn = conn;
 		new_element->host = host? mnd_pestrdup(host, persistent) : NULL;
 		new_element->persistent = persistent;
@@ -210,7 +202,6 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 						   struct st_mysqlnd_ms_conn_credentials * master_credentials,
 						   struct st_mysqlnd_ms_config_json_entry * main_section,
 						   const char * const subsection_name, size_t subsection_name_len,
-						   HashTable * table_filters,
 						   zend_bool lazy_connections, zend_bool persistent,
 						   zend_bool process_all_list_values,
 						   unsigned int success_stat, unsigned int fail_stat,
@@ -313,7 +304,8 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 			MYSQLND * tmp_conn = (conn && i==0)? conn : mysqlnd_init(persistent);
 			if (tmp_conn) {
 				enum_func_status status =
-					mysqlnd_ms_connect_to_host_aux(tmp_conn, host, conn_list, &cred, lazy_connections, persistent TSRMLS_CC);
+					mysqlnd_ms_connect_to_host_aux(tmp_conn, current_subsection_name, host, conn_list, &cred,
+												   lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
 					(*error_info) = tmp_conn->error_info;
@@ -326,13 +318,6 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 					if (!lazy_connections) {
 						MYSQLND_MS_INC_STATISTIC(success_stat);
 					}
-#if 0
-					if (FAIL == mysqlnd_ms_load_table_filters(table_filters, subsection, current_subsection_name,
-															  current_subsection_name_len TSRMLS_CC))
-					{
-						failures++;
-					}
-#endif
 				}
 			} else {
 				failures++;
@@ -431,8 +416,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		do {
 			zend_bool value_exists = FALSE, use_lazy_connections = TRUE;
 			/* create master connection */
-			zend_hash_init(&(*conn_data)->stgy.table_filters, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, 1/*pers*/);
-
 			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
 #if 1
@@ -455,7 +438,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(conn, &(*conn_data)->master_connections, &(*conn_data)->cred, the_section,
 											 MASTER_NAME, sizeof(MASTER_NAME) - 1,
-											 &(*conn_data)->stgy.table_filters,
 											 use_lazy_connections,
 											 conn->persistent, FALSE /* multimaster*/,
 											 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
@@ -470,7 +452,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(NULL, &(*conn_data)->slave_connections, &(*conn_data)->cred, the_section,
 											 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
-											 &(*conn_data)->stgy.table_filters,
 											 use_lazy_connections,
 											 conn->persistent, TRUE /* multi*/,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
@@ -517,11 +498,11 @@ mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_
 			char error_buf[128];
 			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Asynchronous queries are not supported");
 			error_buf[sizeof(error_buf) - 1] = '\0';
-			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, error_buf);
+			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 		}
 	} else {
-	  ret = ms_orig_mysqlnd_conn_methods->send_query(conn, query, query_len TSRMLS_CC);
+		ret = ms_orig_mysqlnd_conn_methods->send_query(conn, query, query_len TSRMLS_CC);
 	}
 	DBG_RETURN(ret);
 }
@@ -657,11 +638,9 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC)
 		zend_llist_clean(&(*data_pp)->master_connections);
 		zend_llist_clean(&(*data_pp)->slave_connections);
 
-		DBG_INF_FMT("cleaning the table filters");
-		zend_hash_destroy(&(*data_pp)->stgy.table_filters);
-
 		DBG_INF_FMT("cleaning the section filters");
 		if ((*data_pp)->stgy.filters) {
+			DBG_INF_FMT("%d loaded filters", zend_llist_count((*data_pp)->stgy.filters));
 			zend_llist_clean((*data_pp)->stgy.filters);
 			mnd_pefree((*data_pp)->stgy.filters, conn->persistent);
 			(*data_pp)->stgy.filters = NULL;

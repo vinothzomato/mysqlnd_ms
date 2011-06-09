@@ -46,6 +46,7 @@
 #include "mysqlnd_ms_filter_random.h"
 #include "mysqlnd_ms_filter_random_once.h"
 #include "mysqlnd_ms_filter_round_robin.h"
+#include "mysqlnd_ms_filter_table_partition.h"
 #include "mysqlnd_ms_switch.h"
 
 typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
@@ -147,6 +148,8 @@ table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 	MYSQLND_MS_FILTER_TABLE_DATA * filter = (MYSQLND_MS_FILTER_TABLE_DATA *) pDest;
 	DBG_ENTER("table_specific_dtor");
 
+	zend_hash_destroy(&filter->master_rules);
+	zend_hash_destroy(&filter->slave_rules);
 	mnd_pefree(filter, filter->parent.persistent);
 
 	DBG_VOID_RETURN;
@@ -154,7 +157,21 @@ table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ once_specific_ctor */
+/* {{{ mysqlnd_ms_filter_ht_dtor */
+static void
+mysqlnd_ms_filter_ht_dtor(void * data)
+{
+	HashTable * entry = * (HashTable **) data;
+	TSRMLS_FETCH();
+	if (entry) {
+		zend_hash_destroy(entry);
+		mnd_free(entry);
+	}
+}
+/* }}} */
+
+
+/* {{{ table_specific_ctor */
 static MYSQLND_MS_FILTER_DATA *
 table_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
@@ -163,7 +180,16 @@ table_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ER
 	DBG_INF_FMT("section=%p", section);
 	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
 	if (ret) {
-		ret->parent.specific_dtor = table_specific_dtor;
+		do {
+			ret->parent.specific_dtor = table_specific_dtor;
+			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
+			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
+			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, persistent TSRMLS_CC)) {
+				table_specific_dtor((MYSQLND_MS_FILTER_DATA *)ret TSRMLS_CC);
+				ret = NULL;
+				break;
+			}
+		} while (0);
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
@@ -192,13 +218,16 @@ static const struct st_specific_ctor_with_name specific_ctors[] =
 
 
 /* {{{ mysqlnd_ms_filter_list_dtor */
-void
+static void
 mysqlnd_ms_filter_list_dtor(void * pDest)
 {
 	MYSQLND_MS_FILTER_DATA * filter = *(MYSQLND_MS_FILTER_DATA **) pDest;
 	TSRMLS_FETCH();
+	DBG_ENTER("mysqlnd_ms_filter_list_dtor");
+	DBG_INF_FMT("%p", filter);
 	if (filter) {
 		zend_bool pers = filter->persistent;
+		DBG_INF_FMT("name=%s dtor=%p", filter->name? filter->name:"n/a", filter->specific_dtor);
 		if (filter->name) {
 			mnd_pefree(filter->name, pers);
 		}
@@ -208,6 +237,7 @@ mysqlnd_ms_filter_list_dtor(void * pDest)
 			mnd_pefree(filter, pers);
 		}
 	}
+	DBG_VOID_RETURN;
 }
 /* }}} */
 
@@ -368,10 +398,9 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 								new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
 								new_filter_entry->name_len = filter_name_len;
 								new_filter_entry->pick_type = specific_ctors[i].pick_type;
-
-								zend_llist_add_element(ret, &new_filter_entry);
 							}
 						}
+						zend_llist_add_element(ret, &new_filter_entry);
 						break;
 					}
 					++i;
