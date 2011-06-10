@@ -1,5 +1,5 @@
 --TEST--
-trx_stickiness=master (PHP 5.3.99+)
+trx_stickiness=master (PHP 5.3.99+), pick = random_once = default
 --SKIPIF--
 <?php
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
@@ -95,7 +95,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_trx_stickiness_master.ini
 	if (!$link->commit())
 		printf("[016] [%d] %s\n", $link->errno, $link->error);
 
-	/* autocommit is still of, thus it shall be run on the master */
+	/* autocommit is still off, thus it shall be run on the master */
 	$res = run_query(17, $link, "SELECT id FROM test WHERE id = 1");
 	if ($link->thread_id != $master_thread) {
 		printf("[018] SELECT not run in autocommit mode should have been run on the master\n");
