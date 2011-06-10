@@ -9,34 +9,38 @@ $settings = array(
 	"myapp" => array(
 		'master' => array(
 			  array(
-				'host' 		=> $master_host_only,
-				'port' 		=> (int)$master_port,
+				'host' 	=> $master_host_only,
+				'port' 	=> $master_port,
 				'socket' 	=> $master_socket,
-				'db'		=> (string)$db,
-				'user'		=> $user,
-				'password'	=> $passwd,
+				'db'		=> $db,
+				'user'	=> $user,
+				'password'=> $passwd,
 			  ),
 		),
 		'slave' => array(
 			array(
 			  'host' 	=> $slave_host_only,
-			  'port' 	=> (double)$slave_port,
+			  'port' 	=> $slave_port,
 			  'socket' 	=> $slave_socket,
 			  'db'		=> $db,
 			  'user'	=> $user,
 			  'password'=> $passwd,
 			),
+
+			array(
+			  'host' 	=> $slave_host,
+			),
 		),
 		'pick' => 'roundrobin',
-		'lazy_connections' => 0,
+		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_settings_host_credentials.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_settings_host_credentials_inherit.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_inherit.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -45,18 +49,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials.ini
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
-		if (!$link->real_query($query))
+		if (!($ret = $link->query($query)))
 			printf("[%03d + 01] [%d] %s\n", $offset, $link->errno, $link->error);
 
-		if (!($res = $link->use_result()))
-			printf("[%03d + 02] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		while ($row = $res->fetch_assoc())
-			printf("[%03d + 03] '%s'\n", $offset, $row['_one']);
+		return $ret;
 	}
 
 	/* note that user etc are to be taken from the config! */
-	if (!($link = my_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
+	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, NULL, NULL)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$threads = array();
@@ -69,6 +69,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials.ini
 	run_query(2, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$threads[$link->thread_id] = array('role' => 'Master', 'stat' => $link->stat());
 
+	/* slave 2 */
+	run_query(3, $link, "SELECT 2 AS _one FROM DUAL");
+	$threads[$link->thread_id] = array('role' => 'Slave 2', 'stat' => $link->stat());
+
+	$res = run_query(4, $link, "SELECT DATABASE() AS _db FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+	if ($db != $row['_db'])
+		printf("[005] Expecting database '%s' got '%s'\n", $ddb, $row['_db']);
+
 	foreach ($threads as $thread_id => $details) {
 		printf("%d - %s: '%s'\n", $thread_id, $details['role'], $details['stat']);
 		if ('' == $details['stat'])
@@ -79,12 +88,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_settings_host_credentials.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_host_credentials.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_settings_host_credentials_inherit.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_host_credentials_inherit.ini'.\n");
 ?>
 --EXPECTF--
-[001 + 03] '1'
-[002 + 03] '123'
 %d - Slave 1: '%s'
 %d - Master: '%s'
+%d - Slave 2: '%s'
 done!
