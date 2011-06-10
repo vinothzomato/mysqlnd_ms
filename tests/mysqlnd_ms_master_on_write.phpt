@@ -1,5 +1,5 @@
 --TEST--
-Use master on write
+Use master on write (pick =random_once)
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -8,8 +8,9 @@ require_once("connect.inc");
 $settings = array(
 	$host => array(
 		'master' => array($master_host),
-		'slave' => array($slave_host),
-		'master_on_write' => 1
+		'slave' => array($slave_host, $slave_host),
+		'master_on_write' => 1,
+		'pick' => array("random_once"),
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_master_on_write.ini", $settings))
@@ -64,6 +65,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_master_on_write.ini
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
+	/* SQL hint wins */
+	$res = run_query(8, $link, "SELECT @myrole AS _role",  MYSQLND_MS_SLAVE_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
+	/* SQL hint wins */
+	$res = run_query(8, $link, "SELECT @myrole AS _role",  MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
 	print "done!";
 
 ?>
@@ -77,4 +90,6 @@ This is 'Slave 1' speaking
 This is 'Master 1' speaking
 This is 'Slave 1' speaking
 This is 'Master 1' speaking
+This is 'Slave 1' speaking
+This is 'Slave 1' speaking
 done!
