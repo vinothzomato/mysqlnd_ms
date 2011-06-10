@@ -17,12 +17,12 @@ $settings = array(
 		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_server.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_pick_server_lazy_failure.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server_lazy_failure.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -201,8 +201,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_server.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_server.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_server_lazy_failure.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_server_lazy_failure.ini'.\n");
 ?>
 --EXPECTF--
 'SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL' => slave (%s)
