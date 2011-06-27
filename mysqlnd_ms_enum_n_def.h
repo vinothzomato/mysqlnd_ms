@@ -21,6 +21,46 @@
 #ifndef MYSQLND_MS_ENUM_N_DEF_H
 #define MYSQLND_MS_ENUM_N_DEF_H
 
+
+#define BEGIN_ITERATE_OVER_SERVER_LISTS(el, masters, slaves) \
+{ \
+	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
+	{ \
+		MYSQLND_MS_LIST_DATA ** el_pp;\
+		zend_llist * lists[] = {NULL, (masters), (slaves), NULL}; \
+		zend_llist ** list = lists; \
+		while (*++list) { \
+			zend_llist_position	pos; \
+			/* search the list of easy handles hanging off the multi-handle */ \
+			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(*list, &pos); \
+				 el_pp && ((el) = *el_pp) && (el)->conn; \
+				 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(*list, &pos)) \
+			{ \
+
+#define END_ITERATE_OVER_SERVER_LISTS \
+			} \
+		} \
+	} \
+}
+
+#define BEGIN_ITERATE_OVER_SERVER_LIST(el, list) \
+{ \
+	DBG_INF_FMT("list(%p) has %d", (list), zend_llist_count((list))); \
+	{ \
+		MYSQLND_MS_LIST_DATA ** el_pp;\
+		zend_llist_position	pos; \
+		/* search the list of easy handles hanging off the multi-handle */ \
+		for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex((list), &pos); \
+			 el_pp && ((el) = *el_pp) && (el)->conn; \
+			 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex((list), &pos)) \
+		{ \
+
+#define END_ITERATE_OVER_SERVER_LIST \
+		} \
+	} \
+}
+
+
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
 #define PICK_NAME				"pick"
@@ -175,16 +215,18 @@ typedef struct st_mysqlnd_ms_conn_data
 	} cred;
 } MYSQLND_MS_CONN_DATA;
 
-struct st_mysqlnd_ms_table_filter
+typedef struct st_mysqlnd_ms_table_filter
 {
 	char * host_id;
 	size_t host_id_len;
 	char * wild;
 	size_t wild_len;
+#ifdef WE_NEED_NEXT
 	struct st_mysqlnd_ms_table_filter * next;
+#endif
 	unsigned int priority;
 	zend_bool persistent;
-};
+} MYSQLND_MS_TABLE_FILTER;
 
 extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 

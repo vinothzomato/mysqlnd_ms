@@ -157,20 +157,6 @@ table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_filter_ht_dtor */
-static void
-mysqlnd_ms_filter_ht_dtor(void * data)
-{
-	HashTable * entry = * (HashTable **) data;
-	TSRMLS_FETCH();
-	if (entry) {
-		zend_hash_destroy(entry);
-		mnd_free(entry);
-	}
-}
-/* }}} */
-
-
 /* {{{ table_specific_ctor */
 static MYSQLND_MS_FILTER_DATA *
 table_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
@@ -393,12 +379,12 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 							new_filter_entry = specific_ctors[i].ctor(current_filter, error_info, persistent TSRMLS_CC);
 						} else {
 							new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
-							if (new_filter_entry) {
-								new_filter_entry->persistent = persistent;
-								new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
-								new_filter_entry->name_len = filter_name_len;
-								new_filter_entry->pick_type = specific_ctors[i].pick_type;
-							}
+						}
+						if (new_filter_entry) {
+							new_filter_entry->persistent = persistent;
+							new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
+							new_filter_entry->name_len = filter_name_len;
+							new_filter_entry->pick_type = specific_ctors[i].pick_type;
 						}
 						zend_llist_add_element(ret, &new_filter_entry);
 						break;
@@ -653,7 +639,21 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					break;
 				}
 				case SERVER_PICK_TABLE:
-					/* do nothing for now - stub */
+					if (PASS == mysqlnd_ms_choose_connection_table_filter(query, query_len, conn->connect_or_select_db,
+																		  selected_masters, selected_slaves,
+															  			  output_masters, output_slaves, filter, stgy TSRMLS_CC))
+					{
+						/* swap and clean */
+						zend_llist * tmp_sel_masters = selected_masters;
+						zend_llist * tmp_sel_slaves = selected_slaves;
+						zend_llist_clean(selected_masters);
+						zend_llist_clean(selected_slaves);
+						selected_masters = output_masters;
+						selected_slaves = output_slaves;
+						output_masters = tmp_sel_masters;
+						output_slaves = tmp_sel_slaves;
+																		  
+					}
 					break;
 				case SERVER_PICK_RANDOM:
 					connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, selected_masters, selected_slaves,
@@ -669,6 +669,38 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					break;
 				default:
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
+			}
+			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
+			if (!connection && (1 == zend_llist_count(selected_masters) + zend_llist_count(selected_slaves))) {
+				MYSQLND_MS_LIST_DATA ** el_pp;			
+				if (zend_llist_count(selected_masters)) {
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(selected_masters);
+				} else {
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(selected_slaves);
+				}
+				if (el_pp && (*el_pp)->conn) {
+					MYSQLND_MS_LIST_DATA * element = *el_pp;
+					if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
+						DBG_INF("Lazy connection, trying to connect...");
+						/* lazy connection, connect now */
+						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																	   element->passwd, element->passwd_len,
+																	   element->db, element->db_len,
+																	   element->port, element->socket,
+																	   element->connect_flags TSRMLS_CC))
+						{
+							DBG_INF("Connected");
+							DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+#ifdef WHAT_STAT_TO_USE_HERE
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+#endif
+							connection = element->conn;
+						}
+#ifdef WHAT_STAT_TO_USE_HERE
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+#endif
+					}			
+				}
 			}
 			if (connection) {
 				/* filter till we get one, for now this is just a hack, not the ultimate solution */

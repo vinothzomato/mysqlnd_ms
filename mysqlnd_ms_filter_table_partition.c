@@ -39,7 +39,7 @@
 static void
 mysqlnd_ms_filter_dtor(void * data)
 {
-	struct st_mysqlnd_ms_table_filter * entry = * (struct st_mysqlnd_ms_table_filter **) data;
+	MYSQLND_MS_TABLE_FILTER * entry = * (MYSQLND_MS_TABLE_FILTER **) data;
 	TSRMLS_FETCH();
 	if (entry) {
 		zend_bool pers = entry->persistent;
@@ -51,11 +51,13 @@ mysqlnd_ms_filter_dtor(void * data)
 			mnd_pefree(entry->host_id, pers);
 			entry->host_id = NULL;
 		}
+#ifdef WE_NEED_NEXT
 		if (entry->next) {
 			mysqlnd_ms_filter_dtor(&entry->next);
 		}
+#endif
 		mnd_pefree(entry, pers);
-		* (struct st_mysqlnd_ms_table_filter **) data = NULL;
+		* (MYSQLND_MS_TABLE_FILTER **) data = NULL;
 	}
 }
 /* }}} */
@@ -63,7 +65,7 @@ mysqlnd_ms_filter_dtor(void * data)
 
 /* {{{ mysqlnd_ms_filter_compare (based on array_data_compare) */
 static int
-mysqlnd_ms_filter_comparator(const struct st_mysqlnd_ms_table_filter * a, const struct st_mysqlnd_ms_table_filter * b)
+mysqlnd_ms_filter_comparator(const MYSQLND_MS_TABLE_FILTER * a, const MYSQLND_MS_TABLE_FILTER * b)
 {
 	if (a && b) {
 		return a->priority > b->priority? -1:(a->priority == b->priority? 0: 1);
@@ -79,10 +81,24 @@ mysqlnd_ms_filter_compare(const void * a, const void * b TSRMLS_DC)
 {
 	Bucket * f = *((Bucket **) a);
 	Bucket * s = *((Bucket **) b);
-	struct st_mysqlnd_ms_table_filter * first = *((struct st_mysqlnd_ms_table_filter **) f->pData);
-	struct st_mysqlnd_ms_table_filter * second = *((struct st_mysqlnd_ms_table_filter **) s->pData);
+	MYSQLND_MS_TABLE_FILTER * first = *((MYSQLND_MS_TABLE_FILTER **) f->pData);
+	MYSQLND_MS_TABLE_FILTER * second = *((MYSQLND_MS_TABLE_FILTER **) s->pData);
 
 	return mysqlnd_ms_filter_comparator(first, second);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_filter_ht_dtor */
+void
+mysqlnd_ms_filter_ht_dtor(void * data)
+{
+	HashTable * entry = * (HashTable **) data;
+	TSRMLS_FETCH();
+	if (entry) {
+		zend_hash_destroy(entry);
+		mnd_free(entry);
+	}
 }
 /* }}} */
 
@@ -96,7 +112,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 						  zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	struct st_mysqlnd_ms_table_filter * new_filter_entry = NULL;
+	MYSQLND_MS_TABLE_FILTER * new_filter_entry = NULL;
 	DBG_ENTER("mysqlnd_ms_table_add_rule");
 	DBG_INF_FMT("filter_mask=%s", filter_mask);
 	do {
@@ -122,7 +138,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 					break;
 				}
 				server_name_len = strlen(server_name);
-				new_filter_entry = mnd_pecalloc(1, sizeof(struct st_mysqlnd_ms_table_filter), persistent);
+				new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_TABLE_FILTER), persistent);
 				if (!new_filter_entry) {
 					ret = FAIL;
 					break;
@@ -140,7 +156,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 						DBG_INF("Filter HT already exists");
 						if (!existing_filter ||
 							SUCCESS != zend_hash_next_index_insert(*existing_filter, &new_filter_entry,
-						  				 			 			   sizeof(struct st_mysqlnd_ms_table_filter *), NULL))
+						  				 			 			   sizeof(MYSQLND_MS_TABLE_FILTER *), NULL))
 						{
 							DBG_ERR_FMT("Couldn't add new filter and couldn't find the original %*s", filter_mask_len, filter_mask);
 							php_error_docref(NULL TSRMLS_CC, E_WARNING,
@@ -152,7 +168,9 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 							DBG_INF("Added to the existing HT");
 							DBG_INF("re-sorting");
 							/* Sort specified array. */
+#ifdef PRIORITY_IS_OFF_FOR_NOW
 							zend_hash_sort(*existing_filter, zend_qsort, mysqlnd_ms_filter_compare, 0 /* renumber */ TSRMLS_CC);
+#endif
 						}
 					} else {
 						HashTable * ht_for_new_filter = mnd_malloc(sizeof(HashTable));
@@ -174,7 +192,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 									mysqlnd_ms_filter_dtor(&new_filter_entry);
 									new_filter_entry = NULL;
 								} else if (SUCCESS != zend_hash_next_index_insert(ht_for_new_filter, &new_filter_entry,
-						  				 			 			   				  sizeof(struct st_mysqlnd_ms_table_filter *), NULL))
+						  				 			 			   				  sizeof(MYSQLND_MS_TABLE_FILTER *), NULL))
 								{
 									DBG_ERR_FMT("Couldn't add new filter and couldn't find the original %*s", filter_mask_len, filter_mask);
 									php_error_docref(NULL TSRMLS_CC, E_WARNING,
@@ -225,14 +243,18 @@ mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 					DBG_INF("no next sub-section");
 					break;
 				}
+				DBG_INF_FMT("---------- Loading MASTER rules for [%s] ----------------", filter_mask);
 				if (PASS == mysqlnd_ms_table_add_rule(master_rules, MASTER_NAME, sizeof(MASTER_NAME) - 1,
-													  filter_mask, filter_mask_len,
-													  current_filter, persistent TSRMLS_CC) &&
-					PASS == mysqlnd_ms_table_add_rule(slave_rules, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
 													  filter_mask, filter_mask_len,
 													  current_filter, persistent TSRMLS_CC))
 				{
-					filter_count++;
+					DBG_INF_FMT("---------- Loading SLAVE rules for [%s] ----------------", filter_mask);
+					if (PASS == mysqlnd_ms_table_add_rule(slave_rules, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+														  filter_mask, filter_mask_len,
+														  current_filter, persistent TSRMLS_CC))
+					{
+						filter_count++;
+					}
 				}
 			} while (1);
 		}
@@ -243,33 +265,105 @@ mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 }
 /* }}} */
 
+/* {{{ mysqlnd_ms_table_filter_match */
+static enum_func_status
+mysqlnd_ms_table_filter_match(const char * const db_table_buf, HashTable * rules,
+							  zend_llist * in_list, zend_llist * out_list TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	HashPosition pos_rules;
+	HashTable ** filter_ht;
+	DBG_ENTER("mysqlnd_ms_table_filter_match");
+
+	zend_hash_internal_pointer_reset_ex(rules, &pos_rules);
+	while (SUCCESS == zend_hash_get_current_data_ex(rules, (void **)&filter_ht, &pos_rules) && filter_ht) {
+		char * filter_mask;
+		uint fm_len;
+		ulong n_key;
+
+		if (HASH_KEY_IS_STRING == zend_hash_get_current_key_ex(rules, &filter_mask, &fm_len, &n_key, 0, &pos_rules)) {
+			DBG_INF_FMT("Comparing [%s] with [%s]", db_table_buf, filter_mask);
+			if (!mysqlnd_ms_wild_compare(db_table_buf, filter_mask TSRMLS_CC)) {
+				MYSQLND_MS_TABLE_FILTER ** entry_filter_pp;
+				HashPosition pos_servers;
+				/* found a match*/
+				DBG_INF("Found a match");
+				zend_hash_internal_pointer_reset_ex(*filter_ht, &pos_servers);
+				while (SUCCESS == zend_hash_get_current_data_ex(*filter_ht, (void **)&entry_filter_pp,
+																&pos_servers) && entry_filter_pp)
+				{
+					MYSQLND_MS_TABLE_FILTER * entry_filter = *entry_filter_pp;
+					/* compare entry_filter->host_id with MYSQLND_MS_LIST_DATA::name_from_config */
+					MYSQLND_MS_LIST_DATA * el;
+
+					BEGIN_ITERATE_OVER_SERVER_LIST(el, in_list);
+					if (!strncmp(entry_filter->host_id, el->name_from_config, entry_filter->host_id_len)) {
+						DBG_INF_FMT("Matched [%s] with a server, adding to the list", entry_filter->host_id);
+						if (el->conn) {
+							DBG_INF_FMT("Matched conn_id: %llu", el->conn->thread_id);
+						}
+
+						zend_llist_add_element(out_list, &el);
+
+						goto skip1; /* we can't use continue as BEGIN_ITERATE uses a loop */
+						/* XXX: maybe we want directly to go to skip2 ??? */
+					}
+					END_ITERATE_OVER_SERVER_LIST;
+skip1:
+					zend_hash_move_forward_ex(*filter_ht, &pos_servers);
+				}
+			}
+		}
+		zend_hash_move_forward_ex(rules, &pos_rules);
+	}
+	DBG_RETURN(ret);
+}
+/* }}} */
+
 
 /* {{{ mysqlnd_ms_choose_connection_table_filter */
 enum_func_status
 mysqlnd_ms_choose_connection_table_filter(const char * query, size_t query_len,
+									 const char * const connect_or_select_db,
 									 zend_llist * master_list, zend_llist * slave_list,
 									 zend_llist * selected_masters, zend_llist * selected_slaves, void * f_data,
-									 struct mysqlnd_ms_lb_strategies * stgy 
+									 struct mysqlnd_ms_lb_strategies * stgy_not_used
 									 TSRMLS_DC)
 {
+	enum_func_status ret = FAIL;
+	MYSQLND_MS_FILTER_TABLE_DATA * filter = (MYSQLND_MS_FILTER_TABLE_DATA *) f_data;
 	struct st_mysqlnd_query_parser * parser;
 	DBG_ENTER("mysqlnd_ms_choose_connection_table_filter");
-	parser = mysqlnd_qp_create_parser(TSRMLS_C);
-	if (parser) {
-		int ret = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
-		DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
-		DBG_INF_FMT("db=%s table=%s org_table=%s statement_type=%d",
-				parser->parse_info.db? parser->parse_info.db:"n/a",
-				parser->parse_info.table? parser->parse_info.table:"n/a",
-				parser->parse_info.org_table? parser->parse_info.org_table:"n/a",
-				parser->parse_info.statement
-			);
-
-
-		mysqlnd_qp_free_parser(parser TSRMLS_CC);
-		DBG_RETURN(PASS);
+	if (filter) {
+		parser = mysqlnd_qp_create_parser(TSRMLS_C);
+		if (parser) {
+			/* 80 char db + '.' + 80 char table + \0 : should be 64 but prepared for the future */
+			char db_table_buf[4*80 + 1 + 4*80 + 1];
+			int err = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
+			DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
+			DBG_INF_FMT("db=%s table=%s org_table=%s statement_type=%d",
+					parser->parse_info.db? parser->parse_info.db:"n/a",
+					parser->parse_info.table? parser->parse_info.table:"n/a",
+					parser->parse_info.org_table? parser->parse_info.org_table:"n/a",
+					parser->parse_info.statement
+				);
+			if (parser->parse_info.db) {
+				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", parser->parse_info.db, parser->parse_info.table);
+			} else if (parser->parse_info.table && connect_or_select_db) {
+				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, parser->parse_info.table);
+			} else {
+				goto end;
+			}
+			if (PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->master_rules, master_list, selected_masters TSRMLS_CC) &&
+				PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->slave_rules, slave_list, selected_slaves TSRMLS_CC))
+			{
+				ret = PASS;
+			}
+end:
+			mysqlnd_qp_free_parser(parser TSRMLS_CC);
+		}
 	}
-	DBG_RETURN(FAIL);
+	DBG_RETURN(ret);
 }
 /* }}} */
 

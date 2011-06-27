@@ -22,8 +22,18 @@
 #define MYSQLND_MS_FILTER_TABLE_PARTITION_H
 struct st_mysqlnd_ms_config_json_entry;
 
-enum_func_status mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules, struct st_mysqlnd_ms_config_json_entry * section, zend_bool persistent TSRMLS_DC);
-enum_func_status mysqlnd_ms_choose_connection_table_filter(MYSQLND * conn, const char * query, unsigned int query_len, struct mysqlnd_ms_lb_strategies * stgy, zend_llist ** master_list, zend_llist ** slave_list TSRMLS_DC);
+enum_func_status
+mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
+							  struct st_mysqlnd_ms_config_json_entry * section, zend_bool persistent TSRMLS_DC);
+
+enum_func_status
+mysqlnd_ms_choose_connection_table_filter(const char * query, size_t query_len,
+									 const char * const connect_or_select_db,
+									 zend_llist * master_list, zend_llist * slave_list,
+									 zend_llist * selected_masters, zend_llist * selected_slaves, void * f_data,
+									 struct mysqlnd_ms_lb_strategies * stgy_not_used
+									 TSRMLS_DC);
+void mysqlnd_ms_filter_ht_dtor(void * data);
 
 #endif	/* MYSQLND_MS_FILTER_TABLE_PARTITION_H */
 

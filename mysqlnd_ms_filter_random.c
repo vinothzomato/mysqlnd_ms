@@ -85,6 +85,7 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 			uint i = 0;
 			MYSQLND * connection;
 
+			DBG_INF_FMT("%d slaves to choose from", zend_llist_count(l));
 			rnd_idx = php_rand(TSRMLS_C);
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
 			DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
@@ -134,6 +135,8 @@ mysqlnd_ms_choose_connection_random(const char * const query, const size_t query
 			unsigned long rnd_idx;
 			uint i = 0;
 			MYSQLND * connection = NULL;
+
+			DBG_INF_FMT("%d masters to choose from", zend_llist_count(l));
 
 			rnd_idx = php_rand(TSRMLS_C);
 			RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
