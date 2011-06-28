@@ -35,6 +35,22 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_unreachable.ini
 		return $ret;
 	}
 
+	/*
+	Error codes indicating connect failure provoked by non-existing host
+
+	Error: 2002 (CR_CONNECTION_ERROR)
+	Message: Can't connect to local MySQL server through socket '%s' (%d)
+	Error: 2003 (CR_CONN_HOST_ERROR)
+	Message: Can't connect to MySQL server on '%s' (%d)
+	Error: 2005 (CR_UNKNOWN_HOST)
+	Message: Unknown MySQL server host '%s' (%d)
+	*/
+	$connect_errno_codes = array(
+		2002 => true,
+		2003 => true,
+		2005 => true,
+	);
+
 	/* error messages (warnings can vary a bit, let's not bother about it */
 	ob_start();
 	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -48,8 +64,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_unreachable.ini
 			printf("[002] Plugin has failed to connect but connect error is not set, [%d] '%s'\n",
 				mysqli_connect_errno(), mysqli_connect_error());
 		} else {
-			die(sprintf("[003] Plugin reports connect error, [%d] '%s'\n",
-				mysqli_connect_errno(), mysqli_connect_error()));
+			if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+				die(sprintf("[003] OK, plugin reports connect error, [%d] '%s'\n",
+					mysqli_connect_errno(), mysqli_connect_error()));
+			} else {
+				die(sprintf("[003] Plugin reports unknown connect error, [%d] '%s'\n",
+					mysqli_connect_errno(), mysqli_connect_error()));
+			}
 		}
 	} else {
 		printf("[004] Plugin returns valid handle, no API to fetch error codes, connect error: [%d] '%s', error: [%d] '%s'\n",
@@ -105,4 +126,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_unreachable.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_slave_unreachable.ini'.\n");
 ?>
 --EXPECTF--
-[003] Plugin reports connect error, [2000] '(mysqlnd_ms) Error while connecting to the slaves'
+[003] OK, plugin reports connect error, [%d] %s
