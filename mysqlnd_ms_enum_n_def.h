@@ -102,9 +102,8 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_LAST_ENUM_ENTRY
 };
 
+/* it should work also without any params, json config to the ctor will be NULL */
 #define DEFAULT_PICK_STRATEGY SERVER_PICK_RANDOM_ONCE
-/* depends on the above */
-#define DEFAULT_SELECT_SERVERS mysqlnd_ms_select_servers_random_once
 
 enum mysqlnd_ms_server_failover_strategy
 {
@@ -149,13 +148,6 @@ typedef struct st_mysqlnd_ms_filter_data
 	enum mysqlnd_ms_server_pick_strategy pick_type;
 	zend_bool persistent;
 } MYSQLND_MS_FILTER_DATA;
-
-
-typedef struct st_mysqlnd_ms_filter_once_data
-{
-	MYSQLND_MS_FILTER_DATA parent;
-	zend_bool unused;
-} MYSQLND_MS_FILTER_ONCE_DATA;
 
 
 typedef struct st_mysqlnd_ms_filter_user_data

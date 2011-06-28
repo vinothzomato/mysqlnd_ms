@@ -52,35 +52,6 @@
 typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
 													   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
-/* {{{ once_specific_dtor */
-static void
-once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
-{
-	MYSQLND_MS_FILTER_ONCE_DATA * filter = (MYSQLND_MS_FILTER_ONCE_DATA *) pDest;
-	DBG_ENTER("once_specific_dtor");
-
-	filter->unused = FALSE;
-	mnd_pefree(filter, filter->parent.persistent);
-
-	DBG_VOID_RETURN;
-}
-/* }}} */
-
-
-/* {{{ once_specific_ctor */
-static MYSQLND_MS_FILTER_DATA *
-once_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
-{
-	MYSQLND_MS_FILTER_ONCE_DATA * ret;
-	DBG_ENTER("once_specific_ctor");
-	DBG_INF_FMT("section=%p", section);
-	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_ONCE_DATA), persistent);
-	if (ret) {
-		ret->parent.specific_dtor = once_specific_dtor;
-	}
-	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
-}
-/* }}} */
 
 
 /* {{{ once_specific_dtor */
@@ -338,6 +309,51 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_section_filters_add_filter */
+static MYSQLND_MS_FILTER_DATA *
+mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
+									  struct st_mysqlnd_ms_config_json_entry * filter_config,
+									  const char * const filter_name, const size_t filter_name_len,
+									  const zend_bool persistent,
+									  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
+
+	DBG_ENTER("mysqlnd_ms_section_filters_add_filter");
+	if (filter_name && filter_name_len) {
+		unsigned int i = 0;
+		/* find specific ctor, if available */
+		while (specific_ctors[i].name) {					
+			DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
+			if (!strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len)) {
+				if (specific_ctors[i].ctor) {
+					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
+				} else {
+					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
+				}
+				if (new_filter_entry) {
+					new_filter_entry->persistent = persistent;
+					new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
+					new_filter_entry->name_len = filter_name_len;
+					new_filter_entry->pick_type = specific_ctors[i].pick_type;
+				}
+				zend_llist_add_element(filters, &new_filter_entry);
+				break;
+			}
+			++i;
+		}
+	}
+	if (!new_filter_entry) {
+		char error_buf[128];
+		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown filter %s", filter_name);
+		error_buf[sizeof(error_buf) - 1] = '\0';
+		DBG_ERR_FMT("Unknown filter %s", filter_name);
+	}
+	DBG_RETURN(new_filter_entry);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_load_section_filters */
 zend_llist *
 mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info,
@@ -360,8 +376,6 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
 		if (section_exists && filters_section && subsection_is_obj_list) {
 			do {
-				unsigned int i = 0;
-				MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
 				char * filter_name = NULL;
 				size_t filter_name_len = 0;
 				struct st_mysqlnd_ms_config_json_entry * current_filter =
@@ -371,33 +385,23 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					DBG_INF("no next sub-section");
 					break;
 				}
-				/* find specific ctor, if available */
-				while (specific_ctors[i].name) {					
-					DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
-					if (!strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len)) {
-						if (specific_ctors[i].ctor) {
-							new_filter_entry = specific_ctors[i].ctor(current_filter, error_info, persistent TSRMLS_CC);
-						} else {
-							new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
-						}
-						if (new_filter_entry) {
-							new_filter_entry->persistent = persistent;
-							new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
-							new_filter_entry->name_len = filter_name_len;
-							new_filter_entry->pick_type = specific_ctors[i].pick_type;
-						}
-						zend_llist_add_element(ret, &new_filter_entry);
-						break;
-					}
-					++i;
-				}
-				if (!new_filter_entry) {
-					char error_buf[128];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown filter %s", filter_name);
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					DBG_ERR_FMT("Unknown filter %s", filter_name);
-				}
+				(void) mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
+															 persistent, error_info TSRMLS_CC);
 			} while (1);
+		} else {
+			/* setup the default */
+			unsigned int i = 0;
+			DBG_INF("No section, using defaults");
+			while (specific_ctors[i].name) {
+				if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
+					DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
+					mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
+														  persistent, error_info TSRMLS_CC);
+				
+					break;
+				}
+				++i;
+			}
 		}
 	}
 	DBG_RETURN(ret);
