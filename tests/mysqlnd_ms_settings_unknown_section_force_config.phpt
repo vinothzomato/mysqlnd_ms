@@ -1,5 +1,5 @@
 --TEST--
-Connect using unkonwn config section
+Connect using unkonwn config section, force use of config
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -12,12 +12,13 @@ $settings = array(
 		'lazy_connections' => 0,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_settings_unknown_section.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_settings_unknown_section_force_config.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_unknown_section.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_unknown_section_force_config.ini
+mysqlnd_ms.force_config_usage=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -41,19 +42,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_unknown_section.ini
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = @my_mysqli_connect("please_let_this_host_be_unknown", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
-		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
-	} else {
 		printf("[001] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	} else {
+		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_settings_unknown_section.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_unknown_section.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_settings_unknown_section_force_config.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_unknown_section_force_config.ini'.\n");
 ?>
 --EXPECTF--
-
-[001] [%d] %s
+[001] [2000] (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section
 done!
