@@ -195,7 +195,7 @@ static const struct st_specific_ctor_with_name specific_ctors[] =
 {
 	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	NULL, 					SERVER_PICK_RROBIN},
 	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	NULL, 					SERVER_PICK_RANDOM},
-	{PICK_ONCE,		sizeof(PICK_ONCE) - 1,		once_specific_ctor, 	SERVER_PICK_RANDOM_ONCE},
+	{PICK_RANDOM_ONCE,sizeof(PICK_RANDOM_ONCE)-1,NULL, 					SERVER_PICK_RANDOM_ONCE},
 	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
 	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
 	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE},
