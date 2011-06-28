@@ -144,6 +144,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 --EXPECTF--
 
 Warning: mysqli::set_charset(): Error executing query in %s on line %d
-[005] [%d] Commands out of sync
 Slave 2 reports charset '%s', charset set was '%s'
 done!
