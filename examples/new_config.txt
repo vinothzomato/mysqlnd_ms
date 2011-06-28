@@ -1,0 +1,223 @@
+New config, implementation available as of 2011-06-28. 
+
+--- Basic configuration 0 (NOT WORKING) ---------------------------
+
+THIS DOES NOT WORK, YET! 
+Pick strategy must be set explicitly, no defaults supported.
+
+Settings:
+
+ - one master
+ - one salve
+ - lazy connections (default)
+
+Changes to before:
+
+ - no pick strategy set, error, must add filter
+
+{
+   "myapp":{   
+      "master":{
+         "master1":{
+            "host":"127.0.0.1",
+            "port":3306,            
+         }
+      },
+      "slave":{       
+         "slave1":{
+            "host":"localhost",
+            "socket":"\/tmp\/mysql3307.sock",           
+         }
+      },   
+   }
+}
+
+
+--- Basic configuration I (defaults explicitly set) ----------------
+
+Settings:
+
+ - one master
+ - one slave
+ - lazy connections = 1 (default) explicitly set
+ - pick strategy random_once (default) explicitly set
+
+Changes to before:
+
+ - defaults must be set explicitly
+ - use of JSON
+ - pick replaced by filters
+
+{
+   "myapp":{
+      "lazy_connections":1,
+      "master":{
+         "master1":{
+            "host":"127.0.0.1",
+            "port":3306,            
+         }
+      },
+      "slave":{
+         "slave1":{
+            "host":"localhost",
+            "socket":"\/tmp\/mysql3307.sock",           
+         }
+      },
+      "filters":{
+	 "random_once": []
+      }
+   }
+}
+
+
+
+
+--- Basic configuration II (pick = random)  ----------------------
+
+Settings:
+
+ - one master
+ - one slave
+ - lazy connections = 1 (default) explicitly set
+ - pick strategy random
+
+Changes to before:
+
+ - filter "random", no parameters
+  
+
+{
+   "myapp":{
+      "lazy_connections":1,
+      "master":{
+         "master1":{
+            "host":"127.0.0.1",
+            "port":3306,
+         }
+      },
+      "slave":{
+         "slave1":{
+            "host":"localhost",
+            "socket":"\/tmp\/mysql3307.sock",
+         }
+      },
+      "filters":{
+         "random": []
+      }
+   }
+}
+
+
+--- New feature: per server user credentials  ----------------------
+
+Settings:
+
+ - one master, user, password and default db set
+ - two slaves, user, password and default db set
+ - lazy connections = 1 (default) explicitly set
+ - pick strategy random
+
+Changes to before:
+
+ - two slaves shown
+ - per server user credentials can be defined
+ - if user/password/default db is given, it is used instead of the value provided 
+   to a connect() call
+
+{
+   "myapp":{
+      "lazy_connections":1,
+      "master":{
+         "master1":{
+            "host":"127.0.0.1",
+            "port":3306,
+            "db":"test2",
+            "user":"root",
+            "password":"root"
+         }
+      },
+      "slave":{
+         "slave1":{
+            "host":"127.0.0.1",
+            "port":3307,
+            "db":"test",
+            "user":"root",
+            "password":"root"
+         },
+         "slave2":{
+            "host":"localhost",
+            "socket":"\/tmp\/mysql3307.sock",
+            "db":"test",
+            "user":"root",
+            "password":"root"
+         }
+      },
+      "filters":{
+         "random": []
+      }
+   }
+}
+
+
+------- New feature: table partitioning/filtering -----------------
+
+Settings:
+
+ - one master
+ - two slaves
+ - pick strategy random
+
+
+Changes to before:
+
+ - table paritioning rule set:
+
+   a) direct all accesses to db=test1 to master1 (write), slave1 (read), slave2 (read)
+   b) direct all accesses to db=test2 to master1 (write), slave2 (read)
+   c) if no rule matches, use master1 (write),  slave1(read),  slave2(read)
+     
+
+{
+   "myapp":{
+      "lazy_connections":0,
+      "master":{
+         "master1":{
+            "host":"127.0.0.1",
+            "port":3306,
+         }
+      },
+      "slave":{
+         "slave1":{
+            "host":"127.0.0.1",
+            "port":3307,
+         },
+         "slave2":{
+            "host":"localhost",
+            "socket":"\/tmp\/mysql3307.sock",
+         }
+      },
+      "filters":{
+         "table":{
+            "rules":{
+               "test1.*":{
+                  "master":[
+                     "master1"
+                  ],
+                  "slave":[
+                     "slave1", "slave2"
+                  ]
+               },
+               "test2.*":{
+                  "master":[
+                     "master1"
+                  ],
+                  "slave":[
+                     "slave2"
+                  ]
+               }
+            }
+         },
+		 "random": []
+      }
+   }
+}
