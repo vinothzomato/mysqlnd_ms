@@ -210,8 +210,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server_lazy_failure.ini
 %A
 %A
 
-Warning: mysqli::query(): [%d] %s
-
 Warning: mysqli::query(): Callback chose %s but connection failed in %s on line %d
 [040 + 01] [2002] %s
 '/*ms=slave*/SELECT 'user driven slave failover' AS _message FROM DUAL' => slave (%s)
