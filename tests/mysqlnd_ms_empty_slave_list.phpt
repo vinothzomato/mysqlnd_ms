@@ -1,5 +1,5 @@
 --TEST--
-No slaves given in config -> connect error
+Empty slave list, no config error, user wants to run multi-master only
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -8,14 +8,15 @@ require_once("connect.inc");
 $settings = array(
 	"name_of_a_config_section" => array(
 		'master' => array($master_host),
+		'slaves' => array(),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_no_slaves.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_empty_slave_list.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_no_slaves.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_empty_slave_list.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -24,8 +25,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_no_slaves.ini
 	if (0 !== mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
-	  var_dump($link);
-	  if (!($res = $link->query("SELECT 'Who runs this?'"))) {
+	  if (!($res = $link->query("SELECT 'Greetings from the master'"))) {
 		  printf("[002] [%d] %s\n", $link->errno, $link->error);
 	  } else {
 		  $row = $res->fetch_row();
@@ -37,9 +37,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_no_slaves.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_no_slaves.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_no_slaves.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_empty_slave_list.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_empty_slave_list.ini'.\n");
 ?>
 --EXPECTF--
-[001] [2000] (mysqlnd_ms) Error while connecting to the slaves
+[003] Greetings from the master
 done!
