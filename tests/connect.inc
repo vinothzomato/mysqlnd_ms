@@ -288,55 +288,6 @@
 		}
 
 		function create_config_json($file, $settings, $replace_file) {
-/*
-{
-	"myapp":
-		{
-			"lazy_connections":0,
-			"master":
-				[
-					{
-						"host"	: "127.0.0.1",
-						"port"	: 3306,
-						"socket": "/tmp/mysql.sock",
-						"db"	: "test",
-						"user"	: "root",
-						"password": "root"
-					}
-				],
-			"slave":
-				{
-					"slave1" :
-						{
-							"host":"127.0.0.1",
-							"port":3307,
-							"socket":"/tmp/mysql.sock",
-							"db":"test",
-							"user":"root",
-							"password":"root",
-							"table_filters":
-								{
-									"db1.%":{ "priority" : 1},
-									"db2.t%":{ "priority" : 2}
-								}
-						},
-					"slave2" :
-						{
-							"host" : "localhost",
-							"socket":"/tmp/mysql3307.sock",
-							"db":"test",
-							"user":"root",
-							"password":"root",
-							"table_filters":
-								{
-									"db1.%":{ "priority" : 2},
-									"db2.t%":{ "priority" : 1}
-								}
-						}
-				}
-		}
-}
-*/
 			if ($replace_file && file_exists($file) && !@unlink($file))
 				return sprintf("Cannot unlink existing file '%s'.", $file);
 
@@ -407,8 +358,10 @@
 						$config['pick'] = array($config['pick']);
 
 					foreach ($config['pick'] as $method) {
-						$json[$application]['pick'][] = (string)$method;
+						$json[$application]['filters'][(string)$method] = array();
 					}
+				} else {
+					$json[$application]['filters'] = array("random_once" => array());
 				}
 				if (isset($config['lazy_connections'])) {
 				  $json[$application]['lazy_connections'] = (string)$config['lazy_connections'];

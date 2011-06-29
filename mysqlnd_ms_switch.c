@@ -323,7 +323,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 	if (filter_name && filter_name_len) {
 		unsigned int i = 0;
 		/* find specific ctor, if available */
-		while (specific_ctors[i].name) {					
+		while (specific_ctors[i].name) {
 			DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
 			if (!strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len)) {
 				if (specific_ctors[i].ctor) {
@@ -397,7 +397,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
 					mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
 														  persistent, error_info TSRMLS_CC);
-				
+
 					break;
 				}
 				++i;
@@ -527,7 +527,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 
 		connection = NULL;
 		if (SERVER_PICK_USER == pick_strategy) {
-			connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list TSRMLS_CC);	
+			connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list TSRMLS_CC);
 			if (!connection) {
 				pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
 			}
@@ -568,7 +568,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 	MYSQLND * connection = conn;
-	DBG_ENTER("mysqlnd_ms_pick_server");
+	DBG_ENTER("mysqlnd_ms_pick_server_ex");
 	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
 
 	if (conn_data && *conn_data) {
@@ -627,7 +627,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 				{
 					if (PASS == mysqlnd_ms_user_pick_multiple_server((*conn_data)->connect_host, query, query_len,
 																	 selected_masters, selected_slaves,
-																	 output_masters, output_slaves,															
+																	 output_masters, output_slaves,
 																	 filter, stgy TSRMLS_CC))
 					{
 						/* swap and clean */
@@ -656,7 +656,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 						selected_slaves = output_slaves;
 						output_masters = tmp_sel_masters;
 						output_slaves = tmp_sel_slaves;
-																		  
+
 					}
 					break;
 				case SERVER_PICK_RANDOM:
@@ -676,7 +676,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 			}
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
 			if (!connection && (1 == zend_llist_count(selected_masters) + zend_llist_count(selected_slaves))) {
-				MYSQLND_MS_LIST_DATA ** el_pp;			
+				MYSQLND_MS_LIST_DATA ** el_pp;
 				if (zend_llist_count(selected_masters)) {
 					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(selected_masters);
 				} else {
@@ -703,7 +703,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 #ifdef WHAT_STAT_TO_USE_HERE
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 #endif
-					}			
+					}
 				}
 			}
 			if (connection) {

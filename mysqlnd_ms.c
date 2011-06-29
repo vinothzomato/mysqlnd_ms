@@ -507,7 +507,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 #endif
 	DBG_ENTER("mysqlnd_ms::query");
 
-	connection = mysqlnd_ms_pick_server(conn, query, query_len TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex(conn, query, query_len TSRMLS_CC);
 	DBG_INF_FMT("Connection %p", connection);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
