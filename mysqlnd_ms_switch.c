@@ -316,50 +316,6 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
 	{
-		char * pick_strategy = mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
-																		  &value_exists, &is_list_value TSRMLS_CC);
-
-		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
-		if (value_exists && pick_strategy) {
-			/* random is a substing of random_once thus we check first for random_once */
-			if (!strcasecmp(PICK_RROBIN, pick_strategy)) {
-				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
-			} else if (!strcasecmp(PICK_RANDOM_ONCE, pick_strategy)) {
-				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
-			} else if (!strcasecmp(PICK_RANDOM, pick_strategy)) {
-				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
-			} else if (!strcasecmp(PICK_USER, pick_strategy)) {
-				strategies->pick_strategy = SERVER_PICK_USER;
-				if (is_list_value) {
-					mnd_efree(pick_strategy);
-					pick_strategy =
-						mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
-																   &value_exists, &is_list_value TSRMLS_CC);
-					if (pick_strategy) {
-						if (!strcasecmp(PICK_RANDOM_ONCE, pick_strategy)) {
-							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
-						} else if (!strcasecmp(PICK_RANDOM, pick_strategy)) {
-							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
-						} else if (!strcasecmp(PICK_RROBIN, pick_strategy)) {
-							strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
-						}
-					}
-				}
-			} else {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown pick strategy %s", pick_strategy);
-				error_buf[sizeof(error_buf) - 1] = '\0';
-
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-			}
-		}
-		if (pick_strategy) {
-			mnd_efree(pick_strategy);
-		}
-	}
-
-	{
 		char * failover_strategy =
 			mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
 													   &value_exists, &is_list_value TSRMLS_CC);
@@ -583,7 +539,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 
 
 /* {{{ mysqlnd_ms_select_servers_all */
-enum_func_status
+static enum_func_status
 mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 							  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
 {
@@ -617,58 +573,6 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 		}
 	}
 	DBG_RETURN(ret);
-}
-/* }}} */
-
-
-/* {{{ mysqlnd_ms_pick_server */
-MYSQLND *
-mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
-{
-	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-	MYSQLND * connection = conn;
-	DBG_ENTER("mysqlnd_ms_pick_server");
-
-	if (conn_data && *conn_data) {
-		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
-		enum mysqlnd_ms_server_pick_strategy pick_strategy = stgy->pick_strategy;
-		zend_llist user_selected_masters, user_selected_slaves;
-		zend_llist * master_list = &(*conn_data)->master_connections;
-		zend_llist * slave_list = &(*conn_data)->slave_connections;
-
-		connection = NULL;
-		if (SERVER_PICK_USER == pick_strategy) {
-			connection = mysqlnd_ms_user_pick_server(conn, query, query_len, master_list, slave_list TSRMLS_CC);
-			if (!connection) {
-				pick_strategy = (*conn_data)->stgy.fallback_pick_strategy;
-			}
-		}
-		if (!connection) {
-			DBG_INF_FMT("count(master_list)=%d", zend_llist_count(master_list));
-			DBG_INF_FMT("count(slave_list)=%d", zend_llist_count(slave_list));
-
-			if (SERVER_PICK_RANDOM == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
-			} else if (SERVER_PICK_RANDOM_ONCE == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random_once(NULL, query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
-			} else {
-				connection = mysqlnd_ms_choose_connection_rr(NULL, query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
-			}
-		}
-		/* cleanup if we used multiple pick server */
-		if (&user_selected_masters == master_list) {
-			zend_llist_clean(&user_selected_masters);
-		}
-		if (&user_selected_slaves == slave_list) {
-			zend_llist_clean(&user_selected_slaves);
-		}
-		if (!connection) {
-			connection = conn;
-		}
-		stgy->last_used_conn = connection;
-	}
-
-	DBG_RETURN(connection);
 }
 /* }}} */
 

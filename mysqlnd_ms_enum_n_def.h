@@ -63,7 +63,6 @@
 
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
-#define PICK_NAME				"pick"
 #define PICK_RANDOM				"random"
 #define PICK_RANDOM_ONCE 		"random_once"
 #define PICK_ONCE				"once"
@@ -184,9 +183,6 @@ typedef struct st_mysqlnd_ms_filter_random_once_data
 struct mysqlnd_ms_lb_strategies
 {
 	HashTable table_filters;
-
-	enum mysqlnd_ms_server_pick_strategy pick_strategy;
-	enum mysqlnd_ms_server_pick_strategy fallback_pick_strategy;
 
 	enum mysqlnd_ms_server_failover_strategy failover_strategy;
 

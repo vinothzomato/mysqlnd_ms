@@ -27,11 +27,10 @@ struct st_mysqlnd_ms_config_json_entry;
 PHPAPI enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
 
 zend_llist * mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
-enum_func_status mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list, zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC);
 
 void mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies, struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_ERROR_INFO * error_info TSRMLS_DC);
 
-MYSQLND * mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
+MYSQLND * mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
 
 void mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC);
 

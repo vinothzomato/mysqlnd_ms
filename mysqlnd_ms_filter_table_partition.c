@@ -62,7 +62,7 @@ mysqlnd_ms_filter_dtor(void * data)
 }
 /* }}} */
 
-
+#if 0
 /* {{{ mysqlnd_ms_filter_compare (based on array_data_compare) */
 static int
 mysqlnd_ms_filter_comparator(const MYSQLND_MS_TABLE_FILTER * a, const MYSQLND_MS_TABLE_FILTER * b)
@@ -73,7 +73,6 @@ mysqlnd_ms_filter_comparator(const MYSQLND_MS_TABLE_FILTER * a, const MYSQLND_MS
 	return 0;
 }
 /* }}} */
-
 
 /* {{{ mysqlnd_ms_filter_compare (based on array_data_compare) */
 static int
@@ -87,7 +86,7 @@ mysqlnd_ms_filter_compare(const void * a, const void * b TSRMLS_DC)
 	return mysqlnd_ms_filter_comparator(first, second);
 }
 /* }}} */
-
+#endif
 
 /* {{{ mysqlnd_ms_filter_ht_dtor */
 void
