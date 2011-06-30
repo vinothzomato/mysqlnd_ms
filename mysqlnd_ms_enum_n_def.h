@@ -47,12 +47,12 @@
 { \
 	DBG_INF_FMT("list(%p) has %d", (list), zend_llist_count((list))); \
 	{ \
-		MYSQLND_MS_LIST_DATA ** el_pp;\
-		zend_llist_position	pos; \
+		MYSQLND_MS_LIST_DATA ** MACRO_el_pp;\
+		zend_llist_position	MACRO_pos; \
 		/* search the list of easy handles hanging off the multi-handle */ \
-		for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex((list), &pos); \
-			 el_pp && ((el) = *el_pp) && (el)->conn; \
-			 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex((list), &pos)) \
+		for (((el) = NULL), MACRO_el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex((list), &MACRO_pos); \
+			 MACRO_el_pp && ((el) = *MACRO_el_pp) && (el)->conn; \
+			 ((el) = NULL), MACRO_el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex((list), &MACRO_pos)) \
 		{ \
 
 #define END_ITERATE_OVER_SERVER_LIST \
@@ -163,6 +163,14 @@ typedef struct st_mysqlnd_ms_filter_table_data
 	HashTable master_rules;
 	HashTable slave_rules;
 } MYSQLND_MS_FILTER_TABLE_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_rr_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+	HashTable master_context;
+	HashTable slave_context;
+} MYSQLND_MS_FILTER_RR_DATA;
 
 
 struct mysqlnd_ms_lb_strategies

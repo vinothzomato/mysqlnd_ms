@@ -34,15 +34,51 @@
 #include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_enum_n_def.h"
 
+
+/* {{{ get_element_ptr */
+static void mysqlnd_ms_get_element_ptr(void * d, void * arg TSRMLS_DC)
+{
+	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
+	char ptr_buf[SIZEOF_SIZE_T + 1];
+	smart_str * context = (smart_str *) arg;
+	if (data) {
+#if SIZEOF_SIZE_T == 8
+		int8store(ptr_buf, (size_t) data->conn);
+#elif SIZEOF_SIZE_T == 4
+		int4store(ptr_buf, (size_t) data->conn);
+#else
+#error Unknown platform
+#endif
+		ptr_buf[SIZEOF_SIZE_T] = '\0';
+		smart_str_appendl(context, ptr_buf, SIZEOF_SIZE_T);
+	}
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_rr_get_fingerprint */
+static void
+mysqlnd_ms_rr_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_rr_get_fingerprint");
+	zend_llist_apply_with_argument(list, mysqlnd_ms_get_element_ptr, context TSRMLS_CC);
+	smart_str_appendc(context, '\0');
+	DBG_INF_FMT("len=%d", context->len);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_choose_connection_rr */
 MYSQLND *
-mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len,
+mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const size_t query_len,
 								struct mysqlnd_ms_lb_strategies * stgy,
 								zend_llist * master_connections, zend_llist * slave_connections,
 								enum enum_which_server * which_server TSRMLS_DC)
 {
 	enum enum_which_server tmp_which;
 	zend_bool forced;
+	MYSQLND_MS_FILTER_RR_DATA * filter = (MYSQLND_MS_FILTER_RR_DATA *) f_data;
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
 	if (!which_server) {
@@ -53,8 +89,7 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 		DBG_INF("Enforcing use of master while in transaction");
 		*which_server = USE_MASTER;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
-	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
-		if (*which_server != USE_MASTER) {
+	} else if (stgy->mysqlnd_ms_flag_master_on_write) {		if (*which_server != USE_MASTER) {
 			if (stgy->master_used && !forced) {
 				switch (*which_server) {
 					case USE_MASTER:
@@ -75,88 +110,153 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 	switch (*which_server) {
 		case USE_SLAVE:
 		{
+			unsigned int tmp_pos = 0;
 			zend_llist * l = slave_connections;
-			MYSQLND_MS_LIST_DATA ** element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next(l);
-			MYSQLND_MS_LIST_DATA * element = element_pp? *element_pp : NULL;
-			MYSQLND * connection = NULL;
-			if (!element) {
-				element_pp = (MYSQLND_MS_LIST_DATA **)zend_llist_get_first(l);
-				if (element_pp) {
-					element = *element_pp;
+			unsigned int * pos;
+			/* LOCK on context ??? */
+			{
+				smart_str fprint = {0};
+				mysqlnd_ms_rr_get_fingerprint(&fprint, l TSRMLS_CC);
+				DBG_INF_FMT("fingerprint=%*s", fprint.len, fprint.c);
+				if (SUCCESS != zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos)) {
+					int retval;
+					DBG_INF("Init the slave context");
+					retval = zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, &tmp_pos, sizeof(uint), NULL);
+					/* fetch ptr to the data inside the HT */
+					if (SUCCESS == retval) {
+						zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos);
+					}
+					smart_str_free(&fprint);
+					if (SUCCESS != retval) {
+						break;
+					}
 				}
+				DBG_INF_FMT("look under pos %u", *pos);
 			}
-			if (element && element->conn) {
-				connection = element->conn;
-			}
-			if (connection) {
-				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+			{
+				unsigned int i = 0;
+				MYSQLND_MS_LIST_DATA * element = NULL;
+				MYSQLND * connection = NULL;
 
-				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
-					DBG_INF("Lazy connection, trying to connect...");
-					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
-																   element->passwd, element->passwd_len,
-																   element->db, element->db_len,
-																   element->port, element->socket, element->connect_flags TSRMLS_CC))
-					{
-						DBG_INF("Connected");
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
+					if (i == *pos) {
+						break;
+					}
+					i++;
+				END_ITERATE_OVER_SERVER_LIST;
+				DBG_INF_FMT("i=%u pos=%u", i, *pos);
+				if (!element) {
+					php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. Something is wrong.");
+					break;
+				}
+				/* time to increment the position */
+				*pos = ((*pos) + 1) % zend_llist_count(l);
+				DBG_INF_FMT("pos is now %u", *pos);
+				if (element->conn) {
+					connection = element->conn;
+				}
+				if (connection) {
+					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+
+					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+						DBG_INF("Lazy connection, trying to connect...");
+						/* lazy connection, connect now */
+						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																	   element->passwd, element->passwd_len,
+																	   element->db, element->db_len,
+																	   element->port, element->socket, element->connect_flags TSRMLS_CC))
+						{
+							DBG_INF("Connected");
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+							DBG_RETURN(connection);
+						}
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
+						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+							DBG_INF("Failover disabled");
+							DBG_RETURN(connection);
+						}
+						DBG_INF("Connect failed, falling back to the master");
+					} else {
+						DBG_RETURN(element->conn);
+					}
+				} else {
+					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+						DBG_INF("Failover disabled");
 						DBG_RETURN(connection);
 					}
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
-
-					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-					  DBG_INF("Failover disabled");
-					  DBG_RETURN(connection);
-					}
-					DBG_INF("Connect failed, falling back to the master");
-				} else {
-					DBG_RETURN(element->conn);
-				}
-			} else {
-				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-					DBG_INF("Failover disabled");
-					DBG_RETURN(connection);
 				}
 			}
+			/* UNLOCK of context ??? */
 		}
 		/* fall-through */
 		case USE_MASTER:
 		{
+			unsigned int tmp_pos = 0;
 			zend_llist * l = master_connections;
-			MYSQLND_MS_LIST_DATA ** element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next(l);
-			MYSQLND_MS_LIST_DATA * element = element_pp? *element_pp : NULL;
-			MYSQLND * connection = NULL;
-			if (!element) {
-				element_pp = (MYSQLND_MS_LIST_DATA **)zend_llist_get_first(l);
-				if (element_pp) {
-					element = *element_pp;
-				}
-			}
-			if (element && element->conn) {
-				connection = element->conn;
-			}
-			DBG_INF("Using master connection");
-			if (connection) {
-				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
-					DBG_INF("Lazy connection, trying to connect...");
-					/* lazy connection, connect now */
-					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
-																   element->passwd, element->passwd_len,
-																   element->db, element->db_len,
-																   element->port, element->socket, element->connect_flags TSRMLS_CC))
-					{
-						DBG_INF("Connected");
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
-						DBG_RETURN(connection);
+			unsigned int * pos;
+			/* LOCK on context ??? */
+			{
+				smart_str fprint = {0};
+				mysqlnd_ms_rr_get_fingerprint(&fprint, l TSRMLS_CC);
+				if (SUCCESS != zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos)) {
+					int retval;
+					DBG_INF("Init the master context");
+					retval = zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, &tmp_pos, sizeof(uint), NULL);
+					/* fetch ptr to the data inside the HT */
+					if (SUCCESS == retval) {
+						zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos);
 					}
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+					smart_str_free(&fprint);
+					if (SUCCESS != retval) {
+						break;
+					}
 				}
 			}
-			DBG_RETURN(connection);
+			{
+				unsigned int i = 0;
+				MYSQLND_MS_LIST_DATA * element = NULL;
+				MYSQLND * connection = NULL;
+
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
+					if (i == *pos) {
+						break;
+					}
+					i++;
+				END_ITERATE_OVER_SERVER_LIST;
+				
+				if (!element) {
+					php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong.");
+					break;
+				}
+				/* time to increment the position */
+				*pos = ((*pos) + 1) % zend_llist_count(l);
+				if (element->conn) {
+					connection = element->conn;
+				}
+				DBG_INF("Using master connection");
+				if (connection) {
+
+					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+						DBG_INF("Lazy connection, trying to connect...");
+						/* lazy connection, connect now */
+						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																	   element->passwd, element->passwd_len,
+																	   element->db, element->db_len,
+																	   element->port, element->socket, element->connect_flags TSRMLS_CC))
+						{
+							DBG_INF("Connected");
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+							DBG_RETURN(connection);
+						}
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+					}
+				}
+				DBG_RETURN(connection);
+			}
 			break;
 		}
-
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			DBG_RETURN(stgy->last_used_conn);
@@ -165,6 +265,7 @@ mysqlnd_ms_choose_connection_rr(const char * const query, const size_t query_len
 			DBG_RETURN(NULL);
 			break;
 	}
+	DBG_RETURN(NULL);
 }
 /* }}} */
 

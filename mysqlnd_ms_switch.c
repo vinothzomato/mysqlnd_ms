@@ -54,6 +54,41 @@ typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_conf
 
 
 
+/* {{{ roundrobin_specific_dtor */
+static void
+rr_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RR_DATA * filter = (MYSQLND_MS_FILTER_RR_DATA *) pDest;
+	DBG_ENTER("roundrobin_specific_dtor");
+
+	zend_hash_destroy(&filter->master_context);
+	zend_hash_destroy(&filter->slave_context);
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ roundrobin_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+rr_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RR_DATA * ret;
+	DBG_ENTER("roundrobin_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	/* section could be NULL! */
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
+	if (ret) {
+		ret->parent.specific_dtor = rr_specific_dtor;
+		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
 /* {{{ once_specific_dtor */
 static void
 user_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
@@ -78,33 +113,37 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 	MYSQLND_MS_FILTER_USER_DATA * ret;
 	DBG_ENTER("user_specific_ctor");
 	DBG_INF_FMT("section=%p", section);
-	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_USER_DATA), persistent);
+	if (section) {
+		ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_USER_DATA), persistent);
 
-	if (ret) {
-		zend_bool value_exists = FALSE, is_list_value = FALSE;
-		char * callback;
+		if (ret) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			char * callback;
 
-		ret->parent.specific_dtor = user_specific_dtor;
+			ret->parent.specific_dtor = user_specific_dtor;
 
-		callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1,
-															  &value_exists, &is_list_value TSRMLS_CC);
+			callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1,
+																  &value_exists, &is_list_value TSRMLS_CC);
 
-		if (value_exists) {
-			zval * zv;
-			char * c_name;
+			if (value_exists) {
+				zval * zv;
+				char * c_name;
 
-			MAKE_STD_ZVAL(zv);
-			ZVAL_STRING(zv, callback, 1);
-			mnd_efree(callback);
-			if (!zend_is_callable(zv, 0, &c_name TSRMLS_CC)) {
-				php_error_docref(NULL TSRMLS_CC, E_ERROR,
-								 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", c_name);
-				zval_ptr_dtor(&zv);
-			} else {
-				DBG_INF_FMT("name=%s", c_name);
-				ret->user_callback = zv;
+				MAKE_STD_ZVAL(zv);
+				ZVAL_STRING(zv, callback, 1);
+				mnd_efree(callback);
+				if (!zend_is_callable(zv, 0, &c_name TSRMLS_CC)) {
+					php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", c_name);
+					zval_ptr_dtor(&zv);
+					mnd_pefree(ret, persistent);
+					ret = NULL;
+				} else {
+					DBG_INF_FMT("name=%s", c_name);
+					ret->user_callback = zv;
+				}
+				efree(c_name);
 			}
-			efree(c_name);
 		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
@@ -164,7 +203,7 @@ struct st_specific_ctor_with_name
 
 static const struct st_specific_ctor_with_name specific_ctors[] =
 {
-	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	NULL, 					SERVER_PICK_RROBIN},
+	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	rr_specific_ctor,		SERVER_PICK_RROBIN},
 	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	NULL, 					SERVER_PICK_RANDOM},
 	{PICK_RANDOM_ONCE,sizeof(PICK_RANDOM_ONCE)-1,NULL, 					SERVER_PICK_RANDOM_ONCE},
 	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
@@ -328,6 +367,10 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 			if (!strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len)) {
 				if (specific_ctors[i].ctor) {
 					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
+					if (!new_filter_entry) {
+						php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter %s . Stopping.", filter_name);
+					}
 				} else {
 					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
 				}
@@ -541,7 +584,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 			} else if (SERVER_PICK_RANDOM_ONCE == pick_strategy) {
 				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			} else {
-				connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_rr(NULL, query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			}
 		}
 		/* cleanup if we used multiple pick server */
@@ -668,7 +711,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 																		  selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
-					connection = mysqlnd_ms_choose_connection_rr(query, query_len, stgy, selected_masters, selected_slaves,
+					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, selected_masters, selected_slaves,
 																 NULL TSRMLS_CC);
 					break;
 				default:
