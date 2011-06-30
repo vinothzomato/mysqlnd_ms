@@ -86,18 +86,18 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_user_pick_server_ex */
+/* {{{ mysqlnd_ms_user_pick_server */
 MYSQLND *
-mysqlnd_ms_user_pick_server_ex(const char * connect_host, const char * query, size_t query_len,
-							   zend_llist * master_list, zend_llist * slave_list, void * f_data,
-							   struct mysqlnd_ms_lb_strategies * stgy TSRMLS_DC)
+mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
+							zend_llist * master_list, zend_llist * slave_list,
+							struct mysqlnd_ms_lb_strategies * stgy TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_USER_DATA * filter_data = (MYSQLND_MS_FILTER_USER_DATA *) f_data;
 	zval * args[7];
 	zval * retval;
 	MYSQLND * ret = NULL;
 
-	DBG_ENTER("mysqlnd_ms_user_pick_server_ex");
+	DBG_ENTER("mysqlnd_ms_user_pick_server");
 	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
 
 	if (master_list && filter_data && filter_data->user_callback) {
@@ -268,9 +268,9 @@ my_long_compare(const void * a, const void * b TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_user_pick_multiple_server */
 enum_func_status
-mysqlnd_ms_user_pick_multiple_server(const char * connect_host, const char * query, size_t query_len,
+mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
 									 zend_llist * master_list, zend_llist * slave_list,
-									 zend_llist * selected_masters, zend_llist * selected_slaves, void * f_data,
+									 zend_llist * selected_masters, zend_llist * selected_slaves,
 									 struct mysqlnd_ms_lb_strategies * stgy 
 									 TSRMLS_DC)
 {

@@ -635,15 +635,14 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 		{
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
-					connection = mysqlnd_ms_user_pick_server_ex((*conn_data)->connect_host, query, query_len,
-																selected_masters, selected_slaves, filter, stgy TSRMLS_CC);
+					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,
+															 selected_masters, selected_slaves, stgy TSRMLS_CC);
 					break;
 				case SERVER_PICK_USER_MULTI:
 				{
-					if (PASS == mysqlnd_ms_user_pick_multiple_server((*conn_data)->connect_host, query, query_len,
+					if (PASS == mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
 																	 selected_masters, selected_slaves,
-																	 output_masters, output_slaves,
-																	 filter, stgy TSRMLS_CC))
+																	 output_masters, output_slaves, stgy TSRMLS_CC))
 					{
 						/* swap and clean */
 						zend_llist * tmp_sel_masters = selected_masters;

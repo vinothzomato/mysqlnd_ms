@@ -22,10 +22,14 @@
 #define MYSQLND_MS_FILTER_USER_H
 struct mysqlnd_ms_lb_strategies;
 
-MYSQLND * mysqlnd_ms_user_pick_server_ex(const char * connect_host, const char * query, size_t query_len, zend_llist * master_list, zend_llist * slave_list, void * f_data, struct mysqlnd_ms_lb_strategies * stgy TSRMLS_DC);
-enum_func_status mysqlnd_ms_user_pick_multiple_server(const char * connect_host, const char * query, size_t query_len,
+MYSQLND * mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
+									  zend_llist * master_list, zend_llist * slave_list,
+									  struct mysqlnd_ms_lb_strategies * stgy TSRMLS_DC);
+
+enum_func_status mysqlnd_ms_user_pick_multiple_server(void * f_data,
+									 const char * connect_host, const char * query, size_t query_len,
 									 zend_llist * master_list, zend_llist * slave_list,
-									 zend_llist * selected_masters, zend_llist * selected_slaves, void * f_data,
+									 zend_llist * selected_masters, zend_llist * selected_slaves,
 									 struct mysqlnd_ms_lb_strategies * stgy 
 									 TSRMLS_DC);
 
