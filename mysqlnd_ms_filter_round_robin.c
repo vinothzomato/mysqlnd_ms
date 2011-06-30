@@ -35,40 +35,6 @@
 #include "mysqlnd_ms_enum_n_def.h"
 
 
-/* {{{ get_element_ptr */
-static void mysqlnd_ms_get_element_ptr(void * d, void * arg TSRMLS_DC)
-{
-	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
-	char ptr_buf[SIZEOF_SIZE_T + 1];
-	smart_str * context = (smart_str *) arg;
-	if (data) {
-#if SIZEOF_SIZE_T == 8
-		int8store(ptr_buf, (size_t) data->conn);
-#elif SIZEOF_SIZE_T == 4
-		int4store(ptr_buf, (size_t) data->conn);
-#else
-#error Unknown platform
-#endif
-		ptr_buf[SIZEOF_SIZE_T] = '\0';
-		smart_str_appendl(context, ptr_buf, SIZEOF_SIZE_T);
-	}
-}
-/* }}} */
-
-
-/* {{{ mysqlnd_ms_rr_get_fingerprint */
-static void
-mysqlnd_ms_rr_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC)
-{
-	DBG_ENTER("mysqlnd_ms_rr_get_fingerprint");
-	zend_llist_apply_with_argument(list, mysqlnd_ms_get_element_ptr, context TSRMLS_CC);
-	smart_str_appendc(context, '\0');
-	DBG_INF_FMT("len=%d", context->len);
-	DBG_VOID_RETURN;
-}
-/* }}} */
-
-
 /* {{{ mysqlnd_ms_choose_connection_rr */
 MYSQLND *
 mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const size_t query_len,
@@ -116,7 +82,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			/* LOCK on context ??? */
 			{
 				smart_str fprint = {0};
-				mysqlnd_ms_rr_get_fingerprint(&fprint, l TSRMLS_CC);
+				mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 				DBG_INF_FMT("fingerprint=%*s", fprint.len, fprint.c);
 				if (SUCCESS != zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos)) {
 					int retval;
@@ -198,7 +164,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			/* LOCK on context ??? */
 			{
 				smart_str fprint = {0};
-				mysqlnd_ms_rr_get_fingerprint(&fprint, l TSRMLS_CC);
+				mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 				if (SUCCESS != zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos)) {
 					int retval;
 					DBG_INF("Init the master context");

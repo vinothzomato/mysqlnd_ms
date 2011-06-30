@@ -37,80 +37,184 @@
 #include "mysqlnd_ms_filter_random.h"
 
 
-/* {{{ mysqlnd_ms_select_servers_random_once */
-enum_func_status
-mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command,
-									  struct mysqlnd_ms_lb_strategies * stgy,
-									  zend_llist * master_list, zend_llist * slave_list,
-									  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
-{
-	enum_func_status ret = FAIL;
-	zend_llist_position	pos;
-	MYSQLND_MS_LIST_DATA * el, ** el_pp;
-	DBG_ENTER("mysqlnd_ms_select_servers_random_once");
-	DBG_INF_FMT("random_once_slave=%p", stgy->random_once_slave);
-	if (!stgy->random_once_slave) {
-		ret = mysqlnd_ms_select_servers_all(master_list, slave_list, selected_masters, selected_slaves TSRMLS_CC);
-		DBG_RETURN(ret);
-	}
-
-	/* search the list of easy handles hanging off the multi-handle */
-	for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos); el_pp && (el = *el_pp) && el->conn;
-			el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
-	{
-		/*
-		  This will copy the whole structure, not the pointer.
-		  This is wanted!!
-		*/
-		zend_llist_add_element(selected_masters, el);
-	}
-
-	for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos); el_pp && (el = *el_pp) && el->conn;
-			el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
-	{
-		DBG_INF_FMT("[slave] el->conn=%p", el->conn);
-		if (el->conn == stgy->random_once_slave) {
-			/*
-			  This will copy the whole structure, not the pointer.
-			  This is wanted!!
-			*/
-			zend_llist_add_element(selected_slaves, el);
-			ret = PASS;
-			DBG_INF("bingo!");
-			break;
-		}
-	}
-	DBG_RETURN(ret);
-}
-/* }}} */
-
-
 /* {{{ mysqlnd_ms_choose_connection_random_once */
 MYSQLND *
-mysqlnd_ms_choose_connection_random_once(const char * const query, const size_t query_len,
+mysqlnd_ms_choose_connection_random_once(void * f_data, const char * const query, const size_t query_len,
 										 struct mysqlnd_ms_lb_strategies * stgy,
 										 zend_llist * master_connections, zend_llist * slave_connections,
 										 enum enum_which_server * which_server TSRMLS_DC)
 {
+	MYSQLND_MS_FILTER_RANDOM_ONCE_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_ONCE_DATA *) f_data;
+	zend_bool forced;
 	enum enum_which_server tmp_which;
-	MYSQLND * ret;
+	smart_str fprint = {0};
 	DBG_ENTER("mysqlnd_ms_choose_connection_random_once");
 
 	if (!which_server) {
 		which_server = &tmp_which;
 	}
-	ret = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_connections, slave_connections, which_server TSRMLS_CC);
+	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
+	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
+		DBG_INF("Enforcing use of master while in transaction");
+		*which_server = USE_MASTER;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
+	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
+		if (*which_server != USE_MASTER) {
+			if (stgy->master_used && !forced) {
+				switch (*which_server) {
+					case USE_MASTER:
+					case USE_LAST_USED:
+						break;
+					case USE_SLAVE:
+					default:
+						DBG_INF("Enforcing use of master after write");
+						*which_server = USE_MASTER;
+						break;
+				}
+			}
+		} else {
+			DBG_INF("Use of master detected");
+			stgy->master_used = TRUE;
+		}
+	}
+
 	switch (*which_server) {
 		case USE_SLAVE:
-			if (!stgy->random_once_slave) {
-				stgy->random_once_slave = ret;
+		{
+			zend_llist_position	pos;
+			zend_llist * l = slave_connections;
+			MYSQLND_MS_LIST_DATA * element, ** element_pp;
+			unsigned long rnd_idx;
+			uint i = 0;
+			MYSQLND * connection;
+			MYSQLND ** context_pos;
+			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
+
+			DBG_INF_FMT("%d slaves to choose from", zend_llist_count(l));
+
+			/* LOCK on context ??? */
+			if (SUCCESS != zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context_pos)) {
+				rnd_idx = php_rand(TSRMLS_C);
+				RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+				DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
+
+				element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
+				while (i++ < rnd_idx) {
+					element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
+				}
+				connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
+				
+				DBG_INF("Init the slave context");
+				if (connection) {
+					zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, &connection, sizeof(MYSQLND *), NULL);
+				}
+			} else {
+				connection = context_pos? *context_pos : NULL;
+				if (!connection) {
+					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random_once.");
+				} else {
+					DBG_INF_FMT("Using already selected connection %llu", connection->thread_id);
+				}
 			}
-			DBG_INF_FMT("Using last random connection "MYSQLND_LLU_SPEC, stgy->random_once_slave->thread_id);
-			DBG_RETURN(stgy->random_once_slave);
+			smart_str_free(&fprint);
+			if (connection) {
+				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket, element->connect_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+						DBG_RETURN(connection);
+					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
+					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+					  DBG_INF("Failover disabled");
+					  DBG_RETURN(connection);
+					}
+					DBG_INF("Connect failed, falling back to the master");
+				} else {
+					DBG_RETURN(connection);
+				}
+			} else {
+				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+					DBG_INF("Failover disabled");
+					DBG_RETURN(connection);
+				}
+			}
+		}
+		/* fall-through */
 		case USE_MASTER:
+		{
+			zend_llist_position	pos;
+			zend_llist * l = master_connections;
+			MYSQLND_MS_LIST_DATA * element, ** element_pp;
+			unsigned long rnd_idx;
+			uint i = 0;
+			MYSQLND * connection = NULL;
+			MYSQLND ** context_pos;
+			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
+
+			DBG_INF_FMT("%d masters to choose from", zend_llist_count(l));
+			/* LOCK on context ??? */
+			if (SUCCESS != zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context_pos)) {
+				rnd_idx = php_rand(TSRMLS_C);
+				RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+				DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
+
+				element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
+				while (i++ < rnd_idx) {
+					element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
+				}
+				connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
+				
+				DBG_INF("Init the slave context");
+				if (connection) {
+					zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, &connection, sizeof(MYSQLND *), NULL);
+				}
+			} else {
+				connection = context_pos? *context_pos : NULL;
+				if (!connection) {
+					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random_once.");
+				} else {
+					DBG_INF_FMT("Using already selected connection %llu", connection->thread_id);
+				}
+			}
+			smart_str_free(&fprint);
+
+			DBG_INF("Using master connection");
+			if (connection) {
+				if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
+					DBG_INF("Lazy connection, trying to connect...");
+					/* lazy connection, connect now */
+					if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+																   element->passwd, element->passwd_len,
+																   element->db, element->db_len,
+																   element->port, element->socket,
+																   element->connect_flags TSRMLS_CC))
+					{
+						DBG_INF("Connected");
+						DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+						DBG_RETURN(connection);
+					}
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+				}
+			}
+			DBG_RETURN(connection);
+			break;
+		}
 		case USE_LAST_USED:
+			DBG_INF("Using last used connection");
+			DBG_RETURN(stgy->last_used_conn);
 		default:
-			DBG_RETURN(ret);
+			/* error */
+			DBG_RETURN(NULL);
 			break;
 	}
 }

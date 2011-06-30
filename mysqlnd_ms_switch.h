@@ -33,8 +33,7 @@ void mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies, 
 
 MYSQLND * mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC);
 
-enum_func_status mysqlnd_ms_select_servers_random_once(enum php_mysqlnd_server_command command, struct mysqlnd_ms_lb_strategies * stgy, zend_llist * master_list, zend_llist * slave_list, zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC);
-
+void mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC);
 
 
 #endif	/* MYSQLND_MS_SWITCH_H */

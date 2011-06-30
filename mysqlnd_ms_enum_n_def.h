@@ -173,6 +173,14 @@ typedef struct st_mysqlnd_ms_filter_rr_data
 } MYSQLND_MS_FILTER_RR_DATA;
 
 
+typedef struct st_mysqlnd_ms_filter_random_once_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+	HashTable master_context;
+	HashTable slave_context;
+} MYSQLND_MS_FILTER_RANDOM_ONCE_DATA;
+
+
 struct mysqlnd_ms_lb_strategies
 {
 	HashTable table_filters;

@@ -59,7 +59,7 @@ static void
 rr_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_RR_DATA * filter = (MYSQLND_MS_FILTER_RR_DATA *) pDest;
-	DBG_ENTER("roundrobin_specific_dtor");
+	DBG_ENTER("rr_specific_dtor");
 
 	zend_hash_destroy(&filter->master_context);
 	zend_hash_destroy(&filter->slave_context);
@@ -75,12 +75,47 @@ static MYSQLND_MS_FILTER_DATA *
 rr_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_RR_DATA * ret;
-	DBG_ENTER("roundrobin_specific_ctor");
+	DBG_ENTER("rr_specific_ctor");
 	DBG_INF_FMT("section=%p", section);
 	/* section could be NULL! */
-	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_DATA), persistent);
 	if (ret) {
 		ret->parent.specific_dtor = rr_specific_dtor;
+		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
+/* {{{ random_once_specific_dtor */
+static void
+random_once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RANDOM_ONCE_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_ONCE_DATA *) pDest;
+	DBG_ENTER("random_once_specific_dtor");
+
+	zend_hash_destroy(&filter->master_context);
+	zend_hash_destroy(&filter->slave_context);
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ random_once_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+random_once_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RANDOM_ONCE_DATA * ret;
+	DBG_ENTER("random_once_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	/* section could be NULL! */
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_ONCE_DATA), persistent);
+	if (ret) {
+		ret->parent.specific_dtor = random_once_specific_dtor;
 		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 	}
@@ -205,13 +240,46 @@ static const struct st_specific_ctor_with_name specific_ctors[] =
 {
 	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	rr_specific_ctor,		SERVER_PICK_RROBIN},
 	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	NULL, 					SERVER_PICK_RANDOM},
-	{PICK_RANDOM_ONCE,sizeof(PICK_RANDOM_ONCE)-1,NULL, 					SERVER_PICK_RANDOM_ONCE},
+	{PICK_RANDOM_ONCE,sizeof(PICK_RANDOM_ONCE)-1,random_once_specific_ctor,SERVER_PICK_RANDOM_ONCE},
 	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
 	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
 	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE},
 	{NULL,			0,							NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
 };
 
+
+/* {{{ get_element_ptr */
+static void mysqlnd_ms_get_element_ptr(void * d, void * arg TSRMLS_DC)
+{
+	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
+	char ptr_buf[SIZEOF_SIZE_T + 1];
+	smart_str * context = (smart_str *) arg;
+	if (data) {
+#if SIZEOF_SIZE_T == 8
+		int8store(ptr_buf, (size_t) data->conn);
+#elif SIZEOF_SIZE_T == 4
+		int4store(ptr_buf, (size_t) data->conn);
+#else
+#error Unknown platform
+#endif
+		ptr_buf[SIZEOF_SIZE_T] = '\0';
+		smart_str_appendl(context, ptr_buf, SIZEOF_SIZE_T);
+	}
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_get_fingerprint */
+void
+mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_get_fingerprint");
+	zend_llist_apply_with_argument(list, mysqlnd_ms_get_element_ptr, context TSRMLS_CC);
+	smart_str_appendc(context, '\0');
+	DBG_INF_FMT("len=%d", context->len);
+	DBG_VOID_RETURN;
+}
+/* }}} */
 
 /* {{{ mysqlnd_ms_filter_list_dtor */
 static void
@@ -254,13 +322,13 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 		strategies->pick_strategy = strategies->fallback_pick_strategy = DEFAULT_PICK_STRATEGY;
 		if (value_exists && pick_strategy) {
 			/* random is a substing of random_once thus we check first for random_once */
-			if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
+			if (!strcasecmp(PICK_RROBIN, pick_strategy)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
-			} else if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
+			} else if (!strcasecmp(PICK_RANDOM_ONCE, pick_strategy)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
-			} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+			} else if (!strcasecmp(PICK_RANDOM, pick_strategy)) {
 				strategies->pick_strategy = strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
-			} else if (!strncasecmp(PICK_USER, pick_strategy, sizeof(PICK_USER) - 1)) {
+			} else if (!strcasecmp(PICK_USER, pick_strategy)) {
 				strategies->pick_strategy = SERVER_PICK_USER;
 				if (is_list_value) {
 					mnd_efree(pick_strategy);
@@ -268,11 +336,11 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 						mysqlnd_ms_config_json_string_from_section(the_section, PICK_NAME, sizeof(PICK_NAME) - 1,
 																   &value_exists, &is_list_value TSRMLS_CC);
 					if (pick_strategy) {
-						if (!strncasecmp(PICK_RANDOM_ONCE, pick_strategy, sizeof(PICK_RANDOM_ONCE) - 1)) {
+						if (!strcasecmp(PICK_RANDOM_ONCE, pick_strategy)) {
 							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM_ONCE;
-						} else if (!strncasecmp(PICK_RANDOM, pick_strategy, sizeof(PICK_RANDOM) - 1)) {
+						} else if (!strcasecmp(PICK_RANDOM, pick_strategy)) {
 							strategies->fallback_pick_strategy = SERVER_PICK_RANDOM;
-						} else if (!strncasecmp(PICK_RROBIN, pick_strategy, sizeof(PICK_RROBIN) - 1)) {
+						} else if (!strcasecmp(PICK_RROBIN, pick_strategy)) {
 							strategies->fallback_pick_strategy = SERVER_PICK_RROBIN;
 						}
 					}
@@ -364,7 +432,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 		/* find specific ctor, if available */
 		while (specific_ctors[i].name) {
 			DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
-			if (!strncasecmp(specific_ctors[i].name, filter_name, specific_ctors[i].name_len)) {
+			if (!strcasecmp(specific_ctors[i].name, filter_name)) {
 				if (specific_ctors[i].ctor) {
 					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
 					if (!new_filter_entry) {
@@ -582,7 +650,7 @@ mysqlnd_ms_pick_server(MYSQLND * conn, const char * const query, const size_t qu
 			if (SERVER_PICK_RANDOM == pick_strategy) {
 				connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			} else if (SERVER_PICK_RANDOM_ONCE == pick_strategy) {
-				connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
+				connection = mysqlnd_ms_choose_connection_random_once(NULL, query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			} else {
 				connection = mysqlnd_ms_choose_connection_rr(NULL, query, query_len, stgy, master_list, slave_list, NULL TSRMLS_CC);
 			}
@@ -707,7 +775,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 																	 NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RANDOM_ONCE:
-					connection = mysqlnd_ms_choose_connection_random_once(query, query_len, stgy, selected_masters,
+					connection = mysqlnd_ms_choose_connection_random_once(filter, query, query_len, stgy, selected_masters,
 																		  selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
