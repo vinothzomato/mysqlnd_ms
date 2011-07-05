@@ -357,8 +357,15 @@
 					if (!is_array($config['pick']))
 						$config['pick'] = array($config['pick']);
 
-					foreach ($config['pick'] as $method) {
-						$json[$application]['filters'][(string)$method] = array();
+					/*
+					  1. array('random')  -- is_int()==true, take $method_values
+					  2. array('random' => array('once' => '1')) -- is_int()==false, take $method for name
+					*/
+					foreach ($config['pick'] as $method => $method_values) {
+						$json[$application]['filters'][is_int($method)? (string)$method_values:(string)$method] =
+								is_int($method)? array() :
+												 (is_array($method_values)? $method_values :
+												 							array($method_values));
 					}
 				} else {
 					$json[$application]['filters'] = array("random" => array("sticky" => "1"));
