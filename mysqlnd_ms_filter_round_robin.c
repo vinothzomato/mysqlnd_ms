@@ -96,6 +96,8 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					if (SUCCESS != retval) {
 						break;
 					}
+				} else {
+					smart_str_free(&fprint);
 				}
 				DBG_INF_FMT("look under pos %u", *pos);
 			}

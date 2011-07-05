@@ -621,7 +621,7 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC)
 		if ((*data_pp)->stgy.filters) {
 			DBG_INF_FMT("%d loaded filters", zend_llist_count((*data_pp)->stgy.filters));
 			zend_llist_clean((*data_pp)->stgy.filters);
-			mnd_pefree((*data_pp)->stgy.filters, conn->persistent);
+			mnd_pefree((*data_pp)->stgy.filters, TRUE /* all filters were loaded persistently */);
 			(*data_pp)->stgy.filters = NULL;
 		}
 
