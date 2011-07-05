@@ -64,7 +64,6 @@
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
 #define PICK_RANDOM				"random"
-#define PICK_RANDOM_ONCE 		"random_once"
 #define PICK_ONCE				"once"
 #define PICK_RROBIN				"roundrobin"
 #define PICK_USER				"user"
@@ -94,7 +93,6 @@ enum mysqlnd_ms_server_pick_strategy
 {
 	SERVER_PICK_RROBIN,
 	SERVER_PICK_RANDOM,
-	SERVER_PICK_RANDOM_ONCE,
 	SERVER_PICK_USER,
 	SERVER_PICK_USER_MULTI,
 	SERVER_PICK_TABLE,
@@ -102,7 +100,7 @@ enum mysqlnd_ms_server_pick_strategy
 };
 
 /* it should work also without any params, json config to the ctor will be NULL */
-#define DEFAULT_PICK_STRATEGY SERVER_PICK_RANDOM_ONCE
+#define DEFAULT_PICK_STRATEGY SERVER_PICK_RANDOM
 
 enum mysqlnd_ms_server_failover_strategy
 {
@@ -117,7 +115,6 @@ enum mysqlnd_ms_trx_stickiness_strategy
 	TRX_STICKINESS_STRATEGY_DISABLED,
 	TRX_STICKINESS_STRATEGY_MASTER
 };
-
 #define DEFAULT_TRX_STICKINESS_STRATEGY TRX_STICKINESS_STRATEGY_DISABLED
 
 typedef struct st_mysqlnd_ms_list_data
@@ -172,12 +169,15 @@ typedef struct st_mysqlnd_ms_filter_rr_data
 } MYSQLND_MS_FILTER_RR_DATA;
 
 
-typedef struct st_mysqlnd_ms_filter_random_once_data
+typedef struct st_mysqlnd_ms_filter_random_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
-	HashTable master_context;
-	HashTable slave_context;
-} MYSQLND_MS_FILTER_RANDOM_ONCE_DATA;
+	struct {
+		HashTable master_context;
+		HashTable slave_context;
+		zend_bool once;
+	} sticky;
+} MYSQLND_MS_FILTER_RANDOM_DATA;
 
 
 struct mysqlnd_ms_lb_strategies

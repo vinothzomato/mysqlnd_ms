@@ -44,14 +44,12 @@
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_filter_user.h"
 #include "mysqlnd_ms_filter_random.h"
-#include "mysqlnd_ms_filter_random_once.h"
 #include "mysqlnd_ms_filter_round_robin.h"
 #include "mysqlnd_ms_filter_table_partition.h"
 #include "mysqlnd_ms_switch.h"
 
 typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
 													   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
-
 
 
 /* {{{ roundrobin_specific_dtor */
@@ -89,15 +87,15 @@ rr_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR
 /* }}} */
 
 
-/* {{{ random_once_specific_dtor */
+/* {{{ random_specific_dtor */
 static void
-random_once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+random_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 {
-	MYSQLND_MS_FILTER_RANDOM_ONCE_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_ONCE_DATA *) pDest;
-	DBG_ENTER("random_once_specific_dtor");
+	MYSQLND_MS_FILTER_RANDOM_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_DATA *) pDest;
+	DBG_ENTER("random_specific_dtor");
 
-	zend_hash_destroy(&filter->master_context);
-	zend_hash_destroy(&filter->slave_context);
+	zend_hash_destroy(&filter->sticky.master_context);
+	zend_hash_destroy(&filter->sticky.slave_context);
 	mnd_pefree(filter, filter->parent.persistent);
 
 	DBG_VOID_RETURN;
@@ -105,19 +103,33 @@ random_once_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ random_once_specific_ctor */
+/* {{{ random_specific_ctor */
 static MYSQLND_MS_FILTER_DATA *
-random_once_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
-	MYSQLND_MS_FILTER_RANDOM_ONCE_DATA * ret;
-	DBG_ENTER("random_once_specific_ctor");
+	MYSQLND_MS_FILTER_RANDOM_DATA * ret;
+	DBG_ENTER("random_specific_ctor");
 	DBG_INF_FMT("section=%p", section);
-	/* section could be NULL! */
-	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_ONCE_DATA), persistent);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_DATA), persistent);
 	if (ret) {
-		ret->parent.specific_dtor = random_once_specific_dtor;
-		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
-		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		ret->parent.specific_dtor = random_specific_dtor;
+
+		/* XXX: this could be initialized only in case of ONCE */
+		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);	
+
+		/* section could be NULL! */
+		if (section) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			char * once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1,
+																		   &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists && once_value) {
+				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
+				if (ret->sticky.once) {
+				}
+				mnd_efree(once_value);
+			}
+		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
@@ -239,8 +251,7 @@ struct st_specific_ctor_with_name
 static const struct st_specific_ctor_with_name specific_ctors[] =
 {
 	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	rr_specific_ctor,		SERVER_PICK_RROBIN},
-	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	NULL, 					SERVER_PICK_RANDOM},
-	{PICK_RANDOM_ONCE,sizeof(PICK_RANDOM_ONCE)-1,random_once_specific_ctor,SERVER_PICK_RANDOM_ONCE},
+	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	random_specific_ctor,	SERVER_PICK_RANDOM},
 	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
 	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
 	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE},
@@ -676,12 +687,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					}
 					break;
 				case SERVER_PICK_RANDOM:
-					connection = mysqlnd_ms_choose_connection_random(query, query_len, stgy, selected_masters, selected_slaves,
-																	 NULL TSRMLS_CC);
-					break;
-				case SERVER_PICK_RANDOM_ONCE:
-					connection = mysqlnd_ms_choose_connection_random_once(filter, query, query_len, stgy, selected_masters,
-																		  selected_slaves, NULL TSRMLS_CC);
+					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, selected_masters,
+																	 selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
 					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, selected_masters, selected_slaves,
