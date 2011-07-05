@@ -114,10 +114,6 @@ random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_E
 	if (ret) {
 		ret->parent.specific_dtor = random_specific_dtor;
 
-		/* XXX: this could be initialized only in case of ONCE */
-		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
-		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);	
-
 		/* section could be NULL! */
 		if (section) {
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
@@ -125,11 +121,18 @@ random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_E
 																		   &value_exists, &is_list_value TSRMLS_CC);
 			if (value_exists && once_value) {
 				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
-				if (ret->sticky.once) {
-				}
 				mnd_efree(once_value);
 			}
+		} else {
+			 /*
+			   Stickiness by default when no filters section in the config
+			   Implies NULL passed to this ctor.
+			 */
+			ret->sticky.once = TRUE;
 		}
+		/* XXX: this could be initialized only in case of ONCE */
+		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);	
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
