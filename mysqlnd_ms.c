@@ -93,7 +93,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		element->name_from_config = NULL;
 	}
 	if (element->conn) {
-		mysqlnd_close(element->conn, TRUE);
+		element->conn->m->free_reference(element->conn TSRMLS_CC);
 		element->conn = NULL;
 	}
 	if (element->host) {
@@ -143,7 +143,9 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, const char * name_from_config, co
 		ret = ms_orig_mysqlnd_conn_methods->connect(conn, host, cred->user, cred->passwd, cred->passwd_len, cred->db, cred->db_len,
 													cred->port, cred->socket, cred->mysql_flags TSRMLS_CC);
 
-		DBG_INF_FMT("Connection "MYSQLND_LLU_SPEC" established", conn->thread_id);
+		if (PASS == ret) {
+			DBG_INF_FMT("Connection "MYSQLND_LLU_SPEC" established", conn->thread_id);
+		}
 	}
 
 	if (ret == PASS) {
@@ -280,7 +282,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 							 MYSQLND_MS_ERROR_PREFIX " Cannot find ["SECT_HOST_NAME"] in section in config");
 			failures++;
 		} else {
-			MYSQLND * tmp_conn = (conn && i==0)? conn : mysqlnd_init(persistent);
+			MYSQLND * tmp_conn = (conn && i==0)? conn->m->get_reference(conn TSRMLS_CC) : mysqlnd_init(persistent);
 			if (tmp_conn) {
 				enum_func_status status =
 					mysqlnd_ms_connect_to_host_aux(tmp_conn, current_subsection_name, host, conn_list, &cred,
@@ -289,8 +291,10 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
 					(*error_info) = tmp_conn->error_info;
 					failures++;
-					if (!conn) {
+					if (tmp_conn != conn) {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
+					} else {
+						conn->m->free_reference(conn TSRMLS_CC);
 					}
 					MYSQLND_MS_INC_STATISTIC(fail_stat);
 				} else {
@@ -468,7 +472,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 static enum_func_status
 mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_len, zend_bool pick_server TSRMLS_DC)
 {
-  	MYSQLND * connection;
 	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::do_send_query");
 
@@ -514,7 +517,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
 	  as we dump a connection from usage till the end of the script
 	*/
-	if (connection->error_info.error_no) {
+	if (!connection || connection->error_info.error_no) {
 		DBG_RETURN(ret);
 	}
 
@@ -576,12 +579,13 @@ MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND * const proxy_conn TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_conn_free_plugin_data */
 static void
-mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC)
+mysqlnd_ms_conn_free_plugin_data(MYSQLND * conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** data_pp;
 	DBG_ENTER("mysqlnd_ms_conn_free_plugin_data");
 
 	data_pp = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	DBG_INF_FMT("data_pp=%p", data_pp);
 	if (data_pp && *data_pp) {
 		if ((*data_pp)->connect_host) {
 			mnd_pefree((*data_pp)->connect_host, conn->persistent);
@@ -633,17 +637,33 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms::free_contents */
+/* {{{ mysqlnd_ms::dtor */
 static void
-MYSQLND_METHOD(mysqlnd_ms, free_contents)(MYSQLND *conn TSRMLS_DC)
+MYSQLND_METHOD_PRIVATE(mysqlnd_ms, dtor)(MYSQLND * conn TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_ms::free_contents");
-	if (conn->refcount > 0)
-		DBG_VOID_RETURN;
+	DBG_ENTER("mysqlnd_ms::dtor");
 
 	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
-	ms_orig_mysqlnd_conn_methods->free_contents(conn TSRMLS_CC);
+	ms_orig_mysqlnd_conn_methods->dtor(conn TSRMLS_CC);
 	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms::close */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, close)(MYSQLND * conn, enum_connection_close_type close_type TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms::close");
+
+	/*
+	  Force cleaning of the master and slave lists.
+	  In the master list this connection is present and free_reference will be called, and later
+	  in the original `close` the data of this connection will be destructed as refcount will become 0.
+	*/
+	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
+
+	DBG_RETURN(ms_orig_mysqlnd_conn_methods->close(conn, close_type TSRMLS_CC));
 }
 /* }}} */
 
@@ -1157,11 +1177,12 @@ mysqlnd_ms_register_hooks()
 	memcpy(&my_mysqlnd_conn_methods, ms_orig_mysqlnd_conn_methods, sizeof(struct st_mysqlnd_conn_methods));
 
 	my_mysqlnd_conn_methods.connect				= MYSQLND_METHOD(mysqlnd_ms, connect);
+	my_mysqlnd_conn_methods.close				= MYSQLND_METHOD(mysqlnd_ms, close);
 	my_mysqlnd_conn_methods.query				= MYSQLND_METHOD(mysqlnd_ms, query);
 	my_mysqlnd_conn_methods.send_query			= MYSQLND_METHOD(mysqlnd_ms, send_query);
 	my_mysqlnd_conn_methods.use_result			= MYSQLND_METHOD(mysqlnd_ms, use_result);
 	my_mysqlnd_conn_methods.store_result		= MYSQLND_METHOD(mysqlnd_ms, store_result);
-	my_mysqlnd_conn_methods.free_contents		= MYSQLND_METHOD(mysqlnd_ms, free_contents);
+	my_mysqlnd_conn_methods.dtor				= MYSQLND_METHOD_PRIVATE(mysqlnd_ms, dtor);
 	my_mysqlnd_conn_methods.escape_string		= MYSQLND_METHOD(mysqlnd_ms, escape_string);
 	my_mysqlnd_conn_methods.change_user			= MYSQLND_METHOD(mysqlnd_ms, change_user);
 	my_mysqlnd_conn_methods.ping				= MYSQLND_METHOD(mysqlnd_ms, ping);

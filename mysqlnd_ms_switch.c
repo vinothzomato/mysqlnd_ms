@@ -634,13 +634,14 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 			 filter_pp && (filter = *filter_pp);
 			 filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
 		{
+			zend_bool multi_filter = FALSE;
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
 					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,
 															 selected_masters, selected_slaves, stgy TSRMLS_CC);
 					break;
 				case SERVER_PICK_USER_MULTI:
-				{
+					multi_filter = TRUE;
 					if (PASS == mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
 																	 selected_masters, selected_slaves,
 																	 output_masters, output_slaves, stgy TSRMLS_CC))
@@ -656,8 +657,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 						output_slaves = tmp_sel_slaves;
 					}
 					break;
-				}
 				case SERVER_PICK_TABLE:
+					multi_filter = TRUE;
 					if (PASS == mysqlnd_ms_choose_connection_table_filter(filter, query, query_len, conn->connect_or_select_db,
 																		  selected_masters, selected_slaves,
 															  			  output_masters, output_slaves, stgy TSRMLS_CC))
@@ -690,7 +691,10 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
 			}
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
-			if (!connection && (1 == zend_llist_count(selected_masters) + zend_llist_count(selected_slaves))) {
+			if (!connection &&
+				multi_filter == TRUE &&
+				(1 == zend_llist_count(selected_masters) + zend_llist_count(selected_slaves)))
+			{
 				MYSQLND_MS_LIST_DATA ** el_pp;
 				if (zend_llist_count(selected_masters)) {
 					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(selected_masters);
