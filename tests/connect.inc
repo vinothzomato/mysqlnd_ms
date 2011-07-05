@@ -361,7 +361,7 @@
 						$json[$application]['filters'][(string)$method] = array();
 					}
 				} else {
-					$json[$application]['filters'] = array("random" => array("once" => "1"));
+					$json[$application]['filters'] = array("random" => array("sticky" => "1"));
 				}
 				if (isset($config['lazy_connections'])) {
 				  $json[$application]['lazy_connections'] = (string)$config['lazy_connections'];

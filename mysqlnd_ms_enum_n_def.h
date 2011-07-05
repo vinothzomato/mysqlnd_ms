@@ -64,7 +64,7 @@
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
 #define PICK_RANDOM				"random"
-#define PICK_ONCE				"once"
+#define PICK_ONCE				"sticky"
 #define PICK_RROBIN				"roundrobin"
 #define PICK_USER				"user"
 #define PICK_USER_MULTI			"user_multi"
