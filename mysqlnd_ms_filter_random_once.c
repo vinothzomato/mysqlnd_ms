@@ -108,7 +108,9 @@ mysqlnd_ms_choose_connection_random_once(void * f_data, const char * const query
 				if (connection) {
 					zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, &connection, sizeof(MYSQLND *), NULL);
 				}
+				smart_str_free(&fprint);
 			} else {
+				smart_str_free(&fprint);
 				connection = context_pos? *context_pos : NULL;
 				if (!connection) {
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random_once.");
@@ -116,7 +118,6 @@ mysqlnd_ms_choose_connection_random_once(void * f_data, const char * const query
 					DBG_INF_FMT("Using already selected connection %llu", connection->thread_id);
 				}
 			}
-			smart_str_free(&fprint);
 			if (connection) {
 				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
@@ -177,7 +178,9 @@ mysqlnd_ms_choose_connection_random_once(void * f_data, const char * const query
 				if (connection) {
 					zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, &connection, sizeof(MYSQLND *), NULL);
 				}
+				smart_str_free(&fprint);
 			} else {
+				smart_str_free(&fprint);
 				connection = context_pos? *context_pos : NULL;
 				if (!connection) {
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random_once.");
@@ -185,7 +188,6 @@ mysqlnd_ms_choose_connection_random_once(void * f_data, const char * const query
 					DBG_INF_FMT("Using already selected connection %llu", connection->thread_id);
 				}
 			}
-			smart_str_free(&fprint);
 
 			DBG_INF("Using master connection");
 			if (connection) {

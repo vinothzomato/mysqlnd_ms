@@ -281,6 +281,7 @@ mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC)
 }
 /* }}} */
 
+
 /* {{{ mysqlnd_ms_filter_list_dtor */
 static void
 mysqlnd_ms_filter_list_dtor(void * pDest)
@@ -657,9 +658,9 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					break;
 				}
 				case SERVER_PICK_TABLE:
-					if (PASS == mysqlnd_ms_choose_connection_table_filter(query, query_len, conn->connect_or_select_db,
+					if (PASS == mysqlnd_ms_choose_connection_table_filter(filter, query, query_len, conn->connect_or_select_db,
 																		  selected_masters, selected_slaves,
-															  			  output_masters, output_slaves, filter, stgy TSRMLS_CC))
+															  			  output_masters, output_slaves, stgy TSRMLS_CC))
 					{
 						/* swap and clean */
 						zend_llist * tmp_sel_masters = selected_masters;
