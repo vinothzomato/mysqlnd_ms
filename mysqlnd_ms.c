@@ -418,6 +418,21 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			use_lazy_connections = FALSE;
 #endif
 			SET_EMPTY_ERROR(conn->error_info);
+			{
+				const char * const secs_to_check[] = {MASTER_NAME, SLAVE_NAME};
+				unsigned int i = 0;
+				for (; i < sizeof(secs_to_check) / sizeof(secs_to_check[0]); ++i) {
+					size_t sec_len = strlen(secs_to_check[i]);
+					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, secs_to_check[i], sec_len TSRMLS_CC)) {
+						char error_buf[128];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist", secs_to_check[i]);
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+					}
+				}
+			}
+
 			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(conn, &(*conn_data)->master_connections, &(*conn_data)->cred, the_section,
 											 MASTER_NAME, sizeof(MASTER_NAME) - 1,
@@ -432,6 +447,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 
 			SET_EMPTY_ERROR(conn->error_info);
+
 			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(NULL, &(*conn_data)->slave_connections, &(*conn_data)->cred, the_section,
 											 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
@@ -457,7 +473,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		if (ret == PASS) {
 			(*conn_data)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
 		}
-
 	}
 
 	if (hotloading) {
