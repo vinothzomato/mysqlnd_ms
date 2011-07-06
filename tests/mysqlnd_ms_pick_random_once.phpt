@@ -7,7 +7,7 @@ require_once("connect.inc");
 
 $settings = array(
 	"myapp" => array(
-		'pick'		=> array('random_once'),
+		'pick'		=> array('random' => array('sticky' => '1')),
 		'master' 	=> array($master_host),
 		'slave' 	=> array($slave_host, $slave_host, $slave_host),
 	),

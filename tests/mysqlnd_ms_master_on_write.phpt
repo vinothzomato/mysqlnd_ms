@@ -10,7 +10,7 @@ $settings = array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
 		'master_on_write' => 1,
-		'pick' => array("random_once"),
+		'pick' => array("random" => array("sticky" => "1")),
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_master_on_write.ini", $settings))

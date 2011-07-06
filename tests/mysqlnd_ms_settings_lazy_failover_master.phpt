@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array("unreachable:6033", "unreachable2:6033"),
-		'pick' 	=> array('random' => array('once' => '1')),
+		'pick' 	=> array('random' => array('sticky' => '1')),
 		'lazy_connections' => 1,
 		'failover' => 'master'
 	),
