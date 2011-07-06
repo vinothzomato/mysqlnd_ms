@@ -69,8 +69,8 @@ mysqlnd.debug="d:t:O,/tmp/mysqlnd.trace";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_settings_lazy_failover_master.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_failover_master.ini'.\n");
+//	if (!unlink("test_mysqlnd_ms_settings_lazy_failover_master.ini"))
+//	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_failover_master.ini'.\n");
 ?>
 --EXPECTF--
 

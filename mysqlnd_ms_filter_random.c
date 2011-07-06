@@ -94,31 +94,34 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			/* LOCK on context ??? */
 			switch (zend_hash_find(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context_pos)) {
 				case SUCCESS:
-					connection = context_pos? *context_pos : NULL;
 					smart_str_free(&fprint);
+					connection = context_pos? *context_pos : NULL;
 					if (!connection) {
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random_once.");
 					} else {
-						DBG_INF_FMT("Using already selected connection %llu", connection->thread_id);
+						DBG_INF_FMT("Using already selected slave connection %llu", connection->thread_id);
 						DBG_RETURN(connection);
 					}
 					break;
 				case FAILURE:
-				{
-					unsigned int restart_count = 0;
-restart_slave:
-					if (restart_count < zend_llist_count(l)) {
-						rnd_idx = php_rand(TSRMLS_C);
-						RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
-						DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
+					rnd_idx = php_rand(TSRMLS_C);
+					RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+					DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
 
-						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
-						while (i++ < rnd_idx) {
-							element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
-						}
-						connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
+					element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
+					while (i++ < rnd_idx) {
+						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
+					}
+					connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 				
-						if (connection) {
+					if (!connection) {
+						smart_str_free(&fprint);
+						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+							/* should be a very rare case to be here - connection shouldn't be NULL in first place */
+							DBG_RETURN(connection);
+						}
+					} else {
+						do {
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 								DBG_INF("Lazy connection, trying to connect...");
 								/* lazy connection, connect now */
@@ -131,32 +134,21 @@ restart_slave:
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 								} else {
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
-									restart_count++;
-									goto restart_slave;
+									smart_str_free(&fprint);
+									goto fallthrough;
 								}
 							}
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
 							}
-							smart_str_free(&fprint);
-							DBG_RETURN(connection);
-						} else {
-							restart_count++;
-							goto restart_slave;					
-						}
-					} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-						/*
-						  If connect to all slaves didn't work we return the last one,
-						  if not possible to fail over - bad situation :(
-						*/
+						} while (0);
 						smart_str_free(&fprint);
 						DBG_RETURN(connection);
 					}
-					smart_str_free(&fprint);
-				}			
 			}/* switch (zend_hash_find) */
 		}
+fallthrough:
 		DBG_INF("FAIL-OVER");
 		/* fall-through */
 		case USE_MASTER:
@@ -180,26 +172,23 @@ restart_slave:
 					if (!connection) {
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random_once.");
 					} else {
-						DBG_INF_FMT("Using already selected connection %llu", connection->thread_id);
+						DBG_INF_FMT("Using already selected master connection %llu", connection->thread_id);
 						DBG_RETURN(connection);
 					}
 					break;
 				case FAILURE:
-				{
-					unsigned int restart_count = 0;
-restart_master:
-					if (restart_count < zend_llist_count(l)) {
-						rnd_idx = php_rand(TSRMLS_C);
-						RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
-						DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
+					rnd_idx = php_rand(TSRMLS_C);
+					RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+					DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
 
-						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
-						while (i++ < rnd_idx) {
-							element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
-						}
-						connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
+					element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
+					while (i++ < rnd_idx) {
+						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
+					}
+					connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 				
-						if (connection) {
+					if (connection) {
+						do {
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 								DBG_INF("Lazy connection, trying to connect...");
 								/* lazy connection, connect now */
@@ -212,22 +201,18 @@ restart_master:
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 								} else {
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
-									restart_count++;
-									goto restart_master;
+									break;
 								}
 							}
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
 							}
-						} else {
-							restart_count++;
-							goto restart_master;					
-						}
+						} while (0);
 					}
 					smart_str_free(&fprint);
 					DBG_RETURN(connection);
-				}			
+					break;
 			}/* switch (zend_hash_find) */
 			break;
 		}
