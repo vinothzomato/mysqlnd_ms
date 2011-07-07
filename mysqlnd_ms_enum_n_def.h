@@ -150,6 +150,7 @@ typedef struct st_mysqlnd_ms_filter_user_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
 	zval * user_callback;
+	zend_bool callback_valid;
 } MYSQLND_MS_FILTER_USER_DATA;
 
 

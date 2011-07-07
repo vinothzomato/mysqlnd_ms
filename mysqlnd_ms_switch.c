@@ -182,16 +182,9 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 				MAKE_STD_ZVAL(zv);
 				ZVAL_STRING(zv, callback, 1);
 				mnd_efree(callback);
-				if (!zend_is_callable(zv, 0, &c_name TSRMLS_CC)) {
-					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", c_name);
-					zval_ptr_dtor(&zv);
-					mnd_pefree(ret, persistent);
-					ret = NULL;
-				} else {
-					DBG_INF_FMT("name=%s", c_name);
-					ret->user_callback = zv;
-				}
+				ret->user_callback = zv;
+				ret->callback_valid = zend_is_callable(zv, 0, &c_name TSRMLS_CC);
+				DBG_INF_FMT("name=%s valid=%d", c_name, ret->callback_valid);
 				efree(c_name);
 			}
 		}

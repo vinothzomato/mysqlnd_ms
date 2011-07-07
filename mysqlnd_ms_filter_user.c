@@ -105,6 +105,20 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 #ifdef ALL_SERVER_DISPATCH
 		uint use_all_pos = 0;
 #endif
+		if (!filter_data->callback_valid) {
+			char * cback_name;
+			if (!zend_is_callable(filter_data->user_callback, 0, &cback_name TSRMLS_CC)) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+								 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", cback_name);
+			} else {
+				filter_data->callback_valid = TRUE;
+			}
+			efree(cback_name);	
+			if (!filter_data->callback_valid) {
+				DBG_RETURN(ret);
+			}
+		}
+
 		/* connect host */
 		MS_STRING((char *) connect_host, args[param]);
 
