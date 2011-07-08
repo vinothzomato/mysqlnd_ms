@@ -282,7 +282,7 @@ mysqlnd_ms_table_filter_match(const char * const db_table_buf, HashTable * rules
 
 		if (HASH_KEY_IS_STRING == zend_hash_get_current_key_ex(rules, &filter_mask, &fm_len, &n_key, 0, &pos_rules)) {
 			DBG_INF_FMT("Comparing [%s] with [%s]", db_table_buf, filter_mask);
-			if (!mysqlnd_ms_wild_compare(db_table_buf, filter_mask TSRMLS_CC)) {
+			if (TRUE == mysqlnd_ms_match_wild(db_table_buf, filter_mask TSRMLS_CC)) {
 				MYSQLND_MS_TABLE_FILTER ** entry_filter_pp;
 				HashPosition pos_servers;
 				/* found a match*/
