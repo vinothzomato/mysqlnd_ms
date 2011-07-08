@@ -874,18 +874,7 @@ mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC)
 	if (parser) {
 		mysqlnd_qp_free_scanner(parser->scanner TSRMLS_CC);
 
-		{
-			struct st_mysqlnd_parse_info * pi = &parser->parse_info;
-			if (pi->db) {
-				mnd_pefree(pi->db, pi->persistent);
-			}
-			if (pi->table) {
-				mnd_pefree(pi->table, pi->persistent);
-			}
-			if (pi->org_table) {
-				mnd_pefree(pi->org_table, pi->persistent);
-			}
-		}
+		zend_llist_clean(&parser->parse_info.table_list);
 
 		mnd_efree(parser);
 	}
@@ -896,6 +885,29 @@ mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC)
 
 extern int mysqlnd_qp_parse (void * TSRMLS_DC);
 
+
+/* {{{ mysqlnd_ms_table_list_dtor */
+static void
+mysqlnd_ms_table_list_dtor(void * pDest)
+{
+	struct st_mysqlnd_ms_table_info * table_info = (struct st_mysqlnd_ms_table_info *) pDest;
+	TSRMLS_FETCH();
+	if (table_info) {
+		zend_bool pers = table_info->persistent;
+		if (table_info->db)	{
+			mnd_pefree(table_info->db, pers);
+		}
+		if (table_info->table) {
+			mnd_pefree(table_info->table, pers);
+		}
+		if (table_info->org_table) {
+			mnd_pefree(table_info->org_table, pers);
+		}
+	}
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_qp_start_parser */
 PHPAPI int
 mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * const query, const size_t query_len TSRMLS_DC)
@@ -904,7 +916,8 @@ mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * co
 	DBG_ENTER("mysqlnd_qp_start_parser");
 
 	mysqlnd_qp_set_string(parser->scanner, query, query_len TSRMLS_CC);
-
+	zend_llist_init(&parser->parse_info.table_list, sizeof(struct st_mysqlnd_ms_table_info),
+					(llist_dtor_func_t) mysqlnd_ms_table_list_dtor, parser->parse_info.persistent /* pers */);
 	DBG_INF("let's run the parser");
 	ret = mysqlnd_qp_parse(parser TSRMLS_CC);
 	DBG_RETURN(ret);

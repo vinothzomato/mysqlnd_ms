@@ -20,6 +20,7 @@
 
 #include "php.h"
 #include "mysqlnd_ms.h"
+#include "zend_llist.h"
 /* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_qp_ */
 
 extern int (*mysqlnd_qp_error)(const char * format, ...);
@@ -821,14 +822,16 @@ ident_alias: QC_TOKEN_AS identifier { $$ = $2; }
 query_table: table ident_alias
 				{
 					DBG_BLOCK_ENTER("alias");
-
 					if (Z_TYPE($2) == IS_STRING) {
-						PINFO.org_table = PINFO.table;
-						PINFO.table = mnd_pestrndup(Z_STRVAL($2), Z_STRLEN($2), PINFO.persistent);
+						zend_llist_position tmp_pos;
+						struct st_mysqlnd_ms_table_info * tinfo;
+						if ((tinfo = zend_llist_get_last_ex(&PINFO.table_list, &tmp_pos))) {
+							tinfo->org_table = tinfo->table;
+							tinfo->table = mnd_pestrndup(Z_STRVAL($2), Z_STRLEN($2), tinfo->persistent);
+
+							DBG_INF_FMT("ident_alias type = %d", Z_TYPE($2));				
+						}
 					}
-
-					DBG_INF_FMT("ident_alias type = %d", Z_TYPE($2));
-
 					zval_dtor(&$2);
 					DBG_BLOCK_LEAVE
 				}
@@ -836,43 +839,47 @@ query_table: table ident_alias
 
 table: QC_TOKEN_DUAL
 				{
+					struct st_mysqlnd_ms_table_info tinfo = {0};
 					DBG_BLOCK_ENTER("table");
-					PINFO.table = mnd_pestrndup("DUAL", sizeof("DUAL") - 1, PINFO.persistent);
-					DBG_INF_FMT("table=%s", PINFO.table);
+					tinfo.persistent = PINFO.persistent;
+					tinfo.table = mnd_pestrndup("DUAL", sizeof("DUAL") - 1, PINFO.persistent);
+					zend_llist_add_element(&PINFO.table_list, &tinfo);
+					DBG_INF_FMT("table=%s", tinfo.table);
 					DBG_BLOCK_LEAVE;
 				}
 		| identifier
 				{
+					struct st_mysqlnd_ms_table_info tinfo = {0};
 					DBG_BLOCK_ENTER("table");
-					PINFO.table = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), PINFO.persistent);
+					tinfo.persistent = PINFO.persistent;
+					tinfo.table = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), tinfo.persistent);
+					zend_llist_add_element(&PINFO.table_list, &tinfo);
 					zval_dtor(&$1);
 					DBG_BLOCK_LEAVE;
 				}
-		| identifier
+		| identifier QC_TOKEN_DOT identifier
 				{
-					DBG_BLOCK_ENTER("db");
-					PINFO.db = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), PINFO.persistent);
+					struct st_mysqlnd_ms_table_info tinfo = {0};
+					DBG_BLOCK_ENTER("db.table");
+					tinfo.persistent = PINFO.persistent;
+					tinfo.db = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), tinfo.persistent);
+					tinfo.table = mnd_pestrndup(Z_STRVAL($3), Z_STRLEN($3), tinfo.persistent);
+					zend_llist_add_element(&PINFO.table_list, &tinfo);
+
+					DBG_INF_FMT("table=%s", Z_STRVAL($3));
 
 					zval_dtor(&$1);
-					DBG_BLOCK_LEAVE
-				}
-			QC_TOKEN_DOT identifier
-				{
-					DBG_BLOCK_ENTER("table");
-
-					DBG_INF_FMT("table=%s", Z_STRVAL($4));
-
-					PINFO.table = mnd_pestrndup(Z_STRVAL($4), Z_STRLEN($4), PINFO.persistent);
-
-					zval_dtor(&$4);
+					zval_dtor(&$3);
 					DBG_BLOCK_LEAVE
 				}
 		;
 
-from_clause: QC_TOKEN_FROM query_table
-		|
+from_clause: QC_TOKEN_FROM query_table_list
 		;
 
+query_table_list: query_table 
+		| query_table_list QC_TOKEN_COMMA query_table
+		;
 
 keyword: keyword_label_in_sp
 		| QC_TOKEN_ASCII

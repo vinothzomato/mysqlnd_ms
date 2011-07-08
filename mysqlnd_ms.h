@@ -148,11 +148,18 @@ typedef enum
 	STATEMENT_DROP
 } enum_mysql_statement_type;
 
-struct st_mysqlnd_parse_info
+
+struct st_mysqlnd_ms_table_info
 {
 	char * db;
 	char * table;
 	char * org_table;
+	zend_bool persistent;
+};
+
+struct st_mysqlnd_parse_info
+{
+	zend_llist table_list;
 	enum_mysql_statement_type statement;
 	zend_bool persistent;
 };

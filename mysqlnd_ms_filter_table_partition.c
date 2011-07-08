@@ -339,17 +339,23 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 			/* 80 char db + '.' + 80 char table + \0 : should be 64 but prepared for the future */
 			char db_table_buf[4*80 + 1 + 4*80 + 1];
 			int err = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
+			struct st_mysqlnd_ms_table_info * tinfo;
+			zend_llist_position tinfo_list_pos;
 			DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
+			tinfo = zend_llist_get_first_ex(&parser->parse_info.table_list, &tinfo_list_pos);
+			if (!tinfo) {
+				goto end;
+			}
 			DBG_INF_FMT("db=%s table=%s org_table=%s statement_type=%d",
-					parser->parse_info.db? parser->parse_info.db:"n/a",
-					parser->parse_info.table? parser->parse_info.table:"n/a",
-					parser->parse_info.org_table? parser->parse_info.org_table:"n/a",
+					tinfo->db? tinfo->db:"n/a",
+					tinfo->table? tinfo->table:"n/a",
+					tinfo->org_table? tinfo->org_table:"n/a",
 					parser->parse_info.statement
 				);
-			if (parser->parse_info.db) {
-				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", parser->parse_info.db, parser->parse_info.table);
-			} else if (parser->parse_info.table && connect_or_select_db) {
-				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, parser->parse_info.table);
+			if (tinfo->db) {
+				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", tinfo->db, tinfo->table);
+			} else if (tinfo->table && connect_or_select_db) {
+				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, tinfo->table);
 			} else {
 				goto end;
 			}
