@@ -1,5 +1,5 @@
 --TEST--
-Lazy connect, failover = master, pick = andom
+Lazy connect, failover = master, pick = random
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');

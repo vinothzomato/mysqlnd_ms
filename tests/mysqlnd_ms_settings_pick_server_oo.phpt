@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
-		'pick' 	=> array('user'),
+		'pick' 	=> array('user' => array("zend_is_callable::pick_server_static")),
 		'lazy_connections' => 0,
 	),
 );
@@ -153,11 +153,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 		}
 	}
 
-	$pick = array("zend_is_callable", "pick_server_static");
-	if (true !== mysqlnd_ms_set_user_pick_server($pick)) {
-		printf("[001] Cannot install user callback for picking/selecting servers\n");
-	}
-
 	$threads = array();
 	if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[002] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
@@ -218,9 +213,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 
 	$obj = new zend_is_callable();
 	$pick = array($obj, "pick_server");
-	if (true !== mysqlnd_ms_set_user_pick_server($pick)) {
-		printf("[100] Cannot install user callback for picking/selecting servers\n");
-	}
 
 	/* Should go to the first slave */
 	$query = sprintf("/*%s*/SELECT 'slave' AS _message FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);

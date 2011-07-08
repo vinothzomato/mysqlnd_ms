@@ -16,7 +16,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
-		'pick' 	=> array('user'),
+		'pick' 	=> array('user' => array('callback' => 'pick_server')),
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_pick_server.ini", $settings))
@@ -153,10 +153,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 				}
 			}
 		}
-	}
-
-	if (true !== mysqlnd_ms_set_user_pick_server("pick_server")) {
-		printf("[001] Cannot install user callback for picking/selecting servers\n");
 	}
 
 	$threads = array();

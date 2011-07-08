@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
-		'pick' 	=> array('user'),
+		'pick' 	=> array('user' => array('callback' => 'pick_server')),
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_pick_server_fallback.ini", $settings))

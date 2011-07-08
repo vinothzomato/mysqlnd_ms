@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, "unreachable"),
-		'pick' 	=> array('user'),
+		'pick' 	=> array('user' => array('zend_is_callable::pick_server')),
 		'lazy_connections' => 1,
 	),
 );
@@ -33,7 +33,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server_lazy_failure.ini
 		* Select/pick a server for running the query on.
 		*
 		*/
-		public function pick_server($connected_host, $query, $master, $slaves, $last_used_connection) {
+		static public function pick_server($connected_host, $query, $master, $slaves, $last_used_connection) {
 			global $queries, $host;
 			static $pick_server_last_used = "";
 			static $last_slave = 0;
@@ -147,9 +147,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server_lazy_failure.ini
 
 	$obj = new zend_is_callable();
 	$pick = array($obj, "pick_server");
-	if (true !== mysqlnd_ms_set_user_pick_server($pick)) {
-		printf("[001] Cannot install user callback for picking/selecting servers\n");
-	}
 
 	$threads = array();
 	if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
