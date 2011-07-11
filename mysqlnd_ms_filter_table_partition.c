@@ -336,35 +336,62 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 	if (filter) {
 		parser = mysqlnd_qp_create_parser(TSRMLS_C);
 		if (parser) {
-			/* 80 char db + '.' + 80 char table + \0 : should be 64 but prepared for the future */
-			char db_table_buf[4*80 + 1 + 4*80 + 1];
 			int err = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
-			struct st_mysqlnd_ms_table_info * tinfo;
 			zend_llist_position tinfo_list_pos;
+			struct st_mysqlnd_ms_table_info * tinfo;
+			zend_llist master_in_stack, * master_in = &master_in_stack;
+			zend_llist master_out_stack, * master_out = &master_out_stack;
+			zend_llist slave_in_stack, * slave_in = &slave_in_stack;
+			zend_llist slave_out_stack, * slave_out = &slave_out_stack;
+			zend_llist_init(master_in, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, FALSE);
+			zend_llist_init(master_out, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, FALSE);
+			zend_llist_init(slave_in, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, FALSE);
+			zend_llist_init(slave_out, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, FALSE);
+
+			mysqlnd_ms_select_servers_all(master_list, slave_list, master_in, slave_in TSRMLS_CC);
+
 			DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
-			tinfo = zend_llist_get_first_ex(&parser->parse_info.table_list, &tinfo_list_pos);
-			if (!tinfo) {
-				goto end;
-			}
-			DBG_INF_FMT("db=%s table=%s org_table=%s statement_type=%d",
-					tinfo->db? tinfo->db:"n/a",
-					tinfo->table? tinfo->table:"n/a",
-					tinfo->org_table? tinfo->org_table:"n/a",
-					parser->parse_info.statement
-				);
-			if (tinfo->db) {
-				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", tinfo->db, tinfo->table);
-			} else if (tinfo->table && connect_or_select_db) {
-				snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, tinfo->table);
-			} else {
-				goto end;
-			}
-			if (PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->master_rules, master_list, selected_masters TSRMLS_CC) &&
-				PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->slave_rules, slave_list, selected_slaves TSRMLS_CC))
+
+			for (tinfo = zend_llist_get_first_ex(&parser->parse_info.table_list, &tinfo_list_pos);
+				 tinfo;
+				 tinfo = zend_llist_get_next_ex(&parser->parse_info.table_list, &tinfo_list_pos))
 			{
-				ret = PASS;
+				/* 80 char db + '.' + 80 char table + \0 : should be 64 but prepared for the future */
+				char db_table_buf[4*80 + 1 + 4*80 + 1];
+				DBG_INF_FMT("current db=%s table=%s org_table=%s statement_type=%d",
+						tinfo->db? tinfo->db:"n/a",
+						tinfo->table? tinfo->table:"n/a",
+						tinfo->org_table? tinfo->org_table:"n/a",
+						parser->parse_info.statement
+					);
+				if (tinfo->db) {
+					snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", tinfo->db, tinfo->table);
+				} else if (tinfo->table && connect_or_select_db) {
+					snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, tinfo->table);
+				} else {
+					break;
+				}
+				zend_llist_clean(master_out);
+				zend_llist_clean(slave_out);
+				if (PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->master_rules, master_in, master_out TSRMLS_CC) &&
+					PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->slave_rules, slave_in, slave_out TSRMLS_CC))
+				{
+					ret = PASS;
+				}
+				if (ret != PASS || (!zend_llist_count(master_out) && !zend_llist_count(slave_out))) {
+					break;
+				}
+				zend_llist_clean(master_in);
+				zend_llist_clean(slave_in);
+				mysqlnd_ms_select_servers_all(master_out, slave_out, master_in, slave_in TSRMLS_CC);
+				DBG_INF_FMT("selected_masters=%d selected_slaves=%d", zend_llist_count(master_out), zend_llist_count(slave_out));
 			}
-end:
+			mysqlnd_ms_select_servers_all(master_out, slave_out, selected_masters, selected_slaves TSRMLS_CC);
+			zend_llist_clean(master_in);
+			zend_llist_clean(slave_in);
+			zend_llist_clean(master_out);
+			zend_llist_clean(slave_out);
+
 			mysqlnd_qp_free_parser(parser TSRMLS_CC);
 		}
 	}

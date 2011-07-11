@@ -547,7 +547,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 
 
 /* {{{ mysqlnd_ms_select_servers_all */
-static enum_func_status
+enum_func_status
 mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 							  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC)
 {
@@ -693,10 +693,11 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 				default:
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
 			}
+			DBG_INF_FMT("out_masters_count=%d  out_slaves_count=%d", zend_llist_count(output_masters), zend_llist_count(output_slaves));
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
 			if (!connection &&
 				multi_filter == TRUE &&
-				(1 == zend_llist_count(selected_masters) + zend_llist_count(selected_slaves)))
+				(1 == zend_llist_count(output_masters) + zend_llist_count(output_slaves)))
 			{
 				MYSQLND_MS_LIST_DATA ** el_pp;
 				if (zend_llist_count(selected_masters)) {
@@ -726,6 +727,13 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 #endif
 					}
+				}
+			}
+			if (0 == zend_llist_count(output_masters) && 0 == zend_llist_count(output_slaves)) {
+				/* filtered everything out */
+				if (SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
+					DBG_INF("FAILOVER");
+					connection = conn;
 				}
 			}
 			if (connection) {

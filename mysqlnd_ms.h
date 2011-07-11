@@ -157,9 +157,24 @@ struct st_mysqlnd_ms_table_info
 	zend_bool persistent;
 };
 
+struct st_mysqlnd_ms_field_info
+{
+	char * db;
+	char * table;
+	char * name;
+	char * org_name;
+	void * custom_data;
+	zend_bool free_custom_data;
+	zend_bool persistent;
+};
+
 struct st_mysqlnd_parse_info
 {
 	zend_llist table_list;
+	zend_llist select_field_list;
+	zend_llist where_field_list;
+	zend_llist * active_field_list;
+	zend_bool parse_where;
 	enum_mysql_statement_type statement;
 	zend_bool persistent;
 };

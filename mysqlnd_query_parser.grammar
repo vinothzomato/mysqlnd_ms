@@ -780,12 +780,29 @@ ignore: QC_TOKEN_IGNORE
 		;
 
 /* SELECT */
-select: comment QC_TOKEN_SELECT query_field_list from_clause
+select: comment QC_TOKEN_SELECT
 				{
-					PINFO.statement = STATEMENT_SELECT;
 					zval_dtor(&$1);
-					YYACCEPT;
+					PINFO.statement = STATEMENT_SELECT;
+					PINFO.active_field_list = &PINFO.select_field_list;
 				}
+				query_field_list
+				{
+					PINFO.active_field_list = NULL;
+				}
+				from_clause
+				{
+					if (!PINFO.parse_where) {
+//						YYACCEPT;
+					}
+					PINFO.active_field_list = &PINFO.where_field_list;
+				}
+				where_clause
+				{
+					PINFO.active_field_list = NULL;
+					YYACCEPT;			
+				}
+			;
 
 comment: QC_TOKEN_COMMENT
 		| { ZVAL_NULL(&$$); }
@@ -805,8 +822,48 @@ select_field: field
 		| QC_TOKEN_INTNUM
 		| QC_TOKEN_STRING
 
-field: identifier { zval_dtor(&$1); }
-		| identifier QC_TOKEN_DOT identifier { zval_dtor(&$1); zval_dtor(&$3); }
+field: identifier
+				{
+					DBG_BLOCK_ENTER("identifier");
+					if (PINFO.active_field_list) {
+						struct st_mysqlnd_ms_field_info finfo = {0};
+						finfo.persistent = PINFO.persistent;
+						finfo.name = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), finfo.persistent);
+						zend_llist_add_element(PINFO.active_field_list, &finfo);
+					}
+					zval_dtor(&$1);
+					DBG_BLOCK_LEAVE;
+				}
+		| identifier QC_TOKEN_DOT identifier
+				{
+					DBG_BLOCK_ENTER("identifier . identifier");
+					if (PINFO.active_field_list) {
+						struct st_mysqlnd_ms_field_info finfo = {0};
+						finfo.persistent = PINFO.persistent;
+						finfo.table = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), finfo.persistent);
+						finfo.name = mnd_pestrndup(Z_STRVAL($3), Z_STRLEN($3), finfo.persistent);
+						zend_llist_add_element(PINFO.active_field_list, &finfo);
+					}
+					zval_dtor(&$1);
+					zval_dtor(&$3);
+					DBG_BLOCK_LEAVE;
+				}
+		| identifier QC_TOKEN_DOT identifier QC_TOKEN_DOT identifier
+				{
+					DBG_BLOCK_ENTER("identifier . identifier . identifier");
+					if (PINFO.active_field_list) {
+						struct st_mysqlnd_ms_field_info finfo = {0};
+						finfo.persistent = PINFO.persistent;
+						finfo.db = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), finfo.persistent);
+						finfo.table = mnd_pestrndup(Z_STRVAL($3), Z_STRLEN($3), finfo.persistent);
+						finfo.name = mnd_pestrndup(Z_STRVAL($5), Z_STRLEN($5), finfo.persistent);
+						zend_llist_add_element(PINFO.active_field_list, &finfo);
+					}
+					zval_dtor(&$1);
+					zval_dtor(&$3);
+					zval_dtor(&$5);
+					DBG_BLOCK_LEAVE;
+				}
 		;
 
 identifier: QC_TOKEN_IDENTIFIER { $$=$1; }
@@ -842,7 +899,7 @@ table: QC_TOKEN_DUAL
 					struct st_mysqlnd_ms_table_info tinfo = {0};
 					DBG_BLOCK_ENTER("table");
 					tinfo.persistent = PINFO.persistent;
-					tinfo.table = mnd_pestrndup("DUAL", sizeof("DUAL") - 1, PINFO.persistent);
+					tinfo.table = mnd_pestrndup("DUAL", sizeof("DUAL") - 1, tinfo.persistent);
 					zend_llist_add_element(&PINFO.table_list, &tinfo);
 					DBG_INF_FMT("table=%s", tinfo.table);
 					DBG_BLOCK_LEAVE;
@@ -879,6 +936,28 @@ from_clause: QC_TOKEN_FROM query_table_list
 
 query_table_list: query_table 
 		| query_table_list QC_TOKEN_COMMA query_table
+		| query_table_list QC_TOKEN_LEFT QC_TOKEN_JOIN query_table  {YYACCEPT;}
+		| query_table_list QC_TOKEN_RIGHT QC_TOKEN_JOIN query_table {YYACCEPT;}
+		;
+
+where_clause: QC_TOKEN_WHERE where_clause_tail
+		;
+
+
+where_clause_tail: field QC_TOKEN_EQ field_value
+				{
+					zend_llist_position pos;
+					struct st_mysqlnd_ms_field_info * finfo = zend_llist_get_last_ex(PINFO.active_field_list, &pos);
+					if (finfo) {
+						/* gotta be always true */
+						finfo->custom_data = "=";
+					}
+					YYACCEPT;
+				}
+		;
+
+field_value: QC_TOKEN_INTNUM
+		| QC_TOKEN_STRING
 		;
 
 keyword: keyword_label_in_sp
@@ -898,8 +977,7 @@ keyword: keyword_label_in_sp
 		| QC_TOKEN_EXECUTE
 		| QC_TOKEN_FLUSH
 		| QC_TOKEN_HANDLER
-		| QC_TOKEN_HELP
-		| QC_TOKEN_HOST
+		| QC_TOKEN_HELP		| QC_TOKEN_HOST
 		| QC_TOKEN_INSTALL
 		| QC_TOKEN_LANGUAGE
 		| QC_TOKEN_NO

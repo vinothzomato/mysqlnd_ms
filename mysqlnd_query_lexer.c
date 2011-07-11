@@ -9626,6 +9626,8 @@ mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC)
 	if (parser) {
 		mysqlnd_qp_free_scanner(parser->scanner TSRMLS_CC);
 
+		zend_llist_clean(&parser->parse_info.where_field_list);
+		zend_llist_clean(&parser->parse_info.select_field_list);
 		zend_llist_clean(&parser->parse_info.table_list);
 
 		mnd_efree(parser);
@@ -9660,6 +9662,34 @@ mysqlnd_ms_table_list_dtor(void * pDest)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_field_list_dtor */
+static void
+mysqlnd_ms_field_list_dtor(void * pDest)
+{
+	struct st_mysqlnd_ms_field_info * field_info = (struct st_mysqlnd_ms_field_info *) pDest;
+	TSRMLS_FETCH();
+	if (field_info) {
+		zend_bool pers = field_info->persistent;
+		if (field_info->db)	{
+			mnd_pefree(field_info->db, pers);
+		}
+		if (field_info->table) {
+			mnd_pefree(field_info->table, pers);
+		}
+		if (field_info->name) {
+			mnd_pefree(field_info->name, pers);
+		}
+		if (field_info->org_name) {
+			mnd_pefree(field_info->org_name, pers);
+		}
+		if (field_info->custom_data && field_info->free_custom_data) {
+			mnd_pefree(field_info->custom_data, pers);
+		}
+	}
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_qp_start_parser */
 PHPAPI int
 mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * const query, const size_t query_len TSRMLS_DC)
@@ -9668,10 +9698,69 @@ mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * co
 	DBG_ENTER("mysqlnd_qp_start_parser");
 
 	mysqlnd_qp_set_string(parser->scanner, query, query_len TSRMLS_CC);
+
 	zend_llist_init(&parser->parse_info.table_list, sizeof(struct st_mysqlnd_ms_table_info),
 					(llist_dtor_func_t) mysqlnd_ms_table_list_dtor, parser->parse_info.persistent /* pers */);
+
+	zend_llist_init(&parser->parse_info.select_field_list, sizeof(struct st_mysqlnd_ms_field_info),
+					(llist_dtor_func_t) mysqlnd_ms_field_list_dtor, parser->parse_info.persistent /* pers */);
+
+	zend_llist_init(&parser->parse_info.where_field_list, sizeof(struct st_mysqlnd_ms_field_info),
+					(llist_dtor_func_t) mysqlnd_ms_field_list_dtor, parser->parse_info.persistent /* pers */);
+
+	parser->parse_info.parse_where = FALSE;
 	DBG_INF("let's run the parser");
 	ret = mysqlnd_qp_parse(parser TSRMLS_CC);
+	{
+		zend_llist_position pos;
+		struct st_mysqlnd_ms_table_info * tinfo;
+		DBG_INF("------ TABLE LIST -------");
+		for (tinfo = zend_llist_get_first_ex(&parser->parse_info.table_list, &pos);
+			 tinfo;
+			 tinfo = zend_llist_get_next_ex(&parser->parse_info.table_list, &pos))
+		{
+				DBG_INF_FMT("db=[%s] table=[%s] org_table=[%s] statement_type=[%d]",
+						tinfo->db? tinfo->db:"n/a",
+						tinfo->table? tinfo->table:"n/a",
+						tinfo->org_table? tinfo->org_table:"n/a",
+						parser->parse_info.statement
+					);
+		}
+	}
+	{
+		zend_llist_position pos;
+		struct st_mysqlnd_ms_field_info * finfo;
+		DBG_INF("------ SELECT FIELD LIST -------");
+		for (finfo = zend_llist_get_first_ex(&parser->parse_info.select_field_list, &pos);
+			 finfo;
+			 finfo = zend_llist_get_next_ex(&parser->parse_info.select_field_list, &pos))
+		{
+				DBG_INF_FMT("db=[%s] table=[%s] name=[%s] org_name=[%s]",
+						finfo->db? finfo->db:"n/a",
+						finfo->table? finfo->table:"n/a",
+						finfo->name? finfo->name:"n/a",
+						finfo->org_name? finfo->org_name:"n/a"
+					);
+		}
+	}
+	{
+		zend_llist_position pos;
+		struct st_mysqlnd_ms_field_info * finfo;
+		DBG_INF("------ WHERE FIELD LIST -------");
+		for (finfo = zend_llist_get_first_ex(&parser->parse_info.where_field_list, &pos);
+			 finfo;
+			 finfo = zend_llist_get_next_ex(&parser->parse_info.where_field_list, &pos))
+		{
+				DBG_INF_FMT("db=[%s] table=[%s] name=[%s] org_name=%s op=[%s]",
+						finfo->db? finfo->db:"n/a",
+						finfo->table? finfo->table:"n/a",
+						finfo->name? finfo->name:"n/a",
+						finfo->org_name? finfo->org_name:"n/a",
+						finfo->custom_data? finfo->custom_data:"n/a"
+					);
+		}
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
