@@ -425,7 +425,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 					size_t sec_len = strlen(secs_to_check[i]);
 					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, secs_to_check[i], sec_len TSRMLS_CC)) {
 						char error_buf[128];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist", secs_to_check[i]);
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", secs_to_check[i], host);
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
