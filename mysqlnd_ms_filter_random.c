@@ -113,7 +113,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
 					}
 					connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
-				
+
 					if (!connection) {
 						smart_str_free(&fprint);
 						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
@@ -135,6 +135,10 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 								} else {
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 									smart_str_free(&fprint);
+									if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+									  /* no failover */
+									  DBG_RETURN(connection);
+									}
 									goto fallthrough;
 								}
 							}
@@ -186,7 +190,7 @@ fallthrough:
 						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
 					}
 					connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
-				
+
 					if (connection) {
 						do {
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
@@ -198,9 +202,9 @@ fallthrough:
 																   element->port, element->socket, element->connect_flags TSRMLS_CC))
 								{
 									DBG_INF("Connected");
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 								} else {
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
+									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 									break;
 								}
 							}
@@ -223,6 +227,7 @@ fallthrough:
 			/* error */
 			break;
 	}
+
 	DBG_RETURN(NULL);
 }
 /* }}} */
