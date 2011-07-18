@@ -132,7 +132,7 @@ random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_E
 		}
 		/* XXX: this could be initialized only in case of ONCE */
 		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
-		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);	
+		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
@@ -729,7 +729,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					}
 				}
 			}
-			if (0 == zend_llist_count(output_masters) && 0 == zend_llist_count(output_slaves)) {
+			if (!connection && (0 == zend_llist_count(output_masters) && 0 == zend_llist_count(output_slaves))) {
 				/* filtered everything out */
 				if (SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
 					DBG_INF("FAILOVER");
