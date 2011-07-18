@@ -186,6 +186,10 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 				ret->callback_valid = zend_is_callable(zv, 0, &c_name TSRMLS_CC);
 				DBG_INF_FMT("name=%s valid=%d", c_name, ret->callback_valid);
 				efree(c_name);
+			} else {
+			  mnd_pefree(ret, persistent);
+			  php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter user, can't find secion '%s' . Stopping.", SECT_USER_CALLBACK);
 			}
 		}
 	}
