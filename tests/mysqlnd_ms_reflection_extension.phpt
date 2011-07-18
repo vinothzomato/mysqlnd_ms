@@ -18,15 +18,18 @@ require_once('skipif.inc');
 	$classes = $r->getClasses();
 	if (!empty($classes)) {
 		printf("[002] Expecting no class\n");
+		asort($classes);
 		var_dump($classes);
 	}
 
 	$dependencies = $r->getDependencies();
+	asort($dependencies);
 	printf("Dependencies:\n");
 	foreach ($dependencies as $what => $how)
 		printf("  %s - %s\n", $what, $how);
 
 	$functions = $r->getFunctions();
+	asort($functions);
 	printf("Functions:\n");
 	foreach ($functions as $func)
 		printf("  %s\n", $func->name);
@@ -37,11 +40,11 @@ require_once('skipif.inc');
 Name: mysqlnd_ms
 Version: 1.0.2-alpha
 Dependencies:
-  mysqlnd - Required
-  standard - Required
   json - Required
+  standard - Required
+  mysqlnd - Required
 Functions:
-  mysqlnd_ms_set_user_pick_server
-  mysqlnd_ms_query_is_select
   mysqlnd_ms_get_stats
+  mysqlnd_ms_match_wild
+  mysqlnd_ms_query_is_select
 done!
