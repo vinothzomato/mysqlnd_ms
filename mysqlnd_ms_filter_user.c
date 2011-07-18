@@ -186,6 +186,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 		retval = mysqlnd_ms_call_handler(filter_data->user_callback, param + 1, args, FALSE /* we will destroy later */ TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
+			  php_printf("is_string\n");
 				do {
 					MYSQLND_MS_LIST_DATA * el, ** el_pp;
 					zend_llist_position	pos;
@@ -194,13 +195,28 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 						 !ret && el_pp && (el = *el_pp) && el->conn;
 						 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
 					{
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_CALLBACK);
 						if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 							/* lazy */
+							DBG_INF_FMT("Userfunc chose LAZY master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
+							if (PASS == ms_orig_mysqlnd_conn_methods->connect(el->conn, el->host, el->user,
+																			   el->passwd, el->passwd_len,
+																			   el->db, el->db_len,
+																			   el->port, el->socket,
+																			   el->connect_flags TSRMLS_CC))
+							{
+								DBG_INF("Connected");
+								ret = el->conn;
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+							} else {
+								DBG_ERR("Connect failed, forwarding error to the user");
+								ret = el->conn; /* no automatic action: leave it to the user to decide! */
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+							}
 						} else {
 							if (!strcasecmp(el->conn->scheme, Z_STRVAL_P(retval))) {
 								ret = el->conn;
 								DBG_INF_FMT("Userfunc chose master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
-								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_CALLBACK);
 							}
 						}
 					}
@@ -209,11 +225,11 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 							 !ret && el_pp && (el = *el_pp) && el->conn;
 							 el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
 						{
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 							if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 								/* lazy */
 								if (!strcasecmp(el->emulated_scheme, Z_STRVAL_P(retval))) {
 									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 									if (PASS == ms_orig_mysqlnd_conn_methods->connect(el->conn, el->host, el->user,
 																				   el->passwd, el->passwd_len,
 																				   el->db, el->db_len,
@@ -232,7 +248,6 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 								}
 							} else {
 								if (!strcasecmp(el->conn->scheme, Z_STRVAL_P(retval))) {
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 									ret = el->conn;
 									DBG_INF_FMT("Userfunc chose slave host : [%*s]", el->conn->scheme_len, el->conn->scheme);
 								}
