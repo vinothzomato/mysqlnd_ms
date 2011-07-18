@@ -186,7 +186,6 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 		retval = mysqlnd_ms_call_handler(filter_data->user_callback, param + 1, args, FALSE /* we will destroy later */ TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
-			  php_printf("is_string\n");
 				do {
 					MYSQLND_MS_LIST_DATA * el, ** el_pp;
 					zend_llist_position	pos;
