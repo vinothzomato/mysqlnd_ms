@@ -113,7 +113,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 			} else {
 				filter_data->callback_valid = TRUE;
 			}
-			efree(cback_name);	
+			efree(cback_name);
 			if (!filter_data->callback_valid) {
 				DBG_RETURN(ret);
 			}
@@ -285,7 +285,7 @@ enum_func_status
 mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
 									 zend_llist * master_list, zend_llist * slave_list,
 									 zend_llist * selected_masters, zend_llist * selected_slaves,
-									 struct mysqlnd_ms_lb_strategies * stgy 
+									 struct mysqlnd_ms_lb_strategies * stgy
 									 TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_USER_DATA * filter_data = (MYSQLND_MS_FILTER_USER_DATA *) f_data;
@@ -397,7 +397,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 							DBG_ERR("Error while sorting the master list");
 							break;
 						}
-						
+
 						/* convert to longs and sort */
 						zend_hash_internal_pointer_reset_ex(Z_ARRVAL_PP(users_masters), &hash_pos);
 						while (SUCCESS == zend_hash_get_current_data_ex(Z_ARRVAL_PP(users_slaves), (void **)&selected_server, &hash_pos)) {

@@ -64,7 +64,7 @@ zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wilds
 			++s;
 			++w;
 		}
-	} while (1); 
+	} while (1);
 }
 /* }}} */
 

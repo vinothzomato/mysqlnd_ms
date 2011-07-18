@@ -135,7 +135,7 @@ struct st_mysqlnd_query_scanner
 	zval * token_value;
 };
 
-typedef enum 
+typedef enum
 {
 	STATEMENT_SELECT,
 	STATEMENT_INSERT,
