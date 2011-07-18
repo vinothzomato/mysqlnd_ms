@@ -337,6 +337,10 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 		parser = mysqlnd_qp_create_parser(TSRMLS_C);
 		if (parser) {
 			int err = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
+			if (err) {
+			  DBG_INF_FMT("parser start error %d", err);
+			  DBG_RETURN(ret);
+			}
 			zend_llist_position tinfo_list_pos;
 			struct st_mysqlnd_ms_table_info * tinfo;
 			zend_llist master_in_stack, * master_in = &master_in_stack;
@@ -349,8 +353,6 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 			zend_llist_init(slave_out, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, FALSE);
 
 			mysqlnd_ms_select_servers_all(master_list, slave_list, master_in, slave_in TSRMLS_CC);
-
-			DBG_INF_FMT("mysqlnd_qp_start_parser=%d", ret);
 
 			for (tinfo = zend_llist_get_first_ex(&parser->parse_info.table_list, &tinfo_list_pos);
 				 tinfo;
