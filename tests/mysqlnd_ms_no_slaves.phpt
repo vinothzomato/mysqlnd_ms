@@ -41,5 +41,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_no_slaves.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_no_slaves.ini'.\n");
 ?>
 --EXPECTF--
-[001] [2000] (mysqlnd_ms) Error while connecting to the slaves
-done!
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) Section [slave] doesn't exist for host [name_of_a_config_section] in %s on line %d
