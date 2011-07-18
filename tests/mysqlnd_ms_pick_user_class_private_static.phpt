@@ -1,5 +1,5 @@
 --TEST--
-pick = user, callback = function
+pick = user, callback = private static method
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -9,15 +9,15 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
-		'pick' 	=> array('user' => array('callback' => 'pick_server')),
+		'pick' 	=> array('user' => array('callback' => array('picker', 'server_static'))),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_user_function.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_pick_user_class_private_static", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_function.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_class_private_static
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -40,9 +40,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_function.ini
 
 	set_error_handler('grumble_catchable_fatal_grumble');
 
-	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
-		printf("pick_server('%s', '%s')\n", $connected_host, $query);
-		return ($last_used_connection) ? $last_used_connection : $master[0];
+	class picker {
+		private static function server_static($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
+			printf("%sserver_static('%s', '%s')\n", isset($this) ? 'picker->' : 'picker::', $connected_host, $query);
+			return ($last_used_connection) ? $last_used_connection : $master;
+		}
 	}
 
 	function run_query($offset, $link, $query) {
@@ -58,16 +60,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_function.ini
 	run_query(2, $link, "SELECT 1 FROM DUAL");
 	run_query(3, $link, "SET @my_role='master'");
 
+
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_user_function.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_function.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_user_class_private_static"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_class_private_static'.\n");
 ?>
+--XFAIL--
+Syntax not supported. Was supported with mysqlnd_ms_set_user_pick_server()
 --EXPECTF--
-pick_server('myapp', 'SELECT 1 FROM DUAL')
-[002 + 01] [0] ''
-pick_server('myapp', 'SET @my_role='master'')
-[003 + 01] [0] ''
+Some relevant error message
 done!
