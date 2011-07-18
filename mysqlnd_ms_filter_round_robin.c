@@ -125,7 +125,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					connection = element->conn;
 				}
 				if (connection) {
-					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+					  DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
 					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
@@ -194,7 +194,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					}
 					i++;
 				END_ITERATE_OVER_SERVER_LIST;
-				
+
 				if (!element) {
 					php_error_docref(NULL TSRMLS_CC, E_ERROR,
 									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong.");

@@ -99,7 +99,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					if (!connection) {
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random_once.");
 					} else {
-						DBG_INF_FMT("Using already selected slave connection %llu", connection->thread_id);
+						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						DBG_RETURN(connection);
 					}
 					break;
@@ -176,7 +176,7 @@ fallthrough:
 					if (!connection) {
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random_once.");
 					} else {
-						DBG_INF_FMT("Using already selected master connection %llu", connection->thread_id);
+						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						DBG_RETURN(connection);
 					}
 					break;

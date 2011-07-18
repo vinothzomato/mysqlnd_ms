@@ -299,7 +299,7 @@ mysqlnd_ms_table_filter_match(const char * const db_table_buf, HashTable * rules
 					if (!strncmp(entry_filter->host_id, el->name_from_config, entry_filter->host_id_len)) {
 						DBG_INF_FMT("Matched [%s] with a server, adding to the list", entry_filter->host_id);
 						if (el->conn) {
-							DBG_INF_FMT("Matched conn_id: %llu", el->conn->thread_id);
+							DBG_INF_FMT("Matched conn_id: "MYSQLND_LLU_SPEC, el->conn->thread_id);
 						}
 
 						zend_llist_add_element(out_list, &el);

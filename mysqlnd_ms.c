@@ -546,7 +546,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	}
 #endif
 
-	DBG_INF_FMT("conn=%llu query=%s", connection->thread_id, query);
+	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC" query=%s", connection->thread_id, query);
 
 	if (PASS == mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC) &&
 		PASS == connection->m->reap_query(connection TSRMLS_CC))
@@ -1107,7 +1107,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND * proxy_conn, char **m
 	MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
 	DBG_ENTER("mysqlnd_ms::statistic");
-	DBG_INF_FMT("conn=%llu", conn->thread_id);
+	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
 	ret = ms_orig_mysqlnd_conn_methods->get_server_statistics(conn, message, message_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
