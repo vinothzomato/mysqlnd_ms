@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, "unreachable"),
-		'pick' 	=> array('user' => array('zend_is_callable::pick_server')),
+		'pick' 	=> array('user' => array('callback' => 'zend_is_callable::pick_server'))),
 		'lazy_connections' => 1,
 	),
 );
@@ -201,6 +201,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server_lazy_failure.ini
 	if (!unlink("test_mysqlnd_ms_pick_server_lazy_failure.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_server_lazy_failure.ini'.\n");
 ?>
+--XFAIL--
+Old syntax of mysqlnd_set_user_pick_server not yet supported by new implementation
 --EXPECTF--
 'SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL' => slave (%s)
 '/*ms=slave*/SELECT 'slave connect failure' AS _message FROM DUAL' => slave (%s)

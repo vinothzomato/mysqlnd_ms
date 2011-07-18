@@ -39,6 +39,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 		flush();
 
 		$args = func_get_args();
+
 		$num = func_num_args();
 		if ($num != 6) {
 			printf("[003] Number of arguments should be 6 got %d\n", $num);
