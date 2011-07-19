@@ -70,7 +70,7 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 
 	MAKE_STD_ZVAL(retval);
 	if (call_user_function(EG(function_table), NULL, func, retval, argc, argv TSRMLS_CC) == FAILURE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " %s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
+		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " %s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
 		zval_ptr_dtor(&retval);
 		retval = NULL;
 	}
@@ -108,7 +108,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 		if (!filter_data->callback_valid) {
 			char * cback_name;
 			if (!zend_is_callable(filter_data->user_callback, 0, &cback_name TSRMLS_CC)) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR,
 								 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", cback_name);
 			} else {
 				filter_data->callback_valid = TRUE;
@@ -259,8 +259,16 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 						}
 					}
 				} while (0);
+				if (!ret) {
+					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " User filter callback has returned an unknown server. The server '%s' can neither be found in the master server list nor in the slave server list", Z_STRVAL_P(retval));
+				}
+			} else {
+			  php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " User filter callback has not returned string with server to use. The callback must return a string");
 			}
 			zval_ptr_dtor(&retval);
+		} else {
+			/* We should never get here */
+			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " User filter callback has not returned server to use");
 		}
 #ifdef ALL_SERVER_DISPATCH
 		convert_to_boolean(args[use_all_pos]);
