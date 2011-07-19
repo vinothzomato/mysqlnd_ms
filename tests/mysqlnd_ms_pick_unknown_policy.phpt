@@ -1,5 +1,5 @@
 --TEST--
-Load Balancing: wrong configuration, unknown policy
+Unknwon filter
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -43,11 +43,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_pick_unknown_policy.ini
 	if (!unlink("test_mysqlnd_pick_unknown_policy.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_pick_unknown_policy.ini'.\n");
 ?>
---XFAIL--
-pick is about to be deprected. The test needs to be modified.
-The basic idea remains: if config makes no sense, throw connect error,
-warn about misconfiguration as early as possible
 --EXPECTF--
-Some error message about an invalid pick method and a connect error
-[001] [2000] Error message about wrong pick method
-done!
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'unknown' . Stopping in %s on line %d

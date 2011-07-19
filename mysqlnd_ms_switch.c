@@ -405,7 +405,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
 					if (!new_filter_entry) {
 						php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter %s . Stopping.", filter_name);
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s' . Stopping", filter_name);
 					}
 				} else {
 					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
@@ -423,10 +423,8 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 		}
 	}
 	if (!new_filter_entry) {
-		char error_buf[128];
-		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Unknown filter %s", filter_name);
-		error_buf[sizeof(error_buf) - 1] = '\0';
-		DBG_ERR_FMT("Unknown filter %s", filter_name);
+		php_error_docref(NULL TSRMLS_CC, E_ERROR,
+					MYSQLND_MS_ERROR_PREFIX " Unknown filter '%s' . Stopping", filter_name);
 	}
 	DBG_RETURN(new_filter_entry);
 }
@@ -474,7 +472,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 			while (specific_ctors[i].name) {
 				if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
 					DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
-					mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
+					(void) mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
 														  persistent, error_info TSRMLS_CC);
 
 					break;
