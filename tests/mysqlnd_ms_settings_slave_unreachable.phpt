@@ -15,7 +15,7 @@ $settings = array(
 
 );
 if ($error = create_config("test_mysqlnd_ms_slave_unreachable.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 error_reporting=E_ALL

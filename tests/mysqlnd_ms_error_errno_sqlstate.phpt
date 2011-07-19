@@ -16,7 +16,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_error_errno_sqlstate.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--

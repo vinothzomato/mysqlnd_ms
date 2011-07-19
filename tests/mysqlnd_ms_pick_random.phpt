@@ -13,7 +13,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_random_pick.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--

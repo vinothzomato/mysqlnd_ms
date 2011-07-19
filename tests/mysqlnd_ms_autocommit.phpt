@@ -15,7 +15,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_autocommit.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--

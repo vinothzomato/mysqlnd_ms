@@ -13,13 +13,13 @@ $settings = array(
 		'pick' => array('roundrobin'),
 	),
 );
-if ($error = create_config("test_mysqlnd_round_robin.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+if ($error = create_config("test_mysqlnd_ms_pick_round_robin.ini", $settings))
+	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_round_robin.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_round_robin.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -105,8 +105,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_round_robin.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_round_robin.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_round_robin.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_round_robin.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_round_robin.ini'.\n");
 ?>
 --EXPECTF--
 Slave 1 (%d) has run 1 queries

@@ -19,7 +19,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_lazy_slave_failure_failover_random.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

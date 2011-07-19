@@ -13,7 +13,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_charsets.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 
 function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
 	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))

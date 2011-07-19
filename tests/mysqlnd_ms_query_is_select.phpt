@@ -11,7 +11,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("mysqlnd_ms_query_is_select.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

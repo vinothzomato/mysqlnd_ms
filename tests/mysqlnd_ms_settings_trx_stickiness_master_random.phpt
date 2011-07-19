@@ -17,7 +17,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_settings_trx_stickiness_master_random.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--

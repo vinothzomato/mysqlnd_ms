@@ -13,7 +13,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_ms_use_db.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 
 function test_mysql_access($host, $user, $passwd, $db, $port, $socket) {
 

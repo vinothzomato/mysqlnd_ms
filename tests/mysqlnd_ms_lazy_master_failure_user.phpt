@@ -18,7 +18,7 @@ $settings = array(
 	),
 );
 if ($error = create_config("test_mysqlnd_lazy_master_failure_user.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

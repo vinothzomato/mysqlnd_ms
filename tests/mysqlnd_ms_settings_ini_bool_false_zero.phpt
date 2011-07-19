@@ -11,13 +11,13 @@ $settings = array(
 		'slave' => array('forced_slave_hostname_abstract_name'),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_ini_bool_false_false.ini", $settings))
-	die(sprintf("SKIP %d\n", $error));
+if ($error = create_config("test_mysqlnd_ms_ini_bool_false_zero.ini", $settings))
+	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config_usage=0
-mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_bool_false_false.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_bool_false_zero.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -31,8 +31,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_bool_false_false.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_ini_bool_false_false.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_bool_false_false.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_ini_bool_false_zero.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_bool_false_zero.ini'.\n");
 ?>
 --EXPECTF--
 done!
