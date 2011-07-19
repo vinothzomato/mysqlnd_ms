@@ -40,4 +40,20 @@
 		printf("This is '%s' speaking\n", $row['_role']);
 		return true;
 	}
+
+	function compare_stats() {
+		static $last_stats = NULL;
+		if (is_null($last_stats)) {
+			$last_stats = mysqlnd_ms_get_stats();
+			return;
+		}
+		$stats = mysqlnd_ms_get_stats();
+		foreach ($stats as $k => $v) {
+			if ($last_stats[$k] != $v) {
+				printf("Stats %s: %d\n", $k, $v);
+			}
+		}
+		$last_stats = $stats;
+	}
+
 ?>
