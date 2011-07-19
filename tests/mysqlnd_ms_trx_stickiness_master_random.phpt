@@ -16,13 +16,13 @@ $settings = array(
 		'pick' => array("random"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_settings_trx_stickiness_master_random.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_trx_stickiness_master_random.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_trx_stickiness_master_random.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -63,8 +63,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_trx_stickiness_master_random.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_settings_trx_stickiness_master_random.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_trx_stickiness_master_random.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_trx_stickiness_master_random.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_trx_stickiness_master_random.ini'.\n");
 ?>
 --EXPECTF--
 This is 'master %d' speaking
