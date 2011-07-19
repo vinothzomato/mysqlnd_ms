@@ -55,7 +55,8 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		DBG_INF("Enforcing use of master while in transaction");
 		*which_server = USE_MASTER;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
-	} else if (stgy->mysqlnd_ms_flag_master_on_write) {		if (*which_server != USE_MASTER) {
+	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
+		if (*which_server != USE_MASTER) {
 			if (stgy->master_used && !forced) {
 				switch (*which_server) {
 					case USE_MASTER:
