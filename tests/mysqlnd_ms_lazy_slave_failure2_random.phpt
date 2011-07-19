@@ -1,5 +1,5 @@
 --TEST--
-Lazy connect, slave failure, random
+Lazy connect, slave failure and existing slave, random
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');

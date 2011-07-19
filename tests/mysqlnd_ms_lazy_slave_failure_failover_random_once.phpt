@@ -1,5 +1,5 @@
 --TEST--
-Lazy connect, slave failure, random once
+Lazy connect, failover = master, pick = random_once
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -14,15 +14,17 @@ $settings = array(
 		'master' => array($master_host),
 		'slave' => array("unreachable:6033", "unreachable2:6033"),
 		'pick' 	=> array('random' => array('sticky' => '1')),
-		'lazy_connections' => 1
+		'lazy_connections' => 1,
+		'failover' => 'master'
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_slave_failure_random_once.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_lazy_slave_failure_failover_random_once.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_failover_random_once.ini
+mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -32,15 +34,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$connections = array();
+	compare_stats();
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections[$link->thread_id] = array('master');
+	compare_stats();
 
 	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$connections[$link->thread_id][] = 'slave (no fallback)';
+	$connections[$link->thread_id][] = 'slave (fallback to master)';
+	compare_stats();
 
 	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
-	$connections[$link->thread_id][] = 'slave (no fallback)';
+	$connections[$link->thread_id][] = 'slave (fallback to master)';
+	compare_stats();
 
 	foreach ($connections as $thread_id => $details) {
 		printf("Connection %d -\n", $thread_id);
@@ -52,18 +58,23 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_random_once.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_random_once.ini'.\n");
+//	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_failover_random_once.ini"))
+//	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli::query(): [%d] %s
-Expected error, [003] [%d] %s
+Stats use_master_sql_hint: 1
+Stats lazy_connections_master_success: 1
 
 Warning: mysqli::query(): [%d] %s
-Expected error, [004] [%d] %s
+Stats use_slave_sql_hint: 1
+Stats lazy_connections_slave_failure: 1
+
+Warning: mysqli::query(): [%d] %s
+This is 'slave %d' speaking
+Stats use_slave: 1
+Stats lazy_connections_slave_failure: 2
 Connection %d -
 ... master
-Connection 0 -
-... slave (no fallback)
-... slave (no fallback)
+... slave (fallback to master)
+... slave (fallback to master)
 done!
