@@ -1,5 +1,5 @@
 --TEST--
-Config settings: pick server = user
+Config settings: pick = user
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -19,12 +19,12 @@ $settings = array(
 		'pick' 	=> array('user' => array('callback' => 'pick_server')),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_server.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_pick_user_complex.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -236,8 +236,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_server.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_server.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_server.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_user_complex.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_complex.ini'.\n");
 ?>
 --EXPECTF--
 'SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL' => slave
