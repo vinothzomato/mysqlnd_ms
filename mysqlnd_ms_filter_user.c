@@ -160,7 +160,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 			/* last used connection */
 			param++;
 			MAKE_STD_ZVAL(args[param]);
-			if (stgy->last_used_conn) {
+			if (stgy->last_used_conn && stgy->last_used_conn->scheme) {
 				ZVAL_STRING(args[param], stgy->last_used_conn->scheme, 1);
 			} else {
 				ZVAL_NULL(args[param]);
