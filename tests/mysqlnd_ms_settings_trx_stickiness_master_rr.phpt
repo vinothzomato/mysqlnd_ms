@@ -1,5 +1,5 @@
 --TEST--
-trx_stickiness=master (PHP 5.3.99+, pick = roundrobin
+trx_stickiness=master (PHP 5.3.99+), pick = roundrobin
 --SKIPIF--
 <?php
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
@@ -26,22 +26,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_trx_stickiness_master_round_robin.i
 --FILE--
 <?php
 	require_once("connect.inc");
-
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		return $ret;
-	}
-
-	function schnattertante($res) {
-		$row = $res->fetch_assoc();
-		$res->close();
-		printf("This is '%s' speaking\n", $row['_role']);
-	}
+	require_once("mysqlnd_ms_lazy.inc");
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
