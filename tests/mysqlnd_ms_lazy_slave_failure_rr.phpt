@@ -1,5 +1,5 @@
 --TEST--
-Lazy connect, slave failure, random once
+Lazy connect, slave failure, roundrobin
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -13,16 +13,16 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array("unreachable:6033", "unreachable2:6033"),
-		'pick' 	=> array('random' => array('once')),
+		'pick' 	=> array('roundrobin'),
 		'lazy_connections' => 1
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_slave_failure_random_once.ini", $settings))
+if ($error = create_config("test_mysqlnd_lazy_slave_failure_rr.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
+mysqlnd_ms.ini_file=test_mysqlnd_lazy_slave_failure_rr.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -42,6 +42,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
 	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
+	schnattertante(run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	$connections[$link->thread_id][] = 'slave (no fallback)';
+
 	foreach ($connections as $thread_id => $details) {
 		printf("Connection %d -\n", $thread_id);
 		foreach ($details as $msg)
@@ -52,8 +55,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_random_once.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_random_once.ini'.\n");
+	if (!unlink("test_mysqlnd_lazy_slave_failure_rr.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_lazy_slave_failure_rr.ini'.\n");
 ?>
 --EXPECTF--
 Warning: mysqli::query(): [%d] %s
@@ -61,9 +64,13 @@ Expected error, [003] [%d] %s
 
 Warning: mysqli::query(): [%d] %s
 Expected error, [004] [%d] %s
+
+Warning: mysqli::query(): [%d] %s
+Expected error, [005] [%d] %s
 Connection %d -
 ... master
 Connection 0 -
+... slave (no fallback)
 ... slave (no fallback)
 ... slave (no fallback)
 done!
