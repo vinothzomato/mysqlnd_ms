@@ -30,8 +30,8 @@
 PHPAPI
 zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wildstr TSRMLS_DC)
 {
-	static char many = '*';
-	static char single = '?';
+	static char many = '%';
+	static char single = '_';
 	const char * s = str;
 	const char * w = wildstr;
 
