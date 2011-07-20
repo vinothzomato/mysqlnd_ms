@@ -438,7 +438,6 @@ mysqlnd_ms_config_json_next_sub_section(struct st_mysqlnd_ms_config_json_entry *
 }
 /* }}} */
 
-
 /* {{{ mysqlnd_ms_config_json_string_aux_inner */
 static char *
 mysqlnd_ms_config_json_string_aux_inner(struct st_mysqlnd_ms_config_json_entry * ini_section_entry,
@@ -532,7 +531,8 @@ mysqlnd_ms_config_json_string_aux_inner(struct st_mysqlnd_ms_config_json_entry *
 }
 /* }}} */
 
-
+#ifdef U0
+/* TODO: never called */
 /* {{{ mysqlnd_ms_config_json_string_aux_inner */
 static char *
 mysqlnd_ms_config_json_string_aux(HashTable * ht, const char * section_name, size_t section_name_len,
@@ -587,9 +587,9 @@ mysqlnd_ms_config_json_string_aux(HashTable * ht, const char * section_name, siz
 	DBG_RETURN(ret);
 }
 /* }}} */
+#endif
 
-
-/* {{{ mysqlnd_ms_config_json_string */
+/* {{{ mysqlnd_ms_config_json_string_from_section */
 PHPAPI char *
 mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section,
 										   const char * name, size_t name_len,
@@ -625,6 +625,8 @@ mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entr
 /* }}} */
 
 
+#ifdef U0
+/* TODO: never called */
 /* {{{ mysqlnd_ms_config_json_string */
 PHPAPI char *
 mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len,
@@ -653,7 +655,10 @@ mysqlnd_ms_config_json_string(struct st_mysqlnd_ms_json_config * cfg, const char
 	DBG_RETURN(ret);
 }
 /* }}} */
+#endif
 
+#ifdef U0
+/* TODO: never called */
 
 /* {{{ mysqlnd_ms_str_to_long_long */
 static long long
@@ -680,7 +685,6 @@ mysqlnd_ms_str_to_long_long(const char * const s, zend_bool * valid)
 	return ret;
 }
 /* }}} */
-
 
 /* {{{ mysqlnd_ms_config_json_int */
 PHPAPI long long
@@ -787,8 +791,10 @@ mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * 
 	DBG_RETURN(ret);
 }
 /* }}} */
+#endif
 
-
+#ifdef U0
+/* TODO: never used */
 /* {{{ mysqlnd_ms_str_to_double */
 static double
 mysqlnd_ms_str_to_double(const char * const s, zend_bool * valid)
@@ -814,7 +820,6 @@ mysqlnd_ms_str_to_double(const char * const s, zend_bool * valid)
 	return ret;
 }
 /* }}} */
-
 
 /* {{{ mysqlnd_ms_config_json_double */
 PHPAPI double
@@ -922,7 +927,7 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 	DBG_RETURN(ret);
 }
 /* }}} */
-
+#endif
 
 /* {{{ mysqlnd_ms_config_json_reset_section */
 PHPAPI void
