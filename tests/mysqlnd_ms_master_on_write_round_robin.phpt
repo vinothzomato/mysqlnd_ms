@@ -21,19 +21,13 @@ if ($error = create_config("test_mysqlnd_ms_master_on_write_random.ini", $settin
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_master_on_write_random.ini
+mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("mysqlnd_ms_lazy.inc");
 
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-		return $ret;
-	}
-
+	compare_stats();
 	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
@@ -53,12 +47,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_master_on_write_random.ini
 	/* not a select -> master query */
 	run_query(4, $link, "SET @myrole='Master'");
 
-
 	/* master on write is active, master should reply */
 	$res = run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role");
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
+	compare_stats();
 
 	/* SQL hint wins */
 	$res = run_query(6, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role",  MYSQLND_MS_SLAVE_SWITCH);
@@ -96,9 +90,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_master_on_write_random.ini
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
-
 	print "done!";
-
 ?>
 --CLEAN--
 <?php
@@ -108,6 +100,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_master_on_write_random.ini
 --EXPECTF--
 This is 'Slave 1 %d' speaking
 This is 'Master %d' speaking
+Stats use_slave: 2
+Stats use_master: 1
+Stats use_slave_sql_hint: 2
+Stats lazy_connections_slave_success: 2
+Stats lazy_connections_master_success: 1
 This is 'Slave 2 %d' speaking
 This is 'Master %d' speaking
 This is 'Slave 1 %d' speaking
