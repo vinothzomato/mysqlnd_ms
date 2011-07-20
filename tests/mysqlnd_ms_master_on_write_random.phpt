@@ -95,6 +95,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_master_on_write_random.ini
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
+	/* master on write... */
+	$res = run_query(12, $link, "SELECT @myrole AS _role", MYSQLND_MS_MASTER_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
+	/* master on write... */
+	$res = run_query(13, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
 
 	print "done!";
 
@@ -113,4 +125,6 @@ This is 'Slave %d' speaking
 This is 'Slave %d' speaking
 This is 'Master %d' speaking
 This is 'Slave %d' speaking
+This is 'Master' speaking
+This is 'Master' speaking
 done!

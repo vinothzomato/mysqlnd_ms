@@ -90,6 +90,18 @@ mysqlnd_ms.collect_statistics=1
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
+	/* master on write... */
+	$res = run_query(12, $link, "SELECT @myrole AS _role", MYSQLND_MS_MASTER_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
+	/* master on write... */
+	$res = run_query(13, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
 	print "done!";
 ?>
 --CLEAN--
@@ -111,4 +123,6 @@ This is 'Slave 1 %d' speaking
 This is 'Slave 1 %d' speaking
 This is 'Master %d' speaking
 This is 'Slave 2 %d' speaking
+This is 'Master' speaking
+This is 'Master' speaking
 done!

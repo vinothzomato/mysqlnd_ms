@@ -74,6 +74,18 @@ mysqlnd_ms.collect_statistics=1
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
+	/* master on write... */
+	$res = run_query(9, $link, "SELECT @myrole AS _role", MYSQLND_MS_MASTER_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
+	/* master on write... */
+	$res = run_query(10, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+
 	print "done!";
 
 ?>
@@ -96,4 +108,6 @@ Stats use_slave_sql_hint: 2
 This is 'Master 1' speaking
 This is 'Slave 1' speaking
 This is 'Slave 1' speaking
+This is 'Master 1' speaking
+This is 'Master 1' speaking
 done!
