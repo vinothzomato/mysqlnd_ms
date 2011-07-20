@@ -244,15 +244,18 @@ static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
 /* }}} */
 #endif
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_match_wild, 0, 0, 2)
+  ZEND_ARG_INFO(0, haystack)
+  ZEND_ARG_INFO(0, wild)
+ZEND_END_ARG_INFO()
 
-/* {{{ proto long mysqlnd_ms_match_wild(string str, string wild)
+/* {{{ proto long mysqlnd_ms_match_wild(string haystack, string wild)
    */
 static PHP_FUNCTION(mysqlnd_ms_match_wild)
 {
 	char * str;
 	char * wild;
 	int tmp;
-	zend_bool forced;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &str, &tmp, &wild, &tmp) == FAILURE) {
 		return;
@@ -287,6 +290,7 @@ static PHP_FUNCTION(mysqlnd_ms_query_is_select)
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_stats, 0, 0, 0)
 ZEND_END_ARG_INFO()
+
 
 /* {{{ proto array mysqlnd_ms_get_stats()
     Return statistics on connections and queries */
@@ -323,7 +327,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 #ifdef REINTRODUCE_LATER
 	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
 #endif
-	PHP_FE(mysqlnd_ms_match_wild,	NULL)
+	PHP_FE(mysqlnd_ms_match_wild,	arginfo_mysqlnd_ms_match_wild)
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
