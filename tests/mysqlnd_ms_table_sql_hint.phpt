@@ -13,9 +13,6 @@ $settings = array(
 			),
 		),
 		'slave' => array(
-			"slave1" => array(
-				'host' => $slave_host_only,
-			),
 		 ),
 		'lazy_connections' => 0,
 		'filters' => array(
@@ -51,9 +48,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 	}
 
 	run_query(2, $link, "DROP TABLE IF EXISTS test1");
-	run_query(3, $link, "CREATE TABLE test1(id INT)");
+	$master = $link->thread_id;
+
+	run_query(3, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_LAST_USED_SWITCH);
 	run_query(4, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
-	var_dump($link->thread_id);
+	$res = run_query(5, $link, "SELECT CONNECTION_ID() AS _id, id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+
+	if ($master != $row['id'])
+		printf("Master thread id differs from INSERT CONNECTION_ID(), expecting %d got %d\n", $master, $row['id']);
+
+	if ($master != $row['_id'])
+		printf("Master thread id differs from SELECT CONNECTION_ID(), expecting %d got %d\n", $master, $row['_id']);
+
 	print "done!";
 ?>
 --CLEAN--
@@ -62,5 +69,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_sql_hint.ini'.\n");
 ?>
 --EXPECTF--
-%d
 done!
