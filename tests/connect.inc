@@ -363,7 +363,10 @@
 						}
 					}
 				}
-				if (isset($config['pick'])) {
+
+				if (isset($config['filters'])) {
+					$json[$application]['filters'] = $config['filters'];
+				} else if (isset($config['pick'])) {
 					if (!is_array($config['pick']))
 						$config['pick'] = array($config['pick']);
 
