@@ -23,7 +23,8 @@
 #include "zend_llist.h"
 /* Compile with : bison -o mysqlnd_query_parser.c -d mysqlnd_query_parser.grammar --name-prefix=mysqlnd_qp_ */
 
-extern int (*mysqlnd_qp_error)(const char * format, ...);
+#define yyerror mysqlnd_qp_error
+extern int mysqlnd_qp_error(const char * format, ...);
 
 #if defined(PHP_DEBUG) && !defined(YYDEBUG)
 #define YYDEBUG 1

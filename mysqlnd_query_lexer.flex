@@ -32,8 +32,8 @@ Compile with : flex mysqlnd_query_lexer.flex
 #include "mysqlnd_query_parser.h"
 
 int old_yystate;
-#define yyerror zend_printf
-int (*mysqlnd_qp_error)(const char *format, ...);
+#define yyerror mysqlnd_qp_error
+int mysqlnd_qp_error(const char *format, ...);
 
 #define YY_DECL int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC)
 
@@ -758,6 +758,16 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 %%
 
 
+/* {{{ mysqlnd_qp_error */
+int
+mysqlnd_qp_error(const char *format, ...)
+{
+	/* do not emit a message */
+	return 1;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_qp_free_scanner */
 PHPAPI void
 mysqlnd_qp_free_scanner(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
@@ -844,7 +854,6 @@ mysqlnd_qp_create_parser(TSRMLS_D)
 
 	DBG_ENTER("mysqlnd_qp_create_parser");
 	DBG_INF_FMT("ret=%p", ret);
-	mysqlnd_qp_error = zend_printf;
 
 	ret->scanner = mysqlnd_qp_create_scanner(TSRMLS_C);
 	DBG_INF_FMT("ret->scanner=%p", ret->scanner);
