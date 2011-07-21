@@ -525,6 +525,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	zend_bool use_all = 0;
 #endif
 	DBG_ENTER("mysqlnd_ms::query");
+	DBG_INF_FMT("query=%s", query);
 
 	connection = mysqlnd_ms_pick_server_ex(conn, query, query_len TSRMLS_CC);
 	DBG_INF_FMT("Connection %p", connection);

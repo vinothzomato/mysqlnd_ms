@@ -716,10 +716,12 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 									old_yystate = YY_START;
 									DBG_INF("entering COMMENT_MODE");
 									BEGIN COMMENT_MODE;
+#if VALGRIND_MEMORY_WARNINGS
 									if (*comment) {
 										mnd_efree(*comment);
 										*comment = NULL;
 									}
+#endif
 									*comment = mnd_ecalloc(1, sizeof(smart_str));
 
 									ZVAL_NULL(token_value);

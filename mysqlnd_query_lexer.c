@@ -8314,10 +8314,12 @@ YY_RULE_SETUP
 									old_yystate = YY_START;
 									DBG_INF("entering COMMENT_MODE");
 									BEGIN COMMENT_MODE;
+#if VALGRIND_MEMORY_WARNINGS
 									if (*comment) {
 										mnd_efree(*comment);
 										*comment = NULL;
 									}
+#endif
 									*comment = mnd_ecalloc(1, sizeof(smart_str));
 
 									ZVAL_NULL(token_value);
@@ -8325,7 +8327,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 621:
 YY_RULE_SETUP
-#line 728 "mysqlnd_query_lexer.flex"
+#line 730 "mysqlnd_query_lexer.flex"
 {
 									BEGIN old_yystate;
 									DBG_INF("leaving COMMENT_MODE");
@@ -8352,7 +8354,7 @@ YY_RULE_SETUP
 case 622:
 /* rule 622 can match eol */
 YY_RULE_SETUP
-#line 751 "mysqlnd_query_lexer.flex"
+#line 753 "mysqlnd_query_lexer.flex"
 {
 									smart_str_appendc(*comment, yytext[0]);
 								}
@@ -8361,20 +8363,20 @@ YY_RULE_SETUP
 case 623:
 /* rule 623 can match eol */
 YY_RULE_SETUP
-#line 756 "mysqlnd_query_lexer.flex"
+#line 758 "mysqlnd_query_lexer.flex"
 /* whitespace */
 	YY_BREAK
 case 624:
 YY_RULE_SETUP
-#line 757 "mysqlnd_query_lexer.flex"
+#line 759 "mysqlnd_query_lexer.flex"
 { yyerror("report to the developer '%c'\n", *yytext); }
 	YY_BREAK
 case 625:
 YY_RULE_SETUP
-#line 758 "mysqlnd_query_lexer.flex"
+#line 760 "mysqlnd_query_lexer.flex"
 ECHO;
 	YY_BREAK
-#line 8378 "mysqlnd_query_lexer.c"
+#line 8380 "mysqlnd_query_lexer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT_MODE):
 case YY_STATE_EOF(BETWEEN_MODE):
@@ -9505,7 +9507,7 @@ void mysqlnd_qp_free (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 758 "mysqlnd_query_lexer.flex"
+#line 760 "mysqlnd_query_lexer.flex"
 
 
 
