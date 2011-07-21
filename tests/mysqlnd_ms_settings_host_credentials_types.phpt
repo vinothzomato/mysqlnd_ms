@@ -43,9 +43,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_types.ini
 <?php
 	require_once("connect.inc");
 
+	ob_start();
 	/* note that user etc are to be taken from the config! */
 	if (!($link = my_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	ob_end_clean();
+
 
 	print "done!";
 ?>
@@ -55,13 +58,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_types.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_host_credentials_types.ini'.\n");
 ?>
 --EXPECTF--
-
 Warning: Unknown: failed to open stream: No such file or directory in Unknown on line 0
 
 Warning: Unknown: (mysqlnd_ms) Failed to parse server list ini file test_mysqlnd_ms_settings_host_credentials_types.ini in Unknown on line 0
-
-Warning: mysqli_real_connect(): [%d] %s
-
-Warning: mysqli_real_connect(): (%s/%d): %s
-[001] [%d] %s
 done!
