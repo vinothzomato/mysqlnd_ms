@@ -451,33 +451,41 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 				subsection_is_list && mysqlnd_ms_config_json_section_is_object_list(filters_section TSRMLS_CC);
 
 		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
-		if (section_exists && filters_section && subsection_is_obj_list) {
-			do {
-				char * filter_name = NULL;
-				size_t filter_name_len = 0;
-				struct st_mysqlnd_ms_config_json_entry * current_filter =
-						mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_name, &filter_name_len, NULL TSRMLS_CC);
+		DBG_INF_FMT("normal filters section =%d", section_exists && filters_section && subsection_is_obj_list);
+		switch (section_exists && filters_section && subsection_is_obj_list) {
+			case 1:
+				do {
+					char * filter_name = NULL;
+					size_t filter_name_len = 0;
+					struct st_mysqlnd_ms_config_json_entry * current_filter =
+							mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_name, &filter_name_len, NULL TSRMLS_CC);
 
-				if (!current_filter || !filter_name || !filter_name_len) {
-					DBG_INF("no next sub-section");
+					if (!current_filter || !filter_name || !filter_name_len) {
+						DBG_INF("no next sub-section");
+						break;
+					}
+					(void) mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
+																 persistent, error_info TSRMLS_CC);
+				} while (1);
+				if (zend_llist_count(ret)) {
 					break;
 				}
-				(void) mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
-															 persistent, error_info TSRMLS_CC);
-			} while (1);
-		} else {
-			/* setup the default */
-			unsigned int i = 0;
-			DBG_INF("No section, using defaults");
-			while (specific_ctors[i].name) {
-				if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
-					DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
-					(void) mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
-														  persistent, error_info TSRMLS_CC);
+				/* fall-through */
+			case 0:
+			{
+				/* setup the default */
+				unsigned int i = 0;
+				DBG_INF("No section, using defaults");
+				while (specific_ctors[i].name) {
+					if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
+						DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
+						(void) mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
+															  persistent, error_info TSRMLS_CC);
 
-					break;
+						break;
+					}
+					++i;
 				}
-				++i;
 			}
 		}
 	}

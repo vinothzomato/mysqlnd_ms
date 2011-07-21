@@ -64,8 +64,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_empty_non_lazy.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_empty_non_lazy.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_empty_non_lazy.ini'.\n");
+//	if (!unlink("test_mysqlnd_ms_filter_empty_non_lazy.ini"))
+//	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_empty_non_lazy.ini'.\n");
 ?>
 --EXPECTF--
 %d:
