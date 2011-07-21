@@ -17,6 +17,9 @@ $settings = array(
 			"slave1" => array(
 				'host' => $slave_host_only,
 			),
+			"slave2" => array(
+				'host' => $slave_host_only,
+			),
 
 		 ),
 
@@ -53,6 +56,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_empty_lazy.ini
 	if (!$res)
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
 
+	$res = run_query(5, $link, "SELECT 1 FROM DUAL");
+	$threads[$link->thread_id][] = "slave";
+	if (!$res)
+		printf("[006] [%d] %s\n", $link->errno, $link->error);
+
+
 	foreach ($threads as $id => $roles) {
 		printf("%d: ", $id);
 		foreach ($roles as $role)
@@ -68,8 +77,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_empty_lazy.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_empty_lazy.ini'.\n");
 ?>
 --EXPECTF--
-%d:
-master
-%d:
+%d: master
+%d: slave
 slave
 done!
