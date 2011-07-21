@@ -27,7 +27,7 @@ mysqlnd_ms.enable=1
 		array('tablename', 't%e', true),
 		array('tablename', 't%%e', true),
 		array('tablename', 'tablename%', true),
-		array('tablename', 'tabLenam%', true),
+		array('tablename', 'tablenam%', true),
 		array('', '%', true),
 		/* _ = one */
 		array('', '_', false),
@@ -35,14 +35,11 @@ mysqlnd_ms.enable=1
 		array('tablename', '_ablename', true),
 		array('tablename', 't_blename', true),
 		array('tablename', 't___ename', true),
-		/* MySQL LIKE is case in-sensitive! */
-		array('tablename', 'T___ename', true),
 		/* escaping */
 		array('tabl_name', 'tabl\_nam_', true),
 		array('tabl_name', 'tabl\_name', true),
 		array('tabl%name', 'tabl\%na%', true),
 		array('tabl%name', 'tabl\%name', true),
-
 	);
 
 	foreach ($pattern as $details) {
