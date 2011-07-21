@@ -305,10 +305,15 @@
 					if (count($config['master']) != 1)
 						return sprintf("You have set more than one master.");
 
+					$json[$application]['master'] = array();
 					foreach ($config['master'] as $idx => $host) {
 						if (is_array($host)) {
 							/* 1.1. syntax */
-							$json[$application]['master'] = $host;
+							if (is_string($idx)) {
+							  $json[$application]['master'][$idx] = $host;
+							} else {
+							  $json[$application]['master']['master_' . $idx] = $host;
+							}
 						} else {
 							$host_config = array();
 							if (false !== stristr($host, ':')) {
@@ -325,14 +330,19 @@
 							} else {
 								$host_config['host'] = $host;
 							}
-							$json[$application]['master'] = $host_config;
+							$json[$application]['master']['master_' . $idx] = $host_config;
 						}
 					}
 				}
 				if (isset($config['slave'])) {
+					$json[$application]['slave'] = array();
 					foreach ($config['slave'] as $idx => $host) {
 						if (is_array($host)) {
-							$json[$application]['slave']['slave_' . $idx] = $host;
+							if (is_string($idx)) {
+								$json[$application]['slave'][$idx] = $host;
+							} else {
+								$json[$application]['slave']['slave_' . $idx] = $host;
+							}
 						} else {
 							$host_config = array();
 							/* 1.0 legacy */
@@ -367,8 +377,6 @@
 												 (is_array($method_values)? $method_values :
 												 							array($method_values));
 					}
-				} else {
-					$json[$application]['filters'] = array("random" => array("sticky" => "1"));
 				}
 				if (isset($config['lazy_connections'])) {
 				  $json[$application]['lazy_connections'] = (string)$config['lazy_connections'];
