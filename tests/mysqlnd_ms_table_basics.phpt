@@ -22,10 +22,9 @@ $settings = array(
 			"table" => array(
 				"rules" => array(
 					$db . ".test1%" => array(
-						array(
 						  "master" => array("master1"),
-						),
-					)
+						  "slave" => array("slave1"),
+					),
 				),
 			),
 		),
