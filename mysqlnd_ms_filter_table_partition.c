@@ -334,13 +334,9 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 	struct st_mysqlnd_query_parser * parser;
 	DBG_ENTER("mysqlnd_ms_choose_connection_table_filter");
 	if (filter) {
+		int err;
 		parser = mysqlnd_qp_create_parser(TSRMLS_C);
-		if (parser) {
-			int err = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC);
-			if (err) {
-			  DBG_INF_FMT("parser start error %d", err);
-			  DBG_RETURN(ret);
-			}
+		if (parser && !(err = mysqlnd_qp_start_parser(parser, query, query_len TSRMLS_CC))) {
 			zend_llist_position tinfo_list_pos;
 			struct st_mysqlnd_ms_table_info * tinfo;
 			zend_llist master_in_stack, * master_in = &master_in_stack;
@@ -394,6 +390,11 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 			zend_llist_clean(master_out);
 			zend_llist_clean(slave_out);
 
+		}
+		if (parser) {
+			if (err) {
+				DBG_INF_FMT("parser start error %d", err);
+			}		
 			mysqlnd_qp_free_parser(parser TSRMLS_CC);
 		}
 	}
