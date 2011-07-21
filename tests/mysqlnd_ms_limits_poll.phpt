@@ -43,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_poll.ini
 		foreach ($all_links as $link) {
 			$links[] = $errors[] = $reject[] = $link;
 		}
-		if (!mysqli_poll($links, $errors, $reject, 1)) {
+		if (!@mysqli_poll($links, $errors, $reject, 1)) {
 			usleep(1000);
 			if ($tries++ > 2)
 				break;
@@ -78,14 +78,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_poll.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_poll.ini'.\n");
 ?>
 --EXPECTF--
-
-Warning: mysqli_poll(): All arrays passed are clear in %s on line %d
-
-Warning: mysqli_poll(): All arrays passed are clear in %s on line %d
-
-Warning: mysqli_poll(): All arrays passed are clear in %s on line %d
-
-Warning: mysqli_poll(): All arrays passed are clear in %s on line %d
 set - %d
 async select - %d
 sync select - %d
