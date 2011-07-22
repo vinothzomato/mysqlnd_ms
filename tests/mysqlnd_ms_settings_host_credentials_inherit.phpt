@@ -8,14 +8,15 @@ require_once("connect.inc");
 $settings = array(
 	"myapp" => array(
 		'master' => array(
-			  array(
-				'host' 	=> $master_host_only,
-				'port' 	=> $master_port,
-				'socket' 	=> $master_socket,
-				'db'		=> $db,
-				'user'	=> $user,
-				'password'=> $passwd,
-			  ),
+			'master1' => array(
+				  'host' 	=> $master_host_only,
+				  'port' 	=> $master_port,
+				  'socket' 	=> $master_socket,
+				  'db'		=> $db,
+				  'user'	=> $user,
+				  'password'=> $passwd,
+			),
+
 		),
 		'slave' => array(
 			array(
