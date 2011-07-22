@@ -52,7 +52,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 
 	run_query(3, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_LAST_USED_SWITCH);
 	run_query(4, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
-	$res = run_query(5, $link, "SELECT CONNECTION_ID() AS _id, id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = run_query(5, $link, "SELECT CONNECTION_ID() AS _id, id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 
 	if ($master != $row['id'])
