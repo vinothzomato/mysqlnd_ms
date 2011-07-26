@@ -1,5 +1,5 @@
 --TEST--
-table filter: no slave for SELECT, use master - pick = roundrobin
+table filter: no slave for SELECT, use master - pick = random
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -29,17 +29,17 @@ $settings = array(
 				),
 			),
 
-			"roundrobin" => array(),
+			"random" => array(),
 		),
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_slave_no_match_rr.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_slave_no_match_random.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_slave_no_match_rr.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_no_match_random.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -82,8 +82,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_slave_no_match_rr.ini
 <?php
 	require_once("connect.inc");
 
-	if (!unlink("test_mysqlnd_ms_table_slave_no_match_rr.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_slave_no_match_rr.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_slave_no_match_random.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_slave_no_match_random.ini'.\n");
 ?>
 --EXPECTF--
 [006] [%d] %s Some warning about missing slave for SELECT id FROM test
