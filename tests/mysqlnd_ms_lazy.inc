@@ -1,4 +1,6 @@
 <?php
+	require_once("connect.inc");
+
 	/*
 	Error: 2002 (CR_CONNECTION_ERROR)
 	Message: Can't connect to local MySQL server through socket '%s' (%d)
@@ -54,6 +56,20 @@
 			}
 		}
 		$last_stats = $stats;
+	}
+
+	function create_test_table($host, $user, $passwd, $db, $port, $socket, $tablename = "test") {
+		$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if (!$link->query(sprintf("DROP TABLE IF EXISTS %s", $link->real_escape_string($tablename))) ||
+			!$link->query(sprintf("CREATE TABLE %s(id INT)", $link->real_escape_string($tablename))) ||
+			!$link->query(sprintf("INSERT INTO %s(id) VALUES (1), (2), (3), (4), (5)", $link->real_escape_string($tablename))))
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
+
+		return '';
 	}
 
 ?>
