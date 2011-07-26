@@ -1,5 +1,5 @@
 --TEST--
-table filter: no master for DROP, pick = rr
+table filter: no master for DROP, pick = random once
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -30,17 +30,17 @@ $settings = array(
 				),
 			),
 
-			"roundrobin" => array(),
+			"random" => array("sticky" => 1),
 		),
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_master_no_match_rr.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_master_no_match_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_master_no_match_rr.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_master_no_match_random_once.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -63,8 +63,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_master_no_match_rr.ini
 <?php
 	require_once("connect.inc");
 
-	if (!unlink("test_mysqlnd_ms_table_master_no_match_rr.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_master_no_match_rr.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_master_no_match_random_once.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_master_no_match_random_once.ini'.\n");
 ?>
 --EXPECTF--
 [003] Warn user about misconfiguration, [%d] %s
