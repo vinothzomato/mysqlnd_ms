@@ -40,11 +40,11 @@ mysqlnd_ms.collect_statistics=1
 
 	/* let's hope we hit both slaves */
 	for ($i = 0; $i < 10; $i++) {
-	  @run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	  run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
 	  $connections[$link->thread_id][] = 'slave (fallback to master)';
 	}
 
-	schnattertante(run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	schnattertante(run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
 
 	foreach ($connections as $thread_id => $details) {
@@ -61,10 +61,6 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_random.ini'.\n");
 ?>
 --EXPECTF--
-
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 This is 'slave %d' speaking
 Connection %d -
 ... master

@@ -40,11 +40,11 @@ mysqlnd_ms.collect_statistics=1
 	$connections[$link->thread_id] = array('master');
 	compare_stats();
 
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
 	compare_stats();
 
-	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
 	compare_stats();
 
@@ -64,16 +64,8 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 Stats use_master_sql_hint: 1
 Stats lazy_connections_master_success: 1
-
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Stats use_slave_sql_hint: 1
 Stats lazy_connections_slave_failure: 1
-
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 This is 'slave %d' speaking
 Stats use_slave: 1
 Stats lazy_connections_slave_failure: 2

@@ -15,15 +15,36 @@
 		2005 => true,
 	);
 
-	function run_query($offset, $link, $query, $switch = NULL, $quiet = false) {
+	function run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false) {
 		global $connect_errno_codes;
+
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
-		if ($quiet)
-			$ret = @$link->query($query);
-		else
+		if ($quiet) {
+			/* Stupid PHP streams sometimes shout without caller being able to suppress */
+
+			ob_start();
 			$ret = $link->query($query);
+			$haystack = ob_get_contents();
+			ob_end_clean();
+
+			if ($expect_connect_warning) {
+				$found = false;
+				foreach ($connect_errno_codes as $code => $v) {
+					$needle = "Warning: mysqli::query(): [" . $code . "]";
+					if (false !== ($found = strpos($haystack, $needle))) {
+						break;
+					}
+				}
+				if (!$found) {
+					printf("[%03d] Cannot find expect connect warning, got '%s'\n", $offset, $haystack);
+				}
+			}
+
+		} else {
+			$ret = $link->query($query);
+		}
 
 		if (!$ret && !$quiet) {
 			if (isset($connect_errno_codes[$link->errno]))
@@ -71,5 +92,4 @@
 
 		return '';
 	}
-
 ?>
