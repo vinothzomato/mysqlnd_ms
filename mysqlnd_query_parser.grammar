@@ -671,9 +671,23 @@ statement: select
 		| rename
 		| alter
 		| drop
+		| create
+		| comment { zval_dtor(&$1); } error { YYABORT; }
 		;
 
-drop: comment QC_TOKEN_DROP temporary table_or_tables_option if_exists table restrict { PINFO.statement = STATEMENT_DROP; zval_dtor(&$1); }
+
+create: comment QC_TOKEN_CREATE 
+				{
+					PINFO.statement = STATEMENT_CREATE;
+					zval_dtor(&$1);
+					YYACCEPT;
+				}
+
+drop: comment QC_TOKEN_DROP temporary table_or_tables_option if_exists table restrict
+				{
+					PINFO.statement = STATEMENT_DROP;
+					zval_dtor(&$1);
+				}
 
 temporary: QC_TOKEN_TEMPORARY
 		|
@@ -794,7 +808,7 @@ select: comment QC_TOKEN_SELECT
 				from_clause
 				{
 					if (!PINFO.parse_where) {
-//						YYACCEPT;
+						YYACCEPT;
 					}
 					PINFO.active_field_list = &PINFO.where_field_list;
 				}
