@@ -71,7 +71,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_evaluation_order.ini
 	$threads = array();
 	if (!@mysqli_query($link, "DROP TABLE IF EXISTS test")) {
 		if (isset($connect_errno_codes[$link->errno])) {
-		  printf("Expected error, ");
+		  printf("Connect error, ");
 		}
 		printf("[%d] %s\n", $link->errno, $link->error);
 	}

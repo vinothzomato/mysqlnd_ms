@@ -75,7 +75,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_slave_rr.ini
 	/* db.test -> slave 2 -> no such host */
 	if (!@$link->query("SELECT * FROM test")) {
 		if (isset($connect_errno_codes[$link->errno]))
-			printf("[005] Expected error, [%d] %s\n", $link->errno, $link->error);
+			printf("[005] Connect error, [%d] %s\n", $link->errno, $link->error);
 		else
 			printf("[005] Unexpected error, [%d] %s\n", $link->errno, $link->error);
 	}
@@ -110,7 +110,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_slave_rr.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_slave_rr.ini'.\n");
 ?>
 --EXPECTF--
-[005] Expected error, [%d] %s
+[005] Connect error, [%d] %s
 %d: master1,
 %d: slave1,slave1,
 0: slave2,
