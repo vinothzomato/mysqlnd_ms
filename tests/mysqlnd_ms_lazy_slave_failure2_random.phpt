@@ -31,38 +31,39 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random.ini
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	$connections = array();
+	$connections = array(
+		'master' => array(),
+		'slave' => array(),
+		'slave (no fallback)' => array(),
+	);
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	$connections[$link->thread_id] = array('master');
+	$connections['master'][] = $link->thread_id;
 
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true);
-	$connections[$link->thread_id][1] = 'slave (no fallback)';
+	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, true);
+	$connections['slave (no fallback)'][0] = $link->thread_id;
 
-	$states = array("failure" => false, "connect" => false);
+	$states = array("failure" => 0, "connect" => 0);
 	do {
-	  $res = @run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true);
+	  $res = run_query(4, $link, "SELECT CONNECTION_ID() AS _role", NULL, true, false, true);
 	  if ($res) {
 		  $row = $res->fetch_assoc();
 		  $res->close();
-		  if (!$states['connect']) {
+		  if (0 == $states['connect']) {
 			printf("This is '%s' speaking\n", $row['_role']);
-			$connections[$link->thread_id] = array('slave');
+			$connections['slave'][] = $link->thread_id;
 		  }
-		  $states['connect'] = true;
+		  $states['connect']++;
 	  } else {
-		  $states['failure'] = true;
-		  $connections[$link->thread_id][2] = 'slave (no fallback)';
+		  $states['failure']++;
+		  $connections['slave (no fallback)'][1] = $link->thread_id;
 	  }
-	} while (!($states['connect'] && $states['failure']));
+	} while ((0 == $states['connect']) || (0 == $states['failure']));
 
-
-
-	ksort($connections);
-	foreach ($connections as $thread_id => $details) {
-		printf("Connection %d -\n", $thread_id);
-		foreach ($details as $msg)
-		  printf("... %s\n", $msg);
+	foreach ($connections as $role => $details) {
+		printf("Role %s -\n", $role);
+		foreach ($details as $id)
+		  printf("... %d\n", $id);
 	}
 
 	print "done!";
@@ -74,11 +75,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random.ini
 ?>
 --EXPECTF--
 This is %s speaking
-Connection 0 -
-... slave (no fallback)
-... slave (no fallback)
-Connection %d -
-... master
-Connection %d -
-... slave
+Role master -
+... %d
+Role slave -
+... %d
+Role slave (no fallback) -
+... %d
+... 0
 done!

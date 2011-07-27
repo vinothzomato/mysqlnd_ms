@@ -15,7 +15,7 @@
 		2005 => true,
 	);
 
-	function run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false) {
+	function run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
 		global $connect_errno_codes;
 
 		if ($switch)
@@ -46,9 +46,9 @@
 			$ret = $link->query($query);
 		}
 
-		if (!$ret && !$quiet) {
+		if (!$ret && !$ignore_error && $link->errno) {
 			if (isset($connect_errno_codes[$link->errno]))
-				printf("Expected error, ");
+				printf("Connect error, ");
 			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 		}
 

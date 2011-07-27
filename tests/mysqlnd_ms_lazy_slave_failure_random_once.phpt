@@ -36,10 +36,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections[$link->thread_id] = array('master');
 
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
-	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
 	foreach ($connections as $thread_id => $details) {
@@ -56,15 +56,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random_once.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
-Expected error, [003] [%d] %s
-
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
-Expected error, [004] [%d] %s
+Connect error, [003] [%d] %s
+Connect error, [004] [%d] %s
 Connection %d -
 ... master
 Connection 0 -

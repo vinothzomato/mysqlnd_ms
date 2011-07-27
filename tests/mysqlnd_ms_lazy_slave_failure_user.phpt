@@ -89,20 +89,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_lazy_slave_failure_user.ini
 --EXPECTF--
 pick_server('myapp', '/*ms=master*/SET @myrole='master'') => master
 pick_server('myapp', '/*ms=slave*/SET @myrole='slave'') => slave
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-[E_WARNING] mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via tcp://unreachable:6033) in %s on line %d
+%AE_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Expected error, [003] [%d] %s
+Connect error, [003] [%d] %s
 pick_server('myapp', 'SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-[E_WARNING] mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via tcp://unreachable:6033) in %s on line %d
+%AE_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Expected error, [004] [%d] %s
+Connect error, [004] [%d] %s
 pick_server('myapp', 'SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-[E_WARNING] mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via tcp://unreachable:6033) in %s on line %d
+%AE_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Expected error, [005] [%d] %s
+Connect error, [005] [%d] %s
 Connection %d -
 ... master
 Connection 0 -
