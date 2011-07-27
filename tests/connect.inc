@@ -1,4 +1,5 @@
 <?php
+	require_once("config.inc");
 	/*
 	Default values are "localhost", "root",
 	database "stest" and empty password.
@@ -301,9 +302,6 @@
 				if (isset($config['master'])) {
 					if (!is_array($config['master']))
 						return sprintf("The master must be set using a hash");
-
-					if (count($config['master']) != 1)
-						return sprintf("You have set more than one master.");
 
 					$json[$application]['master'] = array();
 					foreach ($config['master'] as $idx => $host) {

@@ -1,17 +1,4 @@
-Set those environment variables prior to running the tests.
-
-(export NAME=default_value_if_not_set)
-export TEST_PHP_EXECUTABLE="/home/nixnutz/php/php-src/branches/PHP_5_3/sapi/cli/php"
-export MYSQL_TEST_HOST="localhost"
-export MYSQL_TEST_PORT=3306
-export MYSQL_TEST_USER="root"
-export MYSQL_TEST_PASSWD=""
-export MYSQL_TEST_DB="test"
-export MYSQL_TEST_ENGINE="MyISAM"
-export MYSQL_TEST_SOCKET=""
-export MYSQL_TEST_EXPERIMENTAL=0
-export MYSQL_TEST_SKIP_CONNECT_FAILURE=1
-export MYSQL_TEST_CONNECT_FLAGS=0
+Edit config.inc prior to running the tests.
 
 Some tests require the availability of a master and a slave server. The two
 MySQL server must be uniquely defined by their host names.
@@ -25,11 +12,10 @@ Using host[:port|socket] you can set the port respectively socket of the
 master and slave server. If not give, MYSQL_TEST_SOCKET and MYSQL_TEST_PORT
 are used.
 
-(export NAME=default_value_if_not_set)
-export MYSQL_TEST_MASTER_HOST="localhost"
-export MYSQL_TEST_SLAVE_HOST="localhost"
+MYSQL_TEST_MASTER_HOST="localhost"
+MYSQL_TEST_SLAVE_HOST="localhost"
 
 Example using host[:port|socket] syntax:
 
-export MYSQL_TEST_MASTER_HOST="127.0.0.1:3307"
-export MYSQL_TEST_SLAVE_HOST="localhost:/tmp/mysql2.sock"
+MYSQL_TEST_MASTER_HOST="127.0.0.1:3307"
+MYSQL_TEST_SLAVE_HOST="localhost:/tmp/mysql2.sock"
