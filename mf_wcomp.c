@@ -32,16 +32,20 @@ zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wilds
 {
 	static char many = '%';
 	static char single = '_';
+	static char escape = '\\';
 	const char * s = str;
 	const char * w = wildstr;
 
 	DBG_ENTER("mysqlnd_ms_match_wild");
 	/* check for */
-	if (!*s || !*w) {
+	if (!s || !w) {
 		DBG_RETURN(FALSE);
 	}
 	do {
 		while (*w != many && *w != single) {
+			if (*w == escape && !*++w) {
+				DBG_RETURN(FALSE);
+			}
 			if (*s != *w) {
 				DBG_RETURN(FALSE);
 			} else if (!*s) {
