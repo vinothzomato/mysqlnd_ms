@@ -5,10 +5,6 @@ Lazy connect, master failure, random
 require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
-if (($master_host == $slave_host)) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'master' => array("unreachable:6033"),

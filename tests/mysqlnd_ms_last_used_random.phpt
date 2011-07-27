@@ -5,10 +5,6 @@ SQL hints LAST_USED called before any server has been selected, pick = random
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if ($master_host == $slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),

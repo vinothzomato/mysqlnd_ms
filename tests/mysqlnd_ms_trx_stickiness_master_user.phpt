@@ -5,6 +5,10 @@ trx_stickiness=master (PHP 5.3.99+), pick = user (rr)
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP 5.3.99 or newer, using " . PHP_VERSION));
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 require_once('skipif_mysqli.inc');
 require_once("connect.inc");
 
