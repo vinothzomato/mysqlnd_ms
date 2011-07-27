@@ -35,11 +35,11 @@ mysqlnd_ms.collect_statistics=1
 	$connections = array();
 	compare_stats();
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH, true, true);
 	$connections[$link->thread_id] = array('master');
 	compare_stats();
 
-	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH));
+	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, true));
 	$connections[$link->thread_id][] = 'master';
 	compare_stats();
 
@@ -57,17 +57,10 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
-Expected error, [002] [%d] %s
+Connect error, [002] [%d] %s
 Stats use_master_sql_hint: 1
 Stats lazy_connections_master_failure: 1
-
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
-Expected error, [004] [%d] %s
+Connect error, [004] [%d] %s
 Stats use_master_sql_hint: 2
 Stats lazy_connections_master_failure: 2
 Connection 0 -
