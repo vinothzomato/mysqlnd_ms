@@ -62,7 +62,9 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --EXPECTF--
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 This is 'slave %d' speaking
 Connection %d -
 ... master

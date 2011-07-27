@@ -94,7 +94,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --EXPECTF--
 pick_server('myapp', '/*ms=master*/SET @myrole='master'') => master
-[E_WARNING] mysqli::query(): [%d] %s in %s on line %d
+[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+[E_WARNING] mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Expected error, [002] [%d] %s
 Stats use_master_sql_hint: 1
 Stats use_master_callback: 1
@@ -108,7 +109,8 @@ This is 'slave %s' speaking
 Stats use_slave: 1
 Stats use_slave_callback: 2
 pick_server('myapp', '/*ms=master*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => master
-[E_WARNING] mysqli::query(): [%d] %s in %s on line %d
+[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+[E_WARNING] mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Expected error, [005] [%d] %s
 Stats use_master_sql_hint: 2
 Stats use_master_callback: 2

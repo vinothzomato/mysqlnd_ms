@@ -73,20 +73,28 @@ mysqlnd_ms.collect_statistics=1
 Stats use_master_sql_hint: 1
 Stats lazy_connections_master_success: 1
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Stats use_slave_sql_hint: 1
 Stats lazy_connections_slave_failure: 1
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Stats use_slave_sql_hint: 2
 Stats lazy_connections_slave_failure: 2
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 This is 'slave %d' speaking
 Stats use_slave: 1
 Stats lazy_connections_slave_failure: 3
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 This is 'slave %d' speaking
 Stats use_slave: 2
 Stats lazy_connections_slave_failure: 4

@@ -59,13 +59,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_lazy_slave_failure_rr.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_lazy_slave_failure_rr.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Expected error, [003] [%d] %s
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Expected error, [004] [%d] %s
 
-Warning: mysqli::query(): [%d] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known (trying to connect via %s) in %s on line %d
 Expected error, [005] [%d] %s
 Connection %d -
 ... master
