@@ -82,7 +82,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_ro_partitioning_rr.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_ro_partitioning_rr.ini'.\n");
 ?>
 --EXPECTF--
-Warn about misconfiguration or not?
 [006] Hi folks, slave%d speaking.
 %d => master
 %d => slave%d
