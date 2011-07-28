@@ -116,7 +116,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				DBG_INF_FMT("i=%u pos=%u", i, *pos);
 				if (!element) {
 					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. Something is wrong.");
+									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. Something is wrong");
 					break;
 				}
 				/* time to increment the position */
@@ -198,7 +198,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 
 				if (!element) {
 					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong.");
+									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
 					break;
 				}
 				/* time to increment the position */
