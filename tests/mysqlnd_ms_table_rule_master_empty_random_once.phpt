@@ -1,5 +1,5 @@
 --TEST--
-table filter: no master rule
+table filter: no master rule (random once)
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -30,17 +30,17 @@ $settings = array(
 					),
 				),
 			),
-			"roundrobin" => array(),
+			"random" => array("sticky" => 1),
 		),
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_rule_master_empty.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_rule_master_empty_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_empty.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_empty_random_once.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -59,8 +59,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_empty.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_rule_master_empty.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_master_empty.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_rule_master_empty_random_once.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_master_empty_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong. in %s on line %d
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d

@@ -1,5 +1,5 @@
 --TEST--
-table filter: no slave rule
+table filter: no master rule (rr)
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -26,7 +26,7 @@ $settings = array(
 			"table" => array(
 				"rules" => array(
 					$db . ".%" => array(
-					  "master" => array("master1"),
+					  "slave" => array("slave1"),
 					),
 				),
 			),
@@ -35,12 +35,12 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_rule_slave_empty.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_rule_master_empty_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_slave_empty.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_empty_rr.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -59,8 +59,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_slave_empty.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_rule_slave_empty.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_slave_empty.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_rule_master_empty_rr.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_master_empty_rr.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. Something is wrong. in % on line %d
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
