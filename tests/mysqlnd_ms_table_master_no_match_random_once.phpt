@@ -9,13 +9,17 @@ $settings = array(
 	"myapp" => array(
 		'master' => array(
 			"master1" => array(
-				"host" => $master_host_only,
+				'host' 		=> $master_host_only,
+				'port' 		=> (int)$master_port,
+				'socket' 	=> $master_socket,
 			),
 		),
 
 		'slave' => array(
 			"slave1" => array(
-				'host' => $slave_host_only,
+				'host' 	=> $slave_host_only,
+				'port' 	=> (int)$slave_port,
+				'socket' => $slave_socket,
 			),
 		 ),
 
