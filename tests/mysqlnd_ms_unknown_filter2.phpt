@@ -1,5 +1,5 @@
 --TEST--
-Unknown filter
+Unknown filter, filtername \0
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -23,18 +23,18 @@ $settings = array(
 		 ),
 		'lazy_connections' => 0,
 		'filters' => array(
-			"ulf" => array( "is" => "bored"),
+			"a\0b" => array( "is" => "not", "fair" => "!"),
 			"random" => array("sticky" => true),
 		),
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_unknown_filter.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_unknown_filter2.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter2.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -54,8 +54,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_unknown_filter.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_unknown_filter.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_unknown_filter2.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_unknown_filter2.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'ulf' . Stopping in %s on line %d
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'a' . Stopping in %s on line %d
