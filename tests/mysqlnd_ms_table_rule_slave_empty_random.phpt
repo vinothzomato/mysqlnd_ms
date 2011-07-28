@@ -53,7 +53,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_slave_empty_random.ini
 	}
 
 	run_query(2, $link, "DROP TABLE IF EXISTS test");
-	run_query(3, $link, "SELECT * FROM test");
+
+	printf("[003] Expecting Fatal error...\n");
+	run_query(4, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
 
 	print "done!";
 ?>
@@ -63,4 +65,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_slave_empty_random.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_slave_empty_random.ini'.\n");
 ?>
 --EXPECTF--
+[003] Expecting Fatal error...
+
 Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. Something is wrong in %s on line %d
