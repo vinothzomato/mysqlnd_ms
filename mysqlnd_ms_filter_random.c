@@ -213,6 +213,10 @@ fallthrough:
 												 sizeof(MYSQLND *), NULL);
 							}
 						} while (0);
+					} else {
+						php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
+
 					}
 					smart_str_free(&fprint);
 					DBG_RETURN(connection);
