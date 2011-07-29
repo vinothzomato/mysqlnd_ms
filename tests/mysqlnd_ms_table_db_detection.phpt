@@ -14,7 +14,7 @@ $settings = array(
 				'socket' 	=> $master_socket,
 			),
 			"master2" => array(
-				"host" => "unknown_i_hope",
+				"host" => "unknown_master_i_hope",
 			),
 		),
 
@@ -25,7 +25,7 @@ $settings = array(
 				'socket' => $slave_socket,
 			),
 			"slave2" => array(
-				"host" => "unknown_i_hope",
+				"host" => "unknown_slave_i_hope",
 			),
 		 ),
 
