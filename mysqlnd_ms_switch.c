@@ -676,7 +676,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					break;
 				case SERVER_PICK_TABLE:
 					multi_filter = TRUE;
-					if (PASS == mysqlnd_ms_choose_connection_table_filter(filter, query, query_len, conn->connect_or_select_db,
+					if (PASS == mysqlnd_ms_choose_connection_table_filter(filter, query, query_len,
+																		  (conn->connect_or_select_db) ? conn->connect_or_select_db : (*conn_data)->cred.db,
 																		  selected_masters, selected_slaves,
 															  			  output_masters, output_slaves, stgy TSRMLS_CC))
 					{
