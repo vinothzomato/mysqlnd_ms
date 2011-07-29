@@ -270,19 +270,20 @@ mysqlnd_ms_table_filter_match(const char * const db_table_buf, HashTable * rules
 							  zend_llist * in_list, zend_llist * out_list TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
+	zend_bool match = FALSE;
 	HashPosition pos_rules;
 	HashTable ** filter_ht;
 	DBG_ENTER("mysqlnd_ms_table_filter_match");
 
 	zend_hash_internal_pointer_reset_ex(rules, &pos_rules);
-	while (SUCCESS == zend_hash_get_current_data_ex(rules, (void **)&filter_ht, &pos_rules) && filter_ht) {
+	while ((FALSE == match) && (SUCCESS == zend_hash_get_current_data_ex(rules, (void **)&filter_ht, &pos_rules) && filter_ht)) {
 		char * filter_mask;
 		uint fm_len;
 		ulong n_key;
 
 		if (HASH_KEY_IS_STRING == zend_hash_get_current_key_ex(rules, &filter_mask, &fm_len, &n_key, 0, &pos_rules)) {
 			DBG_INF_FMT("Comparing [%s] with [%s]", db_table_buf, filter_mask);
-			if (TRUE == mysqlnd_ms_match_wild(db_table_buf, filter_mask TSRMLS_CC)) {
+			if (TRUE == (match = mysqlnd_ms_match_wild(db_table_buf, filter_mask TSRMLS_CC))) {
 				MYSQLND_MS_TABLE_FILTER ** entry_filter_pp;
 				HashPosition pos_servers;
 				/* found a match*/
@@ -315,6 +316,7 @@ skip1:
 		}
 		zend_hash_move_forward_ex(rules, &pos_rules);
 	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -364,9 +366,12 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 					);
 				if (tinfo->db) {
 					snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", tinfo->db, tinfo->table);
+					DBG_INF_FMT("qualified table=%s", db_table_buf);
 				} else if (tinfo->table && connect_or_select_db) {
 					snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, tinfo->table);
+					DBG_INF_FMT("qualified table=%s (using connect_or_select_db=%s)", db_table_buf, connect_or_select_db);
 				} else {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to parse table name");
 					break;
 				}
 				zend_llist_clean(master_out);
@@ -394,7 +399,7 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 		if (parser) {
 			if (err) {
 				DBG_INF_FMT("parser start error %d", err);
-			}		
+			}
 			mysqlnd_qp_free_parser(parser TSRMLS_CC);
 		}
 	}
