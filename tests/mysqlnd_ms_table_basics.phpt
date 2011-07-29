@@ -13,9 +13,6 @@ $settings = array(
 				'port' 		=> (int)$master_port,
 				'socket' 	=> $master_socket,
 			),
-			"master2" => array(
-				"host" => "unknown_i_hope",
-			),
 		),
 
 		'slave' => array(
@@ -34,10 +31,14 @@ $settings = array(
 						"master" => array("master2"),
 						"slave" => array("slave1"),
 					),
+					"%"	=> array(
+						"master" => array("master1"),
+						"slave"	 => array("master1"),
+					)
 				),
 			),
 
-			"roundrobin" => array(),
+			"random" => array(),
 		),
 	),
 
@@ -60,11 +61,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_basics.ini
 	}
 
 	/* db.ulf -> master 1 */
-	run_query(3, $link, "DROP TABLE IF EXISTS ulf");
+	verbose_run_query(3, $link, "DROP TABLE IF EXISTS ulf");
 
 	/* db.test1 -> master 2 -> no such host */
-	if (!$link->query("DROP TABLE IF EXISTS test1"))
-		printf("[004] [%d] %s\n", $link->errno, $link->error);
+	verbose_run_query(4, $link, "DROP TABLE IF EXISTS test1");
 
 	print "done!";
 ?>
@@ -76,5 +76,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_basics.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_basics.ini'.\n");
 ?>
 --EXPECTF--
-[004] [%d] %s
-done!
+[003 + 01] Query 'DROP TABLE IF EXISTS ulf'
+[003 + 02] Thread '%d'
+[004 + 01] Query 'DROP TABLE IF EXISTS test1'
+
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d

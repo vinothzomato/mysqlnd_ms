@@ -15,6 +15,13 @@
 		2005 => true,
 	);
 
+	function verbose_run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
+		printf("[%03d + 01] Query '%s'\n", $offset, $query);
+		$ret = run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false);
+		printf("[%03d + 02] Thread '%d'\n", $offset, $link->thread_id);
+		return $ret;
+	}
+
 	function run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
 		global $connect_errno_codes;
 
