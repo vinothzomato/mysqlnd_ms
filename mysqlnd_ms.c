@@ -712,7 +712,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 	enum_func_status ret = PASS;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
-	DBG_ENTER("mysqlnd_ms::select_db");
+	DBG_ENTER("mysqlnd_ms::change_user");
 	if (!conn_data || !*conn_data) {
 #if PHP_VERSION_ID >= 50399
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->change_user(proxy_conn, user, passwd, db, silent, passwd_len TSRMLS_CC));
