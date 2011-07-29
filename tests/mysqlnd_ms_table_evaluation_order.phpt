@@ -14,7 +14,7 @@ $settings = array(
 				'socket' 	=> $master_socket,
 			),
 			"master2" => array(
-				"host" => "unknown_i_hope",
+				"host" => "unknown_master_i_hope",
 			),
 		),
 
@@ -25,7 +25,7 @@ $settings = array(
 				'socket' => $slave_socket,
 			),
 			"slave2" => array(
-				"host" => "unknown_i_hope",
+				"host" => "unknown_slave_i_hope",
 			),
 		 ),
 
@@ -37,10 +37,8 @@ $settings = array(
 						"master"=> array("master2"),
 						"slave" => array("slave1"),
 					),
-				),
 
-				"rules" => array(
-					$db . ".test" => array(
+					$db . ".test%" => array(
 						"master"=> array("master1"),
 						"slave" => array("slave2"),
 					),
@@ -58,12 +56,11 @@ if ($error = create_config("test_mysqlnd_ms_table_evaluation_order.ini", $settin
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_evaluation_order.ini
+mysqlnd.debug="d:t:O,/tmp/mysqlnd.trace"
 --FILE--
 <?php
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
-
-	create_test_table($slave_host_only, $user, $passwd, $db, $port, $socket);
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -73,7 +70,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_evaluation_order.ini
 
 	/* match all rule at the beginning -> master 2 -> error */
 	$threads = array();
-	if (!@mysqli_query($link, "DROP TABLE IF EXISTS test")) {
+	if (!@mysqli_query($link, "DROP TABLE IF EXISTS best")) {
 		if (isset($connect_errno_codes[$link->errno])) {
 		  printf("Connect error, ");
 		}
@@ -82,6 +79,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_evaluation_order.ini
 	$threads[$link->thread_id] = array("master2");
 
 	/* db.test but match all rule at the beginning -> slave 1 -> no error  */
+	create_test_table($slave_host_only, $user, $passwd, $db, $port, $socket);
 	if ($res = run_query(4, $link, "SELECT 1 FROM test"))
 		var_dump($res->fetch_assoc());
 	$threads[$link->thread_id] = array('slave1');
@@ -103,7 +101,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_evaluation_order.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_evaluation_order.ini'.\n");
 ?>
 --EXPECTF--
-[%d] %s Some error, % shall match DROP TABLE and try to use master2 which does not exist.
+%Aonnect error, [004] [%d] %s
 array(1) {
   [1]=>
   string(1) "1"

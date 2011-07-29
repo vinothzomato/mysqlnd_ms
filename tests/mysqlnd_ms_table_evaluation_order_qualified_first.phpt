@@ -37,9 +37,7 @@ $settings = array(
 						"master"=> array("master1"),
 						"slave" => array("slave2"),
 					),
-				),
 
-				"rules" => array(
 					"%" => array(
 						"master"=> array("master2"),
 						"slave" => array("slave1"),
