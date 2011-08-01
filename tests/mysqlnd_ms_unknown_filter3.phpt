@@ -35,7 +35,6 @@ if ($error = create_config("test_mysqlnd_ms_unknown_filter3.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter3.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
