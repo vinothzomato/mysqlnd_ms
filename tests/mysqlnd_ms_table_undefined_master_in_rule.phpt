@@ -70,4 +70,3 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_master_in_rule.ini
 ?>
 --EXPECTF--
 Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
-done!

@@ -47,6 +47,7 @@ if ($error = create_config("test_mysqlnd_ms_table_write_non_unique.ini", $settin
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_write_non_unique.ini
+mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -80,28 +81,28 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_write_non_unique.ini
 		printf("%d -> %d\n", $k, $thread_id);
 		if (!is_null($last)) {
 			if ($last != $thread_id)
-			  printf("Server switch\n");
+				printf("Server switch\n");
+			else
+				printf("No server switch\n");
 		}
 		$last = $thread_id;
 	}
 
 	print "done!";
 ?>
+--XFAIL--
+Discuss if allowed.
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_table_write_non_unique.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_write_non_unique.ini'.\n");
 ?>
 --EXPECTF--
-Unclear what shall happen and what to test for. Best would be errors.
-Load balancer may accept more than one master returned from partitioning filter but
-end result is random data distribution and that's something to avoid.
-[002] [%d] %s
-[003] [%d] %s
-[004] [%d] %s
-[005] [%d] %s
-0 -> 0
-1 -> 0
-2 -> 0
-3 -> 0
+0 -> %d
+1 -> %d
+Server switch
+2 -> %d
+Server switch
+3 -> %d
+Server switch
 done!
