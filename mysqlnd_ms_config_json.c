@@ -127,7 +127,7 @@ static struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_zval_data_to_hashtabl
 static void
 mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t skey_len, ulong nkey, int key_type TSRMLS_DC)
 {
-	struct st_mysqlnd_ms_config_json_entry * new_entry;
+	struct st_mysqlnd_ms_config_json_entry * new_entry = NULL;
 	DBG_ENTER("mysqlnd_ms_add_zval_to_hash");
 
 	switch (Z_TYPE_P(zv)) {
@@ -159,8 +159,7 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 			DBG_INF("null value");
 			break;
 		default:
-			mnd_free(new_entry);
-			new_entry = NULL;
+			DBG_INF("unknown type");
 			break;
 	}
 	if (new_entry) {
