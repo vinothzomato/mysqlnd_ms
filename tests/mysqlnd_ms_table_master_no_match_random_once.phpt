@@ -28,7 +28,7 @@ $settings = array(
 			"table" => array(
 				"rules" => array(
 					$db . "%" => array(
-						"master" => array("master1"),
+						"master" => array("master2"),
 						"slave" => array("slave1"),
 					),
 				),
@@ -71,5 +71,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_master_no_match_random_once.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_master_no_match_random_once.ini'.\n");
 ?>
 --EXPECTF--
-[003] Warn user about misconfiguration, [%d] %s
-done!
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
