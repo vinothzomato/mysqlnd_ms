@@ -69,5 +69,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_master_in_rule_lazy.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_undefined_master_in_rule_lazy.ini'.\n");
 ?>
 --EXPECTF--
-[004] [HY000/2002] Some meaningful message from mysqlnd_ms, e.g. some connect error
-done!
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
