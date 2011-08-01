@@ -43,6 +43,10 @@ $settings = array(
 						"master" => array("master2"),
 						"slave" => array("slave2"),
 					),
+					"%" => array(
+						"master" => array("master1"),
+						"slave" => array("slave1", "slave3"),
+					),
 				),
 			),
 
@@ -57,6 +61,7 @@ if ($error = create_config("test_mysqlnd_ms_table_slave_rr.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_slave_rr.ini
+mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
