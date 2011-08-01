@@ -14,7 +14,7 @@ $settings = array(
 				'socket' 	=> $master_socket,
 			),
 			"master2" => array(
-				 'host' 	=> "I_really_hope_this_does_and_so_forth",
+				 'host' 	=> "I_really_hope_this_master_does_and_so_forth",
 			),
 		),
 		'slave' => array(
@@ -24,7 +24,7 @@ $settings = array(
 				'socket' => $slave_socket,
 			),
 			"slave2" => array(
-				 'host' 	=> "I_really_hope_this_does_and_so_forth",
+				 'host' 	=> "I_really_hope_this_slave_does_and_so_forth",
 			),
 		 ),
 		'lazy_connections' => 1,
@@ -52,6 +52,7 @@ if ($error = create_config("test_mysqlnd_ms_table_rule_twice.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_twice.ini
+mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -65,7 +66,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_twice.ini
 	/* valid config or not? */
 	run_query(2, $link, "DROP TABLE IF EXISTS test");
 	if (0 == $link->thread_id)
-		printf("[003] Not connected to any server.");
+		printf("[003] Not connected to any server.\n");
 
 	print "done!";
 ?>
@@ -75,4 +76,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_twice.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_twice.ini'.\n");
 ?>
 --EXPECTF--
+%Aonnect error, [002] [%d] %s
+[003] Not connected to any server.
 done!

@@ -53,6 +53,7 @@ if ($error = create_config("test_mysqlnd_ms_table_rule_twice2.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_twice2.ini
+mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -71,5 +72,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_twice2.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_twice2.ini'.\n");
 ?>
 --EXPECTF--
-[001] [%d] %s
 done!
