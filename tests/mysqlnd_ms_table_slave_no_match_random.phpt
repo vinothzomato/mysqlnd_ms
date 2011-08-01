@@ -29,6 +29,7 @@ $settings = array(
 				"rules" => array(
 					$db . ".test" => array(
 						"slave" => array("slave1"),
+						"master" => array("master1"),
 					),
 				),
 			),
@@ -44,6 +45,7 @@ if ($error = create_config("test_mysqlnd_ms_slave_no_match_random.ini", $setting
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_no_match_random.ini
+mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -65,11 +67,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_no_match_random.ini
 	$threads[$link->thread_id][] = 'master';
 
 	/* db.test -> slave 1 */
-	$res = run_query(6, $link, "SELECT id FROM test");
+	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	$res = verbose_run_query(6, $link, "SELECT id FROM test");
 	$threads[$link->thread_id] = array("slave");
 
 	/* db.DUAL -> master, slave 1 has db.test only! */
-	$res = run_query(7, $link, "SELECT 1 FROM DUAL");
+	$res = verbose_run_query(7, $link, "SELECT 1 FROM DUAL");
 	var_dump($res->fetch_assoc());
 	$threads[$link->thread_id][] = 'master';
 
@@ -90,7 +93,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_no_match_random.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_slave_no_match_random.ini'.\n");
 ?>
 --EXPECTF--
-[006] [%d] %s Some warning about missing slave for SELECT id FROM test
-%d: master,master,master,master,
-%d: slave,
-done!
+[006 + 01] Query 'SELECT id FROM test'
+[006 + 02] Thread '%d'
+[007 + 01] Query 'SELECT 1 FROM DUAL'
+
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d

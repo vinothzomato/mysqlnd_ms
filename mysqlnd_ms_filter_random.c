@@ -117,6 +117,9 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					if (!connection) {
 						smart_str_free(&fprint);
 						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+							/* TODO: connection error would be better */
+							php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
 							/* should be a very rare case to be here - connection shouldn't be NULL in first place */
 							DBG_RETURN(connection);
 						}

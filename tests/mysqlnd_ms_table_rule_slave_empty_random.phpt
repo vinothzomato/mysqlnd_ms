@@ -67,4 +67,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_slave_empty_random.ini
 --EXPECTF--
 [003] Expecting Fatal error...
 
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. Something is wrong in %s on line %d
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
