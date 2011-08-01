@@ -461,6 +461,10 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 							mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_name, &filter_name_len, NULL TSRMLS_CC);
 
 					if (!current_filter || !filter_name || !filter_name_len) {
+						if (current_filter) {
+							php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+						}
 						DBG_INF("no next sub-section");
 						break;
 					}
