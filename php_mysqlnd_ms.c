@@ -75,6 +75,7 @@ php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 	mysqlnd_ms_globals->ini_file = NULL;
 	mysqlnd_ms_globals->user_pick_server = NULL;
 	mysqlnd_ms_globals->collect_statistics = FALSE;
+	mysqlnd_ms_globals->multi_master = FALSE;
 }
 /* }}} */
 
@@ -122,6 +123,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("mysqlnd_ms.force_config_usage", "0", PHP_INI_SYSTEM, OnUpdateBool, force_config_usage, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.ini_file", NULL, PHP_INI_SYSTEM, OnUpdateString, ini_file, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.collect_statistics", "0", PHP_INI_SYSTEM, OnUpdateBool, collect_statistics, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
+	STD_PHP_INI_ENTRY("mysqlnd_ms.multi_master", "0", PHP_INI_SYSTEM, OnUpdateBool, multi_master, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 PHP_INI_END()
 /* }}} */
 

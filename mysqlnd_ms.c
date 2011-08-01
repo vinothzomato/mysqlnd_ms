@@ -437,7 +437,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			ret = mysqlnd_ms_connect_to_host(conn, &(*conn_data)->master_connections, &(*conn_data)->cred, the_section,
 											 MASTER_NAME, sizeof(MASTER_NAME) - 1,
 											 use_lazy_connections,
-											 conn->persistent, FALSE /* multimaster*/,
+											 conn->persistent, MYSQLND_MS_G(multi_master) /* multimaster*/,
 											 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
 											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
 											 &conn->error_info TSRMLS_CC);

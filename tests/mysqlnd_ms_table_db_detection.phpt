@@ -51,6 +51,7 @@ if ($error = create_config("test_mysqlnd_ms_table_db_detection.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_db_detection.ini
+mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -73,7 +74,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_db_detection.ini
 	$threads[$link->thread_id][] = "slave2";
 
 	/* db.test -> db.% rule -> slave2 */
-	run_query(5, $link, sprintf("SELECT * FROM %s.test", $link->real_escape_string($db)));
+	run_query(5, $link, sprintf("SELECT * FROM %s.test", $db));
 	$threads[$link->thread_id][] = "slave2";
 
 	if ($link->select_db("i_hope_this_db_does_not_exist"))
@@ -100,9 +101,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_db_detection.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_db_detection.ini'.\n");
 ?>
 --EXPECTF--
-[003] [%d] %s - master2 not available for drop
-[004] [%d] %s - slave2 not available for select from test
-[005] [%d] %s - slave2 not available for select from db.test
-[007] [%d] %s - slave2 not available for select from test, NOT: i_hope_this_db_does_not_exist not found or the like
-0: master2, slave2, slave2, slave2,
+%Aonnect error, [003] [%d] %s
+%Aonnect error, [004] [%d] %s
+%Aonnect error, [005] [%d] %s
+%Aonnect error, [007] [%d] %s
+0: master2,slave2,slave2,slave2,
 done!
