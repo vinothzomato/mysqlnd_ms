@@ -47,7 +47,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_slave_in_rule.ini
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
-	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
@@ -57,7 +56,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_slave_in_rule.ini
 		$master = $link->thread_id;
 
 		/* there is no slave to run this query... */
-		if ($res = run_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test1")) {
+		if ($res = run_query(4, $link, "SELECT 'one' AS _id FROM test1")) {
 			var_dump($res->fetch_assoc());
 	  }
 	  if ($link->thread_id == $master)
@@ -78,5 +77,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_slave_in_rule.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_undefined_slave_in_rule.ini'.\n");
 ?>
 --EXPECTF--
-[007] [HY000/2002] Some meaningful message from mysqlnd_ms, e.g. some connect error
-done!
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
