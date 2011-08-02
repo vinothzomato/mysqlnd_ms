@@ -37,5 +37,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_last_used_rr.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_last_used_rr.ini'.\n");
 ?>
 --EXPECTF--
-[002] [0][HYOO] Some meaningful mysqlnd ms error message
+Warning: mysqli::query(): (mysqlnd_ms) Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail %s on line %d
+[002] [%d][%s] %s
 done!

@@ -231,6 +231,10 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		}
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
+			if (!stgy->last_used_conn) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING,
+									 MYSQLND_MS_ERROR_PREFIX " Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail");
+			}
 			DBG_RETURN(stgy->last_used_conn);
 		default:
 			/* error */
