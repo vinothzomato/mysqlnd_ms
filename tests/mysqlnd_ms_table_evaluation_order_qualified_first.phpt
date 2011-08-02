@@ -14,7 +14,7 @@ $settings = array(
 				'socket' 	=> $master_socket,
 			),
 			"master2" => array(
-				"host" => "unknown_i_hope",
+				"host" => "unknown_master_i_hope",
 			),
 		),
 
@@ -25,7 +25,7 @@ $settings = array(
 				'socket' => $slave_socket,
 			),
 			"slave2" => array(
-				"host" => "unknown_i_hope",
+				"host" => "unknown_slave_i_hope",
 			),
 		 ),
 
@@ -81,7 +81,7 @@ mysqlnd_ms.multi_master=1
 	/* db.test -> db.test rule -> slave 2 */
 	if ($res = run_query(5, $link, "SELECT 1 FROM test"))
 		var_dump($res->fetch_assoc());
-	$threads[$link->thread_id] = array('slave2');
+	$threads[$link->thread_id][] = 'slave2';
 
 	foreach ($threads as $thread_id => $roles) {
 		printf("%d: ", $thread_id);
@@ -100,9 +100,8 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_evaluation_order_qualified_first.ini'.\n");
 ?>
 --EXPECTF--
-[004] [%d] %s Some error, DROP TABLE db.test2 -> master2
-[005] [%d] %s Some error, SELECT db.test -> slave2
+%Aonnect error, [004] [%d] %s
+%Aonnect error, [005] [%d] %s
 %d: master1,
-0: master2,
-0: slave2,
+0: master2,slave2,
 done!
