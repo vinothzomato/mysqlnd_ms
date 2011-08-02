@@ -101,7 +101,7 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_evaluation_order.ini'.\n");
 ?>
 --EXPECTF--
-%Aonnect error, [004] [%d] %s
+%Aonnect error, [%d] %s
 array(1) {
   [1]=>
   string(1) "1"
