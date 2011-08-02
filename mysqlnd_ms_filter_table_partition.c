@@ -402,7 +402,7 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 			if (err) {
 				DBG_INF_FMT("parser start error %d", err);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-									MYSQLND_MS_ERROR_PREFIX "Please, report a bug. Parser error %d. Failed to parse statement '%*s'",
+									MYSQLND_MS_ERROR_PREFIX " Please, report a bug. Parser error %d. Failed to parse statement '%*s'",
 									err, (int) query_len, query);
 
 			}
