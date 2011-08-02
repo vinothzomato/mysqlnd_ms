@@ -676,7 +676,7 @@ statement: select
 		;
 
 
-create: comment QC_TOKEN_CREATE 
+create: comment QC_TOKEN_CREATE QC_TOKEN_TABLE if_not_exists table
 				{
 					PINFO.statement = STATEMENT_CREATE;
 					zval_dtor(&$1);
@@ -696,6 +696,11 @@ temporary: QC_TOKEN_TEMPORARY
 if_exists: QC_TOKEN_IF QC_TOKEN_EXISTS
 		|
 		;
+
+if_not_exists: QC_TOKEN_IF QC_TOKEN_NOT QC_TOKEN_EXISTS
+		|
+		;
+
 
 restrict: QC_TOKEN_RESTRICT
 		| QC_TOKEN_CASCADE
@@ -805,7 +810,7 @@ select: comment QC_TOKEN_SELECT
 				{
 					PINFO.active_field_list = NULL;
 				}
-				from_clause
+				opt_from_clause
 				{
 					if (!PINFO.parse_where) {
 						YYACCEPT;
@@ -834,8 +839,23 @@ select_field_list:  select_field_list_tail QC_TOKEN_COMMA select_field_list
 select_field_list_tail: comment select_field ident_alias { zval_dtor(&$1); zval_dtor(&$3); }
 
 select_field: field
+		| function_call
 		| QC_TOKEN_INTNUM
 		| QC_TOKEN_STRING
+		;
+
+function_call: field QC_TOKEN_BRACKET_OPEN opt_function_call_parameter_list QC_TOKEN_BRACKET_CLOSE;
+
+opt_function_call_parameter_list: 
+		| function_call_parameter_list
+		;
+
+function_call_parameter_list: function_call_parameter_list QC_TOKEN_COMMA function_call_parameter
+		| function_call_parameter 
+		;
+		
+
+function_call_parameter:;
 
 field: identifier
 				{
@@ -946,7 +966,10 @@ table: QC_TOKEN_DUAL
 				}
 		;
 
-from_clause: QC_TOKEN_FROM query_table_list
+opt_from_clause: QC_TOKEN_FROM query_table_list
+		| 		{
+					YYACCEPT;
+				}
 		;
 
 query_table_list: query_table 
