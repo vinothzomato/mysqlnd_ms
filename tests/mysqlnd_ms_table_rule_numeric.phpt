@@ -14,7 +14,7 @@ $settings = array(
 				'socket' 	=> $master_socket,
 			),
 			"master2" => array(
-				'host'		=> 'Thursday_1546_pm_really',
+				'host'		=> 'Master_Thursday_1546_pm_really',
 			),
 		),
 		'slave' => array(
@@ -24,10 +24,10 @@ $settings = array(
 				'socket' => $slave_socket,
 			),
 			"master2" => array(
-				'host'		=> 'Thursday_1546_pm_really',
+				'host'		=> 'Slave_Thursday_1546_pm_really',
 			),
 		 ),
-		'lazy_connections' => 0,
+		'lazy_connections' => 1,
 		'filters' => array(
 			"table" => array(
 				"rules" => array(
@@ -59,7 +59,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_numeric.ini
 	}
 
 	/* valid config or not? */
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
+	verbose_run_query(2, $link, "DROP TABLE IF EXISTS test");
 	if (0 == $link->thread_id)
 		printf("[003] Not connected to any server.");
 
@@ -71,5 +71,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_numeric.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_numeric.ini'.\n");
 ?>
 --EXPECTF--
-Bail about invalid config
-done!
+[002 + 01] Query 'DROP TABLE IF EXISTS test'
+
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
