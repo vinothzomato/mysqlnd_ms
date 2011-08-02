@@ -72,8 +72,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_commit.ini
 ?>
 --EXPECTF--
 [003] [%d] %s
-[003] [%d] %s
-[003] [%d] %s
+[004] [%d] %s
+[005] [%d] %s
 array(1) {
   [1]=>
   string(1) "1"
