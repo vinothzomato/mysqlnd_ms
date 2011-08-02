@@ -14,7 +14,7 @@ $settings = array(
 				'socket' 	=> $master_socket,
 			),
 			"master2" => array(
-				'host'		=> 'Thursday_1540_pm_really',
+				'host'		=> 'Master_Thursday_1540_pm_really',
 			),
 		),
 		'slave' => array(
@@ -24,16 +24,20 @@ $settings = array(
 				'socket' => $slave_socket,
 			),
 			"master2" => array(
-				'host'		=> 'Thursday_1540_pm_really',
+				'host'		=> 'Slave_Thursday_1540_pm_really',
 			),
 		 ),
-		'lazy_connections' => 0,
+		'lazy_connections' => 1,
 		'filters' => array(
 			"table" => array(
 				"rules" => array(
 					"" => array(
 					  "master" => array("master2"),
 					  "slave" => array("slave2"),
+					),
+					"%" => array(
+					  "master" => array("master1"),
+					  "slave" => array("slave1"),
 					),
 				),
 			),
@@ -60,7 +64,7 @@ mysqlnd_ms.multi_master=1
 	}
 
 	/* valid config or not? */
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
+	verbose_run_query(2, $link, "DROP TABLE IF EXISTS test");
 	if (0 == $link->thread_id)
 		printf("[003] Not connected to any server.");
 
@@ -72,4 +76,4 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_empty_pattern.ini'.\n");
 ?>
 --EXPECTF--
-done!
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) A table filter must be given a name. You must not use an empty string in %s on line %d

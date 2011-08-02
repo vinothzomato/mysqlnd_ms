@@ -239,6 +239,8 @@ mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 						mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_mask, &filter_mask_len, NULL TSRMLS_CC);
 
 				if (!current_filter || !filter_mask || !filter_mask_len) {
+					if (NULL != filter_mask)
+						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " A table filter must be given a name. You must not use an empty string");
 					DBG_INF("no next sub-section");
 					break;
 				}
