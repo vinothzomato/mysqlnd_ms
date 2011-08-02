@@ -36,12 +36,12 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_rule_master_ref_slave_rr.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_master_ref_slave_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_ref_slave_rr.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_master_ref_slave_rr.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -53,17 +53,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_ref_slave_rr.ini
 	}
 
 	/* valid config or not? */
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
-	run_query(3, $link, "CREATE TABLE test(id INT)");
-	run_query(4, $link, "SELECT * FROM test");
+	verbose_run_query(2, $link, "DROP TABLE IF EXISTS test");
+	verbose_run_query(3, $link, "CREATE TABLE test(id INT)");
+	verbose_run_query(4, $link, "SELECT * FROM test");
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_rule_master_ref_slave_rr.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_master_ref_slave_rr.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_master_ref_slave_rr.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_master_ref_slave_rr.ini'.\n");
 ?>
 --EXPECTF--
-Valid or not, please define, Andrey! Proposal: valid.
-done!
+[002 + 01] Query 'DROP TABLE IF EXISTS test'
+
+Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
