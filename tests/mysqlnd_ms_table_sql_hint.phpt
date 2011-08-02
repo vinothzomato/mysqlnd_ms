@@ -59,14 +59,31 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 
 	run_query(3, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_LAST_USED_SWITCH);
 	run_query(4, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
-	$res = run_query(5, $link, "SELECT CONNECTION_ID() AS _id, id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = run_query(5, $link, "SELECT id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 
 	if ($master != $row['id'])
-		printf("Master thread id differs from INSERT CONNECTION_ID(), expecting %d got %d\n", $master, $row['id']);
+		printf("[006] Master thread id differs from INSERT CONNECTION_ID(), expecting %d got %d\n", $master, $row['id']);
 
-	if ($master != $row['_id'])
-		printf("Master thread id differs from SELECT CONNECTION_ID(), expecting %d got %d\n", $master, $row['_id']);
+	if ($master != $link->thread_id)
+		printf("[007] Master thread id differs from SELECT CONNECTION_ID(), expecting %d got %d\n", $master, $link->thread_id);
+
+	run_query(8, $link, "DROP TABLE IF EXISTS test1", MYSQLND_MS_SLAVE_SWITCH);
+	$slave = $link->thread_id;
+	run_query(9, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_SLAVE_SWITCH);
+	run_query(10, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
+
+	$res = run_query(11, $link, "SELECT id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
+	$row = $res->fetch_assoc();
+
+	if ($slave != $row['id'])
+		printf("[012] Slave thread id differs from INSERT CONNECTION_ID(), expecting %d got %d\n", $slave, $row['id']);
+
+	if ($slave != $link->thread_id)
+		printf("[013] Master thread id differs from SELECT CONNECTION_ID(), expecting %d got %d\n", $slave, $link->thread_id);
+
+	if ($slave == $master)
+		printf("[014] Master and slave are using the same connection\n");
 
 	print "done!";
 ?>
