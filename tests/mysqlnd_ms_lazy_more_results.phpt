@@ -1,5 +1,5 @@
 --TEST--
-lazy connections and stmt init
+lazy connections and more_results
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -30,12 +30,12 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_stmt_init.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_lazy_more_results.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_more_results.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -49,29 +49,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 	if (!$link->dump_debug_info())
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 
-	if (!($stmt = $link->stmt_init()))
+	if (!$link->more_results())
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
+	else
+		printf("[004] More results\n");
 
-	if (!($stmt = $link->stmt_init()))
+	if (!$link->dump_debug_info())
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
-	/* line useable ?! */
-	if (!$link->dump_debug_info())
-		printf("[006] [%d] %s\n", $link->errno, $link->error);
-
-
-	if (is_object($stmt)) {
-		$one = NULL;
-		if (!$stmt->prepare("SELECT 1 AS _one FROM DUAL") ||
-			!$stmt->execute() ||
-			!$stmt->bind_result($one))
-			printf("[007] [%d] '%s'\n", $stmt->errno, $stmt->error);
-		else
-			printf("[008] _one = %s\n", $one);
-	}
-
-	if ($res = run_query(9, $link, "SELECT 1 FROM DUAL"))
+	if ($res = run_query(6, $link, "SELECT 1 FROM DUAL"))
 		var_dump($res->fetch_assoc());
+
 
 	print "done!";
 ?>
@@ -79,15 +67,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 <?php
 	require_once("connect.inc");
 
-	if (!unlink("test_mysqlnd_ms_lazy_stmt_init.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_stmt_init.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_lazy_more_results.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_more_results.ini'.\n");
 ?>
 --EXPECTF--
 [003] [%d] %s
 [004] [%d] %s
 [005] [%d] %s
-[006] [%d] %s
-[007] [%d] '%s'
 array(1) {
   [1]=>
   string(1) "1"

@@ -65,7 +65,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_set_charset.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_set_charset.ini'.\n");
 ?>
 --EXPECTF--
-[003] %d %s
+[003] [%d] %s
 array(1) {
   [1]=>
   string(1) "1"

@@ -67,13 +67,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	/* TODO - line becomes useable ?!
-	check_codes(9, $link, $link->commit());
-	check_codes(9, $link, $link->rollback());
-	check_codes(24, $link, $link->more_results());
-	check_codes(23, $link, $link->next_result());
-	*/
-
 	check_codes(3, $link, $link->errno);
 	check_codes(4, $link, $link->error);
 	check_codes(5, $link, $link->sqlstate);
