@@ -378,11 +378,13 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 				}
 				zend_llist_clean(master_out);
 				zend_llist_clean(slave_out);
-				if (PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->master_rules, master_in, master_out TSRMLS_CC) &&
-					PASS == mysqlnd_ms_table_filter_match(db_table_buf, &filter->slave_rules, slave_in, slave_out TSRMLS_CC))
-				{
-					ret = PASS;
+				ret = mysqlnd_ms_table_filter_match(db_table_buf, &filter->master_rules, master_in, master_out TSRMLS_CC);
+				
+				if (PASS == ret && parser->parse_info.statement == STATEMENT_SELECT) {
+					/* non-SELECTs don't go the the slaves */
+					ret = mysqlnd_ms_table_filter_match(db_table_buf, &filter->slave_rules, slave_in, slave_out TSRMLS_CC);
 				}
+
 				if (ret != PASS || (!zend_llist_count(master_out) && !zend_llist_count(slave_out))) {
 					break;
 				}

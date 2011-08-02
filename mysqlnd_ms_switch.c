@@ -656,6 +656,17 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 			 filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
 		{
 			zend_bool multi_filter = FALSE;
+			if (zend_llist_count(output_masters) || zend_llist_count(output_slaves)) {
+				/* swap and clean */
+				zend_llist * tmp_sel_masters = selected_masters;
+				zend_llist * tmp_sel_slaves = selected_slaves;
+				zend_llist_clean(selected_masters);
+				zend_llist_clean(selected_slaves);
+				selected_masters = output_masters;
+				selected_slaves = output_slaves;
+				output_masters = tmp_sel_masters;
+				output_slaves = tmp_sel_slaves;
+			}
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
 					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,
@@ -663,39 +674,18 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					break;
 				case SERVER_PICK_USER_MULTI:
 					multi_filter = TRUE;
-					if (PASS == mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
-																	 selected_masters, selected_slaves,
-																	 output_masters, output_slaves, stgy TSRMLS_CC))
-					{
-						/* swap and clean */
-						zend_llist * tmp_sel_masters = selected_masters;
-						zend_llist * tmp_sel_slaves = selected_slaves;
-						zend_llist_clean(selected_masters);
-						zend_llist_clean(selected_slaves);
-						selected_masters = output_masters;
-						selected_slaves = output_slaves;
-						output_masters = tmp_sel_masters;
-						output_slaves = tmp_sel_slaves;
-					}
+					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
+														 selected_masters, selected_slaves,
+														 output_masters, output_slaves, stgy TSRMLS_CC);
 					break;
 				case SERVER_PICK_TABLE:
 					multi_filter = TRUE;
-					if (PASS == mysqlnd_ms_choose_connection_table_filter(filter, query, query_len,
-																		  (conn->connect_or_select_db) ? conn->connect_or_select_db : (*conn_data)->cred.db,
-																		  selected_masters, selected_slaves,
-															  			  output_masters, output_slaves, stgy TSRMLS_CC))
-					{
-						/* swap and clean */
-						zend_llist * tmp_sel_masters = selected_masters;
-						zend_llist * tmp_sel_slaves = selected_slaves;
-						zend_llist_clean(selected_masters);
-						zend_llist_clean(selected_slaves);
-						selected_masters = output_masters;
-						selected_slaves = output_slaves;
-						output_masters = tmp_sel_masters;
-						output_slaves = tmp_sel_slaves;
-
-					}
+					mysqlnd_ms_choose_connection_table_filter(filter, query, query_len,
+															  CONN_GET_STATE(conn) > CONN_ALLOCED?
+															  	conn->connect_or_select_db:
+															  	(*conn_data)->cred.db,
+															  selected_masters, selected_slaves,
+															  output_masters, output_slaves, stgy TSRMLS_CC);
 					break;
 				case SERVER_PICK_RANDOM:
 					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, selected_masters,
@@ -715,24 +705,24 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 				(1 == zend_llist_count(output_masters) + zend_llist_count(output_slaves)))
 			{
 				MYSQLND_MS_LIST_DATA ** el_pp;
-				if (zend_llist_count(selected_masters)) {
-					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(selected_masters);
+				if (zend_llist_count(output_masters)) {
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(output_masters);
 				} else {
-					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(selected_slaves);
+					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first(output_slaves);
 				}
 				if (el_pp && (*el_pp)->conn) {
 					MYSQLND_MS_LIST_DATA * element = *el_pp;
 					if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
+						if (PASS == ms_orig_mysqlnd_conn_methods->connect(element->conn, element->host, element->user,
 																	   element->passwd, element->passwd_len,
 																	   element->db, element->db_len,
 																	   element->port, element->socket,
 																	   element->connect_flags TSRMLS_CC))
 						{
 							DBG_INF("Connected");
-							DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+							DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
 #ifdef WHAT_STAT_TO_USE_HERE
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 #endif
@@ -741,6 +731,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 #ifdef WHAT_STAT_TO_USE_HERE
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 #endif
+					} else {
+						connection = element->conn;
 					}
 				}
 			}
@@ -749,6 +741,13 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 				if (SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
 					DBG_INF("FAILOVER");
 					connection = conn;
+				} else {
+					char error_buf[128];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't select a connection for this statement");
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					DBG_ERR(error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+					goto end;
 				}
 			}
 			if (connection) {
@@ -774,9 +773,11 @@ end:
 			zend_llist_clean(output_slaves);
 			mnd_pefree(output_slaves, conn->persistent);
 		}
+#if 0
 		if (!connection) {
 			connection = conn;
 		}
+#endif
 	}
 
 	DBG_RETURN(connection);
