@@ -670,13 +670,15 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
 					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,
-															 selected_masters, selected_slaves, stgy TSRMLS_CC);
+															 selected_masters, selected_slaves, stgy,
+															 &conn->error_info TSRMLS_CC);
 					break;
 				case SERVER_PICK_USER_MULTI:
 					multi_filter = TRUE;
 					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
 														 selected_masters, selected_slaves,
-														 output_masters, output_slaves, stgy TSRMLS_CC);
+														 output_masters, output_slaves, stgy,
+														 &conn->error_info TSRMLS_CC);
 					break;
 				case SERVER_PICK_TABLE:
 					multi_filter = TRUE;
@@ -684,16 +686,16 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 															  CONN_GET_STATE(conn) > CONN_ALLOCED?
 															  	conn->connect_or_select_db:
 															  	(*conn_data)->cred.db,
-															  selected_masters, selected_slaves,
-															  output_masters, output_slaves, stgy TSRMLS_CC);
+															  selected_masters, selected_slaves, output_masters, output_slaves,
+															  stgy, &conn->error_info TSRMLS_CC);
 					break;
 				case SERVER_PICK_RANDOM:
-					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, selected_masters,
-																	 selected_slaves, NULL TSRMLS_CC);
+					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, &conn->error_info,
+																	 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
-					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, selected_masters, selected_slaves,
-																 NULL TSRMLS_CC);
+					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, &conn->error_info,
+																 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				default:
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");

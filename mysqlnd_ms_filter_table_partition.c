@@ -330,7 +330,8 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 									 const char * const connect_or_select_db,
 									 zend_llist * master_list, zend_llist * slave_list,
 									 zend_llist * selected_masters, zend_llist * selected_slaves,
-									 struct mysqlnd_ms_lb_strategies * stgy_not_used
+									 struct mysqlnd_ms_lb_strategies * stgy_not_used,
+									 MYSQLND_ERROR_INFO * error_info
 									 TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
