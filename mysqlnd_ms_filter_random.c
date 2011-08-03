@@ -97,7 +97,12 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					smart_str_free(&fprint);
 					connection = context_pos? *context_pos : NULL;
 					if (!connection) {
-						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random_once.");
+						char error_buf[256];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once.");
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						DBG_ERR(error_buf);
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					} else {
 						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						DBG_RETURN(connection);
@@ -118,8 +123,11 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						smart_str_free(&fprint);
 						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 							/* TODO: connection error would be better */
-							php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
+							char error_buf[256];
+							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
+							error_buf[sizeof(error_buf) - 1] = '\0';
+							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+							php_error_docref(NULL TSRMLS_CC, E_WARNING, error_buf);
 							/* should be a very rare case to be here - connection shouldn't be NULL in first place */
 							DBG_RETURN(connection);
 						}
@@ -177,7 +185,12 @@ fallthrough:
 					connection = context_pos? *context_pos : NULL;
 					smart_str_free(&fprint);
 					if (!connection) {
-						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random_once.");
+						char error_buf[256];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random/once.");
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						DBG_ERR(error_buf);
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						DBG_RETURN(connection);
@@ -217,9 +230,11 @@ fallthrough:
 							}
 						} while (0);
 					} else {
-						php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
-
+						char error_buf[256];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, error_buf);
 					}
 					smart_str_free(&fprint);
 					DBG_RETURN(connection);
@@ -230,8 +245,12 @@ fallthrough:
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			if (!stgy->last_used_conn) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-									 MYSQLND_MS_ERROR_PREFIX " Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail");
+				char error_buf[256];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail");
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				DBG_ERR(error_buf);
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 			}
 			DBG_RETURN(stgy->last_used_conn);
 		default:

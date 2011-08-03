@@ -115,9 +115,12 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				END_ITERATE_OVER_SERVER_LIST;
 				DBG_INF_FMT("i=%u pos=%u", i, *pos);
 				if (!element) {
-					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-												MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
-
+					char error_buf[256];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					DBG_ERR_FMT("%s", error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					break;
 				}
 				/* time to increment the position */
@@ -198,8 +201,12 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				END_ITERATE_OVER_SERVER_LIST;
 
 				if (!element) {
-					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
+					char error_buf[256];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					DBG_ERR_FMT("%s", error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					break;
 				}
 				/* time to increment the position */
@@ -232,8 +239,12 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			if (!stgy->last_used_conn) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-									 MYSQLND_MS_ERROR_PREFIX " Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail");
+				char error_buf[256];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail");
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				DBG_ERR_FMT("%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 			}
 			DBG_RETURN(stgy->last_used_conn);
 		default:

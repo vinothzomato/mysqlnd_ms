@@ -30,9 +30,6 @@
 #ifndef mnd_emalloc
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
-#ifndef mnd_sprintf
-#define mnd_sprintf spprintf
-#endif
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 #include "ext/standard/php_rand.h"
@@ -62,7 +59,7 @@
 
 /* {{{ mysqlnd_ms_call_handler */
 static zval *
-mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_args TSRMLS_DC)
+mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_args, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	int i;
 	zval * retval;
@@ -70,7 +67,11 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 
 	MAKE_STD_ZVAL(retval);
 	if (call_user_function(EG(function_table), NULL, func, retval, argc, argv TSRMLS_CC) == FAILURE) {
-		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " %s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
+		char error_buf[128];
+		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " %s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
+		error_buf[sizeof(error_buf) - 1] = '\0';
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 		zval_ptr_dtor(&retval);
 		retval = NULL;
 	}
@@ -108,8 +109,11 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 		if (!filter_data->callback_valid) {
 			char * cback_name;
 			if (!zend_is_callable(filter_data->user_callback, 0, &cback_name TSRMLS_CC)) {
-				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR,
-								 MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", cback_name);
+				char error_buf[128];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Specified callback (%s) is not a valid callback", cback_name);
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			} else {
 				filter_data->callback_valid = TRUE;
 			}
@@ -183,7 +187,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 #endif
 		}
 
-		retval = mysqlnd_ms_call_handler(filter_data->user_callback, param + 1, args, FALSE /* we will destroy later */ TSRMLS_CC);
+		retval = mysqlnd_ms_call_handler(filter_data->user_callback, param + 1, args, FALSE /*we destroy later*/, error_info TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) == IS_STRING) {
 				do {
@@ -243,8 +247,12 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 										DBG_INF("Connected");
 										MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 									} else {
-										php_error_docref(NULL TSRMLS_CC, E_WARNING, "Callback chose %s but connection failed", el->emulated_scheme);
-										DBG_ERR("Connect failed, forwarding error to the user");
+										char error_buf[128];
+										snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Callback chose %s but connection failed", el->emulated_scheme);
+										error_buf[sizeof(error_buf) - 1] = '\0';
+										SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+										php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+										DBG_ERR_FMT("%s", error_buf);
 										ret = el->conn; /* no automatic action: leave it to the user to decide! */
 										MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 									}
@@ -260,15 +268,30 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 					}
 				} while (0);
 				if (!ret) {
-					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " User filter callback has returned an unknown server. The server '%s' can neither be found in the master server list nor in the slave server list", Z_STRVAL_P(retval));
+					char error_buf[256];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User filter callback has returned an unknown server. The server '%s' can neither be found in the master list nor in the slave list", Z_STRVAL_P(retval));
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					DBG_ERR_FMT("%s", error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 				}
 			} else {
-			  php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " User filter callback has not returned string with server to use. The callback must return a string");
+				char error_buf[256];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User filter callback has not returned string with server to use. The callback must return a string");
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				DBG_ERR_FMT("%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			}
 			zval_ptr_dtor(&retval);
 		} else {
 			/* We should never get here */
-			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " User filter callback has not returned server to use");
+			char error_buf[128];
+			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User filter callback did not return server to use");
+			error_buf[sizeof(error_buf) - 1] = '\0';
+			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+			DBG_ERR_FMT("%s", error_buf);
+			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 		}
 #ifdef ALL_SERVER_DISPATCH
 		convert_to_boolean(args[use_all_pos]);
@@ -383,7 +406,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 			}
 		}
 
-		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, FALSE /* we will destroy later */ TSRMLS_CC);
+		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, FALSE /*we destroy later*/, error_info TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) != IS_ARRAY) {
 				DBG_ERR("The user returned no array");

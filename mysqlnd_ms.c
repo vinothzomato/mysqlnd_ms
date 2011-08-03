@@ -212,7 +212,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * conn, zend_llist * conn_list,
 		if (conn) {
 			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Cannot find %s section in config", subsection_name);
 			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 		}
 	}
 	do {

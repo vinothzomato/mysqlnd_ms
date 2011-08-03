@@ -108,7 +108,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 						  const char * const section_name, const size_t section_name_len,
 						  const char * const filter_mask, const size_t filter_mask_len,
 						  struct st_mysqlnd_ms_config_json_entry * current_filter,
-						  zend_bool persistent TSRMLS_DC)
+						  MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	MYSQLND_MS_TABLE_FILTER * new_filter_entry = NULL;
@@ -157,10 +157,13 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 							SUCCESS != zend_hash_next_index_insert(*existing_filter, &new_filter_entry,
 						  				 			 			   sizeof(MYSQLND_MS_TABLE_FILTER *), NULL))
 						{
-							DBG_ERR_FMT("Couldn't add new filter and couldn't find the original %*s", filter_mask_len, filter_mask);
-							php_error_docref(NULL TSRMLS_CC, E_WARNING,
-									MYSQLND_MS_ERROR_PREFIX "Couldn't add new filter and couldn't find the original %*s",
+							char error_buf[256];
+							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Couldn't add new filter and couldn't find the original %*s",
 									(int) filter_mask_len, filter_mask);
+							error_buf[sizeof(error_buf) - 1] = '\0';
+							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+							DBG_ERR_FMT("%s", error_buf);
 							mysqlnd_ms_filter_dtor(&new_filter_entry);
 							ret = FAIL;
 						} else {
@@ -179,11 +182,13 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 								if (SUCCESS != zend_hash_add(rules_ht, filter_mask, filter_mask_len + 1, &ht_for_new_filter,
 						  				 			 		 sizeof(HashTable *), NULL))
 								{
-									DBG_ERR_FMT("The hashtable %*s did not exist in the slave_rules but couldn't add",
-												filter_mask_len, filter_mask);
-									php_error_docref(NULL TSRMLS_CC, E_WARNING,
-											MYSQLND_MS_ERROR_PREFIX "The hashtable %*s did not exist in the slave_rules "
+									char error_buf[256];
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "The hashtable %*s did not exist in the slave_rules "
 											"but couldn't add", (int) filter_mask_len, filter_mask);
+									error_buf[sizeof(error_buf) - 1] = '\0';
+									SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+									DBG_ERR_FMT("%s", error_buf);
 
 									zend_hash_destroy(ht_for_new_filter);
 									mnd_free(ht_for_new_filter);
@@ -193,11 +198,14 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 								} else if (SUCCESS != zend_hash_next_index_insert(ht_for_new_filter, &new_filter_entry,
 						  				 			 			   				  sizeof(MYSQLND_MS_TABLE_FILTER *), NULL))
 								{
-									DBG_ERR_FMT("Couldn't add new filter and couldn't find the original %*s", filter_mask_len, filter_mask);
-									php_error_docref(NULL TSRMLS_CC, E_WARNING,
-											MYSQLND_MS_ERROR_PREFIX "Couldn't add new filter and couldn't find the original %*s",
+									char error_buf[256];
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX "Couldn't add new filter and couldn't find the original %*s",
 											(int) filter_mask_len, filter_mask);
-										mysqlnd_ms_filter_dtor(&new_filter_entry);
+									error_buf[sizeof(error_buf) - 1] = '\0';
+									SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+									DBG_ERR_FMT("%s", error_buf);
+									mysqlnd_ms_filter_dtor(&new_filter_entry);
 								} else {
 									DBG_INF("Created, added to global HT and filter added to local HT");
 								}
@@ -217,7 +225,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 enum_func_status
 mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 							  struct st_mysqlnd_ms_config_json_entry * section,
-							  zend_bool persistent TSRMLS_DC)
+							  MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	unsigned int filter_count = 0;
@@ -239,20 +247,26 @@ mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 						mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_mask, &filter_mask_len, NULL TSRMLS_CC);
 
 				if (!current_filter || !filter_mask || !filter_mask_len) {
-					if (NULL != filter_mask)
-						php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " A table filter must be given a name. You must not use an empty string");
+					if (NULL != filter_mask) {
+						char error_buf[128];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " A table filter must be given a name. You must not use an empty string");
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						DBG_ERR_FMT("%s", error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+					}
 					DBG_INF("no next sub-section");
 					break;
 				}
 				DBG_INF_FMT("---------- Loading MASTER rules for [%s] ----------------", filter_mask);
 				if (PASS == mysqlnd_ms_table_add_rule(master_rules, MASTER_NAME, sizeof(MASTER_NAME) - 1,
 													  filter_mask, filter_mask_len,
-													  current_filter, persistent TSRMLS_CC))
+													  current_filter, error_info, persistent TSRMLS_CC))
 				{
 					DBG_INF_FMT("---------- Loading SLAVE rules for [%s] ----------------", filter_mask);
 					if (PASS == mysqlnd_ms_table_add_rule(slave_rules, SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
 														  filter_mask, filter_mask_len,
-														  current_filter, persistent TSRMLS_CC))
+														  current_filter, error_info, persistent TSRMLS_CC))
 					{
 						filter_count++;
 					}
@@ -374,7 +388,12 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 					snprintf(db_table_buf, sizeof(db_table_buf), "%s.%s", connect_or_select_db, tinfo->table);
 					DBG_INF_FMT("qualified table=%s (using connect_or_select_db=%s)", db_table_buf, connect_or_select_db);
 				} else {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to parse table name");
+					char error_buf[256];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Failed to parse table name");
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					DBG_ERR_FMT("%s", error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					break;
 				}
 				zend_llist_clean(master_out);
@@ -403,11 +422,14 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 		}
 		if (parser) {
 			if (err) {
-				DBG_INF_FMT("parser start error %d", err);
-				php_error_docref(NULL TSRMLS_CC, E_WARNING,
-									MYSQLND_MS_ERROR_PREFIX " Please, report a bug. Parser error %d. Failed to parse statement '%*s'",
+				char error_buf[256];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Please, report a bug. Parser error %d. Failed to parse statement '%*s'",
 									err, (int) query_len, query);
-
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				DBG_ERR_FMT("%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				DBG_INF_FMT("parser start error %d", err);
 			}
 			mysqlnd_qp_free_parser(parser TSRMLS_CC);
 		}

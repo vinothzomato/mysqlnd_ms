@@ -187,9 +187,9 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 				DBG_INF_FMT("name=%s valid=%d", c_name, ret->callback_valid);
 				efree(c_name);
 			} else {
-			  mnd_pefree(ret, persistent);
-			  php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter user, can't find secion '%s' . Stopping.", SECT_USER_CALLBACK);
+				mnd_pefree(ret, persistent);
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter 'user', can't find secion '%s' . Stopping.", SECT_USER_CALLBACK);
 			}
 		}
 	}
@@ -227,7 +227,7 @@ table_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ER
 			ret->parent.specific_dtor = table_specific_dtor;
 			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
 			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
-			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, persistent TSRMLS_CC)) {
+			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, error_info, persistent TSRMLS_CC)) {
 				table_specific_dtor((MYSQLND_MS_FILTER_DATA *)ret TSRMLS_CC);
 				ret = NULL;
 				break;
@@ -374,6 +374,8 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 				strategies->trx_stickiness_strategy = TRX_STICKINESS_STRATEGY_MASTER;
 			}
 #else
+			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
 #endif
 			mnd_efree(trx_strategy);
@@ -404,8 +406,11 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 				if (specific_ctors[i].ctor) {
 					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
 					if (!new_filter_entry) {
-						php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s' . Stopping", filter_name);
+						char error_buf[128];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . Stopping", filter_name);
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					}
 				} else {
 					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
@@ -423,8 +428,11 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 		}
 	}
 	if (!new_filter_entry) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR,
-					MYSQLND_MS_ERROR_PREFIX " Unknown filter '%s' . Stopping", filter_name);
+		char error_buf[128];
+		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%s' . Stopping", filter_name);
+		error_buf[sizeof(error_buf) - 1] = '\0';
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 	}
 	DBG_RETURN(new_filter_entry);
 }
@@ -462,8 +470,11 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 
 					if (!current_filter || !filter_name || !filter_name_len) {
 						if (current_filter) {
-							php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+							char error_buf[128];
+							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+							error_buf[sizeof(error_buf) - 1] = '\0';
+							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+							php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 						}
 						DBG_INF("no next sub-section");
 						break;
@@ -698,7 +709,13 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 																 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				default:
-					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
+				{
+					char error_buf[128];
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
+					error_buf[sizeof(error_buf) - 1] = '\0';
+					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+				}
 			}
 			DBG_INF_FMT("out_masters_count=%d  out_slaves_count=%d", zend_llist_count(output_masters), zend_llist_count(output_slaves));
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
@@ -738,6 +755,14 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					}
 				}
 			}
+			if (!connection && multi_filter == FALSE) {
+				char error_buf[128];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " No connection selected by the last filter");
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				goto end;
+			}
 			if (!connection && (0 == zend_llist_count(output_masters) && 0 == zend_llist_count(output_slaves))) {
 				/* filtered everything out */
 				if (SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
@@ -745,9 +770,10 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					connection = conn;
 				} else {
 					char error_buf[128];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't select a connection for this statement");
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
 					error_buf[sizeof(error_buf) - 1] = '\0';
 					DBG_ERR(error_buf);
+					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					goto end;
 				}

@@ -24,7 +24,8 @@ struct st_mysqlnd_ms_config_json_entry;
 
 enum_func_status
 mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
-							  struct st_mysqlnd_ms_config_json_entry * section, zend_bool persistent TSRMLS_DC);
+							  struct st_mysqlnd_ms_config_json_entry * section,
+							  MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
 enum_func_status
 mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, size_t query_len,
