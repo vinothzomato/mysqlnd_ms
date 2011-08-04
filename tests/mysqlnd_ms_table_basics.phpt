@@ -80,4 +80,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_basics.ini
 [003 + 02] Thread '%d'
 [004 + 01] Query 'DROP TABLE IF EXISTS test1'
 
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[004] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+[004 + 02] Thread '%d'
+done!
