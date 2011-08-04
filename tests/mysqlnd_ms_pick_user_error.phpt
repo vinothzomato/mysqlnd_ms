@@ -69,7 +69,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_error.ini
 --EXPECTF--
 /*ms=master*/SELECT CONNECTION_ID() as _master FROM DUAL
 [E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User filter callback has not returned string with server to use. The callback must return a string in %s on line %d
-[002] [%d] %s
+[E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[002] [2000] (mysqlnd_ms) No connection selected by the last filter
 /*ms=master*/SELECT CONNECTION_ID() as _master FROM DUAL
 Master has thread id %d
 done!
