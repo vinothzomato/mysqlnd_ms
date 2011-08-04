@@ -81,8 +81,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_unknown_server.ini
 ?>
 --EXPECTF--
 /*ms=master*/SELECT CONNECTION_ID() as _master FROM DUAL
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User filter callback has returned an unknown server. The server 'server that is not in master or slave list' can neither be found in the master server list nor in the slave server list in %s on line %d
-[002] [2014] Commands out of sync; you can't run this command now
+[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User filter callback has returned an unknown server. The server 'server that is not in master or slave list' can neither be found in the master list nor in the slave list in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[002] [2000] (mysqlnd_ms) No connection selected by the last filter
 /*ms=master*/SELECT CONNECTION_ID() as _master FROM DUAL
 Master has thread id %d
 done!
