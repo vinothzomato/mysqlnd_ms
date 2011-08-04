@@ -1,5 +1,5 @@
 --TEST--
-parser: Andrey, ...
+parser: SELECT NULL, 1 AS _id FROM test
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
