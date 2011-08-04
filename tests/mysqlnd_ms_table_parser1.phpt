@@ -1,5 +1,5 @@
 --TEST--
-table filter basics: parser
+parser: SELECT 'a' AS _id FROM test
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -36,12 +36,12 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_parser.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_parser1.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser1.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -49,7 +49,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 
 	function fetch_result($offset, $res) {
 		if (!$res) {
-			printf("[%03d] No result\n");
+			printf("[%03d] No result\n", $offset);
 			return;
 		}
 		$row = $res->fetch_assoc();
@@ -68,8 +68,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_parser.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_parser1.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser1.ini'.\n");
 ?>
 --EXPECTF--
 [002 + 01] Query 'SELECT 'a' AS _id FROM test'

@@ -1,5 +1,5 @@
 --TEST--
-table filter basics: parser
+parser
 --SKIPIF--
 <?php
 require_once('skipif_mysqli.inc');
@@ -25,7 +25,7 @@ $settings = array(
 		'filters' => array(
 			"table" => array(
 				"rules" => array(
-					$db . ".test1%" => array(
+					$db . ".test" => array(
 						"master" => array("master1"),
 						"slave" => array("slave1"),
 					),
@@ -49,7 +49,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 
 	function fetch_result($offset, $res) {
 		if (!$res) {
-			printf("[%03d] No result\n");
+			printf("[%03d] No result\n", $offset);
 			return;
 		}
 		$row = $res->fetch_assoc();
@@ -61,7 +61,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 
-	fetch_result(5, verbose_run_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test1"));
+	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	fetch_result(5, verbose_run_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test"));
+	fetch_result(7, verbose_run_query(6, $link, "SELECT id AS _id FROM test"));
+	fetch_result(9, verbose_run_query(8, $link, "SELECT id, id AS _id FROM test"));
+	/* TODO - enable after fix of mysqlnd_ms_table_parser1.phpt
+	fetch_result(11, verbose_run_query(10, $link, "SELECT id, id, 'a' AS _id FROM test"));
+	*/
+	fetch_result(14, verbose_run_query(12, $link, "SELECT 1 AS _id FROM test"));
+	/* OK - mysqlnd_ms_table_parser2.phpt
+	fetch_result(16, verbose_run_query(14, $link, "SELECT"));
+	*/
 
 	print "done!";
 ?>
