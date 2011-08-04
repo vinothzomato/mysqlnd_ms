@@ -399,7 +399,7 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 				zend_llist_clean(master_out);
 				zend_llist_clean(slave_out);
 				ret = mysqlnd_ms_table_filter_match(db_table_buf, &filter->master_rules, master_in, master_out TSRMLS_CC);
-				
+
 				if (PASS == ret && parser->parse_info.statement == STATEMENT_SELECT) {
 					/* non-SELECTs don't go the the slaves */
 					ret = mysqlnd_ms_table_filter_match(db_table_buf, &filter->slave_rules, slave_in, slave_out TSRMLS_CC);
@@ -423,7 +423,7 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 		if (parser) {
 			if (err) {
 				char error_buf[256];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Please, report a bug. Parser error %d. Failed to parse statement '%*s'",
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Please, check the SQL syntax. If correct, report a bug. Parser error %d. Failed to parse statement '%*s'",
 									err, (int) query_len, query);
 				error_buf[sizeof(error_buf) - 1] = '\0';
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);

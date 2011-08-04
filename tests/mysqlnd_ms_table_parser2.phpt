@@ -72,7 +72,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser2.ini
 --EXPECTF--
 [002 + 01] Query 'SELECT'
 
-Warning: mysqli::query(): (mysqlnd_ms) Please, report a bug. Parser error 1. Failed to parse statement 'SELECT' in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) Please, check the SQL syntax. If correct, report a bug. Parser error 1. Failed to parse statement 'SELECT' in %s on line %d
 
 Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
 [002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
