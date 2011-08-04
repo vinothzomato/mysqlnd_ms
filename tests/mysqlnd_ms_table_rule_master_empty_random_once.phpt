@@ -52,8 +52,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_empty_random_once.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
-	run_query(3, $link, "SELECT * FROM test");
+	verbose_run_query(2, $link, "DROP TABLE IF EXISTS test");
+
+	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	$res = verbose_run_query(3, $link, "SELECT id FROM test ORDER BY id ASC");
+	var_dump($res->fetch_assoc());
 
 	print "done!";
 ?>
@@ -63,4 +66,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_master_empty_random_once.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_master_empty_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[002 + 01] Query 'DROP TABLE IF EXISTS test'
+
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+[002 + 02] Thread '%d'
+[003 + 01] Query 'SELECT id FROM test ORDER BY id ASC'
+[003 + 02] Thread '%d'
+array(1) {
+  ["id"]=>
+  string(1) "1"
+}
+done!
