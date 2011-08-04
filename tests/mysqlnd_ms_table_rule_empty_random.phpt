@@ -62,4 +62,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_empty_random.ini
 ?>
 --EXPECTF--
 
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[003] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+done!

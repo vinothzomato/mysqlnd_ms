@@ -76,4 +76,4 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_rule_empty_pattern.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) A table filter must be given a name. You must not use an empty string in %s on line %d
+Catchable fatal error: mysqli_real_connect(): (mysqlnd_ms) A table filter must be given a name. You must not use an empty string in %s on line %d
