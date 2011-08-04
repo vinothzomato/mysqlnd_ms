@@ -53,9 +53,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_master_in_rule.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		run_query(2, $link, "DROP TABLE IF EXISTS test1");
-
 		if ($link->thread_id != 0)
-			printf("[003] Connected to some server, but which one?\n");
+			printf("[003] Connected to some server (%d), but which one?\n", $link->thread_id);
 
 		printf("[004] [%s/%d] %s\n", $link->sqlstate, $link->errno, $link->error);
 
@@ -69,4 +68,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_undefined_master_in_rule.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_undefined_master_in_rule.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+[004] [HY000/2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+done!
