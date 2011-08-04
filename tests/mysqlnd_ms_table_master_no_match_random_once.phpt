@@ -71,4 +71,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_master_no_match_random_once.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_master_no_match_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[003] Warn user about misconfiguration, [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+done!
