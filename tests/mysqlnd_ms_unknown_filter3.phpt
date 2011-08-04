@@ -58,4 +58,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter3.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_unknown_filter3.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Error loading filters. Filter with empty name found in %s on line %d
+Catchable fatal error: mysqli_real_connect(): (mysqlnd_ms) Error loading filters. Filter with empty name found in %s on line %d
