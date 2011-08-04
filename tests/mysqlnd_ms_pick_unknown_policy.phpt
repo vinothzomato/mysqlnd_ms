@@ -44,4 +44,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_pick_unknown_policy.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_pick_unknown_policy.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'unknown' . Stopping in %s on line %d
+Catchable fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'unknown' . Stopping in %s on line %d
