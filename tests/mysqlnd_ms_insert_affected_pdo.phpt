@@ -1,12 +1,13 @@
 --TEST--
-insert id, affected rows
+insert id, affected rows (PDO)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
-if (!extension_loaded("pdo_mysql"))
-  die("SKIP ext/pdo_mysql not available");
-
 require_once("connect.inc");
+
+_skipif_check_extensions(array("mysqli", "pdo_mysql"));
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 $settings = array(
 	"myapp" => array(

@@ -2,7 +2,7 @@
 mysqlnd_ms_match_wild(string haystack, string wildcard)
 --SKIPIF--
 <?php
-require_once('skipif_mysqli.inc');
+require_once('skipif.inc');
 ?>
 --INI--
 mysqlnd_ms.enable=1

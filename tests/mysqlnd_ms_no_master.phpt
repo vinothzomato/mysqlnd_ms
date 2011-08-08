@@ -2,8 +2,11 @@
 No master configured
 --SKIPIF--
 <?php
-require_once('skipif_mysqli.inc');
+require_once('skipif.inc');
 require_once("connect.inc");
+
+_skipif_check_extensions(array("mysqli"));
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 $settings = array(
 	"name_of_a_config_section" => array(

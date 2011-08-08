@@ -1,21 +1,11 @@
 --TEST--
-int mysqlnd_ms_query_is_select(string query) - check where to send query
+int mysqlnd_ms_query_is_select(string query)
 --SKIPIF--
 <?php
-require_once("connect.inc");
 require_once('skipif.inc');
-$settings = array(
-	"myapp" => array(
-		'master' => array($host),
-		'slave' => array($host),
-	),
-);
-if ($error = create_config("mysqlnd_ms_query_is_select.ini", $settings))
-	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=mysqlnd_ms_query_is_select.ini
 --FILE--
 <?php
 	function serverflag2name($where) {
@@ -74,11 +64,6 @@ mysqlnd_ms.ini_file=mysqlnd_ms_query_is_select.ini
 		}
 	}
 	print "done!";
-?>
---CLEAN--
-<?php
-	if (!unlink("mysqlnd_ms_query_is_select.ini"))
-	  printf("[clean] Cannot unlink ini file 'mysqlnd_ms_query_is_select.ini'.\n");
 ?>
 --EXPECTF--
 '' => 'master'

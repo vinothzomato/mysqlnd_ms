@@ -2,8 +2,10 @@
 Connect using unkonwn config section, force use of config
 --SKIPIF--
 <?php
-require_once('skipif_mysqli.inc');
+require_once('skipif.inc');
 require_once("connect.inc");
+
+_skipif_check_extensions(array("mysqli"));
 
 $settings = array(
 	"name_of_a_config_section" => array(

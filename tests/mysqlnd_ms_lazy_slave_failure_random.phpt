@@ -2,8 +2,12 @@
 Lazy connect, slave failure, random
 --SKIPIF--
 <?php
-require_once('skipif_mysqli.inc');
+require_once('skipif.inc');
 require_once("connect.inc");
+
+_skipif_check_extensions(array("mysqli"));
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 if (($master_host == $slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");

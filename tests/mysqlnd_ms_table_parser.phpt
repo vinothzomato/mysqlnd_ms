@@ -2,8 +2,12 @@
 parser
 --SKIPIF--
 <?php
-require_once('skipif_mysqli.inc');
+require_once('skipif.inc');
 require_once("connect.inc");
+
+_skipif_check_extensions(array("mysqli"));
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 $settings = array(
 	"myapp" => array(
@@ -63,15 +67,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 
 	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	fetch_result(5, verbose_run_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test"));
-	fetch_result(7, verbose_run_query(6, $link, "SELECT id AS _id FROM test"));
-	fetch_result(9, verbose_run_query(8, $link, "SELECT id, id AS _id FROM test"));
+	fetch_result(7, verbose_run_query(6, $link, "SELECT id AS _id FROM test ORDER BY id ASC"));
+	fetch_result(9, verbose_run_query(8, $link, "SELECT id, id AS _id FROM test ORDER BY id ASC"));
 	/* TODO - enable after fix of mysqlnd_ms_table_parser1.phpt
 	fetch_result(11, verbose_run_query(10, $link, "SELECT id, id, 'a' AS _id FROM test"));
 	*/
-	fetch_result(14, verbose_run_query(12, $link, "SELECT 1 AS _id FROM test"));
+	fetch_result(13, verbose_run_query(12, $link, "SELECT 1 AS _id FROM test ORDER BY id ASC"));
 	/* OK - mysqlnd_ms_table_parser2.phpt
-	fetch_result(16, verbose_run_query(14, $link, "SELECT"));
+	fetch_result(15, verbose_run_query(14, $link, "SELECT"));
+	mysqlnd_ms_table_parser4.phpt
+	fetch_result(17, verbose_run_query(16, $link, "SELECT NULL, 1 AS _id FROM test"));
 	*/
+	fetch_result(19, verbose_run_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
 
 	print "done!";
 ?>
@@ -81,7 +88,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser.ini'.\n");
 ?>
 --EXPECTF--
-[004 + 01] Query 'SELECT CONNECTION_ID() AS _id FROM test1'
-[004 + 02] Thread '%d'
-[005] _id = '%d'
-done!
+[012 + 01] Query 'SELECT NULL, 1 AS _id FROM test'
+[012 + 02] Thread '%d'
+[014] _id = '1'
