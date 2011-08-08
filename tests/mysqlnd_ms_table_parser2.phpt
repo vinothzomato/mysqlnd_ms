@@ -52,15 +52,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser2.ini
 <?php
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
-
-	function fetch_result($offset, $res) {
-		if (!$res) {
-			printf("[%03d] No result\n", $offset);
-			return;
-		}
-		$row = $res->fetch_assoc();
-		printf("[%03d] _id = '%s'\n", $offset, $row['_id']);
-	}
+	require_once("mysqlnd_ms_table_parser.inc");
 
 	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())

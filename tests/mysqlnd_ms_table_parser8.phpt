@@ -1,5 +1,5 @@
 --TEST--
-parser: SELECT 'a' AS _id FROM test
+parser: SELECT DISTINCT
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -41,35 +41,38 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_parser1.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_parser8.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser1.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser8.ini
 --FILE--
 <?php
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 	require_once("mysqlnd_ms_table_parser.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
-	if (mysqli_connect_errno())
-		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	$sql = "SELECT DISTINCT id AS _id FROM test ORDER BY id ASC";
+	if (server_supports_query(1, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
 
+		$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno())
+			printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-	fetch_result(3, verbose_run_query(2, $link, "SELECT 'a' AS _id FROM test"));
+		fetch_result(4, verbose_run_query(3, $link, $sql));
+	}
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_parser1.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser1.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_parser8.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser8.ini'.\n");
 ?>
 --EXPECTF--
-[002 + 01] Query 'SELECT 'a' AS _id FROM test'
-[002 + 02] Thread '%d'
-[003] _id = 'a'
+[001] Testing server support of 'SELECT DISTINCT id AS _id FROM test ORDER BY id ASC'
+[003 + 01] Query 'SELECT DISTINCT id AS _id FROM test ORDER BY id ASC'
+[003 + 02] Thread '%d'
+[004] _id = '%d'
 done!

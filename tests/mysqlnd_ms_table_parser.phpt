@@ -51,15 +51,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 <?php
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
-
-	function fetch_result($offset, $res) {
-		if (!$res) {
-			printf("[%03d] No result\n", $offset);
-			return;
-		}
-		$row = $res->fetch_assoc();
-		printf("[%03d] _id = '%s'\n", $offset, $row['_id']);
-	}
+	require_once("mysqlnd_ms_table_parser.inc");
 
 	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
@@ -78,8 +70,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	fetch_result(15, verbose_run_query(14, $link, "SELECT"));
 	mysqlnd_ms_table_parser4.phpt
 	fetch_result(17, verbose_run_query(16, $link, "SELECT NULL, 1 AS _id FROM test"));
-	*/
+	mysqlnd_ms_table_parser5.phpt
 	fetch_result(19, verbose_run_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
+	*/
+	fetch_result(21, verbose_run_query(20, $link, "SELECT unknown_column FROM test"));
+	fetch_result(23, verbose_run_query(22, $link, "SELECT unknown_columnm, unknown_column FROM test"));
 
 	print "done!";
 ?>
@@ -89,6 +84,24 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser.ini'.\n");
 ?>
 --EXPECTF--
-[012 + 01] Query 'SELECT NULL, 1 AS _id FROM test'
+[004 + 01] Query 'SELECT CONNECTION_ID() AS _id FROM test'
+[004 + 02] Thread '%d'
+[005] _id = ''
+[006 + 01] Query 'SELECT id AS _id FROM test ORDER BY id ASC'
+[006 + 02] Thread '%d'
+[007] _id = ''
+[008 + 01] Query 'SELECT id, id AS _id FROM test ORDER BY id ASC'
+[008 + 02] Thread '%d'
+[009] _id = ''
+[012 + 01] Query 'SELECT 1 AS _id FROM test ORDER BY id ASC'
 [012 + 02] Thread '%d'
-[014] _id = '1'
+[013] _id = ''
+[020 + 01] Query 'SELECT unknown_column FROM test'
+[020] [1054] Unknown column 'unknown_column' in 'field list'
+[020 + 02] Thread '%d'
+[021] No result
+[022 + 01] Query 'SELECT unknown_columnm, unknown_column FROM test'
+[022] [1054] Unknown column 'unknown_column' in 'field list'
+[022 + 02] Thread '%d'
+[023] No result
+done!
