@@ -24,6 +24,10 @@ require_once('skipif.inc');
 		"MYSQLND_MS_CONFIG_FORMAT" => true
 	);
 
+	if (defined("MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION")) {
+		$expected["MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION"] = false;
+	}
+
 	$constants = get_defined_constants(true);
 	$constants = (isset($constants['mysqlnd_ms'])) ? $constants['mysqlnd_ms'] : array();
 	ksort($constants);
@@ -31,7 +35,8 @@ require_once('skipif.inc');
 		if (!isset($expected[$name])) {
 			printf("[001] Unexpected constants: %s/%s\n", $name, $value);
 		} else {
-			printf("%s = '%s'\n", $name, $value);
+			if ($expected[$name])
+				printf("%s = '%s'\n", $name, $value);
 			unset($expected[$name]);
 		}
 	}

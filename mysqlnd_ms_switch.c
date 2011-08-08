@@ -45,7 +45,11 @@
 #include "mysqlnd_ms_filter_user.h"
 #include "mysqlnd_ms_filter_random.h"
 #include "mysqlnd_ms_filter_round_robin.h"
+
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 #include "mysqlnd_ms_filter_table_partition.h"
+#endif
+
 #include "mysqlnd_ms_switch.h"
 
 typedef MYSQLND_MS_FILTER_DATA * (*func_specific_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
@@ -198,7 +202,8 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 /* }}} */
 
 
-/* {{{ once_specific_dtor */
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
+/* {{{ table_specific_dtor */
 static void
 table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 {
@@ -237,7 +242,7 @@ table_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ER
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
 /* }}} */
-
+#endif /* MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION */
 
 struct st_specific_ctor_with_name
 {
@@ -254,7 +259,9 @@ static const struct st_specific_ctor_with_name specific_ctors[] =
 	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	random_specific_ctor,	SERVER_PICK_RANDOM},
 	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
 	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE},
+#endif
 	{NULL,			0,							NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
 };
 
@@ -691,6 +698,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 														 output_masters, output_slaves, stgy,
 														 &conn->error_info TSRMLS_CC);
 					break;
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 				case SERVER_PICK_TABLE:
 					multi_filter = TRUE;
 					mysqlnd_ms_choose_connection_table_filter(filter, query, query_len,
@@ -700,6 +708,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 															  selected_masters, selected_slaves, output_masters, output_slaves,
 															  stgy, &conn->error_info TSRMLS_CC);
 					break;
+#endif
 				case SERVER_PICK_RANDOM:
 					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, &conn->error_info,
 																	 selected_masters, selected_slaves, NULL TSRMLS_CC);

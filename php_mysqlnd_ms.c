@@ -156,6 +156,9 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_LAST_USED", USE_LAST_USED, CONST_CS | CONST_PERSISTENT);
 
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_CONFIG_FORMAT", MYSQLND_MS_CONFIG_FORMAT, CONST_CS | CONST_PERSISTENT);
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION", 1, CONST_CS | CONST_PERSISTENT);
+#endif
 
 	return SUCCESS;
 }
@@ -190,6 +193,9 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 	php_info_print_table_row(2, "Transaction mode trx_stickiness supported", "yes");
 #else
 	php_info_print_table_row(2, "Transaction mode trx_stickiness supported", "no");
+#endif
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
+	php_info_print_table_row(2, "Table partitioning filter supported", "yes");
 #endif
 	php_info_print_table_end();
 

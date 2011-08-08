@@ -6,6 +6,7 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
+_skipif_check_feature(array("table_filter"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
@@ -45,7 +46,6 @@ if ($error = create_config("test_mysqlnd_ms_table_sql_hint.ini", $settings))
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.force_config_usage=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 --FILE--
 <?php
