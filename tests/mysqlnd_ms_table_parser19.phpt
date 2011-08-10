@@ -1,5 +1,5 @@
 --TEST--
-parser: SELECT _latin1'string'
+parser: SELECT N'some text';
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -54,7 +54,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser18.ini
 	require_once("mysqlnd_ms_table_parser.inc");
 
 	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-	$sql = "SELECT _latin1'string' AS _id";
+	$sql = "SELECT N'some text'";
 	if (server_supports_query(1, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
 
 		$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -64,10 +64,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser18.ini
 		fetch_result(4, run_query(3, $link, $sql));
 	} else {
 	  /* fake result */
-	  printf("[004] _id = 'string'\n");
+	  printf("[004] _id = 'some text'\n");
 	}
 
-	$sql = "SELECT _latin1'string' COLLATE latin1_danish_ci";
+	$sql = "SELECT n'some text'";
 	if (server_supports_query(5, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
 
 		$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -77,7 +77,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser18.ini
 		fetch_result(8, run_query(7, $link, $sql));
 	} else {
 	  /* fake result */
-	  printf("[008] _id = 'string'\n");
+	  printf("[008] _id = 'some text'\n");
 	}
 
 	print "done!";
@@ -88,8 +88,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser18.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser13.ini'.\n");
 ?>
 --EXPECTF--
-[001] Testing server support of 'SELECT _latin1'string' AS _id'
-[004] _id = 'string'
-[005] Testing server support of 'SELECT _latin1'string' COLLATE latin1_danish_ci'
-[008] _id = 'string'
+[001] Testing server support of 'SELECT N'some text''
+[004] _id = 'some text'
+[005] Testing server support of 'SELECT n'some text''
+[008] _id = 'some text'
 done!
