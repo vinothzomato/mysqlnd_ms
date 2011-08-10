@@ -53,6 +53,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser16.ini
 	require_once("mysqlnd_ms_lazy.inc");
 	require_once("mysqlnd_ms_table_parser.inc");
 
+	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	$sql = "SELECT SQL_CALC_FOUND_ROWS id AS _id FROM test ORDER BY id ASC";
 	if (server_supports_query(1, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
 

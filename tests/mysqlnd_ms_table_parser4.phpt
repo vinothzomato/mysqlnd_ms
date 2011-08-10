@@ -57,6 +57,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser4.ini
 	if (mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
+	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	fetch_result(3, verbose_run_query(2, $link, "SELECT NULL, 1 AS _id FROM test"));
 
 	print "done!";

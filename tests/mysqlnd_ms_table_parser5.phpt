@@ -61,6 +61,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser5.ini
 		printf("[%03d] _id = '%s'\n", $offset, $row['_id']);
 	}
 
+	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+
 	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());

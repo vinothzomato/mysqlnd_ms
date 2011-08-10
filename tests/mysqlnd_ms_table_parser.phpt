@@ -74,7 +74,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	fetch_result(19, verbose_run_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
 	*/
 	fetch_result(21, verbose_run_query(20, $link, "SELECT unknown_column FROM test"));
-	fetch_result(23, verbose_run_query(22, $link, "SELECT unknown_columnm, unknown_column FROM test"));
 
 	print "done!";
 ?>
@@ -86,22 +85,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 --EXPECTF--
 [004 + 01] Query 'SELECT CONNECTION_ID() AS _id FROM test'
 [004 + 02] Thread '%d'
-[005] _id = ''
+[005] _id = '%d'
 [006 + 01] Query 'SELECT id AS _id FROM test ORDER BY id ASC'
 [006 + 02] Thread '%d'
-[007] _id = ''
+[007] _id = '1'
 [008 + 01] Query 'SELECT id, id AS _id FROM test ORDER BY id ASC'
 [008 + 02] Thread '%d'
-[009] _id = ''
+[009] _id = '1'
 [012 + 01] Query 'SELECT 1 AS _id FROM test ORDER BY id ASC'
 [012 + 02] Thread '%d'
-[013] _id = ''
+[013] _id = '1'
 [020 + 01] Query 'SELECT unknown_column FROM test'
 [020] [1054] Unknown column 'unknown_column' in 'field list'
 [020 + 02] Thread '%d'
 [021] No result
-[022 + 01] Query 'SELECT unknown_columnm, unknown_column FROM test'
-[022] [1054] Unknown column 'unknown_column' in 'field list'
-[022 + 02] Thread '%d'
-[023] No result
 done!
