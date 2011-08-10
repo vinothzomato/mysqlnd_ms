@@ -1076,10 +1076,14 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND * conn TSRMLS_DC)
 {
-	enum_func_status ret;
+	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::tx_commit");
-
-	ret = ms_orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC);
+	if (CONN_GET_STATE(conn) > CONN_ALLOCED) {
+		ret = ms_orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC);
+	} else {
+		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
+		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));		
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1089,10 +1093,15 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND * conn TSRMLS_DC)
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND * conn TSRMLS_DC)
 {
-	enum_func_status ret;
+	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::tx_rollback");
 
-	ret = ms_orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
+	if (CONN_GET_STATE(conn) > CONN_ALLOCED) {
+		ret = ms_orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
+	} else {
+		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
+		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));		
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
