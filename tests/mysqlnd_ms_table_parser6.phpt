@@ -61,8 +61,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser6.ini
 		if (mysqli_connect_errno())
 			printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-		fetch_result(4, verbose_run_query(3, $link, $sql));
+		fetch_result(4, run_query(3, $link, $sql));
+	} else {
+		/* fake result */
+		printf("[004] _id = '1'\n");
 	}
+
 
 	print "done!";
 ?>

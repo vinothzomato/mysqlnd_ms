@@ -75,6 +75,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	*/
 	fetch_result(21, verbose_run_query(20, $link, "SELECT unknown_column FROM test"));
 
+	fetch_result(21, verbose_run_query(20, $link, "SELECT _latin1'string'"));
+
+
+
+
 	print "done!";
 ?>
 --CLEAN--
