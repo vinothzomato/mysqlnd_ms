@@ -30,7 +30,7 @@ $settings = array(
 		'filters' => array(
 			"table" => array(
 				"rules" => array(
-					$db . ".test" => array(
+					"%" => array(
 						"master" => array("master1"),
 						"slave" => array("slave1"),
 					),
