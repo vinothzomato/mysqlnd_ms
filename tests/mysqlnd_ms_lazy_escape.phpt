@@ -1,5 +1,5 @@
 --TEST--
-lazy connections and string escapting
+lazy connections and string escaping
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -62,4 +62,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_escape.ini'.\n");
 ?>
 --EXPECTF--
+string(0) ""
 done!
