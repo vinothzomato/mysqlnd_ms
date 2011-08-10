@@ -1,5 +1,5 @@
 --TEST--
-parser: SELECT SQL_SMALL_RESULT
+parser: SELECT SQL_BIG_RESULT
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -41,19 +41,19 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_parser10.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_parser11.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser10.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser11.ini
 --FILE--
 <?php
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 	require_once("mysqlnd_ms_table_parser.inc");
 
-	$sql = "SELECT SQL_SMALL_RESULT id AS _id FROM test GROUP BY id ORDER BY id ASC";
+	$sql = "SELECT SQL_BIG_RESULT id AS _id FROM test GROUP BY id ORDER BY id ASC";
 	if (server_supports_query(1, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
 
 		$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -67,12 +67,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser10.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_parser10.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser10.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_table_parser11.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser11.ini'.\n");
 ?>
 --EXPECTF--
-[001] Testing server support of 'SELECT SQL_SMALL_RESULT id AS _id FROM test GROUP BY id ORDER BY id ASC'
-[003 + 01] Query 'SELECT SQL_SMALL_RESULT id AS _id FROM test GROUP BY id ORDER BY id ASC'
+[001] Testing server support of 'SELECT SQL_BIG_RESULT id AS _id FROM test GROUP BY id ORDER BY id ASC'
+[003 + 01] Query 'SELECT SQL_BIG_RESULT id AS _id FROM test GROUP BY id ORDER BY id ASC'
 [003 + 02] Thread '%d'
 [004] _id = '%d'
 done!
