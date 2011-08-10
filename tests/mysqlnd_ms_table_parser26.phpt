@@ -62,7 +62,8 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 
 	run_query(2, $link, "CREATE TABLE `a``b` (`c\"d` INT)");
 	run_query(3, $link, "insert into `a``b`(`c\"d`) values (1)");
-	fetch_result(5, run_query(4, $link, "select `c\"d`  from `a``b`", MYSQLND_MS_USE_MASTER));
+	fetch_result(5, run_query(4, $link, "select `c\"d`  from `a``b`", MYSQLND_MS_MASTER_SWITCH));
+	run_query(6, $link, "DROP TABLE IF EXISTS `a``b`");
 
 	print "done!";
 ?>

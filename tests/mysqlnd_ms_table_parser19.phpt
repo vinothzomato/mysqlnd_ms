@@ -41,12 +41,12 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_parser18.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_table_parser19.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser18.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser19.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -84,7 +84,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser18.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_table_parser18.ini"))
+	if (!unlink("test_mysqlnd_ms_table_parser19.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser13.ini'.\n");
 ?>
 --EXPECTF--

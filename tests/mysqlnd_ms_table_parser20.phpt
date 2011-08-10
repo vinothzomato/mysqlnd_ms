@@ -67,6 +67,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser20.ini
 	  printf("[004] _id = 'h'ello'\n");
 	}
 
+	$sql = "SELECT '''hello''' AS _id FROM DUAL";
+	if (server_supports_query(5, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
+
+		$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno())
+			printf("[006] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+
+		fetch_result(8, run_query(7, $link, $sql));
+	} else {
+	  /* fake result */
+	  printf("[008b] _id = ''hello''\n");
+	}
+
 	print "done!";
 ?>
 --CLEAN--
@@ -77,4 +90,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser20.ini
 --EXPECTF--
 [001] Testing server support of 'SELECT 'h\'ello' AS _id FROM DUAL'
 [004] _id = 'h'ello'
+[005] Testing server support of 'SELECT '''hello''' AS _id FROM DUAL'
+[008] _id = ''hello''
 done!
