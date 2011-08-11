@@ -18,24 +18,30 @@ function _skipif_connect($host, $user, $passwd, $db, $port, $socket) {
 			$host, $user, mysqli_connect_errno(), mysqli_connect_error()));
 }
 
+function _skipif_have_feature($feature) {
+	$ret = false;
+
+	switch ($feature) {
+		case "table_filter":
+			$ret = defined("MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION");
+			break;
+		case "parser":
+			$ret = true;
+			break;
+		default:
+			$ret = false;
+			break;
+	}
+	return $ret;
+}
+
 function _skipif_check_feature($features) {
 	if (!is_array($features))
 		$features = array($features);
 
 	foreach ($features as $k => $feature) {
-		  switch ($feature) {
-			  case "table_filter":
-				if (!defined("MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION"))
-					die(sprintf("SKIP Table partitioning filter support not available"));
-				break;
-
-			  case "parser":
-				break;
-
-			  default:
-				die(sprintf("SKIP Fix test! SKIPIF tests for unknown feature '%s'", $feature));
-				break;
-		  }
+		if (!_skipif_have_feature($feature))
+			die(sprintf("SKIP Feature '%s' not available", $feature));
 	}
 }
 

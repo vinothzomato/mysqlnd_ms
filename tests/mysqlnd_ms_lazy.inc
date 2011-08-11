@@ -99,4 +99,15 @@
 
 		return '';
 	}
+
+	function drop_test_table($host, $user, $passwd, $db, $port, $socket, $tablename = "test") {
+		$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+		if (!$link->query(sprintf("DROP TABLE IF EXISTS %s", $link->real_escape_string($tablename))))
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
+
+		return '';
+	}
 ?>

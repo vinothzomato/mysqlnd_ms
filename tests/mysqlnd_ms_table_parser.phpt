@@ -6,7 +6,7 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_check_feature(array("table_filter"));
+_skipif_check_feature(array("parser"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
@@ -28,19 +28,22 @@ $settings = array(
 		),
 		'lazy_connections' => 0,
 		'filters' => array(
-			"table" => array(
-				"rules" => array(
-					$db . ".test" => array(
-						"master" => array("master1"),
-						"slave" => array("slave1"),
-					),
-				),
-			),
 			"roundrobin" => array(),
 		),
 	),
-
 );
+
+if (_skipif_have_feature("table_filter")) {
+	$settings['filters']['table'] = array(
+		"rules" => array(
+			$db . ".test" => array(
+				"master" => array("master1"),
+				"slave" => array("slave1"),
+			),
+		),
+	);
+}
+
 if ($error = create_config("test_mysqlnd_ms_table_parser.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
@@ -73,12 +76,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	mysqlnd_ms_table_parser5.phpt
 	fetch_result(19, verbose_run_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
 	*/
-	fetch_result(21, verbose_run_query(20, $link, "SELECT unknown_column FROM test"));
-
-	fetch_result(21, verbose_run_query(20, $link, "SELECT _latin1'string'"));
-
-
-
 
 	print "done!";
 ?>
@@ -100,8 +97,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 [012 + 01] Query 'SELECT 1 AS _id FROM test ORDER BY id ASC'
 [012 + 02] Thread '%d'
 [013] _id = '1'
-[020 + 01] Query 'SELECT unknown_column FROM test'
-[020] [1054] Unknown column 'unknown_column' in 'field list'
-[020 + 02] Thread '%d'
-[021] No result
 done!

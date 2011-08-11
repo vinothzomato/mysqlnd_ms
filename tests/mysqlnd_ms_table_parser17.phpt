@@ -6,7 +6,7 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_check_feature(array("table_filter"));
+_skipif_check_feature(array("parser"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
@@ -28,19 +28,22 @@ $settings = array(
 		),
 		'lazy_connections' => 0,
 		'filters' => array(
-			"table" => array(
-				"rules" => array(
-					"%" => array(
-						"master" => array("master1"),
-						"slave" => array("slave1"),
-					),
-				),
-			),
 			"roundrobin" => array(),
 		),
 	),
-
 );
+
+if (_skipif_have_feature("table_filter")) {
+	$settings['filters']['table'] = array(
+		"rules" => array(
+			 "%" => array(
+				  "master" => array("master1"),
+				  "slave" => array("slave1"),
+			),
+		),
+	);
+}
+
 if ($error = create_config("test_mysqlnd_ms_table_parser17.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
@@ -61,20 +64,32 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser17.ini
 		if (mysqli_connect_errno())
 			printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-		fetch_result(4, run_query(3, $link, $sql));
+		run_query(3, $link, "SELECT 1", MYSQLND_MS_SLAVE_SWITCH);
+		$thread_id = $link->thread_id;
+
+		fetch_result(5, run_query(4, $link, $sql));
+		if ($thread_id != $link->thread_id)
+			printf("[006] Statement has not been executed on the slave\n");
+
 	} else {
 		/* fake result */
-		printf("[004] _id = 'a string'\n");
+		printf("[005] _id = 'a string'\n");
 	}
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
+	require_once("connect.inc");
+	require_once("mysqlnd_ms_lazy.inc");
+
 	if (!unlink("test_mysqlnd_ms_table_parser17.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser13.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser17.ini'.\n");
+
+	if ($err = drop_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+		printf("[clean] %s\n", $err);
 ?>
 --EXPECTF--
 [001] Testing server support of 'SELECT 'a' ' ' 'string' AS _id'
-[004] _id = 'a string'
+[005] _id = 'a string'
 done!
