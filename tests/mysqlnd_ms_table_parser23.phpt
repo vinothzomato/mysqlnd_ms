@@ -28,13 +28,12 @@ $settings = array(
 		),
 		'lazy_connections' => 0,
 		'filters' => array(
-			"roundrobin" => array(),
 		),
 	),
 );
 
 if (_skipif_have_feature("table_filter")) {
-	$settings['filters']['table'] = array(
+	$settings['myapp']['filters']['table'] = array(
 		"rules" => array(
 			 "%" => array(
 				  "master" => array("master1"),

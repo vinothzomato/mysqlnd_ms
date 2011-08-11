@@ -28,13 +28,12 @@ $settings = array(
 		),
 		'lazy_connections' => 0,
 		'filters' => array(
-			"roundrobin" => array(),
 		),
 	),
 );
 
 if (_skipif_have_feature("table_filter")) {
-	$settings['filters']['table'] = array(
+	$settings['myapp']['filters']['table'] = array(
 		"rules" => array(
 			$db . ".a`b" => array(
 				"master" => array("master1"),
@@ -43,6 +42,7 @@ if (_skipif_have_feature("table_filter")) {
 		),
 	);
 }
+
 
 if ($error = create_config("test_mysqlnd_ms_table_parser26.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
