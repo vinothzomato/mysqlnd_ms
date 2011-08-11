@@ -18,7 +18,6 @@
 */
 
 /* $Id: mysqlnd_ms.h 311510 2011-05-27 19:36:39Z andrey $ */
-#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 
 #ifndef MYSQLND_MS_FILTER_TABLE_PARTITION_H
 #define MYSQLND_MS_FILTER_TABLE_PARTITION_H
@@ -41,7 +40,6 @@ void mysqlnd_ms_filter_ht_dtor(void * data);
 
 #endif	/* MYSQLND_MS_FILTER_TABLE_PARTITION_H */
 
-#endif /* MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION */
 /*
  * Local variables:
  * tab-width: 4
