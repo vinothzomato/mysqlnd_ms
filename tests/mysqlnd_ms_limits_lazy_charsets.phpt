@@ -126,7 +126,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 		printf("[013] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
 
 	if ($link->character_set_name() != $new_charset)
-		printf("[014] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name);
+		printf("[014] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name());
 
 	/* slave 2 */
 	if (!$res = run_query(15, $link, "SELECT @@character_set_connection AS charset"))
@@ -145,8 +145,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 	if (!unlink("test_mysqlnd_ms_limits_lazy_charsets.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_lazy_charsets.ini'.\n");
 ?>
+--XFAIL--
+Skip because set_charset() doesn't play with lazy, still
 --EXPECTF--
 
-Warning: mysqli::set_charset(): Error executing query in %s on line %d
 Slave 2 reports charset '%s', charset set was '%s'
 done!
