@@ -492,7 +492,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 						DBG_INF("no next sub-section");
 						break;
 					}
-					(void) (ret, current_filter, filter_name, filter_name_len,
+					(void) mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
 																 persistent, error_info TSRMLS_CC);
 				} while (1);
 				if (zend_llist_count(ret)) {
