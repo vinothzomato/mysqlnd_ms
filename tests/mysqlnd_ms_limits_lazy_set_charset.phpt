@@ -68,6 +68,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_set_charset.ini
 	if (!unlink("test_mysqlnd_ms_lazy_set_charset.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_set_charset.ini'.\n");
 ?>
+--XFAIL--
+Don't know what to do with lazy and commands which should go to all connections
 --EXPECTF--
 [003] [%d] %s
 array(1) {
