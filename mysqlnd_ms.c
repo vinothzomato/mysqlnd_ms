@@ -491,7 +491,7 @@ mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_
 	DBG_ENTER("mysqlnd_ms::do_send_query");
 
 	if (pick_server) {
-		DBG_INF("Must be aync query, blocking and failing");
+		DBG_INF("Must be async query, blocking and failing");
 		if (conn) {
 			char error_buf[128];
 			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Asynchronous queries are not supported");
@@ -855,7 +855,9 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
-		if (PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC)) {
+		if (CONN_GET_STATE(el->conn) > CONN_ALLOCED &&
+			PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC))
+		{
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
@@ -1196,6 +1198,58 @@ MYSQLND_METHOD(mysqlnd_ms, get_connection_stats)(const MYSQLND * const proxy_con
 }
 /* }}} */
 
+/* {{{ mysqlnd_ms::dump_debug_info */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, dump_debug_info)(MYSQLND * const proxy_conn TSRMLS_DC)
+{
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+	MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	DBG_ENTER("mysqlnd_ms::dump_debug_info");
+	DBG_RETURN(ms_orig_mysqlnd_conn_methods->server_dump_debug_information(conn TSRMLS_CC));
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms::simple_command */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_server_command command,
+			   const zend_uchar * const arg, size_t arg_len, enum mysqlnd_packet_type ok_packet, zend_bool silent,
+			   zend_bool ignore_upsert_status TSRMLS_DC)
+{
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	enum_func_status ret = PASS;
+
+	DBG_ENTER("mysqlnd_ms::simple_command");
+	DBG_INF_FMT("command=%d ok_packet=%u silent=%u", command, ok_packet, silent);
+
+	if (command != COM_QUERY && CONN_GET_STATE(conn) == CONN_ALLOCED && conn_data) {
+		zend_llist * master_list = &(*conn_data)->master_connections;
+		MYSQLND_MS_LIST_DATA * element = NULL;
+
+		BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
+			if (element->conn == conn) {
+				break;
+			}
+		END_ITERATE_OVER_SERVER_LIST;
+		
+		DBG_INF("This is not a COM_QUERY. Lazy connection, trying to connect to the master...");
+		/* lazy connection, connect now */
+		if (element &&
+			PASS == ms_orig_mysqlnd_conn_methods->connect(conn, element->host, element->user,
+														   element->passwd, element->passwd_len,
+														   element->db, element->db_len,
+														   element->port, element->socket,
+														   element->connect_flags TSRMLS_CC))
+		{
+			DBG_INF("Connected");
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+		}
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+	}
+	ret = ms_orig_mysqlnd_conn_methods->simple_command(conn, command, arg, arg_len, ok_packet, silent, ignore_upsert_status TSRMLS_CC);
+	DBG_RETURN(ret);	
+}
+/* }}} */
 
 
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
@@ -1249,6 +1303,9 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.get_protocol_information= MYSQLND_METHOD(mysqlnd_ms, get_proto_info);
 	my_mysqlnd_conn_methods.charset_name			= MYSQLND_METHOD(mysqlnd_ms, charset_name);
 	my_mysqlnd_conn_methods.get_statistics			= MYSQLND_METHOD(mysqlnd_ms, get_connection_stats);
+	my_mysqlnd_conn_methods.server_dump_debug_information = MYSQLND_METHOD(mysqlnd_ms, dump_debug_info);
+	my_mysqlnd_conn_methods.simple_command 			= MYSQLND_METHOD(mysqlnd_ms, simple_command);
+
 	mysqlnd_conn_set_methods(&my_mysqlnd_conn_methods);
 }
 /* }}} */
