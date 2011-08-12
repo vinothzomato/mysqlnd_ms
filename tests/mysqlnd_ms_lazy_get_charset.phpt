@@ -69,7 +69,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_get_charset.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_get_charset.ini'.\n");
 ?>
 --EXPECTF--
-[003] [%d] %s
+Warning: mysqli::get_charset(): The connection has no charset associated in %s on line %d
+[003] [%d] 
 array(1) {
   [1]=>
   string(1) "1"
