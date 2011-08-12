@@ -472,13 +472,19 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 				do {
 					char * filter_name = NULL;
 					size_t filter_name_len = 0;
+					ulong filter_int_name;
 					struct st_mysqlnd_ms_config_json_entry * current_filter =
-							mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_name, &filter_name_len, NULL TSRMLS_CC);
+							mysqlnd_ms_config_json_next_sub_section(filters_section, &filter_name, &filter_name_len, &filter_int_name TSRMLS_CC);
 
 					if (!current_filter || !filter_name || !filter_name_len) {
 						if (current_filter) {
 							char error_buf[128];
-							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+							if (filter_name && !filter_name_len) {
+								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+							} else {
+								snprintf(error_buf, sizeof(error_buf),
+									MYSQLND_MS_ERROR_PREFIX " Unknown filter '%d' . Stopping", filter_int_name);
+							}
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 							php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
@@ -486,7 +492,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 						DBG_INF("no next sub-section");
 						break;
 					}
-					(void) mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
+					(void) (ret, current_filter, filter_name, filter_name_len,
 																 persistent, error_info TSRMLS_CC);
 				} while (1);
 				if (zend_llist_count(ret)) {
