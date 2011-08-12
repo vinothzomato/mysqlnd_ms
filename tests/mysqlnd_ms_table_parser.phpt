@@ -75,6 +75,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 	mysqlnd_ms_table_parser5.phpt
 	fetch_result(19, verbose_run_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
 	*/
+	/* mysqlnd_ms_table_parser29.phpt
+	fetch_result(19, verbose_run_query(18, $link, "SELECT id OR id AS _id FROM test AS d"));
+	fetch_result(21, verbose_run_query(20, $link, "SELECT 1 || id AS _id FROM test AS d"));
+	fetch_result(23, verbose_run_query(22, $link, "SELECT 1 XOR 1 AS _id FROM test"));
+	fetch_result(25, verbose_run_query(24, $link, "SELECT 1 AND 'a' AS _id FROM test"));
+	fetch_result(27, verbose_run_query(26, $link, "SELECT 1 && 2 AS _id, 3 AS _idididi FROM test"));
+	fetch_result(29, verbose_run_query(28, $link, "SELECT NOT 2 AS _id FROM test"));
+	fetch_result(31, verbose_run_query(30, $link, "SELECT TRUE IS NOT FALSE AS _id FROM test"));
+	*/
 
 	print "done!";
 ?>
