@@ -28,7 +28,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_sql_calc_found_rows.ini
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
-	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	run_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
@@ -67,6 +67,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_sql_calc_found_rows.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
-Num rows 1, found rows 1, role slave2
+Num rows 1, found rows 0, role slave2
 Num rows 1, found rows 2, role slave1
 done!
