@@ -41,7 +41,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.in");
+	require_once("mysqlnd_ms_lazy.inc");
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
