@@ -63,8 +63,9 @@
 	}
 
 	function schnattertante($res) {
-		if (!$res)
+		if (!is_object($res))
 		  return false;
+
 		$row = $res->fetch_assoc();
 		$res->close();
 		printf("This is '%s' speaking\n", $row['_role']);
