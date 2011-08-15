@@ -20,13 +20,13 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_error_errno_sqlstate.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_error_errno_sqlstate.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -91,11 +91,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_error_errno_sqlstate.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_error_errno_sqlstate.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_error_errno_sqlstate.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_error_errno_sqlstate.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_error_errno_sqlstate.ini'.\n");
 ?>
 --EXPECTF--
-%d - master
-%d - slave1
-%d - slave2
-done!
+[010] [%d] %s
+[020] [%d] %s
+[030] [%d] %s
+7899 - master
+10631 - slave1
+10632 - slave2
