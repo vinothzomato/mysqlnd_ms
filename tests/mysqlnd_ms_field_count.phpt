@@ -26,16 +26,7 @@ if ($error = create_config("test_mysqlnd_field_count", $settings))
 --FILE--
 <?php
 	require_once("connect.inc");
-
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		return $ret;
-	}
+	require_once("mysqlnd_ms_lazy.inc");
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());

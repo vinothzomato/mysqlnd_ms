@@ -30,13 +30,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_error_errno_sqlstate.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		return $link->query($query);
-	}
+	require_once("mysqlnd_ms_lazy.inc");
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());

@@ -26,7 +26,7 @@ mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
-
+	require_once("mysqlnd_ms_lazy.inc");
 
 	$expected = array(
 		"use_slave" 							=> true,
@@ -48,16 +48,6 @@ mysqlnd_ms.collect_statistics=1
 		"trx_autocommit_off"					=> true,
 		"trx_master_forced"						=> true,
 	);
-
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		return $ret;
-	}
 
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {
 		printf("[001] Expecting NULL got %s/%s\n", gettype($ret), $ret);

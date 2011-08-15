@@ -75,6 +75,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("mysqlnd_ms_lazy.inc");
 
 	function check_charset($offset, $link, $expected) {
 
@@ -92,16 +93,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 		if (($charset->min_length < 0) || ($charset->min_length > $expected['max_length']))
 			printf("[%03d + 04] Expecting min length 0..%d got %d\n", $offset, $charset['max_length']. $charset->min_length);
 
-	}
-
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		return $ret;
 	}
 
 	/*

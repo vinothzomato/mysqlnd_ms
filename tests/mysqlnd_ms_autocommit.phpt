@@ -28,16 +28,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		return $ret;
-	}
+	require_once("mysqlnd_ms_lazy.inc");
 
 	/*
 	Note: link->autocommit is not handled by the plugin! Don't rely on it!

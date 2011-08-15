@@ -27,16 +27,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_pick_unknown_policy.ini
 <?php
 	require_once("connect.inc");
 
-	function run_query($offset, $link, $query, $switch = NULL) {
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
-
-		if (!($ret = $link->query($query)))
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
-
-		return $ret;
-	}
-
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
