@@ -27,7 +27,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_multi_query_lazy.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+
+	function run_query($offset, $link, $query, $switch = NULL) {
+		if ($switch)
+			$query = sprintf("/*%s*/%s", $switch, $query);
+
+		printf("[%03d] %s\n", $offset, $query);
+
+		if (!($ret = $link->multi_query($query)))
+			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
+
+		return $ret;
+	}
 
 	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
@@ -40,7 +51,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_multi_query_lazy.ini
 	do {
 		if ($res = $link->store_result()) {
 			$row = $res->fetch_assoc();
-			printf("%s", $row['_msg']);
+			printf("%s\n", $row['_msg']);
 			$res->free();
 		}
 	} while ($link->more_results() && $link->next_result());
@@ -56,7 +67,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_multi_query_lazy.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_multi_query_lazy.ini'.\n");
 ?>
 --EXPECTF--
-
-[005] [0]%s
-
+[002] SET @myrole='Slave 1'
+[004] SET @myrole='Master 1'
+[005] SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL
+This is Slave 1 speaking!
 done!
