@@ -16,13 +16,13 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_insert_affected_pdo.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_insert_affected_pdo.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_insert_affected_pdo.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected_pdo.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -82,8 +82,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_insert_affected_pdo.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_insert_affected_pdo.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_insert_affected_pdo.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_insert_affected_pdo.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_insert_affected_pdo.ini'.\n");
 ?>
 --EXPECTF--
 done!

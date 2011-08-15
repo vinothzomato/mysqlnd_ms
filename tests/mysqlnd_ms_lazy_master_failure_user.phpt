@@ -21,12 +21,12 @@ $settings = array(
 		'lazy_connections' => 1
 	),
 );
-if ($error = create_config("test_mysqlnd_lazy_master_failure_user.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_lazy_master_failure_user.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_lazy_master_failure_user.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_master_failure_user.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -93,8 +93,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_lazy_master_failure_user.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_lazy_master_failure_user.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_lazy_master_failure_user.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_user.ini'.\n");
 ?>
 --EXPECTF--
 pick_server('myapp', '/*ms=master*/SET @myrole='master'') => master

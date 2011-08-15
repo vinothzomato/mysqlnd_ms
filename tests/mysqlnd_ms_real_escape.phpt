@@ -19,13 +19,13 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_real_escape.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_real_escape.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_real_escape.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_real_escape.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -74,8 +74,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_real_escape.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_real_escape.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_real_escape.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_real_escape.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_real_escape.ini'.\n");
 ?>
 --EXPECTF--
 done!

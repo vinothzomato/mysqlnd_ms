@@ -16,13 +16,13 @@ $settings = array(
 		'slave' 	=> array($slave_host, $slave_host, $slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_pick_unknown_policy.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_pick_unknown_policy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_pick_unknown_policy.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_unknown_policy.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -34,8 +34,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_pick_unknown_policy.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_pick_unknown_policy.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_pick_unknown_policy.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_unknown_policy.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_unknown_policy.ini'.\n");
 ?>
 --EXPECTF--
 Catchable fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'unknown' . Stopping in %s on line %d

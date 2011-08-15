@@ -2,7 +2,7 @@
 last query field count (without PS)
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_field_count
+mysqlnd_ms.ini_file=test_mysqlnd_ms_field_count.ini
 --SKIPIF--
 <?php
 require_once("skipif.inc");
@@ -20,7 +20,7 @@ $settings = array(
 
 	),
 );
-if ($error = create_config("test_mysqlnd_field_count", $settings))
+if ($error = create_config("test_mysqlnd_ms_field_count.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --FILE--
@@ -78,8 +78,8 @@ if ($error = create_config("test_mysqlnd_field_count", $settings))
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_field_count"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_field_count'.\n");
+	if (!unlink("test_mysqlnd_ms_field_count.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_field_count.ini'.\n");
 ?>
 --EXPECTF--
 %d - Slave 1: 1

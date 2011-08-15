@@ -16,13 +16,13 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_insert_affected.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_insert_affected.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_insert_affected.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -76,8 +76,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_insert_affected.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_insert_affected.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_insert_affected.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_insert_affected.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_insert_affected.ini'.\n");
 ?>
 --EXPECTF--
 done!

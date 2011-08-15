@@ -16,13 +16,13 @@ $settings = array(
 		'slave' 	=> array($slave_host, $slave_host, $slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_random_pick.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_pick_random.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_random_pick.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -100,8 +100,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_random_pick.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_random_pick.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_random_pick.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_random.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random.ini'.\n");
 ?>
 --EXPECTF--
 Slave 1 (%d) has run %d queries.

@@ -16,13 +16,13 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_real_query.ini", $settings))
+if ($error = create_config("test_mysqlnd_ms_limits_real_query.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_real_query.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_real_query.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -63,7 +63,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_real_query.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_real_query.ini"))
+	if (!unlink("test_mysqlnd_ms_limits_real_query.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
