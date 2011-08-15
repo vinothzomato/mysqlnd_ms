@@ -19,6 +19,7 @@ $settings = array(
 				'db'		=> (string)$db,
 				'user'		=> $user,
 				'password'	=> $passwd,
+				'connect_flags' => 0,
 			  ),
 		),
 		'slave' => array(
@@ -29,6 +30,7 @@ $settings = array(
 			  'db'		=> $db,
 			  'user'	=> $user,
 			  'password'=> $passwd,
+			  'connect_flags' => 0,
 			),
 		),
 		'pick' => 'roundrobin',
