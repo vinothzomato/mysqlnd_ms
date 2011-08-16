@@ -95,44 +95,48 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	/* slave */
-	if (!$res = run_query(4, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_LAST_USED_SWITCH))
+	if (!$res = run_query(4, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
-	if (!$row = $res->fetch_assoc())
-		printf("[006] [%d] %s\n", $link->errno, $link->error);
+	$row = $res->fetch_assoc();
+	if ('slave' != $row['_role'])
+		printf("[006] Expecting reply from slave not from '%s'\n", $row['_role']);
 
-	$current_charset = $row['charset'];
+	$current_charset = $row['_charset'];
 	$new_charset = ('latin1' == $current_charset) ? 'latin2' : 'latin1';
 
 	/* shall be run on *all* configured machines - all masters, all slaves */
-	$link->set_charset($new_charset);
+	if (!$link->set_charset($new_charset))
+		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
 	/* slave */
-	if (!$res = run_query(7, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_LAST_USED_SWITCH))
-		printf("[008] [%d] %s\n", $link->errno, $link->error);
-
-	if (!$row = $res->fetch_assoc())
+	if (!$res = run_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[009] [%d] %s\n", $link->errno, $link->error);
 
-	$current_charset = $row['charset'];
+	$row = $res->fetch_assoc();
+	if ('slave' != $row['_role'])
+		printf("[010] Expecting reply from slave not from '%s'\n", $row['_role']);
+
+	$current_charset = $row['_charset'];
 	if ($current_charset != $new_charset)
-		printf("[010] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
+		printf("[011] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
 
 	if ($link->character_set_name() != $new_charset)
-		printf("[011] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name());
+		printf("[012] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name());
 
-	if (!$res = run_query(11, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_MASTER_SWITCH))
-		printf("[012] [%d] %s\n", $link->errno, $link->error);
+	if (!$res = run_query(13, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH))
+		printf("[014] [%d] %s\n", $link->errno, $link->error);
 
-	if (!$row = $res->fetch_assoc())
-		printf("[013] [%d] %s\n", $link->errno, $link->error);
+	$row = $res->fetch_assoc();
+	if ('master' != $row['_role'])
+		printf("[015] Expecting reply from master not from '%s'\n", $row['_role']);
 
-	$current_charset = $row['charset'];
+	$current_charset = $row['_charset'];
 	if ($current_charset != $new_charset)
-		printf("[014] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
+		printf("[016] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
 
 	if ($link->character_set_name() != $new_charset)
-		printf("[015] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name);
+		printf("[017] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name);
 
 	print "done!";
 
