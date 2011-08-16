@@ -48,6 +48,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_kill.ini
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	$slave_thread_id = $link->thread_id;
+
 	if (!$link->kill($link->thread_id))
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
 
@@ -57,7 +59,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_kill.ini
 
 	$res = run_query(6, $link, "SELECT @myrole AS _role, DATABASE() as _database");
 	if ($res) {
-		printf("[007] Who has run this?\n");
+		printf("[007] Who has run this? Slave thread id is '%d', thread id '%d'\n", $slave_thread_id, $link->thread_id);
 		var_dump($res->fetch_assoc());
 	}
 
