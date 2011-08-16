@@ -1,5 +1,5 @@
 --TEST--
-autocommit - handled by plugin as of PHP 5.3.99
+autocommit - handled as of PHP 5.3.99
 --SKIPIF--
 <?php
 require_once("connect.inc");
@@ -30,10 +30,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
-	/*
-	Note: link->autocommit is not handled by the plugin! Don't rely on it!
-	*/
-
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
@@ -41,51 +37,57 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 		printf("[002] Failed to change autocommit setting\n");
 
 	run_query(3, $link, "SET autocommit=0", MYSQLND_MS_MASTER_SWITCH);
-	run_query(4, $link, "SET autocommit=0", MYSQLND_MS_SLAVE_SWITCH);
+	run_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	run_query(5, $link, "SET autocommit=0", MYSQLND_MS_SLAVE_SWITCH);
+	run_query(6, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	/* applied to master connection because master is the first one contacted by plugin and autocommit is not dispatched */
 	if (!mysqli_autocommit($link, true))
-		printf("[005] Failed to change autocommit setting\n");
+		printf("[007] Failed to change autocommit setting\n");
 
 	/* slave because SELECT */
-	$res = run_query(6, $link, "SELECT @@autocommit AS auto_commit");
+	$res = run_query(8, $link, "SELECT @myrole AS _role, @@autocommit AS _auto_commit", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
-	if (1 != $row['auto_commit'])
-		printf("[007] Autocommit should be on, got '%s'\n", $row['auto_commit']);
+	if (1 != $row['_auto_commit'])
+		printf("[009] Autocommit should be on, got '%s'\n", $row['auto_commit']);
+
+	printf("[010] Got a reply from %s\n", $row['_role']);
 
 	/* master because of hint */
-	$res = run_query(8, $link, "SELECT @@autocommit AS auto_commit", MYSQLND_MS_MASTER_SWITCH);
+	$res = run_query(11, $link, "SELECT @myrole AS _role, @@autocommit AS _auto_commit", MYSQLND_MS_MASTER_SWITCH);
 	$row = $res->fetch_assoc();
-	if (1 != $row['auto_commit'])
-		printf("[009] Autocommit should be on, got '%s'\n", $row['auto_commit']);
+	if (1 != $row['_auto_commit'])
+		printf("[012] Autocommit should be on, got '%s'\n", $row['auto_commit']);
+
+	printf("[013] Got a reply from %s\n", $row['_role']);
 
 	$link->close();
 
 	/* no plugin magic */
 
 	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
-		printf("[010] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		printf("[014] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	if (!mysqli_autocommit($link, false))
-		printf("[011] Failed to change autocommit setting\n");
+		printf("[015] Failed to change autocommit setting\n");
 
-	run_query(12, $link, "SET autocommit=0");
+	run_query(16, $link, "SET autocommit=0");
 
 	if (!mysqli_autocommit($link, false))
-		printf("[013] Failed to change autocommit setting\n");
+		printf("[017] Failed to change autocommit setting\n");
 
-	$res = run_query(14, $link, "SELECT @@autocommit AS auto_commit");
+	$res = run_query(18, $link, "SELECT @@autocommit AS auto_commit");
 	$row = $res->fetch_assoc();
 	if (0 != $row['auto_commit'])
-		printf("[015] Autocommit should be off, got '%s'\n", $row['auto_commit']);
+		printf("[019] Autocommit should be off, got '%s'\n", $row['auto_commit']);
 
 	if (!mysqli_autocommit($link, true))
-		printf("[016] Failed to change autocommit setting\n");
+		printf("[020] Failed to change autocommit setting\n");
 
-	$res = run_query(17, $link, "SELECT @@autocommit AS auto_commit");
+	$res = run_query(21, $link, "SELECT @@autocommit AS auto_commit");
 	$row = $res->fetch_assoc();
 	if (1 != $row['auto_commit'])
-		printf("[018] Autocommit should be on, got '%s'\n", $row['auto_commit']);
+		printf("[022] Autocommit should be on, got '%s'\n", $row['auto_commit']);
 
 	print "done!";
 
@@ -96,4 +98,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_autocommit.ini'.\n");
 ?>
 --EXPECTF--
+[010] Got a reply from slave
+[013] Got a reply from master
 done!

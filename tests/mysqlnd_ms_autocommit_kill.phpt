@@ -68,7 +68,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_autocommit_kill.ini
 		printf("[013] Autocommit should be on, got '%s'\n", $row['auto_commit']);
 
 	print "done!";
-
 ?>
 --CLEAN--
 <?php
