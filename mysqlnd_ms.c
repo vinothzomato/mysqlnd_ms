@@ -531,9 +531,15 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	DBG_INF_FMT("Connection %p", connection);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
-	  as we dump a connection from usage till the end of the script
+	  as we dump a connection from usage till the end of the script.
+	  Lazy connections can generate connection failures, thus we need to check for them.
+	  If we skip these checks we will get 2014 from original->query.
 	*/
-	if (!connection || connection->error_info.error_no) {
+	if (!connection ||
+		connection->error_info.error_no == CR_CONNECTION_ERROR ||
+		connection->error_info.error_no == CR_SERVER_GONE_ERROR ||
+		connection->error_info.error_no == CR_SERVER_LOST)
+	{
 		DBG_RETURN(ret);
 	}
 
@@ -728,6 +734,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 #endif
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
+		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
 #if PHP_VERSION_ID >= 50399
@@ -738,6 +745,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+		(*conn_data)->stgy.last_used_conn = last_used;
 	}
 
 	DBG_RETURN(ret);
@@ -829,12 +837,14 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->select_db(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
+		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->select_db(el->conn, db, db_len TSRMLS_CC)) {
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+		(*conn_data)->stgy.last_used_conn = last_used;
 	}
 
 	DBG_RETURN(ret);
@@ -853,6 +863,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_charset(proxy_conn, csname TSRMLS_CC));
 	} else {
+		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (CONN_GET_STATE(el->conn) > CONN_ALLOCED &&
@@ -861,6 +872,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+		(*conn_data)->stgy.last_used_conn = last_used;
 	}
 
 	DBG_RETURN(ret);
@@ -879,12 +891,14 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_m
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_server_option(proxy_conn, option TSRMLS_CC));
 	} else {
+		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->set_server_option(el->conn, option TSRMLS_CC)) {
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+		(*conn_data)->stgy.last_used_conn = last_used;
 	}
 
 	DBG_RETURN(ret);
@@ -903,12 +917,14 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_client_option(proxy_conn, option, value TSRMLS_CC));
 	} else {
+		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if (PASS != ms_orig_mysqlnd_conn_methods->set_client_option(el->conn, option, value TSRMLS_CC)) {
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+		(*conn_data)->stgy.last_used_conn = last_used;
 	}
 
 	DBG_RETURN(ret);
@@ -1057,6 +1073,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_autocommit(proxy_conn, mode TSRMLS_CC));
 	} else {
+		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		if ((CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) &&
@@ -1065,6 +1082,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 			ret = FAIL;
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+		(*conn_data)->stgy.last_used_conn = last_used; /* restore state */
 	}
 
 	if (mode) {
