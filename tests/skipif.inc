@@ -7,7 +7,7 @@ function _skipif_check_extensions($extensions) {
 
 	foreach ($extensions as $k => $extension) {
 		if (!extension_loaded($extension))
-			die(sprintf("SKIP ext/%s not available"));
+			die(sprintf("SKIP ext/%s not available", $extension));
 	}
 
 }
