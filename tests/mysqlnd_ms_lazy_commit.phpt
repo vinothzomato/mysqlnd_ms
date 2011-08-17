@@ -45,25 +45,31 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_commit.ini
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	/* intentionally NOT ms - checking what happens w/o MS */
+	$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	if (!$link->dump_debug_info())
+	/* commit prior to any command... */
+	if (!($wo_ms = $link->commit()))
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 
-	if (!$link->commit())
-		printf("[004] [%d] %s\n", $link->errno, $link->error);
-	else
-		printf("[004] Commit\n");
+	$link->close();
 
-	if (!$link->dump_debug_info())
+	/* Now MS */
+	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	if (mysqli_connect_errno()) {
+		printf("[004] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
+
+	if (!($w_ms = $link->commit()))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
-	if ($res = run_query(6, $link, "SELECT 1 FROM DUAL"))
-		var_dump($res->fetch_assoc());
+	$link->close();
 
+	if ($wo_ms != $w_ms)
+		printf("[006] Different behaviour with and without MS!\n");
 
 	print "done!";
 ?>
@@ -75,11 +81,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_commit.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_commit.ini'.\n");
 ?>
 --EXPECTF--
-[003] [%d] %s
-[004] [%d] %s
-[005] [%d] %s
-array(1) {
-  [1]=>
-  string(1) "1"
-}
 done!
