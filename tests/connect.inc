@@ -108,6 +108,29 @@
 
 	if (!function_exists('my_mysqli_connect')) {
 
+		function my_mysql_connect($host, $user, $passwd, $db, $port, $socket, $flags = NULL, $persistent = false) {
+			global $connect_flags;
+
+			$flags = ($flags === NULL) ? $connect_flags : $flags;
+
+			if ($socket)
+				$host = sprintf("%s:%s", $host, $socket);
+			else if ($port)
+				$host = sprintf("%s:%s", $host, $port);
+
+			if ($persistent) {
+				$link = mysql_pconnect($host, $user, $passwd, $flags);
+			} else {
+				$link = mysql_connect($host, $user, $passwd, true, $flags);
+			}
+
+			if ($db)
+				mysql_select_db($db, $link);
+
+			return $link;
+		}
+
+
 		/**
 		* Whenever possible, please use this wrapper to make testing ot MYSQLI_CLIENT_COMPRESS (and potentially SSL) possible
 		*
