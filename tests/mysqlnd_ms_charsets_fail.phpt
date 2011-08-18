@@ -88,20 +88,31 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_fail.ini
 
 	/* slave */
 	if ($res = run_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH)) {
-		printf("[009] Who is speaking?");
-		var_dump($res->fetch_assoc());
+		$row = $res->fetch_assoc();
+
+		if ('slave' != $row['_role'])
+			printf("[009] Expecting reply from slave not from '%s'\n", $row['_role']);
+
+		if ($row['_charset'] != $current_charset)
+			printf("[010] Expecting charset '%s' got '%s'\n", $current_charset, $row['_charset']);
 	}
 
 	if ($link->character_set_name() != $current_charset)
-		printf("[010] Expecting charset '%s' got '%s'\n", $current_charset, $link->character_set_name());
+		printf("[011] Expecting charset '%s' got '%s'\n", $current_charset, $link->character_set_name());
 
-	if ($res = run_query(11, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH)) {
-		printf("[012] Who is speaking?");
-		var_dump($res->fetch_assoc());
+	if ($res = run_query(12, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH)) {
+
+		$row = $res->fetch_assoc();
+
+		if ('master' != $row['_role'])
+			printf("[013] Expecting reply from master not from '%s'\n", $row['_role']);
+
+		if ($row['_charset'] != $current_charset)
+			printf("[014] Expecting charset '%s' got '%s'\n", $current_charset, $row['_charset']);
 	 }
 
 	if ($link->character_set_name() != $current_charset)
-		printf("[01]3 Expecting charset '%s' got '%s'\n", $current_charset, $link->character_set_name());
+		printf("[015] Expecting charset '%s' got '%s'\n", $current_charset, $link->character_set_name());
 
 	print "done!";
 
@@ -113,6 +124,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_fail.ini
 ?>
 --EXPECTF--
 [007] [%d] %s
-[008] [%d] %s
-[011] [%d] %s
 done!
