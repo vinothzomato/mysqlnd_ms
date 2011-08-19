@@ -575,7 +575,7 @@ MYSQLND_METHOD(mysqlnd_ms, use_result)(MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_RES * result;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::use_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	result = ms_orig_mysqlnd_conn_methods->use_result(conn TSRMLS_CC);
@@ -590,7 +590,7 @@ MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_RES * result;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::store_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	result = ms_orig_mysqlnd_conn_methods->store_result(conn TSRMLS_CC);
@@ -695,7 +695,7 @@ static ulong
 MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND * const proxy_conn, char *newstr, const char *escapestr, size_t escapestr_len TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::escape_string");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	if (CONN_GET_STATE(conn) > CONN_ALLOCED) {
@@ -759,7 +759,7 @@ MYSQLND_METHOD(mysqlnd_ms, ping)(MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	enum_func_status ret;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::ping");
 	ret = ms_orig_mysqlnd_conn_methods->ping(conn TSRMLS_CC);
 	DBG_RETURN(ret);
@@ -773,7 +773,7 @@ MYSQLND_METHOD(mysqlnd_ms, kill)(MYSQLND * proxy_conn, unsigned int pid TSRMLS_D
 {
 	enum_func_status ret;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::kill");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	ret = ms_orig_mysqlnd_conn_methods->kill_connection(conn, pid TSRMLS_CC);
@@ -938,7 +938,7 @@ MYSQLND_METHOD(mysqlnd_ms, next_result)(MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	enum_func_status ret;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::next_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	ret = ms_orig_mysqlnd_conn_methods->next_result(conn TSRMLS_CC);
@@ -953,7 +953,7 @@ MYSQLND_METHOD(mysqlnd_ms, more_results)(const MYSQLND * const proxy_conn TSRMLS
 {
 	zend_bool ret;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::more_results");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, (conn)->m->get_thread_id(conn TSRMLS_CC));
 	ret = ms_orig_mysqlnd_conn_methods->more_results(conn TSRMLS_CC);
@@ -967,7 +967,7 @@ static unsigned int
 MYSQLND_METHOD(mysqlnd_ms, error_no)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->error_info.error_no;
 }
 /* }}} */
@@ -978,7 +978,7 @@ static const char *
 MYSQLND_METHOD(mysqlnd_ms, error)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->error_info.error;
 }
 /* }}} */
@@ -989,7 +989,7 @@ static const char *
 MYSQLND_METHOD(mysqlnd_ms, sqlstate)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->error_info.sqlstate[0] ? conn->error_info.sqlstate:MYSQLND_SQLSTATE_NULL;
 }
 /* }}} */
@@ -1000,7 +1000,7 @@ static unsigned int
 MYSQLND_METHOD(mysqlnd_ms, field_count)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->field_count;
 }
 /* }}} */
@@ -1011,7 +1011,7 @@ static uint64_t
 MYSQLND_METHOD(mysqlnd_ms, thread_id)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->thread_id;
 }
 /* }}} */
@@ -1022,7 +1022,7 @@ static uint64_t
 MYSQLND_METHOD(mysqlnd_ms, insert_id)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->upsert_status.last_insert_id;
 }
 /* }}} */
@@ -1033,7 +1033,7 @@ static uint64_t
 MYSQLND_METHOD(mysqlnd_ms, affected_rows)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->upsert_status.affected_rows;
 }
 /* }}} */
@@ -1044,7 +1044,7 @@ static unsigned int
 MYSQLND_METHOD(mysqlnd_ms, warning_count)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->upsert_status.warning_count;
 }
 /* }}} */
@@ -1055,7 +1055,7 @@ static const char *
 MYSQLND_METHOD(mysqlnd_ms, info)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return conn->last_message;
 }
 /* }}} */
@@ -1141,7 +1141,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND * proxy_conn, char **m
 {
 	enum_func_status ret;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
 	DBG_ENTER("mysqlnd_ms::statistic");
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
@@ -1156,7 +1156,7 @@ static unsigned long
 MYSQLND_METHOD(mysqlnd_ms, get_server_version)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return ms_orig_mysqlnd_conn_methods->get_server_version(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1167,7 +1167,7 @@ static const char *
 MYSQLND_METHOD(mysqlnd_ms, get_server_info)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return ms_orig_mysqlnd_conn_methods->get_server_information(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1178,7 +1178,7 @@ static const char *
 MYSQLND_METHOD(mysqlnd_ms, get_host_info)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return ms_orig_mysqlnd_conn_methods->get_host_information(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1189,7 +1189,7 @@ static unsigned int
 MYSQLND_METHOD(mysqlnd_ms, get_proto_info)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return ms_orig_mysqlnd_conn_methods->get_protocol_information(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1200,7 +1200,7 @@ static const char *
 MYSQLND_METHOD(mysqlnd_ms, charset_name)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	return ms_orig_mysqlnd_conn_methods->charset_name(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1211,7 +1211,7 @@ static void
 MYSQLND_METHOD(mysqlnd_ms, get_connection_stats)(const MYSQLND * const proxy_conn, zval * return_value TSRMLS_DC ZEND_FILE_LINE_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	const MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	const MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	ms_orig_mysqlnd_conn_methods->get_statistics(conn, return_value TSRMLS_CC ZEND_FILE_LINE_CC);
 }
 /* }}} */
@@ -1221,7 +1221,7 @@ static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, dump_debug_info)(MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
-	MYSQLND * const conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
+	MYSQLND * const conn = ((conn_data) && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::dump_debug_info");
 	DBG_RETURN(ms_orig_mysqlnd_conn_methods->server_dump_debug_information(conn TSRMLS_CC));
 }
@@ -1240,7 +1240,8 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 	DBG_ENTER("mysqlnd_ms::simple_command");
 	DBG_INF_FMT("command=%d ok_packet=%u silent=%u", command, ok_packet, silent);
 
-	if (command != COM_QUERY && CONN_GET_STATE(conn) == CONN_ALLOCED && conn_data) {
+	if (command != COM_QUERY && CONN_GET_STATE(conn) == CONN_ALLOCED && conn_data && *conn_data) {
+		/* TODO: Andrey, master only ?! */
 		zend_llist * master_list = &(*conn_data)->master_connections;
 		MYSQLND_MS_LIST_DATA * element = NULL;
 

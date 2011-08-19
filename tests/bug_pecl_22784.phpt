@@ -40,6 +40,7 @@ if ($error = create_config("test_mysqlnd_ms_bug_pecl_22784.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_bug_pecl_22784.ini
+mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -50,10 +51,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_bug_pecl_22784.ini
 		printf("[001] [[%d] %s\n", mysql_errno($link), mysql_error($link));
 
 	if (!mysql_select_db($db, $link));
-		printf("[002] [[%d] %s\n", mysql_errno($link), mysql_error($link));
+		printf("[002] [%d] %s\n", mysql_errno($link), mysql_error($link));
 
-	if (!mysql_query("SELECT 1", $link))
-		printf("[003] [[%d] %s\n", mysql_errno($link), mysql_error($link));
+	if (!$res = mysql_query("SELECT DATABASE() AS _db", $link))
+		printf("[003] [%d] %s\n", mysql_errno($link), mysql_error($link));
+
+	if ($row = mysql_fetch_assoc($res)) {
+		if ($row['_db'] != $db)
+			printf("[005] Expecting DB '%s' got '%s'\n", $db, $row['_db']);
+
+	} else {
+		printf("[004] [%d] %s\n", mysql_errno($link), mysql_error($link));
+	}
+
+
 
 	print "done!";
 ?>
