@@ -703,7 +703,7 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND * const proxy_conn, char *news
 	} else {
 		newstr[0] = '\0';
 		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
-		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));		
+		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
 	DBG_RETURN(0);
 }
@@ -913,7 +913,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 	enum_func_status ret = PASS;
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
-	DBG_ENTER("mysqlnd_ms::set_server_option");
+	DBG_ENTER("mysqlnd_ms::set_client_option");
 	if (!conn_data || !*conn_data) {
 		DBG_RETURN(ms_orig_mysqlnd_conn_methods->set_client_option(proxy_conn, option, value TSRMLS_CC));
 	} else {
@@ -1109,7 +1109,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND * conn TSRMLS_DC)
 		ret = ms_orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC);
 	} else {
 		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
-		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));		
+		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
 	DBG_RETURN(ret);
 }
@@ -1127,7 +1127,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND * conn TSRMLS_DC)
 		ret = ms_orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
 	} else {
 		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
-		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));		
+		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
 	DBG_RETURN(ret);
 }
@@ -1249,7 +1249,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 				break;
 			}
 		END_ITERATE_OVER_SERVER_LIST;
-		
+
 		DBG_INF("This is not a COM_QUERY. Lazy connection, trying to connect to the master...");
 		/* lazy connection, connect now */
 		if (element &&
@@ -1265,7 +1265,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 	}
 	ret = ms_orig_mysqlnd_conn_methods->simple_command(conn, command, arg, arg_len, ok_packet, silent, ignore_upsert_status TSRMLS_CC);
-	DBG_RETURN(ret);	
+	DBG_RETURN(ret);
 }
 /* }}} */
 
