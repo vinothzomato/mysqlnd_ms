@@ -159,7 +159,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND * conn, const char * name_from_config, co
 		new_element->user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
 
 		new_element->passwd_len = cred->passwd_len;
-		new_element->passwd = cred->db? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
+		new_element->passwd = cred->passwd? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
 
 		new_element->db_len = cred->db_len;
 		new_element->db = cred->db? mnd_pestrndup(cred->db, cred->db_len, conn->persistent) : NULL;
@@ -840,6 +840,19 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 		MYSQLND * last_used = (*conn_data)->stgy.last_used_conn; /* save state */
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+			/* lazy connection - important for mysql_connect() + mysql_select_db() ! */
+			if (el->db) {
+				mnd_pefree(el->db, el->persistent);
+			}
+			if (el->emulated_scheme) {
+				mnd_pefree(el->emulated_scheme, el->persistent);
+			}
+			el->db = (db) ? mnd_pestrndup(db, db_len, el->persistent) : NULL;
+			el->db_len = (db) ? strlen(db) : 0;
+			el->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(el, &el->emulated_scheme,
+																			   el->persistent TSRMLS_CC);
+		}
 		if (PASS != ms_orig_mysqlnd_conn_methods->select_db(el->conn, db, db_len TSRMLS_CC)) {
 			ret = FAIL;
 		}
@@ -1252,6 +1265,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 		END_ITERATE_OVER_SERVER_LIST;
 
 		DBG_INF("This is not a COM_QUERY. Lazy connection, trying to connect to the master...");
+		DBG_INF_FMT("db=%s db_len=%u password=%s", element->db, element->db_len, element->passwd);
 		/* lazy connection, connect now */
 		if (element &&
 			PASS == ms_orig_mysqlnd_conn_methods->connect(conn, element->host, element->user,
@@ -1262,10 +1276,16 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 		{
 			DBG_INF("Connected");
 			MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+		} else {
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+			DBG_RETURN(FAIL);
 		}
-		MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+
 	}
-	ret = ms_orig_mysqlnd_conn_methods->simple_command(conn, command, arg, arg_len, ok_packet, silent, ignore_upsert_status TSRMLS_CC);
+
+	if (CONN_GET_STATE(conn) != CONN_ALLOCED)
+		ret = ms_orig_mysqlnd_conn_methods->simple_command(conn, command, arg, arg_len, ok_packet, silent, ignore_upsert_status TSRMLS_CC);
+
 	DBG_RETURN(ret);
 }
 /* }}} */

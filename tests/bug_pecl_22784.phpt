@@ -40,18 +40,17 @@ if ($error = create_config("test_mysqlnd_ms_bug_pecl_22784.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_bug_pecl_22784.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
-	$link = my_mysql_connect("myapp", $user, $passwd, NULL, $port, $socket);
-	if (mysql_errno($link))
-		printf("[001] [[%d] %s\n", mysql_errno($link), mysql_error($link));
+	/* without MS */
+	$link = my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
+	if (!$link)
+		printf("[001] [[%d] %s\n", mysql_errno(), mysql_error());
 
-	if (!mysql_select_db($db, $link));
-		printf("[002] [%d] %s\n", mysql_errno($link), mysql_error($link));
+	$select_ok_wo_ms = mysql_select_db($db, $link);
 
 	if (!$res = mysql_query("SELECT DATABASE() AS _db", $link))
 		printf("[003] [%d] %s\n", mysql_errno($link), mysql_error($link));
@@ -59,12 +58,32 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	if ($row = mysql_fetch_assoc($res)) {
 		if ($row['_db'] != $db)
 			printf("[005] Expecting DB '%s' got '%s'\n", $db, $row['_db']);
-
 	} else {
 		printf("[004] [%d] %s\n", mysql_errno($link), mysql_error($link));
 	}
+	mysql_close($link);
 
+	/* with MS */
+	$link = my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
+	if (!$link)
+		printf("[005] [[%d] %s\n", mysql_errno(), mysql_error());
 
+	$select_ok_w_ms = mysql_select_db($db, $link);
+
+	if (!$res = mysql_query("SELECT DATABASE() AS _db", $link))
+		printf("[006] [%d] %s\n", mysql_errno($link), mysql_error($link));
+
+	if ($row = mysql_fetch_assoc($res)) {
+		if ($row['_db'] != $db)
+			printf("[007] Expecting DB '%s' got '%s'\n", $db, $row['_db']);
+	} else {
+		printf("[008] [%d] %s\n", mysql_errno($link), mysql_error($link));
+	}
+	mysql_close($link);
+
+	if ($select_ok_w_ms != $select_ok_wo_ms) {
+		printf("[009] select_db w/o MS: %d, select_db w MS: %d\n", $select_ok_wo_ms, $select_ok_w_ms);
+	}
 
 	print "done!";
 ?>
