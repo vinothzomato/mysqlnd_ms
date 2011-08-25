@@ -194,9 +194,13 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 #else
 	php_info_print_table_row(2, "Transaction mode trx_stickiness supported", "no");
 #endif
+	php_info_print_table_row(2, "Table partitioning filter supported",
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
-	php_info_print_table_row(2, "Table partitioning filter supported", "yes");
+		"yes"
+#else
+		"no"
 #endif
+	);
 	php_info_print_table_end();
 
 	DISPLAY_INI_ENTRIES();

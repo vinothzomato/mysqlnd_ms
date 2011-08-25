@@ -848,6 +848,20 @@ mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 /* }}} */
 
 
+/* {{{ mysqlnd_qp_set_string */
+PHPAPI void
+mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * const s, size_t len TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_qp_set_string");
+	/* scan_string/scan_bytes expect `yyscan_t`, not `yyscan_t*` */
+	yy_scan_bytes(s, len, *((yyscan_t *)scanner->scanner));
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
+
 /* {{{ mysqlnd_qp_create_parser */
 PHPAPI struct st_mysqlnd_query_parser *
 mysqlnd_qp_create_parser(TSRMLS_D)
@@ -861,18 +875,6 @@ mysqlnd_qp_create_parser(TSRMLS_D)
 	DBG_INF_FMT("ret->scanner=%p", ret->scanner);
 
 	DBG_RETURN(ret);
-}
-/* }}} */
-
-
-/* {{{ mysqlnd_qp_set_string */
-PHPAPI void
-mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * const s, size_t len TSRMLS_DC)
-{
-	DBG_ENTER("mysqlnd_qp_set_string");
-	/* scan_string/scan_bytes expect `yyscan_t`, not `yyscan_t*` */
-	yy_scan_bytes(s, len, *((yyscan_t *)scanner->scanner));
-	DBG_VOID_RETURN;
 }
 /* }}} */
 
@@ -895,8 +897,6 @@ mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC)
 	DBG_VOID_RETURN;
 }
 /* }}} */
-
-extern int mysqlnd_qp_parse (void * TSRMLS_DC);
 
 
 /* {{{ mysqlnd_ms_table_list_dtor */
@@ -948,6 +948,7 @@ mysqlnd_ms_field_list_dtor(void * pDest)
 }
 /* }}} */
 
+extern int mysqlnd_qp_parse (void * TSRMLS_DC);
 
 /* {{{ mysqlnd_qp_start_parser */
 PHPAPI int
@@ -1023,4 +1024,6 @@ mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * co
 	DBG_RETURN(ret);
 }
 /* }}} */
+
+#endif /* MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION */
 
