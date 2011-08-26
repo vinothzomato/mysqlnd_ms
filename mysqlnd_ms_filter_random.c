@@ -127,7 +127,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-							php_error_docref(NULL TSRMLS_CC, E_WARNING, error_buf);
+							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 							/* should be a very rare case to be here - connection shouldn't be NULL in first place */
 							DBG_RETURN(connection);
 						}
@@ -136,15 +136,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 								DBG_INF("Lazy connection, trying to connect...");
 								/* lazy connection, connect now */
-								if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
-																   element->passwd, element->passwd_len,
-																   element->db, element->db_len,
-																   element->port, element->socket, element->connect_flags TSRMLS_CC))
-								{
-									DBG_INF("Connected");
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
-								} else {
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
+								if (PASS != mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
 									smart_str_free(&fprint);
 									if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 									  /* no failover */
@@ -212,15 +204,7 @@ fallthrough:
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 								DBG_INF("Lazy connection, trying to connect...");
 								/* lazy connection, connect now */
-								if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
-																   element->passwd, element->passwd_len,
-																   element->db, element->db_len,
-																   element->port, element->socket, element->connect_flags TSRMLS_CC))
-								{
-									DBG_INF("Connected");
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
-								} else {
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+								if (PASS != mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
 									break;
 								}
 							}
@@ -234,7 +218,7 @@ fallthrough:
 						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					}
 					smart_str_free(&fprint);
 					DBG_RETURN(connection);

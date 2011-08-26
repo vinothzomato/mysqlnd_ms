@@ -203,19 +203,11 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 							if (!strcasecmp(el->emulated_scheme, Z_STRVAL_P(retval))) {
 								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_CALLBACK);
 								DBG_INF_FMT("Userfunc chose LAZY master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
-								if (PASS == ms_orig_mysqlnd_conn_methods->connect(el->conn, el->host, el->user,
-																				  el->passwd, el->passwd_len,
-																				  el->db, el->db_len,
-																				  el->port, el->socket,
-																				  el->connect_flags TSRMLS_CC))
-								{
-									DBG_INF("Connected");
+								if (PASS == mysqlnd_ms_advanced_connect(el TSRMLS_CC)) {
 									ret = el->conn;
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 								} else {
 									DBG_ERR("Connect failed, forwarding error to the user");
 									ret = el->conn; /* no automatic action: leave it to the user to decide! */
-									MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 								}
 							}
 						} else {

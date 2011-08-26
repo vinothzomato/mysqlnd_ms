@@ -135,11 +135,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
-																	   element->passwd, element->passwd_len,
-																	   element->db, element->db_len,
-																	   element->port, element->socket, element->connect_flags TSRMLS_CC))
-						{
+						if (PASS == mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
 							DBG_INF("Connected");
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 							DBG_RETURN(connection);
@@ -220,11 +216,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == ms_orig_mysqlnd_conn_methods->connect(connection, element->host, element->user,
-																	   element->passwd, element->passwd_len,
-																	   element->db, element->db_len,
-																	   element->port, element->socket, element->connect_flags TSRMLS_CC))
-						{
+						if (PASS == mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
 							DBG_INF("Connected");
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 							DBG_RETURN(connection);
