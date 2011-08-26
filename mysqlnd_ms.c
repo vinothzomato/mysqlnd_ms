@@ -462,6 +462,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 			}
 			(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &conn->error_info,
 																		 TRUE /* load all config persistently */ TSRMLS_CC);
+			if (!(*conn_data)->stgy.filters) {
+				ret = FAIL;
+				break;
+			}
 			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &conn->error_info TSRMLS_CC);
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
