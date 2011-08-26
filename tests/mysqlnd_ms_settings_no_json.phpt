@@ -17,6 +17,7 @@ if (FALSE === file_put_contents("test_mysqlnd_ms_settings_no_json.ini", "a\0gurk
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_no_json.ini
+mysqlnd_ms.in_regression_tests=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -36,4 +37,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_no_json.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_no_json.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Invalid config format (or similar message)
+[E_WARNING] mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed: Name or service not known in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+[E_WARNING] mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via tcp://myapp:3306) in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+[E_WARNING] mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed: Name or service not known in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+[001] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
+done!
