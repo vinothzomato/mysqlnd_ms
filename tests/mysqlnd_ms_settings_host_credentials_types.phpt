@@ -64,5 +64,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_types.ini
 --EXPECTF--
 Warning: Unknown: failed to open stream: No such file or directory in Unknown on line 0
 
-Warning: Unknown: (mysqlnd_ms) Failed to parse server list ini file test_mysqlnd_ms_settings_host_credentials_types.ini in Unknown on line 0
+Warning: Unknown: (mysqlnd_ms) Failed to parse server list ini file [test_mysqlnd_ms_settings_host_credentials_types.ini] in Unknown on line 0
 done!
