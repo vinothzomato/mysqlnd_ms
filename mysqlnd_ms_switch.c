@@ -417,7 +417,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . Stopping", filter_name);
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+						DBG_RETURN(NULL);
 					}
 				} else {
 					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
@@ -439,7 +439,6 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%s' . Stopping", filter_name);
 		error_buf[sizeof(error_buf) - 1] = '\0';
 		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 	}
 	DBG_RETURN(new_filter_entry);
 }
@@ -487,13 +486,15 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 							}
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-							php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+							goto err;							
 						}
 						DBG_INF("no next sub-section");
 						break;
 					}
-					(void) mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
-																 persistent, error_info TSRMLS_CC);
+					if (NULL == mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
+																	  persistent, error_info TSRMLS_CC)) {
+						goto err;							
+					}
 				} while (1);
 				if (zend_llist_count(ret)) {
 					break;
@@ -507,9 +508,15 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 				while (specific_ctors[i].name) {
 					if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
 						DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
-						(void) mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
-															  persistent, error_info TSRMLS_CC);
-
+						if (NULL == mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
+																		  persistent, error_info TSRMLS_CC)) {
+							char error_buf[128];
+							snprintf(error_buf, sizeof(error_buf),
+									MYSQLND_MS_ERROR_PREFIX " Can't load default filter '%d' . Stopping", specific_ctors[i].name);
+							error_buf[sizeof(error_buf) - 1] = '\0';
+							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+							goto err;							
+						}
 						break;
 					}
 					++i;
@@ -518,6 +525,10 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 		}
 	}
 	DBG_RETURN(ret);
+err:
+	zend_llist_clean(ret);
+	mnd_pefree(ret, persistent);
+	DBG_RETURN(NULL);
 }
 /* }}} */
 
