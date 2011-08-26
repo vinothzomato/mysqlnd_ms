@@ -48,12 +48,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter3.ini
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
-
-	/* valid config or not? */
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
-	if (0 == $link->thread_id)
-		printf("[003] Not connected to any server.");
-
+	if ($link !== FALSE) {
+		echo "not ok\n";
+	}
 	print "done!";
 ?>
 --CLEAN--
@@ -62,4 +59,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter3.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_unknown_filter3.ini'.\n");
 ?>
 --EXPECTF--
-Catchable fatal error: mysqli_real_connect(): (mysqlnd_ms) Error loading filters. Filter with empty name found in %s on line %d
+Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Error loading filters. Filter with empty name found in %s on line %d
+[001] [2000] (mysqlnd_ms) Error loading filters. Filter with empty name found
+done!

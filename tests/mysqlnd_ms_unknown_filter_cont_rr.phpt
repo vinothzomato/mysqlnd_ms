@@ -50,20 +50,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter_cont_r.ini
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
-
-	/* valid config or not? */
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
-	if (0 == $link->thread_id)
-		printf("[003] Not connected to any server.\n");
-
-	if ($res = run_query(4, $link, "SELECT 1")) {
-		printf("[005] Who has run this?\n");
-		var_dump($res->fetch_assoc());
+	if ($link !== FALSE) {
+		echo "not ok\n";
 	}
-
-	if (0 == $link->thread_id)
-		printf("[006] Not connected to any server.\n");
-
 	print "done!";
 ?>
 --CLEAN--
@@ -72,8 +61,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter_cont_r.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_unknown_filter_cont_r.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'ulf' . Stopping in %s on line %d
+[E_WARNING] mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Unknown filter 'ulf' . Stopping in %s on line %d
 [001] [2000] (mysqlnd_ms) Unknown filter 'ulf' . Stopping
-[002] [2000] (mysqlnd_ms) Unknown filter 'ulf' . Stopping
-[004] [2000] (mysqlnd_ms) Unknown filter 'ulf' . Stopping
 done!
