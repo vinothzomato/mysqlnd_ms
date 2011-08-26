@@ -29,7 +29,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_unknown_policy.ini
 
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
-
+	if ($link !== FALSE) {
+		echo "not ok\n";
+	}
 	print "done!";
 ?>
 --CLEAN--
@@ -38,4 +40,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_unknown_policy.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_unknown_policy.ini'.\n");
 ?>
 --EXPECTF--
-Catchable fatal error: mysqli_real_connect(): (mysqlnd_ms) Unknown filter 'unknown' . Stopping in %s on line %d
+Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Unknown filter 'unknown' . Stopping in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+[001] [2000] (mysqlnd_ms) Unknown filter 'unknown' . Stopping
+done!
