@@ -92,7 +92,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_async_cont.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_async_cont.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) Asynchronous queries are not supported in /home/nixnutz/php-src/branches/PHP_5_4/ext/mysqlnd_ms/tests/mysqlnd_ms_limits_async_cont.php on line 16
+[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) Asynchronous queries are not supported in %s on line %d
 [003] [2000] (mysqlnd_ms) Asynchronous queries are not supported
 set - 8269
 async select - 8269
