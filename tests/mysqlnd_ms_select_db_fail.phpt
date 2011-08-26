@@ -27,7 +27,7 @@ function test_pleasenot_access($host, $user, $passwd, $db, $port, $socket) {
 	if ($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("SKIP Can connect to 'pleasenot', [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
-	return
+	return;
 }
 test_pleasenot_access($master_host_only, $user, $passwd, $db, $port, $socket);
 test_pleasenot_access($slave_host_only, $user, $passwd, $db, $port, $socket);
