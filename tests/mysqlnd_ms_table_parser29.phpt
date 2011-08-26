@@ -83,5 +83,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser29.ini
 ?>
 --EXPECTF--
 [001] Testing server support of 'SELECT id OR id AS _id FROM test AS d'
-[005] _id = '1s'
+[005] _id = '1'
 done!
