@@ -43,6 +43,40 @@
 	} \
 }
 
+
+#define BEGIN_ITERATE_OVER_SERVER_LISTS_NEW(el, masters, slaves) \
+{ \
+	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
+	{ \
+		MYSQLND_MS_LIST_DATA ** el_pp; \
+		zend_llist * internal_master_list = (masters); \
+		zend_llist * internal_slave_list = (slaves); \
+		zend_llist * internal_list = internal_master_list; \
+		zend_llist_position	pos; \
+		/* search the list of easy handles hanging off the multi-handle */ \
+		for ((el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(internal_list, &pos)) \
+			  || ((internal_list = internal_slave_list) \
+			      && \
+				  (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(internal_list, &pos))) ; \
+			 el_pp && ((el) = *el_pp) && (el)->conn; \
+		 	 (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(internal_list, &pos)) \
+			 || \
+			 ( \
+				(internal_list == internal_master_list) \
+				&& \
+				/* yes, we need an assignment */ \
+				(internal_list = internal_slave_list) \
+				&& \
+				(el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(internal_slave_list, &pos)) \
+			 ) \
+			) \
+		{ \
+
+#define END_ITERATE_OVER_SERVER_LISTS_NEW \
+		} \
+	} \
+}
+
 #define BEGIN_ITERATE_OVER_SERVER_LIST(el, list) \
 { \
 	DBG_INF_FMT("list(%p) has %d", (list), zend_llist_count((list))); \
@@ -181,6 +215,14 @@ typedef struct st_mysqlnd_ms_filter_random_data
 } MYSQLND_MS_FILTER_RANDOM_DATA;
 
 
+enum mysqlnd_ms_on_broadcast_command
+{
+	MYSQLND_MS_BCAST_NOP = 0,
+	MYSQLND_MS_BCAST_BUFFER_COMMAND,
+	MYSQLND_MS_BCAST_AUTO_CONNECT
+};
+
+
 struct mysqlnd_ms_lb_strategies
 {
 	HashTable table_filters;
@@ -202,7 +244,12 @@ struct mysqlnd_ms_lb_strategies
 
 typedef struct st_mysqlnd_ms_conn_data
 {
+	zend_bool initialized;
+	zend_bool skip_ms_calls;
+	enum mysqlnd_ms_on_broadcast_command on_command;
+	MYSQLND * proxy_conn;
 	char * connect_host;
+	zend_llist delayed_commands;
 	zend_llist master_connections;
 	zend_llist slave_connections;
 
@@ -232,6 +279,18 @@ typedef struct st_mysqlnd_ms_table_filter
 	unsigned int priority;
 	zend_bool persistent;
 } MYSQLND_MS_TABLE_FILTER;
+
+
+typedef struct st_mysqlnd_ms_command
+{
+	enum php_mysqlnd_server_command command;
+	zend_uchar * payload;
+	size_t payload_len;
+	enum mysqlnd_packet_type ok_packet;
+	zend_bool silent;
+	zend_bool ignore_upsert_status;
+	zend_bool persistent;
+} MYSQLND_MS_COMMAND;
 
 extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 
