@@ -87,7 +87,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 	}
 
 	print "done!";
-
 ?>
 --CLEAN--
 <?php
@@ -95,9 +94,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_error_errno_sqlstate.ini'.\n");
 ?>
 --EXPECTF--
-[010] [%d] %s
-[020] [%d] %s
-[030] [%d] %s
-7899 - master
-10631 - slave1
-10632 - slave2
+[010] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role=master I_HOPE_THIS_IS_INVALID_SQL' at line 1
+[020] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role=slave1 I_HOPE_THIS_IS_INVALID_SQL' at line 1
+[030] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role=slave2 I_HOPE_THIS_IS_INVALID_SQL' at line 1
+%d - master
+%d - slave1
+%d - slave2
+done!
