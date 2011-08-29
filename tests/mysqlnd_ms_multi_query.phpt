@@ -9,6 +9,9 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
+/* lost set_server_option and when connecting the server doesn't allow multi_query and gives back syntax error */
+die("SKIP Doesn't work because set_server_option calls are not buffered and lost");
+
 $settings = array(
 	$host => array(
 		'master' => array($master_host),
