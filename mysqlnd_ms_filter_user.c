@@ -68,7 +68,7 @@ mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_arg
 	MAKE_STD_ZVAL(retval);
 	if (call_user_function(EG(function_table), NULL, func, retval, argc, argv TSRMLS_CC) == FAILURE) {
 		char error_buf[128];
-		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " %s Failed to call '%s'", MYSQLND_MS_ERROR_PREFIX, Z_STRVAL_P(func));
+		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Failed to call '%s'", Z_STRVAL_P(func));
 		error_buf[sizeof(error_buf) - 1] = '\0';
 		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
@@ -99,7 +99,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 	MYSQLND * ret = NULL;
 
 	DBG_ENTER("mysqlnd_ms_user_pick_server");
-	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
+	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, filter_data? filter_data->user_callback:NULL);
 
 	if (master_list && filter_data && filter_data->user_callback) {
 		uint param = 0;
@@ -328,7 +328,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 	enum_func_status ret = FAIL;
 
 	DBG_ENTER("mysqlnd_ms_user_pick_multiple_server");
-	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, MYSQLND_MS_G(user_pick_server));
+	DBG_INF_FMT("query(50bytes)=%*s query_is_select=%p", MIN(50, query_len), query, filter_data? filter_data->user_callback:NULL);
 
 	if (master_list && filter_data && filter_data->user_callback) {
 		uint param = 0;
@@ -390,7 +390,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 			}
 		}
 
-		retval = mysqlnd_ms_call_handler(MYSQLND_MS_G(user_pick_server), param + 1, args, FALSE /*we destroy later*/, error_info TSRMLS_CC);
+		retval = mysqlnd_ms_call_handler(filter_data->user_callback, param + 1, args, FALSE /*we destroy later*/, error_info TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) != IS_ARRAY) {
 				DBG_ERR("The user returned no array");

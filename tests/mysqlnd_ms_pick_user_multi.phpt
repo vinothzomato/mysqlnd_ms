@@ -43,5 +43,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_multi.ini'.\n");
 ?>
 --EXPECTF--
-Slave 1 (%d) has run 100 queries.
-done!
+Catchable fatal error: mysqli::query(): (mysqlnd_ms) Failed to call 'pick_server' in %s on line %d
