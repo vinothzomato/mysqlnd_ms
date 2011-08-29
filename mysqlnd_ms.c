@@ -145,9 +145,9 @@ mysqlnd_ms_commands_list_dtor(void * pDest)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_advanced_connect */
+/* {{{ mysqlnd_ms_lazy_connect */
 enum_func_status
-mysqlnd_ms_advanced_connect(MYSQLND_MS_LIST_DATA * element TSRMLS_DC)
+mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_DC)
 {
 	enum_func_status ret;
 	MYSQLND * connection = element->conn;
@@ -161,7 +161,7 @@ mysqlnd_ms_advanced_connect(MYSQLND_MS_LIST_DATA * element TSRMLS_DC)
 												   element->port, element->socket, element->connect_flags TSRMLS_CC);
 	if (PASS == ret) {
 		DBG_INF("Connected");
-		MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
+		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_SUCCESS:MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 #if BUFFERED_COMMANDS
 		/* let's run the buffered commands */
 		{
@@ -179,7 +179,7 @@ mysqlnd_ms_advanced_connect(MYSQLND_MS_LIST_DATA * element TSRMLS_DC)
 		}
 #endif
 	} else {
-		MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
+		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_FAILURE:MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 	}
 	DBG_RETURN(ret);
 }

@@ -135,12 +135,9 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
-							DBG_INF("Connected");
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+						if (PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
 							DBG_RETURN(connection);
 						}
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 							DBG_INF("Failover disabled");
 							DBG_RETURN(connection);
@@ -212,16 +209,13 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				}
 				DBG_INF("Using master connection");
 				if (connection) {
-
 					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
+						if (PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
 							DBG_INF("Connected");
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
 							DBG_RETURN(connection);
 						}
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 					}
 				}
 				DBG_RETURN(connection);

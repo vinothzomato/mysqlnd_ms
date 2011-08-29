@@ -203,7 +203,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 							if (!strcasecmp(el->emulated_scheme, Z_STRVAL_P(retval))) {
 								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_CALLBACK);
 								DBG_INF_FMT("Userfunc chose LAZY master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
-								if (PASS == mysqlnd_ms_advanced_connect(el TSRMLS_CC)) {
+								if (PASS == mysqlnd_ms_lazy_connect(el, TRUE TSRMLS_CC)) {
 									ret = el->conn;
 								} else {
 									DBG_ERR("Connect failed, forwarding error to the user");
@@ -229,15 +229,8 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 								if (!strcasecmp(el->emulated_scheme, Z_STRVAL_P(retval))) {
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
-									if (PASS == ms_orig_mysqlnd_conn_methods->connect(el->conn, el->host, el->user,
-																				   el->passwd, el->passwd_len,
-																				   el->db, el->db_len,
-																				   el->port, el->socket,
-																				   el->connect_flags TSRMLS_CC))
-									{
+									if (PASS == mysqlnd_ms_lazy_connect(el, FALSE TSRMLS_CC)) {
 										ret = el->conn;
-										DBG_INF("Connected");
-										MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 									} else {
 										char error_buf[128];
 										snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Callback chose %s but connection failed", el->emulated_scheme);
@@ -246,7 +239,6 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 										php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 										DBG_ERR_FMT("%s", error_buf);
 										ret = el->conn; /* no automatic action: leave it to the user to decide! */
-										MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 									}
 								}
 							} else {

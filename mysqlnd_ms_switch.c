@@ -760,22 +760,11 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					if (CONN_GET_STATE(element->conn) == CONN_ALLOCED) {
 						DBG_INF("Lazy connection, trying to connect...");
 						/* lazy connection, connect now */
-						if (PASS == ms_orig_mysqlnd_conn_methods->connect(element->conn, element->host, element->user,
-																	   element->passwd, element->passwd_len,
-																	   element->db, element->db_len,
-																	   element->port, element->socket,
-																	   element->connect_flags TSRMLS_CC))
-						{
-							DBG_INF("Connected");
+
+						if (PASS != mysqlnd_ms_lazy_connect(element, zend_llist_count(output_masters)? TRUE:FALSE TSRMLS_CC)) {
 							DBG_INF_FMT("Using master connection "MYSQLND_LLU_SPEC"", element->conn->thread_id);
-#ifdef WHAT_STAT_TO_USE_HERE
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_SUCCESS);
-#endif
 							connection = element->conn;
 						}
-#ifdef WHAT_STAT_TO_USE_HERE
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
-#endif
 					} else {
 						connection = element->conn;
 					}

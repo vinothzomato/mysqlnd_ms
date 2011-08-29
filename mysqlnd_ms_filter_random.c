@@ -136,7 +136,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 								DBG_INF("Lazy connection, trying to connect...");
 								/* lazy connection, connect now */
-								if (PASS != mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
+								if (PASS != mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
 									smart_str_free(&fprint);
 									if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 									  /* no failover */
@@ -204,7 +204,7 @@ fallthrough:
 							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
 								DBG_INF("Lazy connection, trying to connect...");
 								/* lazy connection, connect now */
-								if (PASS != mysqlnd_ms_advanced_connect(element TSRMLS_CC)) {
+								if (PASS != mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
 									break;
 								}
 							}

@@ -83,7 +83,7 @@ void mysqlnd_ms_register_hooks();
 void mysqlnd_ms_conn_list_dtor(void * pDest);
 PHPAPI zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wildstr TSRMLS_DC);
 struct st_mysqlnd_ms_list_data;
-enum_func_status mysqlnd_ms_advanced_connect(struct st_mysqlnd_ms_list_data * element TSRMLS_DC);
+enum_func_status mysqlnd_ms_lazy_connect(struct st_mysqlnd_ms_list_data * element, zend_bool master TSRMLS_DC);
 
 
 struct st_qc_token_and_value
