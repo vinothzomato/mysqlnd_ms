@@ -53,6 +53,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_rollback.ini
 	if (!$link->dump_debug_info())
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 
+	/*
+	  !!!!
+	  Rollback is actually a query which triggers a connect.
+	  Thus, this will never error, unless no connection to a server is possible
+	  !!!!
+	*/
 	if (!$link->rollback())
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
 	else
