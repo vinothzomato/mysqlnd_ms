@@ -12,6 +12,9 @@ _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socke
 if ($db == 'mysql')
 	die("SKIP Test database must not be 'mysql', use 'test' or the like.");
 
+/* We get in inconsistent state and it is not good to go forward or ? */
+die("SKIP need to decide what will be the bevaviour in case of a select_db on a failed connection or if select_db fails");
+
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
