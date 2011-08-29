@@ -25,6 +25,8 @@
 	function run_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
 		global $connect_errno_codes;
 
+		$query = "/*$offset*/$query";
+
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
