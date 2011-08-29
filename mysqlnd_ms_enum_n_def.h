@@ -94,6 +94,11 @@
 	} \
 }
 
+#define MASTER_SWITCH "ms=master"
+#define SLAVE_SWITCH "ms=slave"
+#define LAST_USED_SWITCH "ms=last_used"
+#define ALL_SERVER_SWITCH "ms=all"
+
 
 #define MASTER_NAME				"master"
 #define SLAVE_NAME				"slave"
@@ -123,6 +128,30 @@
 #define SECT_USER_CALLBACK		"callback"
 
 
+typedef enum
+{
+	STATEMENT_SELECT,
+	STATEMENT_INSERT,
+	STATEMENT_UPDATE,
+	STATEMENT_DELETE,
+	STATEMENT_TRUNCATE,
+	STATEMENT_REPLACE,
+	STATEMENT_RENAME,
+	STATEMENT_ALTER,
+	STATEMENT_DROP,
+	STATEMENT_CREATE
+} enum_mysql_statement_type;
+
+
+enum enum_which_server
+{
+	USE_MASTER,
+	USE_SLAVE,
+	USE_LAST_USED,
+	USE_ALL
+};
+
+
 enum mysqlnd_ms_server_pick_strategy
 {
 	SERVER_PICK_RROBIN,
@@ -150,6 +179,34 @@ enum mysqlnd_ms_trx_stickiness_strategy
 	TRX_STICKINESS_STRATEGY_MASTER
 };
 #define DEFAULT_TRX_STICKINESS_STRATEGY TRX_STICKINESS_STRATEGY_DISABLED
+
+
+typedef enum mysqlnd_ms_collected_stats
+{
+	MS_STAT_USE_SLAVE,
+	MS_STAT_USE_MASTER,
+	MS_STAT_USE_SLAVE_FORCED,
+	MS_STAT_USE_MASTER_FORCED,
+	MS_STAT_USE_LAST_USED_FORCED,
+	MS_STAT_USE_SLAVE_CALLBACK,
+	MS_STAT_USE_MASTER_CALLBACK,
+	MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
+	MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
+	MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
+	MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
+	MS_STAT_LAZY_CONN_SLAVE_SUCCESS,
+	MS_STAT_LAZY_CONN_SLAVE_FAILURE,
+	MS_STAT_LAZY_CONN_MASTER_SUCCESS,
+	MS_STAT_LAZY_CONN_MASTER_FAILURE,
+	MS_STAT_TRX_AUTOCOMMIT_ON,
+	MS_STAT_TRX_AUTOCOMMIT_OFF,
+	MS_STAT_TRX_MASTER_FORCED,
+	MS_STAT_LAST /* Should be always the last */
+} enum_mysqlnd_ms_collected_stats;
+
+#define MYSQLND_MS_INC_STATISTIC(stat) MYSQLND_INC_STATISTIC(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat))
+#define MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, value) MYSQLND_INC_STATISTIC_W_VALUE(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat), (value))
+
 
 typedef struct st_mysqlnd_ms_list_data
 {

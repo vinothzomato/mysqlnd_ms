@@ -30,6 +30,7 @@
 #include "ext/mysqlnd/mysqlnd_statistics.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
+#include "mysqlnd_ms_enum_n_def.h"
 
 #ifdef ZTS
 #include "TSRM.h"
@@ -53,44 +54,12 @@ ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 #define MYSQLND_MS_G(v) (mysqlnd_ms_globals.v)
 #endif
 
-#define MASTER_SWITCH "ms=master"
-#define SLAVE_SWITCH "ms=slave"
-#define LAST_USED_SWITCH "ms=last_used"
-#define ALL_SERVER_SWITCH "ms=all"
-
 #define MYSQLND_MS_VERSION "1.0.2-alpha"
 #define MYSQLND_MS_VERSION_ID 10002
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
 
 extern MYSQLND_STATS * mysqlnd_ms_stats;
-
-
-typedef enum mysqlnd_ms_collected_stats
-{
-	MS_STAT_USE_SLAVE,
-	MS_STAT_USE_MASTER,
-	MS_STAT_USE_SLAVE_FORCED,
-	MS_STAT_USE_MASTER_FORCED,
-	MS_STAT_USE_LAST_USED_FORCED,
-	MS_STAT_USE_SLAVE_CALLBACK,
-	MS_STAT_USE_MASTER_CALLBACK,
-	MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
-	MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
-	MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
-	MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
-	MS_STAT_LAZY_CONN_SLAVE_SUCCESS,
-	MS_STAT_LAZY_CONN_SLAVE_FAILURE,
-	MS_STAT_LAZY_CONN_MASTER_SUCCESS,
-	MS_STAT_LAZY_CONN_MASTER_FAILURE,
-	MS_STAT_TRX_AUTOCOMMIT_ON,
-	MS_STAT_TRX_AUTOCOMMIT_OFF,
-	MS_STAT_TRX_MASTER_FORCED,
-	MS_STAT_LAST /* Should be always the last */
-} enum_mysqlnd_ms_collected_stats;
-
-#define MYSQLND_MS_INC_STATISTIC(stat) MYSQLND_INC_STATISTIC(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat))
-#define MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, value) MYSQLND_INC_STATISTIC_W_VALUE(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat), (value))
 
 
 /*
@@ -104,14 +73,6 @@ typedef enum mysqlnd_ms_collected_stats
   mysqlnd_ms_json_config_string(), meaning it should not try to get a lock.
 */
 #define MYSLQND_MS_HOTLOADING FALSE
-
-enum enum_which_server
-{
-	USE_MASTER,
-	USE_SLAVE,
-	USE_LAST_USED,
-	USE_ALL
-};
 
 extern unsigned int mysqlnd_ms_plugin_id;
 extern struct st_mysqlnd_ms_json_config * mysqlnd_ms_json_config;
@@ -137,21 +98,6 @@ struct st_mysqlnd_query_scanner
 	void * scanner;
 	zval * token_value;
 };
-
-typedef enum
-{
-	STATEMENT_SELECT,
-	STATEMENT_INSERT,
-	STATEMENT_UPDATE,
-	STATEMENT_DELETE,
-	STATEMENT_TRUNCATE,
-	STATEMENT_REPLACE,
-	STATEMENT_RENAME,
-	STATEMENT_ALTER,
-	STATEMENT_DROP,
-	STATEMENT_CREATE
-} enum_mysql_statement_type;
-
 
 struct st_mysqlnd_ms_table_info
 {
