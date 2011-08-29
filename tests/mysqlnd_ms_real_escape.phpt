@@ -12,6 +12,8 @@ _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socke
 if (!function_exists("iconv"))
 	die("SKIP needs iconv extension\n");
 
+die("SKIP Limitation of lazy connections - escaping strings doesn't work");
+
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
