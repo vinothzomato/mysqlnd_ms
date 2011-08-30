@@ -37,27 +37,41 @@ mysqlnd_ms.collect_statistics=1
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$connections = array();
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections[$link->thread_id] = array('master');
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
+	/* will fall back to the master */
 	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
+	/* will again fall back to the master */
 	run_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	schnattertante(run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	schnattertante(run_query(6, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	foreach ($connections as $thread_id => $details) {
 		printf("Connection %d -\n", $thread_id);
@@ -73,18 +87,35 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_slave_failure_failover_rr.ini'.\n");
 ?>
 --EXPECTF--
+----
+----
+----
+Stats use_master: 1
 Stats use_master_sql_hint: 1
 Stats lazy_connections_master_success: 1
+----
+----
+Stats use_master: 2
 Stats use_slave_sql_hint: 1
 Stats lazy_connections_slave_failure: 1
+----
+----
+Stats use_master: 3
 Stats use_slave_sql_hint: 2
 Stats lazy_connections_slave_failure: 2
+----
 This is 'slave %d' speaking
-Stats use_slave: 1
+----
+Stats use_master: 4
+Stats use_slave_guess: 1
 Stats lazy_connections_slave_failure: 3
+----
 This is 'slave %d' speaking
-Stats use_slave: 2
+----
+Stats use_master: 5
+Stats use_slave_guess: 2
 Stats lazy_connections_slave_failure: 4
+----
 Connection %d -
 ... master
 ... slave (fallback to master)
