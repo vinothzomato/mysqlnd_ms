@@ -46,6 +46,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_prepared_statements.ini
 	while ($stmt->fetch())
 		printf("Role = '%s'\n", $role);
 
+
+	if (!$stmt = $link->prepare("/*".MYSQLND_MS_MASTER_SWITCH."*/ SELECT @myrole AS _role"))
+		printf("[008] [%d] %s\n", $link->errno, $link->error);
+
+	if (!$stmt->execute())
+		printf("[009] [%d] %s\n", $stmt->errno, $stmt->error);
+
+	$role = NULL;
+	if (!$stmt->bind_result($role))
+		printf("[010] [%d] %s\n", $stmt->errno, $stmt->error);
+
+	while ($stmt->fetch())
+		printf("Role = '%s'\n", $role);
+
 	$stmt->close();
 
 	print "done!";
@@ -56,5 +70,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_prepared_statements.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_prepared_statements.ini'.\n");
 ?>
 --EXPECTF--
+Role = 'slave'
 Role = 'master'
 done!
