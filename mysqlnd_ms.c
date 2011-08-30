@@ -1294,18 +1294,48 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_tx_commit_or_rollback */
+static enum_func_status
+mysqlnd_ms_tx_commit_or_rollback(MYSQLND * conn, zend_bool commit TSRMLS_DC)
+{
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
+	enum_func_status ret = FAIL;
+	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
+
+	if (CONN_GET_STATE(conn) == CONN_ALLOCED &&
+		conn_data && *conn_data &&
+		(*conn_data)->initialized && !(*conn_data)->skip_ms_calls)
+	{
+		zend_llist * master_list = &(*conn_data)->master_connections;
+		MYSQLND_MS_LIST_DATA * element = NULL;
+
+		BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
+			if (element->conn) {
+				DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
+			}
+			DBG_INF_FMT("element->conn=%p conn=%p", element->conn, conn);
+			if (element->conn == conn) {
+				break;
+			}
+		END_ITERATE_OVER_SERVER_LIST;
+		if (!element || (FAIL == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
+			DBG_RETURN(FAIL);
+		}
+	}
+	ret = commit? ms_orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC) :
+				  ms_orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, tx_commit) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND * conn TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::tx_commit");
-	if (CONN_GET_STATE(conn) > CONN_ALLOCED) {
-		ret = ms_orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC);
-	} else {
-		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
-		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
-	}
+	ret = mysqlnd_ms_tx_commit_or_rollback(conn, TRUE TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1317,13 +1347,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND * conn TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::tx_rollback");
-
-	if (CONN_GET_STATE(conn) > CONN_ALLOCED) {
-		ret = ms_orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
-	} else {
-		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
-		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
-	}
+	ret = mysqlnd_ms_tx_commit_or_rollback(conn, FALSE TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1451,7 +1475,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 				zend_llist * slave_list = &(*proxy_conn_data)->slave_connections;
 				MYSQLND_MS_LIST_DATA * element = NULL;
 
-				BEGIN_ITERATE_OVER_SERVER_LISTS(element, master_list, slave_list);
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
 					if (element->conn) {
 						DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
 					}
@@ -1459,15 +1483,28 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 					if (element->conn == connection) {
 						break;
 					}
-				END_ITERATE_OVER_SERVER_LISTS;
+				END_ITERATE_OVER_SERVER_LIST;
 
 				DBG_INF("Lazy connection");
 				/* lazy connection, connect now */
 				if (element) {
 					DBG_INF("trying to connect...");
-					ret = mysqlnd_ms_advanced_connect(element TSRMLS_CC);
+					ret = mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC);
+				} else {
+					BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list);
+						if (element->conn) {
+							DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
+						}
+						DBG_INF_FMT("element->conn=%p connection=%p", element->conn, connection);
+						if (element->conn == connection) {
+							break;
+						}
+					END_ITERATE_OVER_SERVER_LIST;
+					if (element) {
+						DBG_INF("trying to connect...");
+						ret = mysqlnd_ms_lazy_connect(element, FALSE  TSRMLS_CC);
+					}
 				}
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_LAZY_CONN_MASTER_FAILURE);
 				break;
 			}
 			case MYSQLND_MS_BCAST_BUFFER_COMMAND:

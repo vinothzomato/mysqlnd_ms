@@ -82,8 +82,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_rollback.ini
 ?>
 --EXPECTF--
 [003] [%d] %s
-[004] [%d] %s
-[005] [%d] %s
+[004] Rollback
 array(1) {
   [1]=>
   string(1) "1"
