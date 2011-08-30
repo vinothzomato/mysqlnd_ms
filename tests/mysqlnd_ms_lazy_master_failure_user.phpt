@@ -65,23 +65,33 @@ mysqlnd_ms.collect_statistics=1
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$connections = array();
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections[$link->thread_id] = array('master');
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$connections[$link->thread_id][] = 'slave';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	$connections[$link->thread_id][] = 'slave';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	schnattertante(run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH));
 	$connections[$link->thread_id][] = 'master';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	foreach ($connections as $thread_id => $details) {
 		printf("Connection %d -\n", $thread_id);
@@ -97,26 +107,37 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_user.ini'.\n");
 ?>
 --EXPECTF--
+----
+----
 pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
-%AE_WARNING] mysqli::query(): [%d] %s
+[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+[E_WARNING] mysqli::query(): [%d] %s
 Connect error, [002] [%d] %s
+----
 Stats use_master_sql_hint: 1
 Stats use_master_callback: 1
 Stats lazy_connections_master_failure: 1
+----
 pick_server('myapp', '/*ms=slave*//*3*/SET @myrole='slave'') => slave
+----
 Stats use_slave_sql_hint: 1
 Stats use_slave_callback: 1
 Stats lazy_connections_slave_success: 1
+----
 pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
 This is 'slave %s' speaking
-Stats use_slave: 1
+----
+Stats use_slave_guess: 1
 Stats use_slave_callback: 2
+----
 pick_server('myapp', '/*ms=master*//*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => master
 %AE_WARNING] mysqli::query(): [%d] %s
 Connect error, [005] [%d] %s
+----
 Stats use_master_sql_hint: 2
 Stats use_master_callback: 2
 Stats lazy_connections_master_failure: 2
+----
 Connection 0 -
 ... master
 ... master
