@@ -91,18 +91,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_user.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_user.ini'.\n");
 ?>
 --EXPECTF--
-pick_server('myapp', '/*ms=master*/SET @myrole='master'') => master
-pick_server('myapp', '/*ms=slave*/SET @myrole='slave'') => slave
-%AE_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
+pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
+pick_server('myapp', '/*ms=slave*//*3*/SET @myrole='slave'') => slave
+[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+[E_WARNING] mysqli::query(): [%d] %s
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
 Connect error, [003] [%d] %s
-pick_server('myapp', 'SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-%AE_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
+pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+[E_WARNING] mysqli::query(): [%d] %s
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
 Connect error, [004] [%d] %s
-pick_server('myapp', 'SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-%AE_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
+pick_server('myapp', '/*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+[E_WARNING] mysqli::query(): [%d] %s
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
 Connect error, [005] [%d] %s
 Connection %d -
 ... master
