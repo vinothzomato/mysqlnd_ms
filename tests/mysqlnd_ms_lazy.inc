@@ -64,6 +64,49 @@
 		return $ret;
 	}
 
+
+	function run_real_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
+		global $connect_errno_codes;
+
+		$query = "/*$offset*/$query";
+
+		if ($switch)
+			$query = sprintf("/*%s*/%s", $switch, $query);
+
+		if ($quiet) {
+			/* Stupid PHP streams sometimes shout without caller being able to suppress */
+
+			ob_start();
+			$ret = $link->query($query);
+			$haystack = ob_get_contents();
+			ob_end_clean();
+
+			if ($expect_connect_warning) {
+				$found = false;
+				foreach ($connect_errno_codes as $code => $v) {
+					$needle = "Warning: mysqli::query(): [" . $code . "]";
+					if (false !== ($found = strpos($haystack, $needle))) {
+						break;
+					}
+				}
+				if (!$found) {
+					printf("[%03d] Cannot find expect connect warning, got '%s'\n", $offset, $haystack);
+				}
+			}
+
+		} else {
+			$ret = $link->real_query($query);
+		}
+
+		if (!$ret && !$ignore_error && $link->errno) {
+			if (isset($connect_errno_codes[$link->errno]))
+				printf("Connect error, ");
+			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
+		}
+
+		return $ret;
+	}
+
 	function schnattertante($res) {
 		if (!is_object($res))
 		  return false;

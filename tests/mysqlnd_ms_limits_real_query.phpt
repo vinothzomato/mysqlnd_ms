@@ -28,7 +28,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_real_query.ini
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
-	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	run_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
@@ -36,7 +36,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_real_query.ini
 	run_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 
 	/* round robin - slave 1 ? No, real_query is not handled! the master will reply! */
-	run_query(5, $link, "SELECT @myrole AS _role", MYSQLND_MS_SLAVE_SWITCH);
+	run_real_query(5, $link, "SELECT @myrole AS _role", MYSQLND_MS_SLAVE_SWITCH);
 	if (!$res = mysqli_use_result($link)) {
 		printf("[006] [%d] %s\n", $link->errno, $link->error);
 	}
@@ -49,7 +49,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_real_query.ini
 	run_query(8, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 	run_query(9, $link, "CREATE TABLE test(id INT, label varchar(20))", MYSQLND_MS_LAST_USED_SWITCH);
 	run_query(10, $link, "INSERT INTO test(id, label) VALUES (1, 'a'), (2, 'b'), (3, 'c')", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(11, $link, "SELECT @myrole AS _role, id, label FROM test ORDER BY id ASC", MYSQLND_MS_LAST_USED_SWITCH);
+	run_real_query(11, $link, "SELECT @myrole AS _role, id, label FROM test ORDER BY id ASC", MYSQLND_MS_LAST_USED_SWITCH);
 
 	if (!$res = mysqli_use_result($link)) {
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
@@ -67,8 +67,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_real_query.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
-[007] Expecting 'slave1' got 'master'
-Slave 1, field_count = 3, role = master, id = 1, label = 'a'
-Slave 1, field_count = 3, role = master, id = 2, label = 'b'
-Slave 1, field_count = 3, role = master, id = 3, label = 'c'
+Slave 1, field_count = 3, role = slave1, id = 1, label = 'a'
+Slave 1, field_count = 3, role = slave1, id = 2, label = 'b'
+Slave 1, field_count = 3, role = slave1, id = 3, label = 'c'
 done!
