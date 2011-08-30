@@ -97,21 +97,21 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_user.ini'.\n");
 ?>
 --EXPECTF--
-pick_server('myapp', '/*ms=master*/SET @myrole='master'') => master
+pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
 %AE_WARNING] mysqli::query(): [%d] %s
 Connect error, [002] [%d] %s
 Stats use_master_sql_hint: 1
 Stats use_master_callback: 1
 Stats lazy_connections_master_failure: 1
-pick_server('myapp', '/*ms=slave*/SET @myrole='slave'') => slave
+pick_server('myapp', '/*ms=slave*//*3*/SET @myrole='slave'') => slave
 Stats use_slave_sql_hint: 1
 Stats use_slave_callback: 1
 Stats lazy_connections_slave_success: 1
-pick_server('myapp', 'SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
 This is 'slave %s' speaking
 Stats use_slave: 1
 Stats use_slave_callback: 2
-pick_server('myapp', '/*ms=master*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => master
+pick_server('myapp', '/*ms=master*//*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => master
 %AE_WARNING] mysqli::query(): [%d] %s
 Connect error, [005] [%d] %s
 Stats use_master_sql_hint: 2
