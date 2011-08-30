@@ -36,17 +36,26 @@ mysqlnd_ms.collect_statistics=1
 	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	run_query(3, $link, "SET @myrole='slave 1'", MYSQLND_MS_SLAVE_SWITCH);
 	run_query(4, $link, "SET @myrole='slave 2'", MYSQLND_MS_SLAVE_SWITCH);
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	/* explicitly disabling autocommit via API */
 	$link->autocommit(FALSE);
+	echo "----\n";
+	compare_stats();
+	echo "----\n";
 	/* this can be the start of a transaction, thus it shall be run on the master */
 	schnattertante(run_query(5, $link, "SELECT @myrole AS _role"));
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	/* back to the slave for the next SELECT because autocommit  is on */
 	$link->autocommit(TRUE);
@@ -71,15 +80,24 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_trx_stickiness_master_round_robin.ini'.\n");
 ?>
 --EXPECTF--
+----
+----
+----
+Stats use_slave: 2
+Stats use_master: 1
 Stats use_slave_sql_hint: 2
 Stats use_master_sql_hint: 1
 Stats lazy_connections_slave_success: 2
 Stats lazy_connections_master_success: 1
-This is 'master' speaking
-Stats use_slave: 1
-Stats use_master: 1
+----
+----
 Stats trx_autocommit_off: 1
+----
+This is 'master' speaking
+----
+Stats use_master: 2
 Stats trx_master_forced: 1
+----
 This is 'slave 1' speaking
 This is 'slave 2' speaking
 This is 'slave 1' speaking

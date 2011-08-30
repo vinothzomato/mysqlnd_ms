@@ -130,22 +130,16 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					connection = element->conn;
 				}
 				if (connection) {
-					  DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
-						DBG_INF("Lazy connection, trying to connect...");
-						/* lazy connection, connect now */
-						if (PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
-							DBG_RETURN(connection);
-						}
-						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-							DBG_INF("Failover disabled");
-							DBG_RETURN(connection);
-						}
-						DBG_INF("Connect failed, falling back to the master");
-					} else {
-						DBG_RETURN(element->conn);
+					if (CONN_GET_STATE(connection) > CONN_ALLOCED ||
+						PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC) ||
+						SERVER_FAILOVER_DISABLED == stgy->failover_strategy)
+					{
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+						DBG_RETURN(connection);
 					}
+					DBG_INF("Falling back to the master");
 				} else {
 					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
@@ -208,16 +202,10 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					connection = element->conn;
 				}
 				DBG_INF("Using master connection");
-				if (connection) {
-					if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
-						DBG_INF("Lazy connection, trying to connect...");
-						/* lazy connection, connect now */
-						if (PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
-							DBG_INF("Connected");
-							DBG_RETURN(connection);
-						}
-					}
+				if (connection && CONN_GET_STATE(connection) == CONN_ALLOCED) {
+					(void) mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC);
 				}
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 				DBG_RETURN(connection);
 			}
 			break;

@@ -133,18 +133,17 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						}
 					} else {
 						do {
-							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
-								DBG_INF("Lazy connection, trying to connect...");
-								/* lazy connection, connect now */
-								if (PASS != mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
-									smart_str_free(&fprint);
-									if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-									  /* no failover */
-									  DBG_RETURN(connection);
-									}
-									goto fallthrough;
+							if (CONN_GET_STATE(connection) == CONN_ALLOCED &&
+								PASS != mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC))
+							{
+								smart_str_free(&fprint);
+								if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+								  /* no failover */
+								  DBG_RETURN(connection);
 								}
+								goto fallthrough;
 							}
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
@@ -201,13 +200,12 @@ fallthrough:
 
 					if (connection) {
 						do {
-							if (CONN_GET_STATE(connection) == CONN_ALLOCED) {
-								DBG_INF("Lazy connection, trying to connect...");
-								/* lazy connection, connect now */
-								if (PASS != mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
-									break;
-								}
+							if (CONN_GET_STATE(connection) == CONN_ALLOCED &&
+								PASS != mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
+							{
+								break;
 							}
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);

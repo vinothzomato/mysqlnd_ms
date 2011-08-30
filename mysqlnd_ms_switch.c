@@ -579,13 +579,12 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 	if (*forced == FALSE) {
 		if (token.token == QC_TOKEN_SELECT) {
 			ret = USE_SLAVE;
-			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 #ifdef ALL_SERVER_DISPATCH
 		} else if (token.token == QC_TOKEN_SET) {
 			ret = USE_ALL;
 #endif
 		} else {
-			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+			ret = USE_MASTER;
 		}
 	}
 	zval_dtor(&token.value);
