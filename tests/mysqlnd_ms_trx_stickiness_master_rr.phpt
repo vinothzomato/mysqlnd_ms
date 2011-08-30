@@ -96,6 +96,7 @@ Stats trx_autocommit_off: 1
 This is 'master' speaking
 ----
 Stats use_master: 2
+Stats use_slave_guess: 1
 Stats trx_master_forced: 1
 ----
 This is 'slave 1' speaking

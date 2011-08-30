@@ -38,8 +38,8 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 {
 	{ STR_W_LEN("use_slave") },
 	{ STR_W_LEN("use_master") },
-	{ STR_W_LEN("use_slave_guessed") },
-	{ STR_W_LEN("use_master_guessed") },
+	{ STR_W_LEN("use_slave_guess") },
+	{ STR_W_LEN("use_master_guess") },
 	{ STR_W_LEN("use_slave_sql_hint") },
 	{ STR_W_LEN("use_master_sql_hint") },
 	{ STR_W_LEN("use_last_used_sql_hint") },

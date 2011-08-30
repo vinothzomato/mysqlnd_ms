@@ -31,6 +31,8 @@ mysqlnd_ms.collect_statistics=1
 	$expected = array(
 		"use_slave" 							=> true,
 		"use_master"							=> true,
+		"use_slave_guess" 						=> true,
+		"use_master_guess"						=> true,
 		"use_slave_sql_hint"					=> true,
 		"use_master_sql_hint"					=> true,
 		"use_last_used_sql_hint" 				=> true,
@@ -76,11 +78,14 @@ mysqlnd_ms.collect_statistics=1
 
 	run_query(5, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$exp_stats['use_master_sql_hint']++;
+	$exp_stats['use_master']++;
 
 	run_query(6, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$exp_stats['use_slave_sql_hint']++;
+	$exp_stats['use_slave']++;
 
 	$res = run_query(7, $link, "SELECT @myrole AS _role");
+	$exp_stats['use_slave_guess']++;
 	$exp_stats['use_slave']++;
 
 	$row = $res->fetch_assoc();

@@ -578,12 +578,14 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 	}
 	if (*forced == FALSE) {
 		if (token.token == QC_TOKEN_SELECT) {
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_GUESS);
 			ret = USE_SLAVE;
 #ifdef ALL_SERVER_DISPATCH
 		} else if (token.token == QC_TOKEN_SET) {
 			ret = USE_ALL;
 #endif
 		} else {
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_GUESS);
 			ret = USE_MASTER;
 		}
 	}

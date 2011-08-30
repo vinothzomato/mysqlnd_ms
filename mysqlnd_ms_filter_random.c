@@ -105,6 +105,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					} else {
 						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 						DBG_RETURN(connection);
 					}
 					break;
@@ -184,6 +185,7 @@ fallthrough:
 						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 						DBG_RETURN(connection);
 					}
 					break;
