@@ -42,6 +42,7 @@
 #include "mysqlnd_ms_switch.h"
 
 struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
+struct st_mysqlnd_stmt_methods * ms_orig_mysqlnd_stmt_methods;
 
 static void mysqlnd_ms_conn_free_plugin_data(MYSQLND *conn TSRMLS_DC);
 
@@ -1429,7 +1430,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 			   zend_bool ignore_upsert_status TSRMLS_DC)
 {
 #ifdef BUFFERED_COMMANDS
-	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);;
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
 #endif
 	enum_func_status ret = PASS;
 	MYSQLND * connection = conn;
@@ -1498,7 +1499,52 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_stmt::prepare */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * const query, unsigned int query_len TSRMLS_DC)
+{
+	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+	MYSQLND * connection = NULL;
+	enum_func_status ret = FAIL;
+	DBG_ENTER("mysqlnd_ms_stmt::prepare");
+	DBG_INF_FMT("query=%s", query);
+
+	if (!s || !s->data || !s->data->conn ||
+		!(conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(s->data->conn, mysqlnd_ms_plugin_id)) ||
+		!*conn_data || (*conn_data)->skip_ms_calls)
+	{
+		DBG_INF("skip MS");
+		DBG_RETURN(ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC));
+	}
+
+	/* this can possible reroute us to another server */
+	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, query, query_len TSRMLS_CC);
+	DBG_INF_FMT("Connection %p", connection);
+
+	if (connection != s->data->conn) {
+		/* free what we have */
+		s->m->net_close(s, TRUE TSRMLS_CC);
+		mnd_pefree(s->data, s->data->persistent);
+
+		/* new handle */
+		{
+			MYSQLND_STMT * new_handle = ms_orig_mysqlnd_conn_methods->stmt_init(connection TSRMLS_CC);
+			if (!new_handle || !new_handle->data) {
+				DBG_ERR("new_handle is null");
+				DBG_RETURN(FAIL);
+			}
+			s->data = new_handle->data;
+			mnd_pefree(new_handle, new_handle->data->persistent);
+		}
+	}
+
+	ret = ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
+static struct st_mysqlnd_stmt_methods my_mysqlnd_stmt_methods;
 
 /* {{{ mysqlnd_ms_register_hooks*/
 void
@@ -1555,6 +1601,13 @@ mysqlnd_ms_register_hooks()
 #endif
 
 	mysqlnd_conn_set_methods(&my_mysqlnd_conn_methods);
+
+	ms_orig_mysqlnd_stmt_methods = mysqlnd_stmt_get_methods(); 
+	memcpy(&my_mysqlnd_stmt_methods, ms_orig_mysqlnd_stmt_methods, sizeof(struct st_mysqlnd_stmt_methods));
+
+	my_mysqlnd_stmt_methods.prepare = MYSQLND_METHOD(mysqlnd_ms_stmt, prepare);
+
+	mysqlnd_stmt_set_methods(&my_mysqlnd_stmt_methods);
 }
 /* }}} */
 

@@ -68,13 +68,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 		$one = NULL;
 		if (!$stmt->prepare("SELECT 1 AS _one FROM DUAL") ||
 			!$stmt->execute() ||
-			!$stmt->bind_result($one))
+			!$stmt->bind_result($one) ||
+			!$stmt->fetch())
+		{
 			printf("[007] [%d] '%s'\n", $stmt->errno, $stmt->error);
-		else
+		} else {
 			printf("[008] _one = %s\n", $one);
+			if ($stmt->fetch()) {
+				printf("[008] More data than expected");
+			}
+		}
 	}
 
-	if ($res = run_query(9, $link, "SELECT 1 FROM DUAL"))
+	if ($res = run_query(10, $link, "SELECT 1 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 	print "done!";
@@ -87,11 +93,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_stmt_init.ini'.\n");
 ?>
 --EXPECTF--
-[003] [%d] %s
-[004] [%d] %s
-[005] [%d] %s
-[006] [%d] %s
-[007] [%d] '%s'
+[003] [2014] Commands out of sync; you can't run this command now
+[006] [2014] Commands out of sync; you can't run this command now
+[008] _one = 1
 array(1) {
   [1]=>
   string(1) "1"
