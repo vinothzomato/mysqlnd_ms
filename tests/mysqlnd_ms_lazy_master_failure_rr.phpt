@@ -37,23 +37,33 @@ mysqlnd_ms.collect_statistics=1
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$connections = array();
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH, true, true);
 	$connections[$link->thread_id] = array('master');
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$connections[$link->thread_id][] = 'slave';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	schnattertante(run_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	$connections[$link->thread_id][] = 'slave';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	schnattertante(run_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, true));
 	$connections[$link->thread_id][] = 'master';
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	foreach ($connections as $thread_id => $details) {
 		printf("Connection %d -\n", $thread_id);
@@ -69,17 +79,31 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_rr.ini'.\n");
 ?>
 --EXPECTF--
+----
+----
 Connect error, [002] [%d] %s
+----
+Stats use_master: 1
 Stats use_master_sql_hint: 1
 Stats lazy_connections_master_failure: 1
+----
+----
+Stats use_slave: 1
 Stats use_slave_sql_hint: 1
 Stats lazy_connections_slave_success: 1
+----
 This is '' speaking
-Stats use_slave: 1
+----
+Stats use_slave: 2
+Stats use_slave_guess: 1
 Stats lazy_connections_slave_success: 2
+----
 Connect error, [005] [%d] %s
+----
+Stats use_master: 2
 Stats use_master_sql_hint: 2
 Stats lazy_connections_master_failure: 2
+----
 Connection 0 -
 ... master
 ... master
