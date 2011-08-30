@@ -38,7 +38,7 @@ mysqlnd_ms.in_regression_tests=1
 ?>
 --EXPECTF--
 [E_WARNING] mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed: Name or service not known in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
-[E_WARNING] mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no (trying to connect via tcp://myapp:3306) in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+[E_WARNING] mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed: Name or service no%s (trying to connect via tcp://myapp:3306) in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
 [E_WARNING] mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed: Name or service not known in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
 [001] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
 done!
