@@ -31,7 +31,9 @@ mysqlnd_ms.collect_statistics=1
 	require_once("connect.inc");
 	require_once("mysqlnd_ms_lazy.inc");
 
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
@@ -56,7 +58,9 @@ mysqlnd_ms.collect_statistics=1
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	/* SQL hint wins */
 	$res = run_query(6, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role",  MYSQLND_MS_SLAVE_SWITCH);
@@ -114,13 +118,19 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_master_on_write_random.ini'.\n");
 ?>
 --EXPECTF--
+----
+----
 This is 'Slave 1 %d' speaking
 This is 'Master %d' speaking
-Stats use_slave: 2
-Stats use_master: 1
+----
+Stats use_slave: 3
+Stats use_master: 2
+Stats use_slave_guess: 2
+Stats use_master_guess: 1
 Stats use_slave_sql_hint: 2
 Stats lazy_connections_slave_success: 2
 Stats lazy_connections_master_success: 1
+----
 This is 'Slave 2 %d' speaking
 This is 'Master %d' speaking
 This is 'Slave 1 %d' speaking
