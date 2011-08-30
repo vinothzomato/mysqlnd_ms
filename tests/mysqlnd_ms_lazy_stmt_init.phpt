@@ -79,8 +79,24 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 			}
 		}
 	}
+	if (!($stmt = $link->stmt_init()))
+		printf("[011] [%d] %s\n", $link->errno, $link->error);
 
-	if ($res = run_query(10, $link, "SELECT 1 FROM DUAL"))
+	if (is_object($stmt)) {
+		$one = "42";
+		if (!$stmt->prepare("SET @a=?") ||
+			!$stmt->bind_param("s", $one) || 
+			!$stmt->execute())
+		{
+			printf("[012] [%d] '%s'\n", $stmt->errno, $stmt->error);
+		} else {
+			if ($res = run_query(13, $link, "SELECT @a", MYSQLND_MS_LAST_USED_SWITCH)) {
+				var_dump($res->fetch_assoc());
+			}
+		}
+	}
+
+	if ($res = run_query(14, $link, "SELECT 1 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 	print "done!";
@@ -96,6 +112,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 [003] [2014] Commands out of sync; you can't run this command now
 [006] [2014] Commands out of sync; you can't run this command now
 [008] _one = 1
+array(1) {
+  ["@a"]=>
+  string(2) "42"
+}
 array(1) {
   [1]=>
   string(1) "1"
