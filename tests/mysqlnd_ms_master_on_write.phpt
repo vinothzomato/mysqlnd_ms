@@ -35,30 +35,40 @@ mysqlnd_ms.collect_statistics=1
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	run_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	$res = run_query(3, $link, "SELECT @myrole AS _role");
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 	/* not a select -> master query */
 	run_query(4, $link, "SET @myrole='Master 1'");
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	/* master on write is active, master should reply */
 	$res = run_query(5, $link, "SELECT @myrole AS _role");
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	/* SQL hint wins */
 	$res = run_query(6, $link, "SELECT @myrole AS _role",  MYSQLND_MS_SLAVE_SWITCH);
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
+	echo "----\n";
 	compare_stats();
+	echo "----\n";
 
 	/* master on write is active, master should reply */
 	$res = run_query(7, $link, "SELECT @myrole AS _role");
@@ -99,16 +109,31 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_master_on_write.ini'.\n");
 ?>
 --EXPECTF--
+----
+Stats use_slave: 1
 Stats use_slave_sql_hint: 1
 Stats lazy_connections_slave_success: 1
+----
 This is 'Slave 1' speaking
-Stats use_slave: 1
-Stats use_master: 1
-Stats lazy_connections_master_success: 1
-This is 'Master 1' speaking
+----
 Stats use_slave: 2
+Stats use_slave_guess: 1
+----
+----
+Stats use_master: 1
+Stats use_master_guess: 1
+Stats lazy_connections_master_success: 1
+----
+This is 'Master 1' speaking
+----
+Stats use_master: 2
+Stats use_slave_guess: 2
+----
 This is 'Slave 1' speaking
+----
+Stats use_slave: 3
 Stats use_slave_sql_hint: 2
+----
 This is 'Master 1' speaking
 This is 'Slave 1' speaking
 This is 'Slave 1' speaking
