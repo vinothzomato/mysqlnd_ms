@@ -9,8 +9,8 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-if (version_compare(PHP_VERSION, '5.3.99-dev', '>='))
-	die(sprintf("SKIP Requires PHP < 5.3.99, using " . PHP_VERSION));
+if (version_compare(PHP_VERSION, '5.4.0') < 0)
+	die(sprintf("SKIP Requires PHP > 5.4.0, using " . PHP_VERSION));
 
 $settings = array(
 	"myapp" => array(
@@ -96,5 +96,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_autocommit.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_autocommit.ini'.\n");
 ?>
 --EXPECTF--
-[007] Autocommit should be on, got '0'
 done!
