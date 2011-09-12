@@ -102,7 +102,26 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_kill.ini
 
 	printf("%s: thread %d\n", $row['_role'], $link->thread_id);
 
-	printf("TODO - continue test once implicit server switch is fixed.\n");
+	/* slave connection has been killed... - this shall report an error */
+	if (!$res = run_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
+		printf("[009] [%d] %s\n", $link->errno, $link->error);
+
+	/* slave connection has been killed... - this shall report an error */
+	if (!$res = run_query(10, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset"))
+		printf("[011] [%d] %s\n", $link->errno, $link->error);
+
+	/* slave connection has been killed... - this shall report an error */
+	if (!$res = run_query(11, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH))
+		printf("[012] [%d] %s\n", $link->errno, $link->error);
+
+	$row = $res->fetch_assoc();
+	$current_charset = $row['_charset'];
+	if ($current_charset != $new_charset)
+		printf("[013] Master character set has not been changed.");
+
+	$new_charset = ('latin1' == $current_charset) ? 'latin2' : 'latin1';
+	printf("%s: thread %d, current %s, new: %s\n", $row['_role'], $link->thread_id, $current_charset, $new_charset);
+
 	print "done!";
 
 ?>
@@ -112,10 +131,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_kill.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_charsets_kill.ini'.\n");
 ?>
 --EXPECTF--
-slave: thread %d, current %s, new: %s
+slave: thread %d, current latin%d, new: latin%d
 slave: thread %d
-
-Warning: mysqli::set_charset(): Error executing query in %s on line %d
 slave: thread %d
-TODO - continue test once implicit server switch is fixed.
+[008] [%d] %s
+[009] [%d] %s
+[010] [%d] %s
+[011] [%d] %s
+master: thread %d, current latin%d, new: latin%d
 done!
