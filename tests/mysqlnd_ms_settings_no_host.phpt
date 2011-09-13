@@ -58,8 +58,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_no_host.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_no_host.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Cannot find [host] in [master] section in config in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
-[E_WARNING] mysqli_real_connect(): (mysqlnd_ms) Error while connecting to the master(s) in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
-[E_WARNING] mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Cannot find [host] in section in config in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Cannot find [host] in [master] section in config in %s on line 146
+[E_WARNING] mysqli_real_connect(): (mysqlnd_ms) Error while connecting to the master(s) in %s on line 146
+[E_WARNING] mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Cannot find [host] in section in config in %s on line 146
 [001] [2000] (mysqlnd_ms) Cannot find [host] in section in config
 done!
