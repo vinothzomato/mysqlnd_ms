@@ -248,6 +248,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 '/*ms=master*/SELECT 'master' AS _message FROM DUAL' => master
 '/*ms=master*/SELECT 'master' AS _message FROM DUAL' => master
 '/*ms=slave*/SELECT 'slave' AS _message FROM DUAL' => slave
-[004] in_transaction should be 1
 '/*ms=slave*/SELECT 'slave' AS _message FROM DUAL' => slave
 done!
