@@ -488,5 +488,5 @@
 			 $error, $file, $line);
 
 		return true;
-	}
+	}	
 ?>

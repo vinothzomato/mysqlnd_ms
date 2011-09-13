@@ -90,7 +90,7 @@ mysqlnd_ms.multi_master=1
 
 	/* db.test -> slave 2 -> no such host */
 	if (!@$link->query("SELECT * FROM test")) {
-		if (isset($connect_errno_codes[$link->errno]))
+		if (isset($mst_connect_errno_codes[$link->errno]))
 			printf("[005] Connect error, [%d] %s\n", $link->errno, $link->error);
 		else
 			printf("[005] Unexpected error, [%d] %s\n", $link->errno, $link->error);

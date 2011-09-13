@@ -28,7 +28,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_killed.ini
 	require_once("connect.inc");
 
 	function mst_mysqli_query($offset, $link, $query) {
-		global $connect_errno_codes;
+		global $mst_connect_errno_codes;
 
 		if (!($res = @$link->query($query))) {
 			printf("[%03d + 01] [%d] %s\n", $offset, $link->errno, $link->error);

@@ -31,7 +31,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-	require_once("mysqlnd_ms_pick_user.inc");
+	set_error_handler('mst_error_handler');
 
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
 		static $slave_idx = 0;

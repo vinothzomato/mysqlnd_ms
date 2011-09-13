@@ -81,7 +81,7 @@ mysqlnd_ms.collect_statistics=1
 			printf("[002] Plugin has failed to connect but connect error is not set, [%d] '%s'\n",
 				mysqli_connect_errno(), mysqli_connect_error());
 		} else {
-			if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+			if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 				die(sprintf("[003] OK, plugin reports connect error, [%d] '%s'\n",
 					mysqli_connect_errno(), mysqli_connect_error()));
 			} else {

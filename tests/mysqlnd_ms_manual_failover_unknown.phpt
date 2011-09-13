@@ -37,7 +37,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_unknown.ini
 	Error: 2005 (CR_UNKNOWN_HOST)
 	Message: Unknown MySQL server host '%s' (%d)
 	*/
-	$connect_errno_codes = array(
+	$mst_connect_errno_codes = array(
 		2002 => true,
 		2003 => true,
 		2005 => true,
@@ -45,10 +45,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_unknown.ini
 
 
 	function mst_mysqli_query($offset, $link, $query) {
-		global $connect_errno_codes;
+		global $mst_connect_errno_codes;
 
 		if (!($res = @$link->query($query))) {
-			if (isset($connect_errno_codes[$link->errno]))
+			if (isset($mst_connect_errno_codes[$link->errno]))
 			  printf("[%03d + 01] Expected connect error, [%d] %s\n", $offset, $link->errno, $link->error);
 			else
 			  printf("[%03d + 02] Unexpected error, [%d] %s\n", $offset, $link->errno, $link->error);

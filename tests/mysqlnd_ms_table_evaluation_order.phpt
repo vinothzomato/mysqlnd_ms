@@ -76,7 +76,7 @@ mysqlnd_ms.multi_master=1
 	/* match all rule at the beginning -> master 2 -> error */
 	$threads = array();
 	if (!@mysqli_query($link, "DROP TABLE IF EXISTS best")) {
-		if (isset($connect_errno_codes[$link->errno])) {
+		if (isset($mst_connect_errno_codes[$link->errno])) {
 		  printf("Connect error, ");
 		}
 		printf("[%d] %s\n", $link->errno, $link->error);

@@ -25,7 +25,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_unknown_function.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_pick_user.inc");
+	set_error_handler('mst_error_handler');
 
 	function mst_mysqli_query($offset, $link, $query) {
 		$ret = $link->query($query);

@@ -9,7 +9,7 @@
 	Error: 2005 (CR_UNKNOWN_HOST)
 	Message: Unknown MySQL server host '%s' (%d)
 	*/
-	$connect_errno_codes = array(
+	$mst_connect_errno_codes = array(
 		2002 => true,
 		2003 => true,
 		2005 => true,
@@ -23,7 +23,7 @@
 	}
 
 	function mst_mysqli_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
-		global $connect_errno_codes;
+		global $mst_connect_errno_codes;
 
 		$query = "/*$offset*/$query";
 
@@ -40,7 +40,7 @@
 
 			if ($expect_connect_warning) {
 				$found = false;
-				foreach ($connect_errno_codes as $code => $v) {
+				foreach ($mst_connect_errno_codes as $code => $v) {
 					$needle = "Warning: mysqli::query(): [" . $code . "]";
 					if (false !== ($found = strpos($haystack, $needle))) {
 						break;
@@ -56,7 +56,7 @@
 		}
 
 		if (!$ret && !$ignore_error && $link->errno) {
-			if (isset($connect_errno_codes[$link->errno]))
+			if (isset($mst_connect_errno_codes[$link->errno]))
 				printf("Connect error, ");
 			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 		}
@@ -66,7 +66,7 @@
 
 
 	function mst_mysqli_real_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
-		global $connect_errno_codes;
+		global $mst_connect_errno_codes;
 
 		$query = "/*$offset*/$query";
 
@@ -83,7 +83,7 @@
 
 			if ($expect_connect_warning) {
 				$found = false;
-				foreach ($connect_errno_codes as $code => $v) {
+				foreach ($mst_connect_errno_codes as $code => $v) {
 					$needle = "Warning: mysqli::query(): [" . $code . "]";
 					if (false !== ($found = strpos($haystack, $needle))) {
 						break;
@@ -99,7 +99,7 @@
 		}
 
 		if (!$ret && !$ignore_error && $link->errno) {
-			if (isset($connect_errno_codes[$link->errno]))
+			if (isset($mst_connect_errno_codes[$link->errno]))
 				printf("Connect error, ");
 			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 		}

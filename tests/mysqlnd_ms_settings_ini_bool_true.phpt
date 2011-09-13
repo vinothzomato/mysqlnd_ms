@@ -35,7 +35,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_bool_true.ini
 	Error: 2005 (CR_UNKNOWN_HOST)
 	Message: Unknown MySQL server host '%s' (%d)
 	*/
-	$connect_errno_codes = array(
+	$mst_connect_errno_codes = array(
 		2002 => true,
 		2003 => true,
 		2005 => true,
@@ -43,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_bool_true.ini
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = @mst_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
-	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+	if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[001] Looks like the config has not been interpreted correctly [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());

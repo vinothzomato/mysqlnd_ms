@@ -53,7 +53,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	Error: 2005 (CR_UNKNOWN_HOST)
 	Message: Unknown MySQL server host '%s' (%d)
 	*/
-	$connect_errno_codes = array(
+	$mst_connect_errno_codes = array(
 		2002 => true,
 		2003 => true,
 		2005 => true,
@@ -61,21 +61,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
 	$link = @mst_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
-	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+	if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[001] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	$link = @mst_mysqli_connect("192.168.14.17", $user, $passwd, $db, $port, $socket);
-	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+	if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[002] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	$link = @mst_mysqli_connect("my_orginal_mysql_server_host", $user, $passwd, $db, $port, $socket);
-	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+	if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[003] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
@@ -96,7 +96,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	}
 
 	$link = @mst_mysqli_connect("lazy_default_and_no_error", $user, $passwd, $db, $port, $socket);
-	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+	if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[007] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[008] No error because no connection yet [%d] '%s'\n", mysqli_connect_errno(), mysqli_connect_error());
@@ -104,7 +104,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 
 	/* error is delayed due to lazy */
 	@$link->query("DROP TABLE IF EXISTS test");
-	if (isset($connect_errno_codes[mysqli_errno($link)])) {
+	if (isset($mst_connect_errno_codes[mysqli_errno($link)])) {
 		printf("[009] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 	} else {
 		printf("[010] Unexpected error [%d] '%s'\n", mysqli_errno($link), mysqli_error($link));
@@ -112,7 +112,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 
 	/* error */
 	$link = @mst_mysqli_connect("i_hope_there_is_no_such_host", $user, $passwd, $db, $port, $socket);
-	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
+	if (isset($mst_connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[011] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[011] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
