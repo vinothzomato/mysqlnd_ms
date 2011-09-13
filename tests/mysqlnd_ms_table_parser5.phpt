@@ -54,15 +54,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser5.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	function mst_mysqli_fetch_id($offset, $res) {
-		if (!$res) {
-			printf("[%03d] No result\n", $offset);
-			return;
-		}
-		$row = $res->fetch_assoc();
-		printf("[%03d] _id = '%s'\n", $offset, $row['_id']);
-	}
-
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());

@@ -25,6 +25,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_class_private_static
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("util.inc");
 	set_error_handler('mst_error_handler');
 
 	class picker {
