@@ -320,7 +320,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 				snprintf(error_buf, sizeof(error_buf),
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME" '%s' . Stopping", port_str);
 				error_buf[sizeof(error_buf) - 1] = '\0';
-			
+
 				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				failures++;
@@ -338,7 +338,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 				snprintf(error_buf, sizeof(error_buf),
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME" '%s' . Stopping", flags_str);
 				error_buf[sizeof(error_buf) - 1] = '\0';
-			
+
 				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				failures++;
@@ -556,7 +556,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
 											 &conn->error_info TSRMLS_CC);
-			
+
 			if (FAIL == ret || conn->error_info.error_no) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
 				break;
@@ -598,7 +598,7 @@ mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_
 	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::do_send_query");
 
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) { 
+	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
 	} else if (pick_server) {
 		DBG_INF("Must be async query, blocking and failing");
 		if (conn) {
@@ -993,6 +993,11 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
+			}
+			if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+				/* lazy connection */
+				el->db_len = db_len;
+				el->db = db? mnd_pestrndup(db, db_len, el->conn->persistent) : NULL;
 			}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
@@ -1639,7 +1644,7 @@ mysqlnd_ms_register_hooks()
 
 	mysqlnd_conn_set_methods(&my_mysqlnd_conn_methods);
 
-	ms_orig_mysqlnd_stmt_methods = mysqlnd_stmt_get_methods(); 
+	ms_orig_mysqlnd_stmt_methods = mysqlnd_stmt_get_methods();
 	memcpy(&my_mysqlnd_stmt_methods, ms_orig_mysqlnd_stmt_methods, sizeof(struct st_mysqlnd_stmt_methods));
 
 	my_mysqlnd_stmt_methods.prepare = MYSQLND_METHOD(mysqlnd_ms_stmt, prepare);
