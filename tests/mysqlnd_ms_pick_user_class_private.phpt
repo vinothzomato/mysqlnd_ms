@@ -35,12 +35,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_class_private.ini
 		}
 	}
 
-	function mst_mysqli_query($offset, $link, $query) {
-		$ret = $link->query($query);
-		printf("[%03d + 01] [%d] '%s'\n", $offset, $link->errno, $link->error);
-		return $ret;
-	}
-
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
