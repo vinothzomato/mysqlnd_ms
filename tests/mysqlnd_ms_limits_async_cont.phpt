@@ -94,8 +94,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_async_cont.ini
 --EXPECTF--
 [E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) Asynchronous queries are not supported in %s on line %d
 [003] [2000] (mysqlnd_ms) Asynchronous queries are not supported
-set - 8269
-async select - 8269
-sync select - 11073
+set - %d
+async select - %d
+sync select - %d
 [005] Asynchronous SELECT and SELECT have been send over different connections
-done
+done!
