@@ -25,6 +25,8 @@ mysqlnd_ms.in_regression_tests=1
 
   $mst_ignore_errors = array(
 		/* depends on test machine network configuration */
+		'[E_WARNING] mysqli_real_connect(): [2002] Connection refused',
+		'[E_WARNING] mysqli_real_connect(): (HY000/2002): Connection refused',
 		'[E_WARNING] mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed:',
 		'[E_WARNING] mysqli_real_connect(): [2002] php_network_getaddresses: getaddrinfo failed:',
 		'[E_WARNING] mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed:',
@@ -43,5 +45,5 @@ mysqlnd_ms.in_regression_tests=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_no_json.ini'.\n");
 ?>
 --EXPECTF--
-[001] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
+[001] [2002] %s
 done!
