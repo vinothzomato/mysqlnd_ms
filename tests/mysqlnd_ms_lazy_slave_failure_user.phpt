@@ -31,6 +31,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_user.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
+
+	$mst_ignore_errors = array(
+		/* depends on test machine network configuration */
+		'[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known',
+	);
 	set_error_handler('mst_error_handler');
 
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
@@ -93,17 +98,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_user.ini
 --EXPECTF--
 pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
 pick_server('myapp', '/*ms=slave*//*3*/SET @myrole='slave'') => slave
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [E_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
 Connect error, [003] [%d] %s
 pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [E_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
 Connect error, [004] [%d] %s
 pick_server('myapp', '/*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [E_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
 Connect error, [005] [%d] %s

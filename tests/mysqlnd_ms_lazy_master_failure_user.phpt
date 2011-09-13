@@ -32,6 +32,11 @@ mysqlnd_ms.collect_statistics=1
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
+
+	$mst_ignore_errors = array(
+		/* depends on test machine network configuration */
+		'[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known',
+	);
 	set_error_handler('mst_error_handler');
 
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
@@ -110,7 +115,6 @@ mysqlnd_ms.collect_statistics=1
 ----
 ----
 pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
-[E_WARNING] mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 [E_WARNING] mysqli::query(): [%d] %s
 Connect error, [002] [%d] %s
 ----

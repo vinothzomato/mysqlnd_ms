@@ -473,9 +473,12 @@
 			return '';
 		}
 	}
-	
+
 	function mst_error_handler($errno, $error, $file, $line) {
+		/* KLUDGE */
+		global $mst_ignore_errors;
 		static $errcodes = array();
+
 		if (empty($errcodes)) {
 			$constants = get_defined_constants();
 			foreach ($constants as $name => $value) {
@@ -483,10 +486,19 @@
 					$errcodes[$value] = $name;
 			}
 		}
-		printf("[%s] %s in %s on line %s\n",
+		$msg = sprintf("[%s] %s in %s on line %s\n",
 			(isset($errcodes[$errno])) ? $errcodes[$errno] : $errno,
 			 $error, $file, $line);
 
+		if (isset($mst_ignore_errors) && is_array($mst_ignore_errors)) {
+			foreach ($mst_ignore_errors as $pattern) {
+				if (stristr($msg, $pattern))
+					return true;
+			}
+		}
+
+		echo $msg;
+
 		return true;
-	}	
+	}
 ?>
