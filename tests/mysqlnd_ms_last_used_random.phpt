@@ -19,7 +19,7 @@ $settings = array(
 		'pick' => array("random"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_last_used_random.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_last_used_random.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -28,9 +28,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_last_used_random.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	if (!$link->query(sprintf("/*%s*/SELECT 1", MYSQLND_MS_LAST_USED_SWITCH)))

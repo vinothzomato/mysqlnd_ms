@@ -20,7 +20,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_error_message.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_error_message.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -30,11 +30,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_message.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	if (!$link->query("SELECT first_unknown_column FROM test"))

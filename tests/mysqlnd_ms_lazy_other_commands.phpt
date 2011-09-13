@@ -34,7 +34,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_escape.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_escape.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -43,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	function callme($stream, &$buffer, $buflen, &$errmsg) {
 		$buffer = fgets($stream);
@@ -66,7 +66,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 		  printf("[%03d] %s\n", $offset, var_export($ret, true));
 	}
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}

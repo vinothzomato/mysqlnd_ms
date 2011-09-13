@@ -21,7 +21,7 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_config_access.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_config_access.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -30,11 +30,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_config_access.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* something easy to start with... */
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* This shall work because we have two slaves */
@@ -47,7 +47,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_config_access.ini
 		case 0:
 			/* child */
 			for ($i = 0; $i < 1; $i++) {
-				if (!($clink = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))) {
+				if (!($clink = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))) {
 					printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 					continue;
 				}

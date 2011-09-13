@@ -18,7 +18,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_master_unreachable_rr.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_master_unreachable_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -29,18 +29,18 @@ mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	compare_stats();
+	mst_compare_stats();
 	/* error messages (warnings can vary a bit, let's not bother about it */
 	ob_start();
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	$tmp = ob_get_contents();
 	ob_end_clean();
 	if ('' == $tmp)
 		printf("[001] Expecting some warnings/errors but nothing has been printed, check manually");
 
-	compare_stats();
+	mst_compare_stats();
 	if (!$link) {
 		if (0 == mysqli_connect_errno()) {
 			printf("[002] Plugin has failed to connect but connect error is not set, [%d] '%s'\n",

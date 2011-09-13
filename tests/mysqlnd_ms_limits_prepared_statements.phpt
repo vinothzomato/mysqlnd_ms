@@ -15,7 +15,7 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_limits_prepared_statements.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_limits_prepared_statements.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -25,13 +25,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_prepared_statements.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(3, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	run_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	if (!$stmt = $link->prepare("SELECT @myrole AS _role"))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);

@@ -106,7 +106,7 @@
 		}
 	}
 
-	if (!function_exists('my_mysqli_connect')) {
+	if (!function_exists('mst_mysqli_connect')) {
 
 		function my_mysql_connect($host, $user, $passwd, $db, $port, $socket, $flags = NULL, $persistent = false) {
 			global $connect_flags;
@@ -136,7 +136,7 @@
 		*
 		* @param enable_env_flags Enable setting of connection flags through 	env(MYSQL_TEST_CONNECT_FLAGS)?
 		*/
-		function my_mysqli_connect($host, $user, $passwd, $db, $port, $socket, $enable_env_flags = true) {
+		function mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket, $enable_env_flags = true) {
 			global $connect_flags;
 
 			$flags = ($enable_env_flags) ? $connect_flags : false;
@@ -157,7 +157,7 @@
 		*
 		* @param enable_env_flags Enable setting of connection flags through env(MYSQL_TEST_CONNECT_FLAGS)
 		*/
-		function my_mysqli_real_connect($link, $host, $user, $passwd, $db, $port, $socket, $flags = 0, $enable_env_flags = true) {
+		function mst_mysqli_real_connect($link, $host, $user, $passwd, $db, $port, $socket, $flags = 0, $enable_env_flags = true) {
 			global $connect_flags;
 
 			if ($enable_env_flags)
@@ -166,7 +166,7 @@
 			return mysqli_real_connect($link, $host, $user, $passwd, $db, $port, $socket, $flags);
 		}
 
-		class my_mysqli extends mysqli {
+		class mst_mysqli extends mysqli {
 			public function __construct($host, $user, $passwd, $db, $port, $socket, $enable_env_flags = true) {
 				global $connect_flags;
 
@@ -181,7 +181,7 @@
 			}
 		}
 
-		function my_get_charsets($link) {
+		function mst_mysqli_get_charsets($link) {
 
 			/* Those tree are set by SET NAMES */
 			$charsets = array(
@@ -296,22 +296,22 @@
 		printf("skip Eeeek/BUG/FIXME - connect.inc included twice! skipif bug?\n");
 	}
 
-	if (!function_exists("create_config")) {
-		function create_config($file, $settings, $replace_file = true, $format = 'json') {
+	if (!function_exists("mst_create_config")) {
+		function mst_create_config($file, $settings, $replace_file = true, $format = 'json') {
 
 			switch ($format) {
 			  case 'json':
-				return create_config_json($file, $settings, $replace_file);
+				return mst_create_config_json($file, $settings, $replace_file);
 				break;
 			  case 'ini':
 			  default:
-				return create_config_ini($file, $settings, $replace_file);
+				return mst_create_config_ini($file, $settings, $replace_file);
 				break;
 			}
 
 		}
 
-		function create_config_json($file, $settings, $replace_file) {
+		function mst_create_config_json($file, $settings, $replace_file) {
 			if ($replace_file && file_exists($file) && !@unlink($file))
 				return sprintf("Cannot unlink existing file '%s'.", $file);
 
@@ -422,7 +422,7 @@
 			return '';
 		}
 
-		function create_config_ini($file, $settings, $replace_file) {
+		function mst_create_config_ini($file, $settings, $replace_file) {
 
 			if ($replace_file && file_exists($file) && !@unlink($file))
 				return sprintf("Cannot unlink existing file '%s'.", $file);
@@ -473,8 +473,8 @@
 			return '';
 		}
 	}
-
-	function my_error_handler($errno, $error, $file, $line) {
+	
+	function mst_error_handler($errno, $error, $file, $line) {
 		static $errcodes = array();
 		if (empty($errcodes)) {
 			$constants = get_defined_constants();
@@ -489,5 +489,4 @@
 
 		return true;
 	}
-
 ?>

@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_sql_prepare.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_sql_prepare.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -29,7 +29,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_prepare.ini
 	require_once("connect.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* one and only master */

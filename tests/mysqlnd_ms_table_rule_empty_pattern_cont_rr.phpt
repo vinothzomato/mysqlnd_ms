@@ -51,7 +51,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_rule_empty_pattern_cont_rr.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_rule_empty_pattern_cont_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -61,21 +61,21 @@ mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	set_error_handler('my_error_handler');
+	set_error_handler('mst_error_handler');
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	/* valid config or not? */
-	verbose_run_query(2, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_verbose_query(2, $link, "DROP TABLE IF EXISTS test");
 	if (0 == $link->thread_id)
 		printf("[003] Not connected to any server.\n");
 
-	verbose_run_query(4, $link, "SELECT 1");
+	mst_mysqli_verbose_query(4, $link, "SELECT 1");
 	if (0 == $link->thread_id)
 		printf("[005] Not connected to any server.\n");
 

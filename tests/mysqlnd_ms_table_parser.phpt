@@ -43,7 +43,7 @@ if (_skipif_have_feature("table_filter")) {
 	);
 }
 
-if ($error = create_config("test_mysqlnd_ms_table_parser.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_parser.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -52,37 +52,37 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
-	require_once("mysqlnd_ms_table_parser.inc");
+	require_once("util.inc");
+	
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-	fetch_result(5, verbose_run_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test"));
-	fetch_result(7, verbose_run_query(6, $link, "SELECT id AS _id FROM test ORDER BY id ASC"));
-	fetch_result(9, verbose_run_query(8, $link, "SELECT id, id AS _id FROM test ORDER BY id ASC"));
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	mst_mysqli_fetch_id(5, mst_mysqli_verbose_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test"));
+	mst_mysqli_fetch_id(7, mst_mysqli_verbose_query(6, $link, "SELECT id AS _id FROM test ORDER BY id ASC"));
+	mst_mysqli_fetch_id(9, mst_mysqli_verbose_query(8, $link, "SELECT id, id AS _id FROM test ORDER BY id ASC"));
 	/* TODO - enable after fix of mysqlnd_ms_table_parser1.phpt
-	fetch_result(11, verbose_run_query(10, $link, "SELECT id, id, 'a' AS _id FROM test"));
+	mst_mysqli_fetch_id(11, mst_mysqli_verbose_query(10, $link, "SELECT id, id, 'a' AS _id FROM test"));
 	*/
-	fetch_result(13, verbose_run_query(12, $link, "SELECT 1 AS _id FROM test ORDER BY id ASC"));
+	mst_mysqli_fetch_id(13, mst_mysqli_verbose_query(12, $link, "SELECT 1 AS _id FROM test ORDER BY id ASC"));
 	/* OK - mysqlnd_ms_table_parser2.phpt
-	fetch_result(15, verbose_run_query(14, $link, "SELECT"));
+	mst_mysqli_fetch_id(15, mst_mysqli_verbose_query(14, $link, "SELECT"));
 	mysqlnd_ms_table_parser4.phpt
-	fetch_result(17, verbose_run_query(16, $link, "SELECT NULL, 1 AS _id FROM test"));
+	mst_mysqli_fetch_id(17, mst_mysqli_verbose_query(16, $link, "SELECT NULL, 1 AS _id FROM test"));
 	mysqlnd_ms_table_parser5.phpt
-	fetch_result(19, verbose_run_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
+	mst_mysqli_fetch_id(19, mst_mysqli_verbose_query(18, $link, "SELECT PASSWORD('foo') AS _id FROM test"));
 	*/
 	/* mysqlnd_ms_table_parser29.phpt
-	fetch_result(19, verbose_run_query(18, $link, "SELECT id OR id AS _id FROM test AS d"));
-	fetch_result(21, verbose_run_query(20, $link, "SELECT 1 || id AS _id FROM test AS d"));
-	fetch_result(23, verbose_run_query(22, $link, "SELECT 1 XOR 1 AS _id FROM test"));
-	fetch_result(25, verbose_run_query(24, $link, "SELECT 1 AND 'a' AS _id FROM test"));
-	fetch_result(27, verbose_run_query(26, $link, "SELECT 1 && 2 AS _id, 3 AS _idididi FROM test"));
-	fetch_result(29, verbose_run_query(28, $link, "SELECT NOT 2 AS _id FROM test"));
-	fetch_result(31, verbose_run_query(30, $link, "SELECT TRUE IS NOT FALSE AS _id FROM test"));
+	mst_mysqli_fetch_id(19, mst_mysqli_verbose_query(18, $link, "SELECT id OR id AS _id FROM test AS d"));
+	mst_mysqli_fetch_id(21, mst_mysqli_verbose_query(20, $link, "SELECT 1 || id AS _id FROM test AS d"));
+	mst_mysqli_fetch_id(23, mst_mysqli_verbose_query(22, $link, "SELECT 1 XOR 1 AS _id FROM test"));
+	mst_mysqli_fetch_id(25, mst_mysqli_verbose_query(24, $link, "SELECT 1 AND 'a' AS _id FROM test"));
+	mst_mysqli_fetch_id(27, mst_mysqli_verbose_query(26, $link, "SELECT 1 && 2 AS _id, 3 AS _idididi FROM test"));
+	mst_mysqli_fetch_id(29, mst_mysqli_verbose_query(28, $link, "SELECT NOT 2 AS _id FROM test"));
+	mst_mysqli_fetch_id(31, mst_mysqli_verbose_query(30, $link, "SELECT TRUE IS NOT FALSE AS _id FROM test"));
 	*/
 
 	print "done!";

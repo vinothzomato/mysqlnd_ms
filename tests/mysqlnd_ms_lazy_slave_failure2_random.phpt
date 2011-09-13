@@ -21,7 +21,7 @@ $settings = array(
 		'lazy_connections' => 1
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_slave_failure_random.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_random.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -30,9 +30,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$connections = array(
@@ -41,15 +41,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random.ini
 		'slave (no fallback)' => array(),
 	);
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections['master'][] = $link->thread_id;
 
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, true);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, true);
 	$connections['slave (no fallback)'][0] = $link->thread_id;
 
 	$states = array("failure" => 0, "connect" => 0);
 	do {
-	  $res = run_query(4, $link, "SELECT CONNECTION_ID() AS _role", NULL, true, false, true);
+	  $res = mst_mysqli_query(4, $link, "SELECT CONNECTION_ID() AS _role", NULL, true, false, true);
 	  if ($res) {
 		  $row = $res->fetch_assoc();
 		  $res->close();

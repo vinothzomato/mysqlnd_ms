@@ -18,7 +18,7 @@ $settings = array(
 
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_connection_stats.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_connection_stats.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -27,21 +27,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_stats.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$threads = array();
 
 	/* slave 1 */
-	run_query(2, $link, "SELECT 1 AS _one FROM DUAL");
+	mst_mysqli_query(2, $link, "SELECT 1 AS _one FROM DUAL");
 	$stats = mysqli_get_connection_stats($link);
 	$bytes = $stats['bytes_sent'];
 	$threads[$link->thread_id] = array('role' => 'Slave 1', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
 
 	/* slave 2 */
-	run_query(3, $link, "SELECT 12 AS _one FROM DUAL");
+	mst_mysqli_query(3, $link, "SELECT 12 AS _one FROM DUAL");
 	$stats = mysqli_get_connection_stats($link);
 	$bytes_new = $stats['bytes_sent'];
 	if ($bytes_new <= $bytes)
@@ -51,7 +51,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_stats.ini
 	$threads[$link->thread_id] = array('role' => 'Slave 2', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
 
 	/* master */
-	run_query(5, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(5, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$stats = mysqli_get_connection_stats($link);
 	$bytes_new = $stats['bytes_sent'];
 	if ($bytes_new <= $bytes)

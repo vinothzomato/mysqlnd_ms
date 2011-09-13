@@ -20,7 +20,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -30,14 +30,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$threads = array();
 
-	if (run_query(10, $link, "role=master I_HOPE_THIS_IS_INVALID_SQL")) {
+	if (mst_mysqli_query(10, $link, "role=master I_HOPE_THIS_IS_INVALID_SQL")) {
 		printf("[011] Query should have failed\n");
 	} else {
 		$threads[$link->thread_id] = array(
@@ -48,7 +48,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 		);
 	}
 
-	if (run_query(20, $link, "role=slave1 I_HOPE_THIS_IS_INVALID_SQL", MYSQLND_MS_SLAVE_SWITCH)) {
+	if (mst_mysqli_query(20, $link, "role=slave1 I_HOPE_THIS_IS_INVALID_SQL", MYSQLND_MS_SLAVE_SWITCH)) {
 		printf("[021] Query should have failed\n");
 	} else {
 		$threads[$link->thread_id] = array(
@@ -59,7 +59,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 		);
 	}
 
-	if (run_query(30, $link, "role=slave2 I_HOPE_THIS_IS_INVALID_SQL", MYSQLND_MS_SLAVE_SWITCH)) {
+	if (mst_mysqli_query(30, $link, "role=slave2 I_HOPE_THIS_IS_INVALID_SQL", MYSQLND_MS_SLAVE_SWITCH)) {
 		printf("[031] Query should have failed\n");
 	} else {
 		$threads[$link->thread_id] = array(

@@ -19,14 +19,14 @@ $settings = array(
 		'slave' => array($slave_host, $slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_simple.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_simple.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --FILE--
 <?php
 	require_once("connect.inc");
 
-	$link = my_mysqli_connect("phpBB", $user, $passwd, "", $port, $socket);
+	$link = mst_mysqli_connect("phpBB", $user, $passwd, "", $port, $socket);
 
 	var_dump($link->thread_id);
 	var_dump($res=$link->query("/*ms=slave*/SELECT user from mysql.user"));

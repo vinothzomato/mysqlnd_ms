@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_thread_id.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_thread_id.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -44,7 +44,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_thread_id.ini
 	  return $link->thread_id;
 	}
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 

@@ -48,7 +48,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_basics.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_basics.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -57,19 +57,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_basics.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	/* db.ulf -> master 1 */
-	verbose_run_query(3, $link, "DROP TABLE IF EXISTS ulf");
+	mst_mysqli_verbose_query(3, $link, "DROP TABLE IF EXISTS ulf");
 
 	/* db.test1 -> master 2 -> no such host */
-	verbose_run_query(4, $link, "DROP TABLE IF EXISTS test1");
+	mst_mysqli_verbose_query(4, $link, "DROP TABLE IF EXISTS test1");
 
 	print "done!";
 ?>

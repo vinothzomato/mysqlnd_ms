@@ -38,7 +38,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_lb_filter_twice_r_rr.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lb_filter_twice_r_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -47,22 +47,22 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lb_filter_twice_r_rr.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	$threads = array();
-	run_query(2, $link, "SET @myrole='master'");
+	mst_mysqli_query(2, $link, "SET @myrole='master'");
 	$threads[$link->thread_id] = 'master';
-	run_query(3, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
 	$threads[$link->thread_id] = 'slave1';
-	run_query(4, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
 	$threads[$link->thread_id] = 'slave2';
 
-	$res = run_query(5, $link, "SELECT @myrole AS _role");
+	$res = mst_mysqli_query(5, $link, "SELECT @myrole AS _role");
 	$row = $res->fetch_assoc();
 	printf("[006] Hi folks, %s speaking.\n", $row['_role']);
 

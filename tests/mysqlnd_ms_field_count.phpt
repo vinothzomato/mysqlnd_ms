@@ -20,35 +20,35 @@ $settings = array(
 
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_field_count.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_field_count.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 
 	$threads = array();
-	run_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
 	if (0 !== $link->field_count)
 		printf("[003] Expecting 0 got field_count = %d\n", $link->field_count);
 
-	$res = run_query(4, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(4, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	if ($res->field_count != $link->field_count)
 		printf("[005] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
 	$threads[$link->thread_id] = array("role" => $row['_role'], "fields" => $res->field_count);
 	$res->close();
 
-	run_query(6, $link, "SET @myrole='Master 1'");
+	mst_mysqli_query(6, $link, "SET @myrole='Master 1'");
 	if (0 !== $link->field_count)
 		printf("[007] Expecting 0 got field_count = %d\n", $link->field_count);
 
-	$res = run_query(8, $link, "SELECT @myrole AS _role, 1 as _one", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role, 1 as _one", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	if ($res->field_count != $link->field_count)
 		printf("[009] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
@@ -56,18 +56,18 @@ if ($error = create_config("test_mysqlnd_ms_field_count.ini", $settings))
 	$res->close();
 
 
-	run_query(10, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(10, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
 	if (0 !== $link->field_count)
 		printf("[011] Expecting 0 got field_count = %d\n", $link->field_count);
 
-	$res = run_query(12, $link, "SELECT @myrole AS _role, 1 AS _one, 2 as _two", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(12, $link, "SELECT @myrole AS _role, 1 AS _one, 2 as _two", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	if ($res->field_count != $link->field_count)
 		printf("[013] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
 	$threads[$link->thread_id] = array("role" => $row['_role'], "fields" => $res->field_count);
 	$res->close();
 
-	run_query(14, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(14, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
 	if (0 !== $link->field_count)
 		printf("[015] Expecting 0 got field_count = %d\n", $link->field_count);
 

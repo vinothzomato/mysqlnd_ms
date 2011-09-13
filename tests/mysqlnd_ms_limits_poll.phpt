@@ -17,7 +17,7 @@ $settings = array(
 		'lazy_connections' => 0,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_limits_poll.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_limits_poll.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -28,7 +28,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_poll.ini
 	require_once("connect.inc");
 	$threads = array();
 
-	$link1 = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link1 = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 

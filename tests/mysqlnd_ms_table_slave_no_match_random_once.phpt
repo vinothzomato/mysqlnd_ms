@@ -44,7 +44,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_slave_no_match_random_once.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_slave_no_match_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -53,30 +53,30 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_no_match_random_once.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	$threads = array();
-	run_query(3, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test");
 	$threads[$link->thread_id] = array("master");
 
-	run_query(4, $link, "CREATE TABLE test(id INT)");
+	mst_mysqli_query(4, $link, "CREATE TABLE test(id INT)");
 	$threads[$link->thread_id][] = 'master';
-	run_query(5, $link, "INSERT INTO test(id) VALUES (1)");
+	mst_mysqli_query(5, $link, "INSERT INTO test(id) VALUES (1)");
 	$threads[$link->thread_id][] = 'master';
 
 	/* db.test -> slave 1 */
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-	$res = verbose_run_query(6, $link, "SELECT id FROM test");
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	$res = mst_mysqli_verbose_query(6, $link, "SELECT id FROM test");
 	$threads[$link->thread_id] = array("slave");
 
 	/* db.DUAL -> master, slave 1 has db.test only! */
-	$res = verbose_run_query(7, $link, "SELECT 1 FROM DUAL");
+	$res = mst_mysqli_verbose_query(7, $link, "SELECT 1 FROM DUAL");
 	var_dump($res->fetch_assoc());
 	$threads[$link->thread_id][] = 'master';
 

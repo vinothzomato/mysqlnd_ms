@@ -16,7 +16,7 @@ $settings = array(
 		'pick' 	=> array('user' => array('callback' => 'pick_server')),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_user_unknown_server.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_user_unknown_server.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -26,7 +26,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_unknown_server.ini
 <?php
 	require_once("connect.inc");
 
-	set_error_handler('my_error_handler');
+	set_error_handler('mst_error_handler');
 
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection) {
 		global $fail;
@@ -37,7 +37,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_unknown_server.ini
 		return $master[0];
 	}
 
-	if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
 

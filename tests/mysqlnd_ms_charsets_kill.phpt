@@ -16,11 +16,11 @@ $settings = array(
 		'failover' 	=> 'disabled',
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_charsets_kill.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_charsets_kill.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
-	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
 	if (!($res = mysqli_query($link, 'SELECT version() AS server_version')) ||
@@ -74,16 +74,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_kill.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	/* slave */
-	if (!$res = run_query(4, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
+	if (!$res = mst_mysqli_query(4, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
 	$row = $res->fetch_assoc();
@@ -103,15 +103,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_kill.ini
 	printf("%s: thread %d\n", $row['_role'], $link->thread_id);
 
 	/* slave connection has been killed... - this shall report an error */
-	if (!$res = run_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
+	if (!$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[009] [%d] %s\n", $link->errno, $link->error);
 
 	/* slave connection has been killed... - this shall report an error */
-	if (!$res = run_query(10, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset"))
+	if (!$res = mst_mysqli_query(10, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset"))
 		printf("[011] [%d] %s\n", $link->errno, $link->error);
 
 	/* slave connection has been killed... - this shall report an error */
-	if (!$res = run_query(11, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH))
+	if (!$res = mst_mysqli_query(11, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH))
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
 
 	$row = $res->fetch_assoc();

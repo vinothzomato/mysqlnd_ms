@@ -46,7 +46,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_write_non_unique.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_write_non_unique.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -56,29 +56,29 @@ mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	$masters = array();
 	/* master 1 */
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test");
 	$masters[] = $link->thread_id;
 
 	/* master 2 */
-	run_query(3, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test");
 	$masters[] = $link->thread_id;
 
 	/* master 1 */
-	run_query(4, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test");
 	$masters[] = $link->thread_id;
 
 	/* master 2 */
-	run_query(5, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(5, $link, "DROP TABLE IF EXISTS test");
 	$masters[] = $link->thread_id;
 
 	$last = NULL;

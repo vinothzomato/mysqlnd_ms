@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_use_result.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_use_result.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -26,21 +26,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_use_result.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/*
 	Note: link->autocommit is not handled by the plugin! Don't rely on it!
 	*/
 
-	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(3, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 
 	/* round robin - slave 1  - note how the plugin fails because internally we use real_query */
-	$res = run_query(5, $link, "SELECT @myrole AS _role", MYSQLND_MS_SLAVE_SWITCH);
+	$res = mst_mysqli_query(5, $link, "SELECT @myrole AS _role", MYSQLND_MS_SLAVE_SWITCH);
 	if (!$res) {
 		printf("[006] [%d] %s\n", $link->errno, $link->error);
 	}
@@ -50,10 +50,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_use_result.ini
 
 	$res->close();
 
-	run_query(8, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(9, $link, "CREATE TABLE test(id INT, label varchar(20))", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(10, $link, "INSERT INTO test(id, label) VALUES (1, 'a'), (2, 'b'), (3, 'c')", MYSQLND_MS_LAST_USED_SWITCH);
-	$res = run_query(11, $link, "SELECT @myrole AS _role, id, label FROM test ORDER BY id ASC", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(8, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(9, $link, "CREATE TABLE test(id INT, label varchar(20))", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(10, $link, "INSERT INTO test(id, label) VALUES (1, 'a'), (2, 'b'), (3, 'c')", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(11, $link, "SELECT @myrole AS _role, id, label FROM test ORDER BY id ASC", MYSQLND_MS_LAST_USED_SWITCH);
 	if (!$res) {
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
 	}

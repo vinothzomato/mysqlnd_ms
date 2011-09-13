@@ -14,7 +14,7 @@ $settings = array(
 		'lazy_connections' => 0,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_settings_unknown_section.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_settings_unknown_section.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -41,7 +41,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_unknown_section.ini
 	);
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = @my_mysqli_connect("please_let_this_host_be_unknown", $user, $passwd, $db, $port, $socket);
+	$link = @mst_mysqli_connect("please_let_this_host_be_unknown", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {

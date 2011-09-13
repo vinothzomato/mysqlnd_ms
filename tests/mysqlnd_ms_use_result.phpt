@@ -17,7 +17,7 @@ $settings = array(
 		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_use_result.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_use_result.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -27,7 +27,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_use_result.ini
 <?php
 	require_once("connect.inc");
 
-	function run_query($offset, $link, $query, $switch = NULL) {
+	function mst_mysqli_query($offset, $link, $query, $switch = NULL) {
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
@@ -41,21 +41,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_use_result.ini
 			printf("[%03d + 03] '%s'\n", $offset, $row['_one']);
 	}
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$threads = array();
 
 	/* slave 1 */
-	run_query(2, $link, "SELECT 1 AS _one FROM DUAL");
+	mst_mysqli_query(2, $link, "SELECT 1 AS _one FROM DUAL");
 	$threads[$link->thread_id] = array('role' => 'Slave 1', 'stat' => $link->stat());
 
 	/* slave 2 */
-	run_query(3, $link, "SELECT 12 AS _one FROM DUAL");
+	mst_mysqli_query(3, $link, "SELECT 12 AS _one FROM DUAL");
 	$threads[$link->thread_id] = array('role' => 'Slave 2', 'stat' => $link->stat());
 
 	/* master */
-	run_query(5, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(5, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$threads[$link->thread_id] = array('role' => 'Master', 'stat' => $link->stat());
 
 	foreach ($threads as $thread_id => $details) {

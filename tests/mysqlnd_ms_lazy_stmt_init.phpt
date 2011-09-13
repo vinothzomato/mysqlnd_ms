@@ -34,7 +34,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_stmt_init.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_stmt_init.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -43,9 +43,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -90,13 +90,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_stmt_init.ini
 		{
 			printf("[012] [%d] '%s'\n", $stmt->errno, $stmt->error);
 		} else {
-			if ($res = run_query(13, $link, "SELECT @a", MYSQLND_MS_LAST_USED_SWITCH)) {
+			if ($res = mst_mysqli_query(13, $link, "SELECT @a", MYSQLND_MS_LAST_USED_SWITCH)) {
 				var_dump($res->fetch_assoc());
 			}
 		}
 	}
 
-	if ($res = run_query(14, $link, "SELECT 1 FROM DUAL"))
+	if ($res = mst_mysqli_query(14, $link, "SELECT 1 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 	print "done!";

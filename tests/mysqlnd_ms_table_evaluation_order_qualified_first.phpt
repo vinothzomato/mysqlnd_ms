@@ -55,7 +55,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_evaluation_order_qualified_first.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_evaluation_order_qualified_first.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -65,9 +65,9 @@ mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -76,15 +76,15 @@ mysqlnd_ms.multi_master=1
 	$threads = array();
 
 	/* db.test -> db.test rule -> master 1 */
-	run_query(3, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test");
 	$threads[$link->thread_id] = array("master1");
 
 	/* db.test2 -> % rule -> master 2 */
-	run_query(4, $link, "DROP TABLE IF EXISTS test2");
+	mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test2");
 	$threads[$link->thread_id] = array("master2");
 
 	/* db.test -> db.test rule -> slave 2 */
-	if ($res = run_query(5, $link, "SELECT 1 FROM test"))
+	if ($res = mst_mysqli_query(5, $link, "SELECT 1 FROM test"))
 		var_dump($res->fetch_assoc());
 	$threads[$link->thread_id][] = 'slave2';
 

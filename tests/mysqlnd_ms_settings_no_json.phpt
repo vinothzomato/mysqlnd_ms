@@ -21,12 +21,12 @@ mysqlnd_ms.in_regression_tests=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	set_error_handler('my_error_handler');
+	set_error_handler('mst_error_handler');
 
 	/* note that user etc are to be taken from the config! */
-	if (!($link = my_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
+	if (!($link = mst_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	print "done!";

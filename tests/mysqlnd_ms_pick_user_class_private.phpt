@@ -16,7 +16,7 @@ $settings = array(
 		'pick' 	=> array('user' => array('callback' => array('picker', 'server'))),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_user_class_private.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_user_class_private.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -25,6 +25,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_class_private.ini
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("util.inc");
 	require_once("mysqlnd_ms_pick_user.inc");
 
 	class picker {
@@ -34,18 +35,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_class_private.ini
 		}
 	}
 
-	function run_query($offset, $link, $query) {
+	function mst_mysqli_query($offset, $link, $query) {
 		$ret = $link->query($query);
 		printf("[%03d + 01] [%d] '%s'\n", $offset, $link->errno, $link->error);
 		return $ret;
 	}
 
-	if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
 
-	run_query(2, $link, "SELECT 1 FROM DUAL");
-	run_query(3, $link, "SET @my_role='master'");
+	mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL");
+	mst_mysqli_query(3, $link, "SET @my_role='master'");
 
 
 	print "done!";

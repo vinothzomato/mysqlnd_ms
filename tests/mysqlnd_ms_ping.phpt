@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_ping.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_ping.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -26,14 +26,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(3, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(4, $link, "SET @myrole='Master 1'");
+	mst_mysqli_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='Master 1'");
 
 	if (!$link->ping())
 		printf("[005] [%d] %s\n", $link->errno, $link-error);
@@ -48,10 +48,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 	else
 		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
-	if (run_query(8, $link, "SET @myrole='Master 1'"))
+	if (mst_mysqli_query(8, $link, "SET @myrole='Master 1'"))
 		printf("[008] Master connection can still run queries\n");
 
-	$res = run_query(9, $link, "SELECT @myrole AS _role");
+	$res = mst_mysqli_query(9, $link, "SELECT @myrole AS _role");
 
 	if (!$res || !($row = $res->fetch_assoc()))
 		printf("[010] Slave connections should be still usable, [%d] %s\n",
@@ -73,7 +73,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ping.ini
 	else
 		printf("[014] [%d] %s\n", $link->errno, $link->error);
 
-	$res = run_query(15, $link, "SELECT @myrole AS _role");
+	$res = mst_mysqli_query(15, $link, "SELECT @myrole AS _role");
 
 	if (!$res || !($row = $res->fetch_assoc()))
 		printf("[016] Slave connections should be still usable, [%d] %s\n",

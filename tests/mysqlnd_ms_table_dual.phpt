@@ -50,7 +50,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_dual.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_dual.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -59,9 +59,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_dual.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -70,16 +70,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_dual.ini
 	$threads = array();
 
 	/* DUAL has not db in its metadata, where will we send it? */
-	run_query(3, $link, "SELECT 1 FROM DUAL");
+	mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL");
 	$threads[$link->thread_id] = array("slave1");
 
-	$res = run_query(4, $link, "SELECT NOW() AS _now");
+	$res = mst_mysqli_query(4, $link, "SELECT NOW() AS _now");
 	$threads[$link->thread_id][] = "slave1";
 
-	$res = run_query(5, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(5, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
 	$threads[$link->thread_id] = array("master1");
 
-	$res = run_query(5, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(5, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
 	$threads[$link->thread_id][] = "master1";
 
 	foreach ($threads as $thread_id => $roles) {

@@ -17,11 +17,11 @@ $settings = array(
 		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_limits_lazy_charsets.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_limits_lazy_charsets.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
-	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
 	if (!($res = mysqli_query($link, 'SELECT version() AS server_version')) ||
@@ -75,13 +75,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* slave 1 */
-	if (!$res = run_query(2, $link, "SELECT @@character_set_connection AS charset"))
+	if (!$res = mst_mysqli_query(2, $link, "SELECT @@character_set_connection AS charset"))
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -95,7 +95,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
 	/* slave 1 */
-	if (!$res = run_query(6, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_LAST_USED_SWITCH))
+	if (!$res = mst_mysqli_query(6, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -106,7 +106,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 		printf("[009] Expecting charset '%s' got '%s'\n", $new_charset, $current_charset);
 
 	/* master */
-	if (!$res = run_query(10, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_MASTER_SWITCH))
+	if (!$res = mst_mysqli_query(10, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_MASTER_SWITCH))
 		printf("[011] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -120,7 +120,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 		printf("[014] Expecting charset '%s' got '%s'\n", $new_charset, $link->character_set_name());
 
 	/* slave 2 */
-	if (!$res = run_query(15, $link, "SELECT @@character_set_connection AS charset"))
+	if (!$res = mst_mysqli_query(15, $link, "SELECT @@character_set_connection AS charset"))
 		printf("[016] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())

@@ -17,7 +17,7 @@ $settings = array(
 		'failover'	=> 'disabled',
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_failover_unknown.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_failover_unknown.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -44,7 +44,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_unknown.ini
 	);
 
 
-	function run_query($offset, $link, $query) {
+	function mst_mysqli_query($offset, $link, $query) {
 		global $connect_errno_codes;
 
 		if (!($res = @$link->query($query))) {
@@ -69,18 +69,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_unknown.ini
 		return $link->thread_id;
 	}
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$threads = array();
-	$threads[run_query(10, $link, "DROP TABLE IF EXISTS test")] = 'master';
-	$threads[run_query(20, $link, "SELECT 'Slave 1' AS msg")] = 'slave 1';
-	$threads[run_query(30, $link, "SELECT 'Slave 2' AS msg")] = 'slave 2';
-	$threads[run_query(40, $link, "SELECT 'Slave 3' AS msg")] = 'slave 3';
-	$threads[run_query(50, $link, "SELECT 'Slave 1' AS msg")] = 'slave 1';
-	$threads[run_query(60, $link, "SELECT 'Slave 2' AS msg")] = 'slave 2';
-	$threads[run_query(70, $link, "SELECT 'Slave 3' AS msg")] = 'slave 3';
+	$threads[mst_mysqli_query(10, $link, "DROP TABLE IF EXISTS test")] = 'master';
+	$threads[mst_mysqli_query(20, $link, "SELECT 'Slave 1' AS msg")] = 'slave 1';
+	$threads[mst_mysqli_query(30, $link, "SELECT 'Slave 2' AS msg")] = 'slave 2';
+	$threads[mst_mysqli_query(40, $link, "SELECT 'Slave 3' AS msg")] = 'slave 3';
+	$threads[mst_mysqli_query(50, $link, "SELECT 'Slave 1' AS msg")] = 'slave 1';
+	$threads[mst_mysqli_query(60, $link, "SELECT 'Slave 2' AS msg")] = 'slave 2';
+	$threads[mst_mysqli_query(70, $link, "SELECT 'Slave 3' AS msg")] = 'slave 3';
 
 	foreach ($threads as $thread_id => $role)
 		printf("Thread ID %d, role %s\n", $thread_id, $role);

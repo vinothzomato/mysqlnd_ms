@@ -18,13 +18,13 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_select_db_fail.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_select_db_fail.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 $db = 'pleasenot';
 function test_pleasenot_access($host, $user, $passwd, $db, $port, $socket) {
 
-	if ($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+	if ($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("SKIP Can connect to 'pleasenot', [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
 	return;
@@ -38,27 +38,27 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_fail.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	if (!$link->select_db("pleasenot"))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
-	$res = run_query(6, $link, "SELECT SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_SLAVE_SWITCH);
+	$res = mst_mysqli_query(6, $link, "SELECT SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_SLAVE_SWITCH);
 
 	if (!$link->select_db($db))
 		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
-	$res = run_query(8, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
 	$row = $res->fetch_assoc();
 	printf("%s - %s\n", $row['_role'], ($row['_database'] == $db) ? 'OK' : sprintf("Wrong DB - %s!", $row['_database']));
 
-	$res = run_query(9, $link, "SELECT @myrole AS _role, DATABASE() as _database");
+	$res = mst_mysqli_query(9, $link, "SELECT @myrole AS _role, DATABASE() as _database");
 	$row = $res->fetch_assoc();
 	printf("%s - %s\n", $row['_role'], ($row['_database'] == $db) ? 'OK' : sprintf("Wrong DB - %s!", $row['_database']));
 

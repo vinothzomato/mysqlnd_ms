@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_insert_affected_pdo.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_insert_affected_pdo.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 
 ?>
@@ -27,7 +27,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected_pdo.ini
 <?php
 	require_once("connect.inc");
 
-	function run_query($offset, $pdo, $query, $switch = NULL) {
+	function mst_mysqli_query($offset, $pdo, $query, $switch = NULL) {
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
@@ -35,11 +35,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected_pdo.ini
 	}
 
 	function run_insert($offset, $pdo, $num_rows, $switch = NULL) {
-		run_query($offset, $pdo, "DROP TABLE IF EXISTS test", $switch);
-		run_query($offset + 1, $pdo, "CREATE TABLE test(id INT AUTO_INCREMENT PRIMARY KEY, label CHAR(1))", MYSQLND_MS_LAST_USED_SWITCH);
+		mst_mysqli_query($offset, $pdo, "DROP TABLE IF EXISTS test", $switch);
+		mst_mysqli_query($offset + 1, $pdo, "CREATE TABLE test(id INT AUTO_INCREMENT PRIMARY KEY, label CHAR(1))", MYSQLND_MS_LAST_USED_SWITCH);
 
 		for ($i = 0; $i < $num_rows; $i++) {
-			run_query($offset + 2, $pdo, "INSERT INTO test(label) VALUES ('a')", MYSQLND_MS_LAST_USED_SWITCH);
+			mst_mysqli_query($offset + 2, $pdo, "INSERT INTO test(label) VALUES ('a')", MYSQLND_MS_LAST_USED_SWITCH);
 		}
 	}
 
@@ -55,7 +55,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected_pdo.ini
 		if (1 != $pdo->lastInsertId())
 		  printf("[11] Master insert id should be 1 got %d\n", $pdo->lastInsertId());
 
-		$affected = run_query(12, $pdo, "UPDATE test SET label = 'b'", MYSQLND_MS_LAST_USED_SWITCH);
+		$affected = mst_mysqli_query(12, $pdo, "UPDATE test SET label = 'b'", MYSQLND_MS_LAST_USED_SWITCH);
 		if (1 !== $affected)
 		  printf("[13] Master affected should be 1 got %d\n", $affected);
 
@@ -69,7 +69,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected_pdo.ini
 		if (5 != $pdo->lastInsertId())
 		  printf("[21] Slave 1 insert id should be 5 got %d\n", $pdo->lastInsertId());
 
-		$affected = run_query(22, $pdo, "UPDATE test SET label = 'b'", MYSQLND_MS_LAST_USED_SWITCH);
+		$affected = mst_mysqli_query(22, $pdo, "UPDATE test SET label = 'b'", MYSQLND_MS_LAST_USED_SWITCH);
 		if (5 !== $affected)
 		  printf("[23] Slave 1 affected should be 5 got %d\n", $affected);
 

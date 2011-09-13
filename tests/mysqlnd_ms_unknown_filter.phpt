@@ -33,7 +33,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_unknown_filter.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_unknown_filter.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -42,9 +42,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}

@@ -41,7 +41,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_slave_ref_master_random.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_slave_ref_master_random.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -50,17 +50,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_slave_ref_master_random.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	/* valid config or not? */
-	verbose_run_query(2, $link, "DROP TABLE IF EXISTS test");
-	verbose_run_query(3, $link, "CREATE TABLE test(id INT)");
-	verbose_run_query(4, $link, "SELECT * FROM test");
+	mst_mysqli_verbose_query(2, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_verbose_query(3, $link, "CREATE TABLE test(id INT)");
+	mst_mysqli_verbose_query(4, $link, "SELECT * FROM test");
 
 	print "done!";
 ?>

@@ -32,7 +32,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_ini_force_config.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_ini_force_config.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -60,28 +60,28 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	);
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = @my_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
+	$link = @mst_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[001] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	$link = @my_mysqli_connect("192.168.14.17", $user, $passwd, $db, $port, $socket);
+	$link = @mst_mysqli_connect("192.168.14.17", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[002] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	$link = @my_mysqli_connect("my_orginal_mysql_server_host", $user, $passwd, $db, $port, $socket);
+	$link = @mst_mysqli_connect("my_orginal_mysql_server_host", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
 		printf("[003] Is this a valid code? [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
 	if (0 == mysqli_connect_errno()) {
 		/* 0 means no error. This is documented behaviour! */
 		$res = $link->query("SELECT 'This connection should have been forbidden!'");
@@ -95,7 +95,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 		printf("[006] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	$link = @my_mysqli_connect("lazy_default_and_no_error", $user, $passwd, $db, $port, $socket);
+	$link = @mst_mysqli_connect("lazy_default_and_no_error", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[007] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {
@@ -111,7 +111,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
 	}
 
 	/* error */
-	$link = @my_mysqli_connect("i_hope_there_is_no_such_host", $user, $passwd, $db, $port, $socket);
+	$link = @mst_mysqli_connect("i_hope_there_is_no_such_host", $user, $passwd, $db, $port, $socket);
 	if (isset($connect_errno_codes[mysqli_connect_errno()])) {
 		printf("[011] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {

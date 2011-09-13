@@ -34,7 +34,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_lazy_next_result.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_next_result.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -43,9 +43,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_next_result.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -61,7 +61,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_next_result.ini
 	if (!$link->dump_debug_info())
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
-	if ($res = run_query(6, $link, "SELECT 1 FROM DUAL"))
+	if ($res = mst_mysqli_query(6, $link, "SELECT 1 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 

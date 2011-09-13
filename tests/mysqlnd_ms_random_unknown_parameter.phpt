@@ -32,7 +32,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_random_unknown_parameter.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_random_unknown_parameter.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -41,19 +41,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_random_unknown_parameter.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test");
 	if ($link->thread_id == 0)
 		printf("[003] Which server has run this?");
 
 	for ($i = 0; $i < 10; $i++)
-		run_query(5, $link, "SELECT 1 FROM DUAL");
+		mst_mysqli_query(5, $link, "SELECT 1 FROM DUAL");
 
 	if ($link->thread_id == 0)
 		printf("[006] Which server has run this?");

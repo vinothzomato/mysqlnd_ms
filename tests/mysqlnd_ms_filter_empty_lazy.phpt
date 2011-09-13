@@ -39,7 +39,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_filter_empty_lazy.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_filter_empty_lazy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -48,25 +48,25 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_empty_lazy.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	$threads = array();
 
-	run_query(2, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test");
 	$threads[$link->thread_id] = array("master");
 
-	$res = run_query(3, $link, "SELECT 1 FROM DUAL");
+	$res = mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL");
 	$threads[$link->thread_id] = array("slave");
 	if (!$res)
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
 
-	$res = run_query(5, $link, "SELECT 1 FROM DUAL");
+	$res = mst_mysqli_query(5, $link, "SELECT 1 FROM DUAL");
 	$threads[$link->thread_id][] = "slave";
 	if (!$res)
 		printf("[006] [%d] %s\n", $link->errno, $link->error);

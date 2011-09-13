@@ -33,7 +33,7 @@ $settings = array(
 		'lazy_connections' => 0,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_settings_no_host.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_settings_no_host.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -42,12 +42,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_no_host.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	set_error_handler('my_error_handler');
+	set_error_handler('mst_error_handler');
 
 	/* note that user etc are to be taken from the config! */
-	if (!($link = my_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
+	if (!($link = mst_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	print "done!";

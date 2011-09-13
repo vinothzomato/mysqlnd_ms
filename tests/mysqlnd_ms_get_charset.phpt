@@ -17,11 +17,11 @@ $settings = array(
 		'lazy_connections' => 0,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_charsets.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_charsets.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
-	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
 	if (!($res = mysqli_query($link, 'SELECT version() AS server_version')) ||
@@ -75,7 +75,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	function check_charset($offset, $link, $expected) {
 
@@ -105,16 +105,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
     $somestring = escape_string(link, "somestring") - would use latin1 from last used connection
     SELECT * FROM test WHERE column = $somestring - slave, slave may be using latin2, $somestring should have been escaped using latin2
 	*/
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	run_query(3, $link, "SET @myrole='slave 1'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(4, $link, "SET @myrole='slave 2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='slave 2'", MYSQLND_MS_SLAVE_SWITCH);
 
 
 	/* master */
-	$res = run_query(5, $link, "SHOW CHARACTER SET LIKE 'latin1'");
+	$res = mst_mysqli_query(5, $link, "SHOW CHARACTER SET LIKE 'latin1'");
 	if (!$row = $res->fetch_assoc())
 		printf("[006] [%d] %s\n", $link->errno, $link->error);
 
@@ -125,7 +125,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	);
 
 	/* master */
-	if (!$res = run_query(7, $link, "SHOW CHARACTER SET LIKE 'latin2'"))
+	if (!$res = mst_mysqli_query(7, $link, "SHOW CHARACTER SET LIKE 'latin2'"))
 		printf("[008] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -138,7 +138,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	);
 
 	/* slave 1 */
-	if (!$res = run_query(4, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_SLAVE_SWITCH))
+	if (!$res = mst_mysqli_query(4, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_SLAVE_SWITCH))
 		printf("[010] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -160,7 +160,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	$link->set_charset($new_charset);
 
 	/* slave 1 */
-	if (!$res = run_query(13, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_LAST_USED_SWITCH))
+	if (!$res = mst_mysqli_query(13, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[014] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -173,7 +173,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	check_charset(17, $link, $new_expected);
 
 	/* master */
-	if (!$res = run_query(11, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_MASTER_SWITCH))
+	if (!$res = mst_mysqli_query(11, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_MASTER_SWITCH))
 		printf("[018] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())
@@ -189,7 +189,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 	check_charset(22, $link, $new_expected);
 
 	/* slave 2 */
-	if (!$res = run_query(13, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_SLAVE_SWITCH))
+	if (!$res = mst_mysqli_query(13, $link, "SELECT @@character_set_connection AS charset", MYSQLND_MS_SLAVE_SWITCH))
 		printf("[023] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$row = $res->fetch_assoc())

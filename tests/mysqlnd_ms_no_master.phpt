@@ -13,7 +13,7 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_no_master.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_no_master.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -23,7 +23,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_no_master.ini
 <?php
 	require_once("connect.inc");
 
-	$link = my_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("name_of_a_config_section", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	} else {

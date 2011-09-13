@@ -15,11 +15,11 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_charsets_fail.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_charsets_fail.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
-	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
 	if (!($res = mysqli_query($link, 'SELECT version() AS server_version')) ||
@@ -63,16 +63,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_fail.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	/* slave */
-	if (!$res = run_query(4, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
+	if (!$res = mst_mysqli_query(4, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
 	$row = $res->fetch_assoc();
@@ -87,7 +87,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_fail.ini
 		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
 	/* slave */
-	if ($res = run_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH)) {
+	if ($res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_LAST_USED_SWITCH)) {
 		$row = $res->fetch_assoc();
 
 		if ('slave' != $row['_role'])
@@ -100,7 +100,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets_fail.ini
 	if ($link->character_set_name() != $current_charset)
 		printf("[011] Expecting charset '%s' got '%s'\n", $current_charset, $link->character_set_name());
 
-	if ($res = run_query(12, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH)) {
+	if ($res = mst_mysqli_query(12, $link, "SELECT @myrole AS _role, @@character_set_connection AS _charset", MYSQLND_MS_MASTER_SWITCH)) {
 
 		$row = $res->fetch_assoc();
 

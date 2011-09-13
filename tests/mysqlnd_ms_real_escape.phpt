@@ -21,7 +21,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_real_escape.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_real_escape.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -31,12 +31,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_real_escape.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link_ms = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link_ms = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$charsets = array();

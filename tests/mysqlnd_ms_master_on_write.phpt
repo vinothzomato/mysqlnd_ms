@@ -17,7 +17,7 @@ $settings = array(
 		'pick' => array("random" => array("sticky" => "1")),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_master_on_write.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_master_on_write.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -28,74 +28,74 @@ mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	compare_stats();
-	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	mst_compare_stats();
+	if (!($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
 	echo "----\n";
-	compare_stats();
+	mst_compare_stats();
 	echo "----\n";
 
-	$res = run_query(3, $link, "SELECT @myrole AS _role");
+	$res = mst_mysqli_query(3, $link, "SELECT @myrole AS _role");
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 	echo "----\n";
-	compare_stats();
+	mst_compare_stats();
 	echo "----\n";
 	/* not a select -> master query */
-	run_query(4, $link, "SET @myrole='Master 1'");
+	mst_mysqli_query(4, $link, "SET @myrole='Master 1'");
 	echo "----\n";
-	compare_stats();
-	echo "----\n";
-
-	/* master on write is active, master should reply */
-	$res = run_query(5, $link, "SELECT @myrole AS _role");
-	$row = $res->fetch_assoc();
-	$res->close();
-	printf("This is '%s' speaking\n", $row['_role']);
-	echo "----\n";
-	compare_stats();
-	echo "----\n";
-
-	/* SQL hint wins */
-	$res = run_query(6, $link, "SELECT @myrole AS _role",  MYSQLND_MS_SLAVE_SWITCH);
-	$row = $res->fetch_assoc();
-	$res->close();
-	printf("This is '%s' speaking\n", $row['_role']);
-	echo "----\n";
-	compare_stats();
+	mst_compare_stats();
 	echo "----\n";
 
 	/* master on write is active, master should reply */
-	$res = run_query(7, $link, "SELECT @myrole AS _role");
+	$res = mst_mysqli_query(5, $link, "SELECT @myrole AS _role");
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+	echo "----\n";
+	mst_compare_stats();
+	echo "----\n";
+
+	/* SQL hint wins */
+	$res = mst_mysqli_query(6, $link, "SELECT @myrole AS _role",  MYSQLND_MS_SLAVE_SWITCH);
+	$row = $res->fetch_assoc();
+	$res->close();
+	printf("This is '%s' speaking\n", $row['_role']);
+	echo "----\n";
+	mst_compare_stats();
+	echo "----\n";
+
+	/* master on write is active, master should reply */
+	$res = mst_mysqli_query(7, $link, "SELECT @myrole AS _role");
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
 	/* SQL hint wins */
-	$res = run_query(8, $link, "SELECT @myrole AS _role",  MYSQLND_MS_SLAVE_SWITCH);
+	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role",  MYSQLND_MS_SLAVE_SWITCH);
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
 	/* SQL hint wins */
-	$res = run_query(8, $link, "SELECT @myrole AS _role",  MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role",  MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
 	/* master on write... */
-	$res = run_query(9, $link, "SELECT @myrole AS _role", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(9, $link, "SELECT @myrole AS _role", MYSQLND_MS_MASTER_SWITCH);
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);
 
 	/* master on write... */
-	$res = run_query(10, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(10, $link, "SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	$res->close();
 	printf("This is '%s' speaking\n", $row['_role']);

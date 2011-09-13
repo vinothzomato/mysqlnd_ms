@@ -34,7 +34,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_bug_pecl_22784.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_bug_pecl_22784.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -43,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_bug_pecl_22784.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* without MS */
 	$link = my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);

@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_limits_sql_calc_found_rows.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_limits_sql_calc_found_rows.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -26,35 +26,35 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_sql_calc_found_rows.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(3, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 	/* slave 1 */
-	$res = run_query(5, $link, "SELECT SQL_CALC_FOUND_ROWS id FROM test WHERE id < 3 LIMIT 1");
+	$res = mst_mysqli_query(5, $link, "SELECT SQL_CALC_FOUND_ROWS id FROM test WHERE id < 3 LIMIT 1");
 	$rows = $res->num_rows;
 	/* round robin: slave 2 -
        found_rows() not set by previous query - found_rows() = 1
 	*/
-	$res = run_query(6, $link, "SELECT @myrole AS _role, FOUND_ROWS() AS _found");
+	$res = mst_mysqli_query(6, $link, "SELECT @myrole AS _role, FOUND_ROWS() AS _found");
 	$row = $res->fetch_assoc();
 	printf("Num rows %d, found rows %d, role %s\n", $rows, $row['_found'], $row['_role']);
 
 	/* slave 1 */
-	$res = run_query(5, $link, "SELECT SQL_CALC_FOUND_ROWS id FROM test WHERE id < 3 LIMIT 1");
+	$res = mst_mysqli_query(5, $link, "SELECT SQL_CALC_FOUND_ROWS id FROM test WHERE id < 3 LIMIT 1");
 	$rows = $res->num_rows;
 
 	/* round robin: slave 1  (SQL hint used) -
     found_rows() set by previous query - found_rows() = 2
 	*/
-	$res = run_query(6, $link, "SELECT @myrole AS _role, FOUND_ROWS() AS _found", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(6, $link, "SELECT @myrole AS _role, FOUND_ROWS() AS _found", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	printf("Num rows %d, found rows %d, role %s\n", $rows, $row['_found'], $row['_role']);
 

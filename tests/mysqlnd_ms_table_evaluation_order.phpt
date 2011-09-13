@@ -55,7 +55,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_evaluation_order.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_evaluation_order.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -65,10 +65,10 @@ mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -84,8 +84,8 @@ mysqlnd_ms.multi_master=1
 	$threads[$link->thread_id] = array("master2");
 
 	/* db.test but match all rule at the beginning -> slave 1 -> no error  */
-	create_test_table($slave_host_only, $user, $passwd, $db, $port, $socket);
-	if ($res = run_query(4, $link, "SELECT 1 FROM test"))
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $port, $socket);
+	if ($res = mst_mysqli_query(4, $link, "SELECT 1 FROM test"))
 		var_dump($res->fetch_assoc());
 	$threads[$link->thread_id] = array('slave1');
 

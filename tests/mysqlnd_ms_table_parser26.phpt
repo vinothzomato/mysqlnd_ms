@@ -44,7 +44,7 @@ if (_skipif_have_feature("table_filter")) {
 }
 
 
-if ($error = create_config("test_mysqlnd_ms_table_parser26.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_parser26.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -53,19 +53,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser26.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
-	require_once("mysqlnd_ms_table_parser.inc");
+	require_once("util.inc");
+	
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	run_query(2, $link, "DROP TABLE IF EXISTS `a``b`");
-	run_query(3, $link, "CREATE TABLE `a``b` (`c\"d` INT)");
-	run_query(4, $link, "insert into `a``b`(`c\"d`) values (1)");
-	fetch_result(6, run_query(5, $link, "select `c\"d` AS _id from `a``b`", MYSQLND_MS_MASTER_SWITCH));
-	run_query(7, $link, "DROP TABLE IF EXISTS `a``b`");
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS `a``b`");
+	mst_mysqli_query(3, $link, "CREATE TABLE `a``b` (`c\"d` INT)");
+	mst_mysqli_query(4, $link, "insert into `a``b`(`c\"d`) values (1)");
+	mst_mysqli_fetch_id(6, mst_mysqli_query(5, $link, "select `c\"d` AS _id from `a``b`", MYSQLND_MS_MASTER_SWITCH));
+	mst_mysqli_query(7, $link, "DROP TABLE IF EXISTS `a``b`");
 
 	print "done!";
 ?>

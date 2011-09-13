@@ -16,7 +16,7 @@ $settings = array(
 		'lazy_connections' => 0
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_get_stats.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_get_stats.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -26,7 +26,7 @@ mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	$expected = array(
 		"use_slave" 							=> true,
@@ -70,21 +70,21 @@ mysqlnd_ms.collect_statistics=1
 		var_dump($stats);
 	}
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[004] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$exp_stats['non_lazy_connections_slave_success']++;
 	$exp_stats['non_lazy_connections_master_success']++;
 
-	run_query(5, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(5, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$exp_stats['use_master_sql_hint']++;
 	$exp_stats['use_master']++;
 
-	run_query(6, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(6, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$exp_stats['use_slave_sql_hint']++;
 	$exp_stats['use_slave']++;
 
-	$res = run_query(7, $link, "SELECT @myrole AS _role");
+	$res = mst_mysqli_query(7, $link, "SELECT @myrole AS _role");
 	$exp_stats['use_slave_guess']++;
 	$exp_stats['use_slave']++;
 

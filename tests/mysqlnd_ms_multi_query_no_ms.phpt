@@ -17,7 +17,7 @@ $settings = array(
 		'lazy_connections' => 1,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_multi_query_no_ms.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_multi_query_no_ms.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -28,7 +28,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query_no_ms.ini
 <?php
 	require_once("connect.inc");
 
-	function run_query($offset, $link, $query, $switch = NULL) {
+	function mst_mysqli_query($offset, $link, $query, $switch = NULL) {
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
@@ -40,13 +40,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query_no_ms.ini
 		return $ret;
 	}
 
-	if (!($link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* Hints will be ignored */
-	run_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(4, $link, "SET @myrole='Master 1'");
-	run_query(5, $link, "SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL");
+	mst_mysqli_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='Master 1'");
+	mst_mysqli_query(5, $link, "SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL");
 
 	do {
 		if ($res = $link->store_result()) {

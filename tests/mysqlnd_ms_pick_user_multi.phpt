@@ -17,7 +17,7 @@ $settings = array(
 		'slave' 	=> array("unknown"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_user_multi.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_user_multi.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -27,13 +27,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
 
-	run_query(2, $link, "SELECT 1 FROM DUAL");
+	mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL");
 
 	print "done!";
 ?>

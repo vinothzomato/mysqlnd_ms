@@ -43,7 +43,7 @@ if (_skipif_have_feature("table_filter")) {
 	);
 }
 
-if ($error = create_config("test_mysqlnd_ms_table_parser4.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_parser4.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -52,18 +52,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser4.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
-	require_once("mysqlnd_ms_table_parser.inc");
+	require_once("util.inc");
+	
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-	run_query(2, $link, "SELECT 1 FROM test", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	mst_mysqli_query(2, $link, "SELECT 1 FROM test", MYSQLND_MS_SLAVE_SWITCH);
 	$thread_id = $link->thread_id;
 
-	fetch_result(4, run_query(3, $link, "SELECT NULL, 1 AS _id FROM test"));
+	mst_mysqli_fetch_id(4, mst_mysqli_query(3, $link, "SELECT NULL, 1 AS _id FROM test"));
 	if ($thread_id != $link->thread_id)
 		printf("[005] Statement has not been executed on the slave\n");
 
@@ -72,12 +72,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser4.ini
 --CLEAN--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	if (!unlink("test_mysqlnd_ms_table_parser5.ini"))
 		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser4.ini'.\n");
 
-	if ($err = drop_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+	if ($err = mst_mysqli_drop_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
 		printf("[clean] %s\n", $err);
 ?>
 --EXPECTF--

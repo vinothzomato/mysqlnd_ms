@@ -17,7 +17,7 @@ $settings = array(
 		'pick' => array('roundrobin'),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_round_robin.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -27,14 +27,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_round_robin.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	function fetch_role($offset, $link, $switch = NULL) {
 		$query = 'SELECT @myrole AS _role';
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
-		$res = run_query($offset, $link, $query, $switch);
+		$res = mst_mysqli_query($offset, $link, $query, $switch);
 		if (!$res) {
 			printf("[%03d +01] [%d] [%s\n", $offset, $link->errno, $link->error);
 			return NULL;
@@ -44,20 +44,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_round_robin.ini
 		return $row['_role'];
 	}
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* first master */
-	run_query(2, $link, "SET @myrole = 'Master 1'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole = 'Master 1'", MYSQLND_MS_MASTER_SWITCH);
 
 	/* second master */
-	run_query(3, $link, "SET @myrole = 'Master 2'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole = 'Master 2'", MYSQLND_MS_MASTER_SWITCH);
 
 	/* pick first in row */
-	run_query(4, $link, "SET @myrole = 'Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole = 'Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
 
 	/* move to second in row */
-	run_query(5, $link, "SET @myrole = 'Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(5, $link, "SET @myrole = 'Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
 
 	$servers = array();
 

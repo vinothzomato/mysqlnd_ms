@@ -16,7 +16,7 @@ $settings = array(
 		'pick' => array("roundrobin"),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_info.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_info.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
 ?>
 --INI--
@@ -25,31 +25,31 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_info.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	$threads = array();
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH);
-	run_query(3, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(4, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(4, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
 	$threads[$link->thread_id] = array('role' => 'master', 'info' => mysqli_info($link));
-	run_query(5, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(5, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 
-	run_query(6, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(7, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(8, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(6, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(7, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(8, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
 	$threads[$link->thread_id] = array('role' => 'slave 1', 'info' => mysqli_info($link));
-	run_query(9, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(9, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 
-	run_query(10, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(11, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(12, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(10, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(11, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(12, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
 	$threads[$link->thread_id] = array('role' => 'slave 2', 'info' => mysqli_info($link));
-	run_query(13, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(13, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 
 	foreach ($threads as $thread_id => $info) {
 		printf("%d - %s - '%s'\n", $thread_id, $info['role'], $info['info']);

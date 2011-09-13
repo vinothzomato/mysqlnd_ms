@@ -46,7 +46,7 @@ $settings = array(
 		'lazy_connections' => 0,
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_settings_connect_flags.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_settings_connect_flags.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -55,28 +55,28 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_connect_flags.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 	/* note that user etc are to be taken from the config! */
-	if (!($link = my_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
+	if (!($link = mst_mysqli_connect("myapp", NULL, NULL, NULL, NULL, NULL)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	$threads = array();
 
-	run_query(2, $link, "UPDATE test SET id = 1 WHERE id = 1", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "UPDATE test SET id = 1 WHERE id = 1", MYSQLND_MS_SLAVE_SWITCH);
 	printf("Slave 1 - affected rows: %d\n", $link->affected_rows);
 	$threads[$link->thread_id] = "Slave 1 . I";
 
-	run_query(3, $link, "UPDATE test SET id = 1 WHERE id = 1", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(3, $link, "UPDATE test SET id = 1 WHERE id = 1", MYSQLND_MS_SLAVE_SWITCH);
 	printf("Slave 2 - affected rows: %d\n", $link->affected_rows);
 	$threads[$link->thread_id] = "Slave 2";
 
-	run_query(4, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test");
 	$threads[$link->thread_id] = "Master";
 
-	run_query(4, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
 	$threads[$link->thread_id] = "Slave 1 - II";
 
 	foreach ($threads as $id => $role)

@@ -50,7 +50,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_db_detection.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_db_detection.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -60,9 +60,9 @@ mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -71,22 +71,22 @@ mysqlnd_ms.multi_master=1
 	$threads = array();
 
 	/* db.test -> db.% rule -> master2 */
-	run_query(3, $link, "DROP TABLE IF EXISTS test");
+	mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test");
 	$threads[$link->thread_id] = array("master2");
 
 	/* db.test -> db.% rule -> slave2 */
-	run_query(4, $link, "SELECT * FROM test");
+	mst_mysqli_query(4, $link, "SELECT * FROM test");
 	$threads[$link->thread_id][] = "slave2";
 
 	/* db.test -> db.% rule -> slave2 */
-	run_query(5, $link, sprintf("SELECT * FROM %s.test", $db));
+	mst_mysqli_query(5, $link, sprintf("SELECT * FROM %s.test", $db));
 	$threads[$link->thread_id][] = "slave2";
 
 	if ($link->select_db("i_hope_this_db_does_not_exist"))
 		printf("[006] Database 'i_hope_this_db_does_not_exist' exists, test will fail\n");
 
 	/* current db unchanged, db.test -> db.% rule -> slave2 */
-	run_query(7, $link, "SELECT * FROM test");
+	mst_mysqli_query(7, $link, "SELECT * FROM test");
 	$threads[$link->thread_id][] = "slave2";
 
 	foreach ($threads as $thread_id => $roles) {

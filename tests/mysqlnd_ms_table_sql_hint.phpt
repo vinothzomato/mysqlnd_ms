@@ -41,7 +41,7 @@ $settings = array(
 	),
 
 );
-if ($error = create_config("test_mysqlnd_ms_table_sql_hint.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_table_sql_hint.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -50,20 +50,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	run_query(2, $link, "DROP TABLE IF EXISTS test1");
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test1");
 	$master = $link->thread_id;
 
-	run_query(3, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_LAST_USED_SWITCH);
-	run_query(4, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
-	$res = run_query(5, $link, "SELECT id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(3, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(4, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(5, $link, "SELECT id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 
 	if ($master != $row['id'])
@@ -72,12 +72,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_sql_hint.ini
 	if ($master != $link->thread_id)
 		printf("[007] Master thread id differs from SELECT CONNECTION_ID(), expecting %d got %d\n", $master, $link->thread_id);
 
-	run_query(8, $link, "DROP TABLE IF EXISTS test1", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(8, $link, "DROP TABLE IF EXISTS test1", MYSQLND_MS_SLAVE_SWITCH);
 	$slave = $link->thread_id;
-	run_query(9, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_SLAVE_SWITCH);
-	run_query(10, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(9, $link, "CREATE TABLE test1(id BIGINT)", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(10, $link, "INSERT INTO test1(id) VALUES (CONNECTION_ID())", MYSQLND_MS_LAST_USED_SWITCH);
 
-	$res = run_query(11, $link, "SELECT id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(11, $link, "SELECT id FROM test1", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 
 	if ($slave != $row['id'])

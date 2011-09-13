@@ -19,7 +19,7 @@ $settings = array(
 for ($i = 0; $i < 1; $i++)
 	$settings['do_not_overload_mysql']['slave'][] = $host;
 
-if ($error = create_config("test_mysqlnd_ms_settings_force_many_slaves.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_settings_force_many_slaves.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -30,7 +30,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_force_many_slaves.ini
 	require_once("connect.inc");
 
 	/* shall use host = forced_master_hostname_abstract_name from the ini file */
-	if (!($link = my_mysqli_connect("do_not_overload_mysql", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("do_not_overload_mysql", $user, $passwd, $db, $port, $socket)))
 		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
 

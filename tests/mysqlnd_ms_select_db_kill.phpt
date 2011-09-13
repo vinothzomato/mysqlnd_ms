@@ -21,12 +21,12 @@ $settings = array(
 		'slave' => array($slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_select_db_kill.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_select_db_kill.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 function test_mysql_access($host, $user, $passwd, $db, $port, $socket) {
 
-	if (!$link = my_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
 		die(sprintf("SKIP Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
 	return $link->select_db("mysql");
@@ -44,13 +44,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_kill.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	run_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	run_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$slave_thread_id = $link->thread_id;
 
 	if (!$link->kill($link->thread_id))
@@ -60,13 +60,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_kill.ini
 	if (!$link->select_db("mysql"))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
-	$res = run_query(6, $link, "SELECT @myrole AS _role, DATABASE() as _database");
+	$res = mst_mysqli_query(6, $link, "SELECT @myrole AS _role, DATABASE() as _database");
 	if ($res) {
 		printf("[007] Who has run this? Slave thread id is '%d', thread id '%d'\n", $slave_thread_id, $link->thread_id);
 		var_dump($res->fetch_assoc());
 	}
 
-	$res = run_query(8, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
 	if (!$row = $res->fetch_assoc())
 		printf("[009] [%d] %s\n", $link->errno, $link->error);
 
@@ -79,7 +79,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_kill.ini
 	if (!$link->select_db($db))
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
 
-	$res = run_query(13, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(13, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
 	if (!$row = $res->fetch_assoc())
 		printf("[014] [%d] %s\n", $link->errno, $link->error);
 

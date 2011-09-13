@@ -16,7 +16,7 @@ $settings = array(
 		'slave' 	=> array($slave_host, $slave_host, $slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_pick_unknown_policy.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_unknown_policy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
@@ -27,7 +27,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_unknown_policy.ini
 <?php
 	require_once("connect.inc");
 
-	if (!($link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	if ($link !== FALSE) {
 		echo "not ok\n";

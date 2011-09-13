@@ -15,7 +15,7 @@ $settings = array(
 		'slave' => array($slave_host, $slave_host),
 	),
 );
-if ($error = create_config("test_mysqlnd_ms_connection_references.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_connection_references.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
@@ -24,14 +24,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_references.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("mysqlnd_ms_lazy.inc");
+	require_once("util.inc");
 
 	$num_links = 2;
 	$links = array();
 	$references = array();
 
 	for ($i = 0; $i < $num_links; $i++) {
-		if (!$link = my_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
+		if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 			printf("[001] Cannot connect, [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 		$links[$i] = $link;
 		$references[$i] = $links[$i];
