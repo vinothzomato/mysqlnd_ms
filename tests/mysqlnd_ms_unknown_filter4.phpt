@@ -59,6 +59,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter4.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_unknown_filter4.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Unknown filter '1' . Stopping in /work/vanilla/pecl/mysqlnd_ms/trunk/tests/connect.inc on line 146
+Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Unknown filter '1' . Stopping in %s on line %d
 [001] [2000] (mysqlnd_ms) Unknown filter '1' . Stopping
 done!
