@@ -1294,12 +1294,16 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
-			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
+			if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = TRUE;
 				}
-				if (PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
+				if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+					ret = ms_orig_mysqlnd_conn_methods->set_client_option(el->conn, MYSQL_INIT_COMMAND,
+																		  (mode) ? "SET AUTOCOMMIT=1":"SET AUTOCOMMIT=0"
+																		  TSRMLS_CC);
+				} else if (PASS != ms_orig_mysqlnd_conn_methods->set_autocommit(el->conn, mode TSRMLS_CC)) {
 					ret = FAIL;
 				}
 				if (el_conn_data && *el_conn_data) {
