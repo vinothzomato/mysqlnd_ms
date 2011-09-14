@@ -158,7 +158,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 Warning: mysqli::kill(): processid should have positive value in %s on line %d
 [029] false
 [030] true
-[031] [%d/%s] %s
+[031] true
 [032] [%d/%s] %s
 [033] [%d/%s] %s
 

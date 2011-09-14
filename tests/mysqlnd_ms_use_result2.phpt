@@ -71,7 +71,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_use_result2.ini
 ?>
 --EXPECTF--
 
-Slave 1, field_count = 3, role = master, id = 1, label = 'a'
-Slave 1, field_count = 3, role = master, id = 2, label = 'b'
-Slave 1, field_count = 3, role = master, id = 3, label = 'c'
+Slave 1, field_count = 3, role = slave1, id = 1, label = 'a'
+Slave 1, field_count = 3, role = slave1, id = 2, label = 'b'
+Slave 1, field_count = 3, role = slave1, id = 3, label = 'c'
 done!
