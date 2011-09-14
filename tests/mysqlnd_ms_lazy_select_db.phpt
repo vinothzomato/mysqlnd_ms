@@ -80,6 +80,25 @@ mysqlnd.debug="d:t:O,/tmp/mysqlnd.trace"
 	if ($row['_db'] != $db)
 		printf("[012] DB should be '%s', connected to '%s'\n", $db, $row['_db']);
 
+	mysqli_close($link);
+
+	$link = mst_mysqli_connect("myapp", $user, $passwd, NULL, $port, $socket);
+	if (mysqli_connect_errno())
+		printf("[013] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+
+	/* free and alloc/copy of internal db field */
+	if (!mysqli_select_db($link, $db))
+		printf("[014] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+
+	if (!mysqli_select_db($link, $db))
+		printf("[015] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+
+	$res = mst_mysqli_query(16, $link, "SELECT DATABASE() AS _db");
+	$row = $res->fetch_assoc();
+	if ($row['_db'] != $db)
+		printf("[017] DB should be '%s', connected to '%s'\n", $db, $row['_db']);
+
+
 	print "done!";
 ?>
 --CLEAN--
