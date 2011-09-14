@@ -1,5 +1,5 @@
 --TEST--
-Limits: Asynchronous queries
+Limits: Asynchronous queries (continue after E_RECOVERABLE_ERROR)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -41,6 +41,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_async_cont.ini
 
 	if (!$link1->query("SELECT @my_role AS _msg", MYSQLI_ASYNC))
 		printf("[003] [%d] %s\n", $link1->errno, $link1->error);
+
+	/*
+		CAUTION:
+
+		Asynchronous queries are not supported with the plugin.
+		We don't promise any particular behaviour. Not even the one
+		found in the EXPECTF section. Behaviour may change
+		at any time without prior notice. Application developers
+		MUST NOT reply on it.
+
+		The only promise is: no crash.
+	*/
 
 	$threads['async select'] = $link1->thread_id;
 
