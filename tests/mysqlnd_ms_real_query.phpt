@@ -35,7 +35,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_real_query.ini
 	mst_mysqli_query(3, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
 	mst_mysqli_query(4, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 
-	/* round robin - slave 1 ? No, real_query is not handled! the master will reply! */
 	mst_mysqli_real_query(5, $link, "SELECT @myrole AS _role", MYSQLND_MS_SLAVE_SWITCH);
 	if (!$res = mysqli_use_result($link)) {
 		printf("[006] [%d] %s\n", $link->errno, $link->error);

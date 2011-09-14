@@ -74,10 +74,10 @@
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
 		if ($quiet) {
-			/* Stupid PHP streams sometimes shout without caller being able to suppress */
+			/* Stupid PHP streams sometimes shouts without caller being able to suppress */
 
 			ob_start();
-			$ret = $link->query($query);
+			$ret = $link->real_query($query);
 			$haystack = ob_get_contents();
 			ob_end_clean();
 
@@ -156,7 +156,7 @@
 
 		return '';
 	}
-	
+
 	function mst_mysqli_fetch_id($offset, $res) {
 		if (!$res) {
 			printf("[%03d] No result\n", $offset);
