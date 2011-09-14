@@ -1609,6 +1609,32 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 }
 /* }}} */
 
+
+/* {{{ mysqlnd_conn::ssl_set */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, ssl_set)(MYSQLND * const proxy_conn, const char * key, const char * const cert,
+									const char * const ca, const char * const capath, const char * const cipher TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
+
+	DBG_ENTER("mysqlnd_ms::ssl_set");
+	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
+	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+		DBG_RETURN(ms_orig_mysqlnd_conn_methods->ssl_set(proxy_conn, key, cert, ca, capath, cipher TSRMLS_CC));
+	} else {
+		MYSQLND_MS_LIST_DATA * el;
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+			if (PASS != ms_orig_mysqlnd_conn_methods->ssl_set(el->conn, key, cert, ca, capath, cipher TSRMLS_CC)) {
+				ret = FAIL;
+			}
+		END_ITERATE_OVER_SERVER_LISTS;
+	}
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 static struct st_mysqlnd_conn_methods my_mysqlnd_conn_methods;
 static struct st_mysqlnd_stmt_methods my_mysqlnd_stmt_methods;
 
@@ -1641,6 +1667,8 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.get_error_no		= MYSQLND_METHOD(mysqlnd_ms, error_no);
 	my_mysqlnd_conn_methods.get_error_str		= MYSQLND_METHOD(mysqlnd_ms, error);
 	my_mysqlnd_conn_methods.get_sqlstate		= MYSQLND_METHOD(mysqlnd_ms, sqlstate);
+
+	my_mysqlnd_conn_methods.ssl_set				= MYSQLND_METHOD(mysqlnd_ms, ssl_set);
 
 
 	my_mysqlnd_conn_methods.get_field_count		= MYSQLND_METHOD(mysqlnd_ms, field_count);
