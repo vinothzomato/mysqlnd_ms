@@ -9,9 +9,6 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-/* lost set_server_option and when connecting the server doesn't allow multi_query and gives back syntax error */
-die("SKIP Doesn't work because set_server_option calls are not buffered and lost");
-
 $settings = array(
 	$host => array(
 		'master' => array($master_host),
@@ -69,11 +66,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_multi_query_lazy.ini
 	if (!unlink("test_mysqlnd_ms_limits_multi_query_lazy.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_multi_query_lazy.ini'.\n");
 ?>
+--XFAIL--
+Doesn't work because set_server_option calls are not buffered and lost
 --EXPECTF--
 [002] /*ms=slave*/SET @myrole='Slave 1'
 [004] SET @myrole='Master 1'
 [005] SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL
-This is 
+This is
 Slave 1
  speaking!
 

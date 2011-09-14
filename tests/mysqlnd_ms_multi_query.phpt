@@ -1,5 +1,5 @@
 --TEST--
-multi query (does not work with lazy_connections)
+multi query
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -9,11 +9,8 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-/* lost set_server_option and when connecting the server doesn't allow multi_query and gives back syntax error */
-die("SKIP Doesn't work because set_server_option calls are not buffered and lost");
-
 $settings = array(
-	$host => array(
+	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
 		'pick' => array("roundrobin"),
@@ -35,8 +32,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 		if ($switch)
 			$query = sprintf("/*%s*/%s", $switch, $query);
 
-		printf("[%03d] %s\n", $offset, $query);
-
 		if (!($ret = $link->multi_query($query)))
 			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 
@@ -44,7 +39,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 	}
 
 
-	if (!($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	mst_mysqli_query(2, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
@@ -82,7 +77,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_query.ini
 			printf("%s", $row['_msg']);
 			$res->free();
 		}
-	} while ($link->more_results() && $link->next_result());#
+	} while ($link->more_results() && $link->next_result());
 	echo "\n";
 
 	print "done!";
