@@ -49,7 +49,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_async_cont.ini
 		We don't promise any particular behaviour. Not even the one
 		found in the EXPECTF section. Behaviour may change
 		at any time without prior notice. Application developers
-		MUST NOT reply on it.
+		MUST NOT repl on it.
 
 		The only promise is: no crash.
 	*/

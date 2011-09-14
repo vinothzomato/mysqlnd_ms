@@ -70,6 +70,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_use_result2.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_ini_force_config.ini'.\n");
 ?>
 --EXPECTF--
+
 Slave 1, field_count = 3, role = master, id = 1, label = 'a'
 Slave 1, field_count = 3, role = master, id = 2, label = 'b'
 Slave 1, field_count = 3, role = master, id = 3, label = 'c'
