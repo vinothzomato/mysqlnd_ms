@@ -1,5 +1,5 @@
 --TEST--
-change_user() - covered by the prototype
+lazy + change_user()
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -16,9 +16,10 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
+		'lazy_connections' => 1,
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_change_user.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_change_user.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 function test_mysql_access($host, $user, $passwd, $db, $port, $socket) {
@@ -37,7 +38,7 @@ if (!test_mysql_access($slave_host_only, $user, $passwd, $db, $slave_port, $slav
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_change_user.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -48,10 +49,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$master_thread = $link->thread_id;
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$slave_thread = $link->thread_id;
 
 	$link->change_user($user, $passwd, 'mysql');
+
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	$slave_thread = $link->thread_id;
 
 	$res = mst_mysqli_query(5, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_SLAVE_SWITCH);
 	if (!$row = $res->fetch_assoc())
@@ -60,8 +62,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 	if ($row['_database'] != 'mysql')
 		printf("[007] Expecting database 'mysql' got '%s'\n", $row['_database']);
 
-	if ($row['_role'] != '')
-		printf("[008] Expecting role '' got '%s'\n", $row['_role']);
+	if ($row['_role'] != 'slave')
+		printf("[008] Expecting role 'slave' got '%s'\n", $row['_role']);
 
 	if ($link->thread_id != $slave_thread)
 		printf("[009] Expecting slave connection thread id %d got %d\n", $slave_thread, $link->thread_id);
@@ -77,14 +79,43 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 		printf("[013] Expecting role '' got '%s'\n", $row['_role']);
 
 	if ($link->thread_id != $master_thread)
-		printf("[009] Expecting master connection thread id %d got %d\n", $master_thread, $link->thread_id);
+		printf("[014] Expecting master connection thread id %d got %d\n", $master_thread, $link->thread_id);
+
+	$link->change_user($user, $passwd, $db);
+
+	$res = mst_mysqli_query(15, $link, "SELECT @myrole AS _role, DATABASE() as _database");
+	if (!$row = $res->fetch_assoc())
+		printf("[016] [%d] %s\n", $link->errno, $link->error);
+
+	if ($row['_database'] != $db)
+		printf("[017] Expecting database '%s' got '%s'\n", $db, $row['_database']);
+
+	if ($row['_role'] != '')
+		printf("[018] Expecting role 'slave' got '%s'\n", $row['_role']);
+
+	if ($link->thread_id != $slave_thread)
+		printf("[019] Expecting slave connection thread id %d got %d\n", $slave_thread, $link->thread_id);
+
+	$res = mst_mysqli_query(20, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
+	if (!$row = $res->fetch_assoc())
+		printf("[021] [%d] %s\n", $link->errno, $link->error);
+
+	if ($row['_database'] != $db)
+		printf("[022] Expecting database '%s' got '%s'\n", $db, $row['_database']);
+
+	if ($row['_role'] != '')
+		printf("[023] Expecting role '' got '%s'\n", $row['_role']);
+
+	if ($link->thread_id != $master_thread)
+		printf("[024] Expecting master connection thread id %d got %d\n", $master_thread, $link->thread_id);
+
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-if (!unlink("test_mysqlnd_ms_change_user.ini"))
-	printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_change_user.ini'.\n");
+if (!unlink("test_mysqlnd_ms_lazy_change_user.ini"))
+  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_change_user.ini'.\n");
 ?>
 --EXPECTF--
 done!
