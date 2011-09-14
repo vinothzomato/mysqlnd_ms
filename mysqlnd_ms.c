@@ -866,7 +866,23 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 				(*el_conn_data)->skip_ms_calls = TRUE;
 			}
 			if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
-			
+				/* lazy connection */
+				if (el->user) {
+					mnd_pefree(el->user, el->persistent);
+				}
+				el->user = user? mnd_pestrdup(user, el->persistent) : NULL;
+
+				if (el->passwd) {
+					mnd_pefree(el->passwd, el->persistent);
+				}
+				el->passwd_len = passwd_len;
+				el->passwd = passwd? mnd_pestrndup(passwd, passwd_len, el->persistent) : NULL;
+
+				if (el->db) {
+					mnd_pefree(el->db, el->persistent);
+				}
+				el->db_len = strlen(db);
+				el->db = db? mnd_pestrndup(db, el->db_len, el->persistent) : NULL;
 			} else {
 				if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
 #if PHP_VERSION_ID >= 50399
