@@ -865,13 +865,17 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 			if (el_conn_data && *el_conn_data) {
 				(*el_conn_data)->skip_ms_calls = TRUE;
 			}
-			if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
+			if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+			
+			} else {
+				if (PASS != ms_orig_mysqlnd_conn_methods->change_user(el->conn, user, passwd, db, silent
 #if PHP_VERSION_ID >= 50399
-																,passwd_len
+																	,passwd_len
 #endif
-																TSRMLS_CC))
-			{
-				ret = FAIL;
+																	TSRMLS_CC))
+				{
+					ret = FAIL;
+				}
 			}
 			if (el_conn_data && *el_conn_data) {
 				(*el_conn_data)->skip_ms_calls = FALSE;
@@ -993,11 +997,13 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
-			}
-			if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+			} else if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
 				/* lazy connection */
+				if (el->db) {
+					mnd_pefree(el->db, el->persistent);
+				}
 				el->db_len = db_len;
-				el->db = db? mnd_pestrndup(db, db_len, el->conn->persistent) : NULL;
+				el->db = db? mnd_pestrndup(db, db_len, el->persistent) : NULL;
 			}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
