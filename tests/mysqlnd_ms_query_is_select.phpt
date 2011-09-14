@@ -27,8 +27,21 @@ mysqlnd_ms.enable=1
 		return $server;
 	}
 
+	function is_select($query, $expected) {
+		$where = mysqlnd_ms_query_is_select($query);
+		$server = serverflag2name($where);
+		if ($where != $expected) {
+			$expected_server = serverflag2name($expected);
+			printf("[002] '%s' should be run on '%s' but function recommends '%s'\n",
+				$query, $expected_server, $server);
+		} else {
+		  printf("'%s' => '%s'\n", $query, $server);
+		}
+	}
+
 	$queries = array(
-		""			=> MYSQLND_MS_QUERY_USE_MASTER,
+		"\0" => MYSQLND_MS_QUERY_USE_MASTER,
+		""	=> MYSQLND_MS_QUERY_USE_MASTER,
 		"SELECT 1 FROM DUAL" 	=> MYSQLND_MS_QUERY_USE_SLAVE,
 		"sElEct 1 from DUAL" 	=> MYSQLND_MS_QUERY_USE_SLAVE,
 		"sElEct '1' AS _one from dual" 	=> MYSQLND_MS_QUERY_USE_SLAVE,
@@ -53,20 +66,18 @@ mysqlnd_ms.enable=1
 		printf("[001] Expecting NULL got %s/%s\n", gettype($tmp), var_export($tmp, true));
 
 	foreach ($queries as $query => $expected) {
-		$where = mysqlnd_ms_query_is_select($query);
-		$server = serverflag2name($where);
-		if ($where != $expected) {
-			$expected_server = serverflag2name($expected);
-			printf("[002] '%s' should be run on '%s' but function recommends '%s'\n",
-				$query, $expected_server, $server);
-		} else {
-		  printf("'%s' => '%s'\n", $query, $server);
-		}
+		is_select($query, $expected);
 	}
+
+
+	is_select(NULL, MYSQLND_MS_QUERY_USE_MASTER);
+	is_select("\0a", MYSQLND_MS_QUERY_USE_MASTER);
+
 	print "done!";
 ?>
 --EXPECTF--
-'' => 'master'
+%s => 'master'
+%s => 'master'
 'SELECT 1 FROM DUAL' => 'slave'
 'sElEct 1 from DUAL' => 'slave'
 'sElEct '1' AS _one from dual' => 'slave'
@@ -81,4 +92,6 @@ mysqlnd_ms.enable=1
 'CALL p()/*ms=master*/' => 'master'
 'SELECT 1 FROM DUAL/*ms=master*/' => 'slave'
 'INSERT INTO test(id) VALUES (1); SELECT 1 FROM DUAL/*ms=slave*/' => 'master'
+'' => 'master'
+%sa%s => 'master'
 done!

@@ -193,7 +193,7 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 			} else {
 				mnd_pefree(ret, persistent);
 				php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter 'user', can't find secion '%s' . Stopping.", SECT_USER_CALLBACK);
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter 'user', can't find section '%s' . Stopping.", SECT_USER_CALLBACK);
 			}
 		}
 	}
@@ -486,14 +486,14 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 							}
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-							goto err;							
+							goto err;
 						}
 						DBG_INF("no next sub-section");
 						break;
 					}
 					if (NULL == mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
 																	  persistent, error_info TSRMLS_CC)) {
-						goto err;							
+						goto err;
 					}
 				} while (1);
 				if (zend_llist_count(ret)) {
@@ -515,7 +515,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 									MYSQLND_MS_ERROR_PREFIX " Can't load default filter '%d' . Stopping", specific_ctors[i].name);
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-							goto err;							
+							goto err;
 						}
 						break;
 					}
