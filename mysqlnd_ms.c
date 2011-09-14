@@ -1023,7 +1023,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 			enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
 
-			if (state > CONN_ALLOCED && state != CONN_QUIT_SENT) {
+			if (state != CONN_QUIT_SENT) {
 				MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = TRUE;
@@ -1033,7 +1033,9 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 					}
 #endif
 				}
-				if (PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC)) {
+				if (state == CONN_ALLOCED) {
+					ret = ms_orig_mysqlnd_conn_methods->set_client_option(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
+				} else if (PASS != ms_orig_mysqlnd_conn_methods->set_charset(el->conn, csname TSRMLS_CC)) {
 					ret = FAIL;
 				}
 

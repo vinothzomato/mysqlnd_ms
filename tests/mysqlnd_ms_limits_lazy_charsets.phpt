@@ -136,8 +136,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_lazy_charsets.ini
 	if (!unlink("test_mysqlnd_ms_limits_lazy_charsets.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_lazy_charsets.ini'.\n");
 ?>
---XFAIL--
-Skip because set_charset() doesn't play with lazy, still
 --EXPECTF--
 
 Slave 2 reports charset '%s', charset set was '%s'
