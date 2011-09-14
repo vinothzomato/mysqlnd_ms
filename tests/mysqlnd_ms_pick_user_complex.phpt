@@ -21,6 +21,7 @@ $settings = array(
 		'master' => array($master_host),
 		'slave' => array($slave_host),
 		'pick' 	=> array('user' => array('callback' => 'pick_server')),
+		'lazy_connections' => 0,
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_user_complex.ini", $settings))
@@ -167,6 +168,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 
 	$threads["connect"] = $link->thread_id;
 	$autocommit = true;
+
 	$link->autocommit($autocommit);
 
 	/* Should go to the first slave */
@@ -182,6 +184,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 
 	/* Should go to the first master */
 	$query = sprintf("/*%s*/SELECT 'master' AS _message FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+
 	$expected = array('_message' => 'master');
 	mst_mysqli_query(40, $link, $query, $expected);
 	if (!isset($threads["master"][$link->thread_id])) {
