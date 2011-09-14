@@ -1,5 +1,5 @@
 --TEST--
-lazy connections and set charset before running a statement
+lazy connections and set charset before running a statement (code flow)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -50,6 +50,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_set_charset.ini
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+  /* CAUTION: charset has only been set on the current line, check mysqlnd_ms_limits_lazy_charsets.phpt */
 	if (!$link->set_charset("latin1"))
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 	else
@@ -57,6 +58,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_set_charset.ini
 
 	if ($res = mst_mysqli_query(4, $link, "SELECT 1 FROM DUAL"))
 		var_dump($res->fetch_assoc());
+
+	/* no further testing, its about code flow only */
 
 
 	print "done!";
@@ -68,10 +71,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_set_charset.ini
 	if (!unlink("test_mysqlnd_ms_lazy_set_charset.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_set_charset.ini'.\n");
 ?>
---XFAIL--
-Don't know what to do with lazy and commands which should go to all connections
 --EXPECTF--
-[003] [%d] %s
+[003] Charset successfully set ?!
 array(1) {
   [1]=>
   string(1) "1"
