@@ -9,7 +9,7 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-if (version_compare(PHP_VERSION, '5.4.0') < 0)
+if (version_compare(PHP_VERSION, '5.3.99') < 0)
 	die(sprintf("SKIP Requires PHP > 5.4.0, using " . PHP_VERSION));
 
 $settings = array(
