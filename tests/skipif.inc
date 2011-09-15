@@ -14,8 +14,8 @@ function _skipif_check_extensions($extensions) {
 
 function _skipif_connect($host, $user, $passwd, $db, $port, $socket) {
 	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
-		die(sprintf("SKIP Cannot connect to MySQL on host = '%s' using user = '%s', [%d] %s\n",
-			$host, $user, mysqli_connect_errno(), mysqli_connect_error()));
+		die(sprintf("SKIP (h=%s,u=%s,p=%s,db=%s,P=%s,S=%s), [%d] %s\n",
+			$host, $user, $passwd, $db, $port, $socket, mysqli_connect_errno(), mysqli_connect_error()));
 }
 
 function _skipif_have_feature($feature) {
