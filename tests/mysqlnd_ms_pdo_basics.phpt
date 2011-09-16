@@ -27,12 +27,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pdo_basics.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	function test_pdo($dsn, $user, $passwd, $options) {
+	function test_pdo($host, $user, $passwd, $db, $port, $socket, $options) {
 
 		try {
 
 			/* PDO::query() */
-			$pdo = new PDO($dsn, $user, $passwd, $options);
+			$pdo = $pdo = my_pdo_connect($host, $user, $passwd, $db, $port, $socket, $options);
 			$stmt = $pdo->query("SELECT 1 AS _one");
 			$result_slave = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			var_dump($result_slave);
@@ -79,12 +79,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pdo_basics.ini
 	}
 
 	/* $options = array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8", PDO::ATTR_EMULATE_PREPARES => true); */
-	$dsn = sprintf("mysql:host=%s;port=%d;dbname=%s;unix_socket=%s", "myapp", $port, $db, $socket);
 
 	$options = array(PDO::ATTR_EMULATE_PREPARES => true);
-	test_pdo($dsn, $user, $passwd, $options);
+	test_pdo("myapp", $user, $passwd, $db, $port, $socket, $options);
 	$options = array(PDO::ATTR_EMULATE_PREPARES => false);
-	test_pdo($dsn, $user, $passwd, $options);
+	test_pdo("myapp", $user, $passwd, $db, $port, $socket, $options);
 
 	print "done!";
 ?>
