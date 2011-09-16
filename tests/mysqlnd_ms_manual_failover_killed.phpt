@@ -19,6 +19,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_failover_killed.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2,3]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -26,8 +30,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_killed.ini
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("util.inc");
 
-	function mst_mysqli_query($offset, $link, $query) {
+	function my_mysqli_query($offset, $link, $query) {
 		global $mst_connect_errno_codes;
 
 		if (!($res = @$link->query($query))) {
@@ -43,7 +48,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_killed.ini
 			printf("[%03d + 03] [%d] %s\n", $offset, $link->errno, $link->error);
 			return 0;
 		}
-		return $link->thread_id;
+		return mst_mysqli_get_emulated_id($offset, $link);
 	}
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -57,20 +62,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_failover_killed.ini
 		'slave 3' 	=> array(),
 	);
 
-	$threads['master'][mst_mysqli_query(10, $link, "DROP TABLE IF EXISTS test")] = 1;
-	$threads['slave 1'][mst_mysqli_query(20, $link, "SELECT 'Slave 1' AS msg")] = 1;
-	$threads['slave 2'][$thread_id = mst_mysqli_query(30, $link, "SELECT 'Slave 2' AS msg")] = 1;
-	$threads['slave 3'][mst_mysqli_query(40, $link, "SELECT 'Slave 3' AS msg")] = 1;
+	$threads['master'][my_mysqli_query(10, $link, "DROP TABLE IF EXISTS test")] = 1;
+	$threads['slave 1'][my_mysqli_query(20, $link, "SELECT 'Slave 1' AS msg")] = 1;
+	$threads['slave 2'][my_mysqli_query(30, $link, "SELECT 'Slave 2' AS msg")] = 1;
+	$thread_id = $link->thread_id;
+	$threads['slave 3'][my_mysqli_query(40, $link, "SELECT 'Slave 3' AS msg")] = 1;
 
 	$link->kill($thread_id);
 
-	$threads['slave 1'][mst_mysqli_query(50, $link, "SELECT 'Slave 1' AS msg")]++;
-	$threads['slave 2'][mst_mysqli_query(60, $link, "SELECT 'Slave 2' AS msg")] = 1;
-	$threads['slave 3'][mst_mysqli_query(70, $link, "SELECT 'Slave 3' AS msg")]++;
+	$threads['slave 1'][my_mysqli_query(50, $link, "SELECT 'Slave 1' AS msg")]++;
+	$threads['slave 2'][my_mysqli_query(60, $link, "SELECT 'Slave 2' AS msg")] = 1;
+	$threads['slave 3'][my_mysqli_query(70, $link, "SELECT 'Slave 3' AS msg")]++;
 
-	$threads['slave 1'][mst_mysqli_query(80, $link, "SELECT 'Slave 1' AS msg")]++;
-	$threads['slave 2'][mst_mysqli_query(90, $link, "SELECT 'Slave 2' AS msg")]++;
-	$threads['slave 3'][mst_mysqli_query(100, $link, "SELECT 'Slave 3' AS msg")]++;
+	$threads['slave 1'][my_mysqli_query(80, $link, "SELECT 'Slave 1' AS msg")]++;
+	$threads['slave 2'][my_mysqli_query(90, $link, "SELECT 'Slave 2' AS msg")]++;
+	$threads['slave 3'][my_mysqli_query(100, $link, "SELECT 'Slave 3' AS msg")]++;
 
 	foreach ($threads['slave 2'] as $thread_id => $num_queries) {
 		printf("Slave 2, %d\n", $thread_id);

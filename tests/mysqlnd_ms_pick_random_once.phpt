@@ -19,6 +19,9 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_pick_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2,3]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -49,29 +52,30 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_once.ini
 
 	/* first master */
 	mst_mysqli_query(2, $link, "SET @myrole = 'Master 1'", MYSQLND_MS_MASTER_SWITCH);
-	$master = $link->thread_id;
+	$master = mst_mysqli_get_emulated_id(3, $link);
 
 	$slaves = array();
 	$num_queries = 100;
 	for ($i = 0; $i <= $num_queries; $i++) {
-		mst_mysqli_query(3, $link, "SELECT 1");
-		if (!isset($slaves[$link->thread_id])) {
-			$slaves[$link->thread_id] = array('role' => sprintf("Slave %d", count($slaves) + 1), 'queries' => 0);
+		mst_mysqli_query(4, $link, "SELECT 1");
+		$id = mst_mysqli_get_emulated_id(5, $link);
+		if (!isset($slaves[$id])) {
+			$slaves[$id] = array('role' => sprintf("Slave %d", count($slaves) + 1), 'queries' => 0);
 		} else {
-			$slaves[$link->thread_id]['queries']++;
+			$slaves[$id]['queries']++;
 		}
-		if ($link->thread_id == $master)
-			printf("[004] Master and slave use the same connection!\n");
+		if ($id == $master)
+			printf("[006] Master and slave use the same connection!\n");
 
 		if (mt_rand(0, 10) > 9) {
 			/* switch to master to check if next read goes to same slave */
-			mst_mysqli_query(5, $link, "DROP TABLE IF EXISTS test");
+			mst_mysqli_query(7, $link, "DROP TABLE IF EXISTS test");
 
 		}
 	}
 
 	foreach ($slaves as $thread => $details) {
-		printf("%s (%d) has run %d queries.\n", $details['role'], $thread, $details['queries']);
+		printf("%s (%s) has run %d queries.\n", $details['role'], $thread, $details['queries']);
 	}
 
 	print "done!";
@@ -82,5 +86,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_once.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_once.ini'.\n");
 ?>
 --EXPECTF--
-Slave 1 (%d) has run 100 queries.
+Slave 1 (%s) has run 100 queries.
 done!
