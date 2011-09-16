@@ -23,6 +23,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure2_user.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -39,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 	set_error_handler('mst_error_handler');
 
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
-		static $slave_idx = 0;
+		static $slave_idx = 0;			
 
 		$where = mysqlnd_ms_query_is_select($query);
 		$server = '';
@@ -64,7 +68,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 			  $server = 'unknown';
 			  break;
 		}
-		printf("pick_server('%s', '%s') => %s\n", $connected_host, $query, $server);
+		if (false === stristr($query, "util.inc"))
+			printf("pick_server('%s', '%s') => %s\n", $connected_host, $query, $server);
 		return $ret;
 	}
 
@@ -74,22 +79,22 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 	$connections = array();
 
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	$connections[$link->thread_id] = array('master');
+	$connections[mst_mysqli_get_emulated_id(3, $link)] = array('master');
 
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$connections[$link->thread_id][] = 'slave (no fallback)';
-
-	mst_mysqli_fech_role(mst_mysqli_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
-	$connections[$link->thread_id] = array('slave');
 
 	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	$connections[mst_mysqli_get_emulated_id(6, $link)] = array('slave');
+
+	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
-	mst_mysqli_fech_role(mst_mysqli_query(6, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	mst_mysqli_fech_role(mst_mysqli_query(8, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
 	foreach ($connections as $thread_id => $details) {
-		printf("Connection %d -\n", $thread_id);
+		printf("Connection %s -\n", $thread_id);
 		foreach ($details as $msg)
 		  printf("... %s\n", $msg);
 	}
@@ -103,26 +108,26 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 ?>
 --EXPECTF--
 pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
-pick_server('myapp', '/*ms=slave*//*3*/SET @myrole='slave'') => slave
+pick_server('myapp', '/*ms=slave*//*4*/SET @myrole='slave'') => slave
 [E_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [003] [%d] %s
-pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-This is '' speaking
+Connect error, [004] [%d] %s
 pick_server('myapp', '/*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+This is '' speaking
+pick_server('myapp', '/*7*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
 [E_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable2:6033 but connection failed in %s on line %d
-Connect error, [005] [%d] %s
-pick_server('myapp', '/*6*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+Connect error, [007] [%d] %s
+pick_server('myapp', '/*8*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
 [E_WARNING] mysqli::query(): [%d] %s
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [006] [%d] %s
-Connection %d -
+Connect error, [008] [%d] %s
+Connection master-%d -
 ... master
 Connection 0 -
 ... slave (no fallback)
 ... slave (no fallback)
 ... slave (no fallback)
-Connection %d -
+Connection slave[2]-%d -
 ... slave
 done!

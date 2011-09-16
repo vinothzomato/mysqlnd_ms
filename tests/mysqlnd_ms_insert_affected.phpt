@@ -18,7 +18,6 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_insert_affected.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
-
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -55,8 +54,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_insert_affected.ini
 		printf("[19] Master affected should be 1 got %d\n", $link->affected_rows);
 
 	/* slave 1 */
-	run_insert(20, $link, 5, MYSQLND_MS_SLAVE_SWITCH);
-	$connections[$link->thread_id] = $link->insert_id;
+	run_insert(20, $link, 5, MYSQLND_MS_SLAVE_SWITCH);	
 	if (5 !== $link->insert_id)
 		printf("[27] Slave 1 insert id should be 5 got %d\n", $link->insert_id);
 	mst_mysqli_query(28, $link, "UPDATE test SET label = 'b'", MYSQLND_MS_LAST_USED_SWITCH);

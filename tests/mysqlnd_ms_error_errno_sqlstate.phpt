@@ -24,8 +24,8 @@ if ($error = mst_create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $sett
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($offset, $slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
-msg_mysqli_init_emulated_id_skip($offset, $master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 
 ?>
 --INI--

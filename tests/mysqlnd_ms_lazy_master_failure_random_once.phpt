@@ -23,6 +23,7 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
 ?>
 --INI--
 mysqlnd_ms.enable=1

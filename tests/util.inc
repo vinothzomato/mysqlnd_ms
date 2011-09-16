@@ -175,8 +175,8 @@
 		return $link->query($sql);
 	}
 
-	function msg_mysqli_init_emulated_id_skip($offset, $host, $user, $passwd, $db, $port, $socket, $role) {
-		if (true !== ($msg = _mst_mysqli_init_emulated_id($offset, $host, $user, $passwd, $db, $port, $socket, $role)))
+	function msg_mysqli_init_emulated_id_skip($host, $user, $passwd, $db, $port, $socket, $role) {
+		if (true !== ($msg = _mst_mysqli_init_emulated_id(1, $host, $user, $passwd, $db, $port, $socket, $role)))
 			die(sprintf("SKIP Cannot setup emulated server id, %s", $msg));
 	}
 
@@ -206,7 +206,7 @@
 
 		$thread_id = $link->thread_id;
 
-		$query = sprintf("/*%s*//*%d*/SELECT role FROM _mysqlnd_ms_roles", MYSQLND_MS_LAST_USED_SWITCH, $offset);
+		$query = sprintf("/*%s*//*%d*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles", MYSQLND_MS_LAST_USED_SWITCH, $offset);
 		if (!($res = $link->query($query))) {
 			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 			return NULL;

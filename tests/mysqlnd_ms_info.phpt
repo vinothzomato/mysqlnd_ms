@@ -18,6 +18,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_info.ini", $settings))
 	die(sprintf("SKIP %d\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -36,23 +41,32 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_info.ini
 	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH);
 	mst_mysqli_query(3, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
 	mst_mysqli_query(4, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
-	$threads[$link->thread_id] = array('role' => 'master', 'info' => mysqli_info($link));
-	mst_mysqli_query(5, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 
-	mst_mysqli_query(6, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
-	mst_mysqli_query(7, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
-	mst_mysqli_query(8, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
-	$threads[$link->thread_id] = array('role' => 'slave 1', 'info' => mysqli_info($link));
-	mst_mysqli_query(9, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+	$tmp = array('role' => 'master', 'info' => mysqli_info($link));
+	$threads[mst_mysqli_get_emulated_id(5, $link)] = $tmp;
 
-	mst_mysqli_query(10, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
-	mst_mysqli_query(11, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
-	mst_mysqli_query(12, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
-	$threads[$link->thread_id] = array('role' => 'slave 2', 'info' => mysqli_info($link));
-	mst_mysqli_query(13, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(6, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+
+	mst_mysqli_query(7, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(8, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(9, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
+
+	$tmp = array('role' => 'slave 1', 'info' => mysqli_info($link));
+	$threads[mst_mysqli_get_emulated_id(10, $link)] = $tmp;
+
+	mst_mysqli_query(11, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
+
+	mst_mysqli_query(12, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(13, $link, "CREATE TABLE test(id INT)", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(14, $link, "INSERT INTO test(id) VALUES (1), (2), (3)", MYSQLND_MS_LAST_USED_SWITCH);
+
+	$tmp = array('role' => 'slave 2', 'info' => mysqli_info($link));
+	$threads[mst_mysqli_get_emulated_id(15, $link)] = $tmp;
+
+	mst_mysqli_query(16, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 
 	foreach ($threads as $thread_id => $info) {
-		printf("%d - %s - '%s'\n", $thread_id, $info['role'], $info['info']);
+		printf("%s - %s - '%s'\n", $thread_id, $info['role'], $info['info']);
 		if ('' == $info['info'])
 			printf("info should not be empty. Check manually.\n");
 	}
@@ -66,7 +80,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_info.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_info.ini'.\n");
 ?>
 --EXPECTF--
-%d - master - '%s'
-%d - slave 1 - '%s'
-%d - slave 2 - '%s'
+master-%d - master - '%s'
+slave[1,2]-%d - slave 1 - '%s'
+slave[1,2]-%d - slave 2 - '%s'
 done!

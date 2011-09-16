@@ -23,6 +23,9 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_master_failure_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2,3]");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -47,26 +50,26 @@ mysqlnd_ms.collect_statistics=1
 	mst_compare_stats();
 	echo "----\n";
 
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$connections[$link->thread_id][] = 'slave';
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);	
 	echo "----\n";
 	mst_compare_stats();
+	$connections[mst_mysqli_get_emulated_id(4, $link)][] = 'slave';
 	echo "----\n";
 
-	mst_mysqli_fech_role(mst_mysqli_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
-	$connections[$link->thread_id][] = 'slave';
+	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));	
 	echo "----\n";
 	mst_compare_stats();
+	$connections[mst_mysqli_get_emulated_id(6, $link)][] = 'slave';
 	echo "----\n";
 
-	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, true));
+	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, true));
 	$connections[$link->thread_id][] = 'master';
 	echo "----\n";
 	mst_compare_stats();
 	echo "----\n";
 
 	foreach ($connections as $thread_id => $details) {
-		printf("Connection %d -\n", $thread_id);
+		printf("Connection %s -\n", $thread_id);
 		foreach ($details as $msg)
 		  printf("... %s\n", $msg);
 	}
@@ -96,19 +99,21 @@ This is '' speaking
 ----
 Stats use_slave: 2
 Stats use_slave_guess: 1
+Stats use_last_used_sql_hint: 1
 Stats lazy_connections_slave_success: 2
 ----
-Connect error, [005] [%d] %s
+Connect error, [007] [%d] %s
 ----
 Stats use_master: 2
 Stats use_master_sql_hint: 2
+Stats use_last_used_sql_hint: 2
 Stats lazy_connections_master_failure: 2
 ----
 Connection 0 -
 ... master
 ... master
-Connection %d -
+Connection slave[1,2,3]-%d -
 ... slave
-Connection %d -
+Connection slave[1,2,3]-%d -
 ... slave
 done!

@@ -20,6 +20,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_connection_stats.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -37,31 +41,30 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_stats.ini
 	/* slave 1 */
 	mst_mysqli_query(2, $link, "SELECT 1 AS _one FROM DUAL");
 	$stats = mysqli_get_connection_stats($link);
-	$bytes = $stats['bytes_sent'];
-	$threads[$link->thread_id] = array('role' => 'Slave 1', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
+	$bytes = $stats['bytes_sent'];	
+	$threads[mst_mysqli_get_emulated_id(3, $link)] = array('role' => 'Slave 1', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
 
 	/* slave 2 */
-	mst_mysqli_query(3, $link, "SELECT 12 AS _one FROM DUAL");
+	mst_mysqli_query(4, $link, "SELECT 12 AS _one FROM DUAL");
 	$stats = mysqli_get_connection_stats($link);
 	$bytes_new = $stats['bytes_sent'];
 	if ($bytes_new <= $bytes)
-	  printf("[004] Expecting bytes_sent >= %d, got %d\n", $bytes, $bytes_new);
+	  printf("[005] Expecting bytes_sent >= %d, got %d\n", $bytes, $bytes_new);
 	$bytes = $bytes_new;
-
-	$threads[$link->thread_id] = array('role' => 'Slave 2', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
+	$threads[mst_mysqli_get_emulated_id(6, $link)] = array('role' => 'Slave 2', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
 
 	/* master */
-	mst_mysqli_query(5, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(7, $link, "SELECT 123 AS _one FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$stats = mysqli_get_connection_stats($link);
 	$bytes_new = $stats['bytes_sent'];
 	if ($bytes_new <= $bytes)
-	  printf("[006] Expecting bytes_sent >= %d, got %d\n", $bytes, $bytes_new);
+	  printf("[008] Expecting bytes_sent >= %d, got %d\n", $bytes, $bytes_new);
 	$bytes = $bytes_new;
 
-	$threads[$link->thread_id] = array('role' => 'Master', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
+	$threads[mst_mysqli_get_emulated_id(9, $link)] = array('role' => 'Master', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
 
 	foreach ($threads as $thread_id => $details)
-		printf("%d - %s: %d bytes, %d queries\n", $thread_id, $details['role'], $details['bytes'], $details['com_query']);
+		printf("%s - %s: %d bytes, %d queries\n", $thread_id, $details['role'], $details['bytes'], $details['com_query']);
 
 	print "done!";
 ?>
@@ -71,7 +74,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_stats.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_connection_stats.ini'.\n");
 ?>
 --EXPECTF--
-%d - Slave 1: %d bytes, 1 queries
-%d - Slave 2: %d bytes, 1 queries
-%d - Master: %d bytes, 1 queries
+slave[1,2]-%d - Slave 1: %d bytes, 1 queries
+slave[1,2]-%d - Slave 2: %d bytes, 1 queries
+master-%d - Master: %d bytes, 1 queries
 done!

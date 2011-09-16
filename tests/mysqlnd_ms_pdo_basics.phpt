@@ -46,7 +46,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pdo_basics.ini
 			}
 
 			/* PDO::exec() */
-			$pdo = new PDO($dsn, $user, $passwd, $options);
+			$pdo = $pdo = my_pdo_connect($host, $user, $passwd, $db, $port, $socket, $options);
 			$pdo->exec(sprintf("/*%s*/SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH));
 			$pdo->exec(sprintf("/*%s*/SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH));
 
