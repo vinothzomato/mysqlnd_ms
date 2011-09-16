@@ -23,6 +23,10 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($offset, $slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($offset, $master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -40,38 +44,42 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 	if (mst_mysqli_query(10, $link, "role=master I_HOPE_THIS_IS_INVALID_SQL")) {
 		printf("[011] Query should have failed\n");
 	} else {
-		$threads[$link->thread_id] = array(
+		$tmp = array(
 			"role"		=> "master",
 			"errno" 	=> $link->errno,
 			"error"		=> $link->error,
 			"sqlstate"	=> $link->sqlstate,
 		);
+		$threads[mst_mysqli_get_emulated_id(12, $link)] = $tmp;
+
 	}
 
 	if (mst_mysqli_query(20, $link, "role=slave1 I_HOPE_THIS_IS_INVALID_SQL", MYSQLND_MS_SLAVE_SWITCH)) {
 		printf("[021] Query should have failed\n");
 	} else {
-		$threads[$link->thread_id] = array(
+		$tmp = array(
 			"role"		=> "slave1",
 			"errno" 	=> $link->errno,
 			"error"		=> $link->error,
 			"sqlstate"	=> $link->sqlstate,
 		);
+		$threads[mst_mysqli_get_emulated_id(22, $link)] = $tmp;
 	}
 
 	if (mst_mysqli_query(30, $link, "role=slave2 I_HOPE_THIS_IS_INVALID_SQL", MYSQLND_MS_SLAVE_SWITCH)) {
 		printf("[031] Query should have failed\n");
 	} else {
-		$threads[$link->thread_id] = array(
+		$tmp = array(
 			"role"		=> "slave2",
 			"errno" 	=> $link->errno,
 			"error"		=> $link->error,
 			"sqlstate"	=> $link->sqlstate,
 		);
+		$threads[mst_mysqli_get_emulated_id(32, $link)] = $tmp;
 	}
 
 	foreach ($threads as $thread_id => $details) {
-		printf("%d - %s\n", $thread_id, $details['role']);
+		printf("%s - %s\n", $thread_id, $details['role']);
 		if (!$details['errno'])
 			printf("[032] Errno missing\n");
 
@@ -97,7 +105,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_error_errno_sqlstate.ini
 [010] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role=master I_HOPE_THIS_IS_INVALID_SQL' at line 1
 [020] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role=slave1 I_HOPE_THIS_IS_INVALID_SQL' at line 1
 [030] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'role=slave2 I_HOPE_THIS_IS_INVALID_SQL' at line 1
-%d - master
-%d - slave1
-%d - slave2
+master-%d - master
+slave[1,2]-%d - slave1
+slave[1,2]-%d - slave2
 done!

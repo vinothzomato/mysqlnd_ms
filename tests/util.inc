@@ -174,4 +174,55 @@
 		printf("[%03d] Testing server support of '%s'\n", $offset, $sql);
 		return $link->query($sql);
 	}
+
+	function msg_mysqli_init_emulated_id_skip($offset, $host, $user, $passwd, $db, $port, $socket, $role) {
+		if (true !== ($msg = _mst_mysqli_init_emulated_id($offset, $host, $user, $passwd, $db, $port, $socket, $role)))
+			die(sprintf("SKIP Cannot setup emulated server id, %s", $msg));
+	}
+
+	function mst_mysqli_init_emulated_id($offset, $host, $user, $passwd, $db, $port, $socket, $role) {
+		if (true !== ($msg = _mst_mysqli_init_emulated_id($offset, $host, $user, $passwd, $db, $port, $socket, $role)))
+			echo $msg;
+
+		return true;
+	}
+
+ 	function _mst_mysqli_init_emulated_id($offset, $host, $user, $passwd, $db, $port, $socket, $role) {
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%03d] [%d] %s\n", $offset, mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if (!$link->query("DROP TABLE IF EXISTS _mysqlnd_ms_roles") ||
+			!$link->query("CREATE TABLE _mysqlnd_ms_roles(role VARCHAR(255) NOT NULL)") ||
+			!$link->query(sprintf("INSERT INTO _mysqlnd_ms_roles(role) values ('%s')", $link->real_escape_string($role)))) {
+			return sprintf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
+		}
+
+		return true;
+	}
+
+	function mst_mysqli_get_emulated_id($offset, $link) {
+
+		$thread_id = $link->thread_id;
+
+		$query = sprintf("/*%s*//*%d*/SELECT role FROM _mysqlnd_ms_roles", MYSQLND_MS_LAST_USED_SWITCH, $offset);
+		if (!($res = $link->query($query))) {
+			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
+			return NULL;
+		}
+
+		if ($res->num_rows > 1) {
+			printf("[%03d] _mysqlnd_ms_roles holds more than one row\n", $offset);
+			return NULL;
+		}
+
+		if ($thread_id != $link->thread_id) {
+			printf("[%03] Unexpected connection switch\n");
+			return NULL;
+		}
+
+		$row = $res->fetch_assoc();
+		return sprintf("%s-%d", $row['role'], $link->thread_id);
+	}
 ?>

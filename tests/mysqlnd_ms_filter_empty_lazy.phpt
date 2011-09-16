@@ -41,6 +41,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_filter_empty_lazy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($offset, $slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($offset, $master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -59,21 +63,21 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_empty_lazy.ini
 	$threads = array();
 
 	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test");
-	$threads[$link->thread_id] = array("master");
+	$threads[mst_mysqli_get_emulated_id(3, $link)] = array("master");
 
-	$res = mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL");
-	$threads[$link->thread_id] = array("slave");
-	if (!$res)
-		printf("[004] [%d] %s\n", $link->errno, $link->error);
-
-	$res = mst_mysqli_query(5, $link, "SELECT 1 FROM DUAL");
-	$threads[$link->thread_id][] = "slave";
+	$res = mst_mysqli_query(4, $link, "SELECT 1 FROM DUAL");
+	$threads[mst_mysqli_get_emulated_id(5, $link)] = array("slave");
 	if (!$res)
 		printf("[006] [%d] %s\n", $link->errno, $link->error);
 
+	$res = mst_mysqli_query(7, $link, "SELECT 1 FROM DUAL");
+	$threads[mst_mysqli_get_emulated_id(8, $link)][] = "slave";
+	if (!$res)
+		printf("[009] [%d] %s\n", $link->errno, $link->error);
+
 
 	foreach ($threads as $id => $roles) {
-		printf("%d: ", $id);
+		printf("%s: ", $id);
 		foreach ($roles as $role)
 		  printf("%s\n", $role);
 	}
@@ -87,7 +91,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_empty_lazy.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_empty_lazy.ini'.\n");
 ?>
 --EXPECTF--
-%d: master
-%d: slave
+master-%d: master
+slave[1,2]-%d: slave
 slave
 done!

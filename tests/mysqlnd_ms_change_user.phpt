@@ -43,13 +43,26 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	$attempts = 0;
+	do {
+		if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+			printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	$master_thread = $link->thread_id;
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$slave_thread = $link->thread_id;
+		mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+		$master_thread = $link->thread_id;
+		mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+		$slave_thread = $link->thread_id;
+
+		if ($master_thread == $slave_thread) {
+			/*
+			The test relies on different thread ids, try connecting again.
+			try to increase thread id on one of the servers...
+			*/
+			$tmp[] = @mst_mysqli_connect($master_host, $user, $passwd, $db, $master_port, $master_socket);
+			$attempts++;
+		}
+
+	} while (($master_thread == $slave_thread) && ($attempts < 5));
 
 	$link->change_user($user, $passwd, 'mysql');
 

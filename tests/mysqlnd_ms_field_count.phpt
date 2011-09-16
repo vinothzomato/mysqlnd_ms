@@ -22,6 +22,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_field_count.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($offset, $slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($offset, $master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --FILE--
 <?php
@@ -41,38 +46,38 @@ if ($error = mst_create_config("test_mysqlnd_ms_field_count.ini", $settings))
 	$row = $res->fetch_assoc();
 	if ($res->field_count != $link->field_count)
 		printf("[005] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
-	$threads[$link->thread_id] = array("role" => $row['_role'], "fields" => $res->field_count);
+	$threads[mst_mysqli_get_emulated_id(6, $link)] = array("role" => $row['_role'], "fields" => $res->field_count);
 	$res->close();
 
-	mst_mysqli_query(6, $link, "SET @myrole='Master 1'");
+	mst_mysqli_query(7, $link, "SET @myrole='Master 1'");
 	if (0 !== $link->field_count)
-		printf("[007] Expecting 0 got field_count = %d\n", $link->field_count);
+		printf("[008] Expecting 0 got field_count = %d\n", $link->field_count);
 
-	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role, 1 as _one", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(9, $link, "SELECT @myrole AS _role, 1 as _one", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	if ($res->field_count != $link->field_count)
-		printf("[009] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
-	$threads[$link->thread_id] = array("role" => $row['_role'], "fields" => $res->field_count);
+		printf("[010] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
+	$threads[mst_mysqli_get_emulated_id(11, $link)] = array("role" => $row['_role'], "fields" => $res->field_count);
 	$res->close();
 
 
-	mst_mysqli_query(10, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(12, $link, "SET @myrole='Slave 2'", MYSQLND_MS_SLAVE_SWITCH);
 	if (0 !== $link->field_count)
-		printf("[011] Expecting 0 got field_count = %d\n", $link->field_count);
+		printf("[013] Expecting 0 got field_count = %d\n", $link->field_count);
 
-	$res = mst_mysqli_query(12, $link, "SELECT @myrole AS _role, 1 AS _one, 2 as _two", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(14, $link, "SELECT @myrole AS _role, 1 AS _one, 2 as _two", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
 	if ($res->field_count != $link->field_count)
-		printf("[013] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
-	$threads[$link->thread_id] = array("role" => $row['_role'], "fields" => $res->field_count);
+		printf("[015] res->field_count = %d, link->field_count = %d\n", $res->field_count, $link->field_count);
+	$threads[mst_mysqli_get_emulated_id(16, $link)] = array("role" => $row['_role'], "fields" => $res->field_count);
 	$res->close();
 
-	mst_mysqli_query(14, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(17, $link, "SET @myrole='Slave 1'", MYSQLND_MS_SLAVE_SWITCH);
 	if (0 !== $link->field_count)
-		printf("[015] Expecting 0 got field_count = %d\n", $link->field_count);
+		printf("[018] Expecting 0 got field_count = %d\n", $link->field_count);
 
 	foreach ($threads as $thread_id => $details)
-		printf("%d - %s: %d\n", $thread_id, $details["role"], $details["fields"]);
+		printf("%s - %s: %d\n", $thread_id, $details["role"], $details["fields"]);
 
 	print "done!";
 ?>
@@ -82,7 +87,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_field_count.ini", $settings))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_field_count.ini'.\n");
 ?>
 --EXPECTF--
-%d - Slave 1: 1
-%d - Master 1: 2
-%d - Slave 2: 3
+slave[1,2]-%d - Slave 1: 1
+master-%d - Master 1: 2
+slave[1,2]-%d - Slave 2: 3
 done!
