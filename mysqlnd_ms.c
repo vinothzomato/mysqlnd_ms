@@ -827,6 +827,7 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND * const proxy_conn, char *news
 		}
 	} else {
 		newstr[0] = '\0';
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection");
 		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
 		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
