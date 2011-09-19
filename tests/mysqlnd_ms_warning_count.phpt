@@ -18,6 +18,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_warning_count.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -25,6 +29,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_warning_count.ini
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("util.inc");
 	$threads = array();
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
@@ -37,51 +42,51 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_warning_count.ini
 	if (1 !== ($tmp = mysqli_warning_count($link)))
 		printf("[003] Expecting warning count = 1, got %d\n", $tmp);
 
-	$threads[$link->thread_id] = 'master (1)';
+	$threads[mst_mysqli_get_emulated_id(4, $link)] = 'master (1)';
 
 	if (!mysqli_query($link, "SELECT 1 FROM DUAL"))
-		printf("[004] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+		printf("[005] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
 	if (0 !== ($tmp = mysqli_warning_count($link)))
-		printf("[005] Expecting warning count = 0, got %d\n", $tmp);
+		printf("[006] Expecting warning count = 0, got %d\n", $tmp);
 
-	 $threads[$link->thread_id] = 'slave 1';
+	 $threads[mst_mysqli_get_emulated_id(7, $link)] = 'slave 1';
 
 	 if (!mysqli_query($link, "SELECT 1 FROM DUAL"))
-		printf("[006] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
-
-	if (0 !== ($tmp = mysqli_warning_count($link)))
-		printf("[007] Expecting warning count = 0, got %d\n", $tmp);
-
-	$threads[$link->thread_id] = 'slave 2';
-
-	if (!mysqli_query($link, "/*" . MYSQLND_MS_MASTER_SWITCH . "*/SELECT 1 FROM DUAL"))
 		printf("[008] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
 	if (0 !== ($tmp = mysqli_warning_count($link)))
 		printf("[009] Expecting warning count = 0, got %d\n", $tmp);
 
- 	$threads[$link->thread_id] = 'master (2)';
+	$threads[mst_mysqli_get_emulated_id(10, $link)] = 'slave 2';
+
+	if (!mysqli_query($link, "/*" . MYSQLND_MS_MASTER_SWITCH . "*/SELECT 1 FROM DUAL"))
+		printf("[011] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+
+	if (0 !== ($tmp = mysqli_warning_count($link)))
+		printf("[012] Expecting warning count = 0, got %d\n", $tmp);
+
+ 	$threads[mst_mysqli_get_emulated_id(13, $link)] = 'master (2)';
 
 	if (!mysqli_query($link, "/*" . MYSQLND_MS_SLAVE_SWITCH . "*/DROP TABLE IF EXISTS this_table_does_not_exist"))
-		printf("[010] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+		printf("[014] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
 	if (1 !== ($tmp = mysqli_warning_count($link)))
-		printf("[011] Expecting warning count = 1, got %d\n", $tmp);
+		printf("[015] Expecting warning count = 1, got %d\n", $tmp);
 
- 	$threads[$link->thread_id] = 'slave 1 (2)';
+ 	$threads[mst_mysqli_get_emulated_id(16, $link)] = 'slave 1 (2)';
 
 	if (!mysqli_query($link, "/*" . MYSQLND_MS_SLAVE_SWITCH . "*/DROP TABLE IF EXISTS this_table_does_not_exist"))
-		printf("[012] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
+		printf("[017] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
 	if (1 !== ($tmp = mysqli_warning_count($link)))
-		printf("[013] Expecting warning count = 1, got %d\n", $tmp);
+		printf("[018] Expecting warning count = 1, got %d\n", $tmp);
 
- 	$threads[$link->thread_id] = 'slave 2 (2)';
+ 	$threads[mst_mysqli_get_emulated_id(19, $link)] = 'slave 2 (2)';
 
 
-	foreach ($threads as $thread_id => $label)
-		printf("%d - %s\n", $thread_id, $label);
+	foreach ($threads as $server_id => $label)
+		printf("%d - %s\n", $server_id, $label);
 
 	print "done!";
 ?>
@@ -91,7 +96,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_warning_count.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_warning_count.ini'.\n");
 ?>
 --EXPECTF--
-%d - master (2)
-%d - slave 1 (2)
-%d - slave 2 (2)
+%s - master (2)
+%s - slave 1 (2)
+%s - slave 2 (2)
 done!
