@@ -51,6 +51,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 	}
 
 	var_dump($link->real_escape_string("test"));
+	printf("[003] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
 
 	print "done!";
 ?>
@@ -62,5 +63,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_escape.ini'.\n");
 ?>
 --EXPECTF--
+Warning: mysqli::real_escape_string(): (mysqlnd_ms) string escaping doesn't work without established connection in %s on line %d
 string(0) ""
+[003] [2014/HY000] Commands out of sync; you can't run this command now
 done!

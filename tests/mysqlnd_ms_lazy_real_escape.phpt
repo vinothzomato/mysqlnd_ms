@@ -72,12 +72,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_real_escape.ini
 
 		if (($ms === "") && ($no_ms !== "")) {
 			printf("[005] MS has returned an empty string!\n");
+			printf("[006] [%d/%s] '%s'\n", $link->errno, $link->sqlstate, $link->error);
 			break;
 		}
 
 		if ($no_ms !== $ms) {
-			printf("[006] Encoded strings differ for charset '%s', MS = '%s', no MS = '%s'\n",
+			printf("[007] Encoded strings differ for charset '%s', MS = '%s', no MS = '%s'\n",
 				$charset, $ms, $no_ms);
+			printf("[008] [%d/%s] '%s'\n", $link->errno, $link->sqlstate, $link->error);
 			break;
 		}
 	}
@@ -91,4 +93,7 @@ if (!unlink("test_mysqlnd_ms_lazy_real_escape.ini"))
 	printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_real_escape.ini'.\n");
 ?>
 --EXPECTF--
+Warning: mysqli::real_escape_string(): (mysqlnd_ms) string escaping doesn't work without established connection in %s on line %d
+[005] MS has returned an empty string!
+[006] [0/00000] ''
 done!
