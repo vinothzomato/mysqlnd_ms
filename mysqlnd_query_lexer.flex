@@ -38,6 +38,7 @@ int mysqlnd_qp_error(const char *format, ...);
 #define YY_DECL int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC)
 
 #define YY_NO_INPUT
+#define YY_NO_UNISTD_H
 
 /* In Unicode . is [\0-\x7F] | [\xC2-\xDF][\x80-\xBF] | \xE0[\xA0-\xBF][\x80-\xBF] | [\xE1-\xEF][\x80-\xBF][\x80-\xBF] */
 
