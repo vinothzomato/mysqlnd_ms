@@ -60,7 +60,7 @@ mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, 
 	if (el->host && !strcasecmp("localhost", el->host)) {
 		scheme_len = mnd_sprintf(&tmp, 0, "unix://%s", el->socket? el->socket : "/tmp/mysql.sock");
 #else
-	if (el->host && !strcmp(".", host) {
+	if (el->host && !strcmp(".", el->host)) {
 		scheme_len = mnd_sprintf(&tmp, 0, "pipe://%s", el->socket? el->socket : "\\\\.\\pipe\\MySQL");
 #endif
 	} else {
@@ -862,6 +862,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 			if (el_conn_data && *el_conn_data) {
 				(*el_conn_data)->skip_ms_calls = TRUE;
@@ -897,6 +898,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 			if (el_conn_data && *el_conn_data) {
 				(*el_conn_data)->skip_ms_calls = FALSE;
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
@@ -1001,6 +1003,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 				if (el_conn_data && *el_conn_data) {
@@ -1022,6 +1025,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND * const proxy_conn, const char * c
 				el->db_len = db_len;
 				el->db = db? mnd_pestrndup(db, db_len, el->persistent) : NULL;
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
@@ -1044,6 +1048,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
 
 			if (state != CONN_QUIT_SENT) {
@@ -1072,6 +1077,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND * const proxy_conn, const char *
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
@@ -1094,6 +1100,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_m
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 				if (el_conn_data && *el_conn_data) {
@@ -1108,6 +1115,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND * const proxy_conn, enum_m
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
@@ -1129,6 +1137,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 			if (el_conn_data && *el_conn_data) {
 				(*el_conn_data)->skip_ms_calls = TRUE;
@@ -1141,6 +1150,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND * const proxy_conn, enum_m
 			if (el_conn_data && *el_conn_data) {
 				(*el_conn_data)->skip_ms_calls = FALSE;
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
@@ -1295,6 +1305,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(el->conn, mysqlnd_ms_plugin_id);
 				if (el_conn_data && *el_conn_data) {
@@ -1311,6 +1322,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND * proxy_conn, unsigned int mo
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
@@ -1344,6 +1356,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND * conn, zend_bool commit TSRMLS_DC)
 		MYSQLND_MS_LIST_DATA * element = NULL;
 
 		BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
+		{
 			if (element->conn) {
 				DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
 			}
@@ -1351,6 +1364,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND * conn, zend_bool commit TSRMLS_DC)
 			if (element->conn == conn) {
 				break;
 			}
+		}
 		END_ITERATE_OVER_SERVER_LIST;
 		if (!element || (FAIL == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
 			DBG_RETURN(FAIL);
@@ -1510,6 +1524,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 				MYSQLND_MS_LIST_DATA * element = NULL;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
+				{
 					if (element->conn) {
 						DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
 					}
@@ -1517,6 +1532,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 					if (element->conn == connection) {
 						break;
 					}
+				}
 				END_ITERATE_OVER_SERVER_LIST;
 
 				DBG_INF("Lazy connection");
@@ -1526,6 +1542,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 					ret = mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC);
 				} else {
 					BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list);
+					{
 						if (element->conn) {
 							DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
 						}
@@ -1533,6 +1550,7 @@ MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND * conn, enum php_mysqlnd_serv
 						if (element->conn == connection) {
 							break;
 						}
+					}
 					END_ITERATE_OVER_SERVER_LIST;
 					if (element) {
 						DBG_INF("trying to connect...");
@@ -1630,9 +1648,11 @@ MYSQLND_METHOD(mysqlnd_ms, ssl_set)(MYSQLND * const proxy_conn, const char * key
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		{
 			if (PASS != ms_orig_mysqlnd_conn_methods->ssl_set(el->conn, key, cert, ca, capath, cipher TSRMLS_CC)) {
 				ret = FAIL;
 			}
+		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 	DBG_RETURN(ret);

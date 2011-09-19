@@ -464,7 +464,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 
 		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
 		DBG_INF_FMT("normal filters section =%d", section_exists && filters_section && subsection_is_obj_list);
-		switch (section_exists && filters_section && subsection_is_obj_list) {
+		switch (section_exists && filters_section && subsection_is_obj_list? 1:0) {
 			case 1:
 				do {
 					char * filter_name = NULL;
