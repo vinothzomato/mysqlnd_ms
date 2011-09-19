@@ -19,6 +19,10 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_pick_random.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2,3]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -53,23 +57,29 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random.ini
 	$slaves = array();
 	do {
 		mst_mysqli_query(3, $link, "SELECT 1");
-		if (!isset($slaves[$link->thread_id])) {
-			$slaves[$link->thread_id] = array('role' => sprintf("Slave %d", count($slaves) + 1), 'queries' => 0);
+		$server_id = mst_mysqli_get_emulated_id(4, $link);
+		if (!isset($slaves[$server_id])) {
+			$slaves[$server_id] = array('role' => sprintf("Slave %d", count($slaves) + 1), 'queries' => 0);
 		}
 	} while (count($slaves) < 3);
 
 	$sequences = array();
 	$num_queries = 1000;
 	for ($i = 0; $i < $num_queries; $i+=3) {
-		mst_mysqli_query(4, $link, "SELECT 1");
-		$slaves[$link->thread_id]['queries']++;
-		$sequence_id = $link->thread_id;
 		mst_mysqli_query(5, $link, "SELECT 1");
-		$slaves[$link->thread_id]['queries']++;
-		$sequence_id .= sprintf("-%d", $link->thread_id);
-		mst_mysqli_query(6, $link, "SELECT 1");
-		$slaves[$link->thread_id]['queries']++;
-		$sequence_id .= sprintf("-%d", $link->thread_id);
+		$server_id = mst_mysqli_get_emulated_id(6, $link);
+		$slaves[$server_id]['queries']++;
+		$sequence_id = $server_id;
+		
+		mst_mysqli_query(7, $link, "SELECT 1");
+		$server_id = mst_mysqli_get_emulated_id(8, $link);
+		$slaves[$server_id]['queries']++;
+		$sequence_id .= $server_id;
+
+		mst_mysqli_query(9, $link, "SELECT 1");
+		$server_id = mst_mysqli_get_emulated_id(10, $link);
+		$slaves[$server_id]['queries']++;
+		$sequence_id .= $server_id;
 
 		if (!isset($sequences[$sequence_id]))
 		  $sequences[$sequence_id] = 1;
@@ -78,20 +88,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random.ini
 	}
 
 	if (count($sequences) == 1)
-		printf("[007] Slaves are always called in the same order, does not look like random\n");
+		printf("[011] Slaves are always called in the same order, does not look like random\n");
 
 	$min = ($num_queries / 3) * 0.5;
 	$max = ($num_queries / 3) * 2;
 
 	foreach ($slaves as $thread => $details) {
-		printf("%s (%d) has run %d queries.\n", $details['role'], $thread, $details['queries']);
+		printf("%s (%s) has run %d queries.\n", $details['role'], $thread, $details['queries']);
 		if ($details['queries'] < $min) {
-			printf("[008] %s (%d) has run less queries (%d) than expected (> %d), check manually.\n",
+			printf("[008] %s (%s) has run less queries (%d) than expected (> %d), check manually.\n",
 			  $details['role'], $thread, $details['queries'], $min);
 		}
 
 		if ($details['queries'] > $max) {
-			printf("[009] %s (%d) has run more queries (%d) than expected (< %d), check manually.\n",
+			printf("[009] %s (%s) has run more queries (%d) than expected (< %d), check manually.\n",
 			  $details['role'], $thread, $details['queries'], $max);
 		}
 	}
@@ -104,7 +114,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random.ini'.\n");
 ?>
 --EXPECTF--
-Slave 1 (%d) has run %d queries.
-Slave 2 (%d) has run %d queries.
-Slave 3 (%d) has run %d queries.
+Slave 1 (%s) has run %d queries.
+Slave 2 (%s) has run %d queries.
+Slave 3 (%s) has run %d queries.
 done!

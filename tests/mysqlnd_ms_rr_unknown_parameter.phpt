@@ -44,6 +44,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_rr_unknown_parameter.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -59,20 +64,22 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_rr_unknown_parameter.ini
 	}
 
 	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test");
-	if ($link->thread_id == 0)
-		printf("[003] Which server has run this?");
+	$server_id = mst_mysqli_get_emulated_id(3, $link);
+	if (is_null($server_id))
+		printf("[004] Which server has run this?");
 
-	$last_thread_id = NULL;
+	$last_server_id = NULL;
 	for ($i = 0; $i < 10; $i++) {
 		mst_mysqli_query(5, $link, "SELECT 1 FROM DUAL");
-		if (!is_null($last_thread_id) && ($last_thread_id == $link->thread_id))
-			printf("[006] Connection has not been switched!\n");
+		$server_id = mst_mysqli_get_emulated_id(6, $link);
+		if (!is_null($last_server_id) && ($last_server_id == $server_id))
+			printf("[007] Connection has not been switched!\n");
 
-		$last_thread_id = $link->thread_id;
+		$last_server_id = $server_id;
 	}
 
-	if ($link->thread_id == 0)
-		printf("[007] Which server has run this?");
+	if (is_null($server_id))
+		printf("[008] Which server has run this?");
 
 	print "done!";
 ?>

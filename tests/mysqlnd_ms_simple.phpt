@@ -27,8 +27,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_simple.ini", $settings))
 	require_once("connect.inc");
 
 	$link = mst_mysqli_connect("phpBB", $user, $passwd, "", $port, $socket);
-
-	var_dump($link->thread_id);
+	
 	var_dump($res=$link->query("/*ms=slave*/SELECT user from mysql.user"));
 	var_dump($res2=$link->query("/*ms=master*/SELECT user from mysql.user"));
 	var_dump($res3=$link->query("/*ms=master*/SELECT user from mysql.user"));
@@ -42,7 +41,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_simple.ini", $settings))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_simple.ini'.\n");
 ?>
 --EXPECTF--
-int(%d)
 object(mysqli_result)#%d (5) {
   ["current_field"]=>
   int(0)

@@ -21,6 +21,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_sql_hints.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -28,8 +33,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_hints.ini
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("util.inc");
 
-	function mst_mysqli_query($offset, $link, $query, $expected) {
+	function my_mysqli_query($offset, $link, $query, $expected) {
 		if (!$res = $link->query($query)) {
 			printf("[%03d + 01] [%d] %s\n", $offset, $link->errno, $link->error);
 			return false;
@@ -56,67 +62,77 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_hints.ini
 			$host, $user, $db, $port, $socket);
 
 	$expected = array();
-	mst_mysqli_query(10, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH), $expected);
-	$master = $link->thread_id;
-	mst_mysqli_query(20, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH), $expected);
-	$slave = $link->thread_id;
-	mst_mysqli_query(30, $link, sprintf("/*%s*/CREATE TABLE test(id INT)", MYSQLND_MS_MASTER_SWITCH), $expected);
-	mst_mysqli_query(40, $link, sprintf("/*%s*/CREATE TABLE test(id INT)", MYSQLND_MS_SLAVE_SWITCH), $expected);
-	mst_mysqli_query(50, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (CONNECTION_ID())", MYSQLND_MS_SLAVE_SWITCH), $expected);
-	mst_mysqli_query(60, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (CONNECTION_ID())", MYSQLND_MS_MASTER_SWITCH), $expected);
-	mst_mysqli_query(70, $link, sprintf("/*%s*/SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH), $expected);
-	mst_mysqli_query(80, $link, sprintf("/*%s*/SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	my_mysqli_query(10, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH), $expected);
+	$master_thread_id = $link->thread_id;
+	$master = mst_mysqli_get_emulated_id(11, $link);
+	my_mysqli_query(20, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	$slave_thread_id = $link->thread_id;
+	$slave = mst_mysqli_get_emulated_id(21, $link);
+	my_mysqli_query(30, $link, sprintf("/*%s*/CREATE TABLE test(id INT)", MYSQLND_MS_MASTER_SWITCH), $expected);
+	my_mysqli_query(40, $link, sprintf("/*%s*/CREATE TABLE test(id INT)", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	my_mysqli_query(50, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (CONNECTION_ID())", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	my_mysqli_query(60, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (CONNECTION_ID())", MYSQLND_MS_MASTER_SWITCH), $expected);
+	my_mysqli_query(70, $link, sprintf("/*%s*/SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH), $expected);
+	my_mysqli_query(80, $link, sprintf("/*%s*/SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH), $expected);
 
 	/* slave, no hint */
 	$expected = array('_role' => 'slave');
-	mst_mysqli_query(90, $link, "SELECT @myrole AS _role", $expected);
-	if ($link->thread_id != $slave)
-		printf("[091] Query should have been run on the slave\n");
+	my_mysqli_query(90, $link, "SELECT @myrole AS _role", $expected);
+	$server_id = mst_mysqli_get_emulated_id(91, $link);
+	if ($server_id != $slave)
+		printf("[092] Query should have been run on the slave\n");
 
 	/* master, no hint */
 	$expected = array();
-	mst_mysqli_query(100, $link, "INSERT INTO test(id) VALUES (2)", $expected);
-	if ($link->thread_id != $master)
-		printf("[092] Query should have been run on the master\n");
+	my_mysqli_query(100, $link, "INSERT INTO test(id) VALUES (-2)", $expected);
+	$server_id = mst_mysqli_get_emulated_id(101, $link);
+	if ($server_id != $master)
+		printf("[102] Query should have been run on the master\n");
 
 	/* ... boring: slave */
-	$expected = array("id" => $slave);
-	mst_mysqli_query(110, $link, sprintf("/*%s*/SELECT id FROM test", MYSQLND_MS_SLAVE_SWITCH), $expected);
-	if ($link->thread_id != $slave)
-		printf("[111] Query should have been run on the slave\n");
+	$expected = array("id" => $slave_thread_id);
+	my_mysqli_query(110, $link, sprintf("/*%s*/SELECT id FROM test", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	$server_id = mst_mysqli_get_emulated_id(111, $link);
+	if ($server_id != $slave)
+		printf("[112] Query should have been run on the slave\n");
 
 	/* master, no hint */
 	$expected = array();
-	mst_mysqli_query(120, $link, "DELETE FROM test WHERE id = 2", $expected);
-	if ($link->thread_id != $master)
+	my_mysqli_query(120, $link, "DELETE FROM test WHERE id = -2", $expected);
+	$server_id = mst_mysqli_get_emulated_id(121, $link);
+	if ($server_id != $master)
 		printf("[122] Query should have been run on the master\n");
 
 	/* master, forced */
-	$expected = array("id" => $master);
-	mst_mysqli_query(130, $link, sprintf("/*%s*/SELECT id FROM test", MYSQLND_MS_MASTER_SWITCH), $expected);
-	if ($link->thread_id != $master)
-		printf("[131] Query should have been run on the master\n");
+	$expected = array("id" => $master_thread_id);
+	my_mysqli_query(130, $link, sprintf("/*%s*/SELECT id FROM test", MYSQLND_MS_MASTER_SWITCH), $expected);
+	$server_id = mst_mysqli_get_emulated_id(131, $link);
+	if ($server_id != $master)
+		printf("[132] Query should have been run on the master\n");
 
 	/* master, forced */
 	$expected = array("_role" => 'master');
-	mst_mysqli_query(140, $link, sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH), $expected);
-	if ($link->thread_id != $master)
-		printf("[141] Query should have been run on the master\n");
+	my_mysqli_query(140, $link, sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH), $expected);
+	$server_id = mst_mysqli_get_emulated_id(141, $link);
+	if ($server_id != $master)
+		printf("[142] Query should have been run on the master\n");
 
 	/* slave, forced */
 	$expected = array();
-	mst_mysqli_query(150, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (0)", MYSQLND_MS_SLAVE_SWITCH), $expected);
-	if ($link->thread_id != $slave)
-		printf("[151] Query should have been run on the slave\n");
+	my_mysqli_query(150, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (0)", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	$server_id = mst_mysqli_get_emulated_id(151, $link);
+	if ($server_id != $slave)
+		printf("[152] Query should have been run on the slave\n");
 
 	$expected = array('_role' => 'slave');
-	mst_mysqli_query(160, $link, sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH), $expected);
-	if ($link->thread_id != $slave)
-		printf("[161] Query should have been run on the slave\n");
+	my_mysqli_query(160, $link, sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH), $expected);
+	$server_id = mst_mysqli_get_emulated_id(161, $link);
+	if ($server_id != $slave)
+		printf("[162] Query should have been run on the slave\n");
 
 	$expected = array();
-	mst_mysqli_query(170, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH), $expected);
-	mst_mysqli_query(180, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH), $expected);
+	my_mysqli_query(170, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH), $expected);
+	my_mysqli_query(180, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH), $expected);
 
 	print "done!";
 ?>

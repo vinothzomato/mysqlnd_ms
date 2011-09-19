@@ -26,6 +26,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_user_complex.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -33,6 +38,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 --FILE--
 <?php
 	require_once("connect.inc");
+	require_once("util.inc");
 
 	/*
 	* Select/pick a server for running the query on.
@@ -43,8 +49,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 		static $pick_server_last_used = "";
 		flush();
 
+		$print = true;
 		$args = func_get_args();
-
 		$num = func_num_args();
 		if ($num != 6) {
 			printf("[003] Number of arguments should be 6 got %d\n", $num);
@@ -58,10 +64,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 		if ("" == $connected_host) {
 			printf("[005] Currently connected host is empty\n");
 		}
-		if (!isset($queries[$query])) {
-			printf("[006] We are asked to handle the query '%s' which has not been issued by us.\n", $query);
+		if (false == stristr($query, "util.inc")) {
+			if (!isset($queries[$query])) {
+				printf("[006] We are asked to handle the query '%s' which has not been issued by us.\n", $query);
+			} else {
+				unset($queries[$query]);
+			}
 		} else {
-			unset($queries[$query]);
+			/* query to fetch emulated server/thread id */
+			$print = false;
+			if (isset($queries[$query]))
+				unset($queries[$query]);
 		}
 
 		if (!is_array($master)) {
@@ -110,14 +123,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 			  break;
 		}
 
-		printf("'%s' => %s\n", $query, $server);
+		if ($print)
+			printf("'%s' => %s\n", $query, $server);
 
 		$pick_server_last_used = $ret;
 		return $ret;
 	}
 
 
-	function mst_mysqli_query($offset, $link, $query, $expected) {
+	function my_mysqli_query($offset, $link, $query, $expected) {
 		global $queries;
 
 		$queries[$query] = $query;
@@ -145,17 +159,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 	function check_master_slave_threads($offset, $threads) {
 
 		if (isset($threads["slave"]) && isset($threads["master"])) {
-			foreach ($threads["slave"] as $thread_id => $num_queries) {
-				if (isset($threads["master"][$thread_id])) {
-					printf("[%03d + 01] Slave connection thread=%d is also a master connection!\n",
-						$offset, $thread_id);
-					unset($threads["slave"][$thread_id]);
+			foreach ($threads["slave"] as $server_id => $num_queries) {
+				if (isset($threads["master"][$server_id])) {
+					printf("[%03d + 01] Slave connection thread=%s is also a master connection!\n",
+						$offset, $server_id);
+					unset($threads["slave"][$server_id]);
 				}
 			}
-			foreach ($threads["master"] as $thread_id => $num_queries) {
-				if (isset($threads["slave"][$thread_id])) {
-					printf("[%03d + 02] Master connection thread=%d is also a slave connection!\n",
-						$offset, $thread_id);
+			foreach ($threads["master"] as $server_id => $num_queries) {
+				if (isset($threads["slave"][$server_id])) {
+					printf("[%03d + 02] Master connection thread=%s is also a slave connection!\n",
+						$offset, $server_id);
 				}
 			}
 		}
@@ -166,19 +180,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 		printf("[002] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
 
-	$threads["connect"] = $link->thread_id;
 	$autocommit = true;
-
 	$link->autocommit($autocommit);
 
 	/* Should go to the first slave */
 	$query = "SELECT 'Master Andrey has send this query to a slave.' AS _message FROM DUAL";
 	$expected = array('_message' => 'Master Andrey has send this query to a slave.');
-	mst_mysqli_query(20, $link, $query, $expected);
-	if (!isset($threads["slave"][$link->thread_id])) {
-		$threads["slave"][$link->thread_id] = 1;
+	my_mysqli_query(20, $link, $query, $expected);
+	$server_id = mst_mysqli_get_emulated_id(21, $link);
+	if (!isset($threads["slave"][$server_id])) {
+		$threads["slave"][$server_id] = 1;
 	} else {
-		$threads["slave"][$link->thread_id]++;
+		$threads["slave"][$server_id]++;
 	}
 	check_master_slave_threads(30, $threads);
 
@@ -186,40 +199,43 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 	$query = sprintf("/*%s*/SELECT 'master' AS _message FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 
 	$expected = array('_message' => 'master');
-	mst_mysqli_query(40, $link, $query, $expected);
-	if (!isset($threads["master"][$link->thread_id])) {
-		$threads["master"][$link->thread_id] = 1;
+	my_mysqli_query(40, $link, $query, $expected);
+	$server_id = mst_mysqli_get_emulated_id(41, $link);
+	if (!isset($threads["master"][$server_id])) {
+		$threads["master"][$server_id] = 1;
 	} else {
-		$threads["master"][$link->thread_id]++;
+		$threads["master"][$server_id]++;
 	}
 	check_master_slave_threads(50, $threads);
 
 	/* Should go to the first master */
 	$query = sprintf("/*%s*/SELECT 'master' AS _message FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$expected = array('_message' => 'master');
-	mst_mysqli_query(60, $link, $query, $expected);
-	if (!isset($threads["master"][$link->thread_id])) {
-		$threads["master"][$link->thread_id] = 1;
+	my_mysqli_query(60, $link, $query, $expected);
+	$server_id = mst_mysqli_get_emulated_id(61, $link);
+	if (!isset($threads["master"][$server_id])) {
+		$threads["master"][$server_id] = 1;
 	} else {
-		$threads["master"][$link->thread_id]++;
+		$threads["master"][$server_id]++;
 	}
 	check_master_slave_threads(70, $threads);
-	if ($threads["master"][$link->thread_id] != 2) {
-		printf("[071] Master should have run 2 queries, records report %d\n", $threads["master"][$link->thread_id]);
+	if ($threads["master"][$server_id] != 2) {
+		printf("[071] Master should have run 2 queries, records report %d\n", $threads["master"][$serverid]);
 	}
 
 	/* Should go to the first slave */
 	$query = sprintf("/*%s*/SELECT 'slave' AS _message FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
 	$expected = array('_message' => 'slave');
-	mst_mysqli_query(80, $link, $query, $expected);
-	if (!isset($threads["slave"][$link->thread_id])) {
-		$threads["slave"][$link->thread_id] = 1;
+	my_mysqli_query(80, $link, $query, $expected);
+	$server_id = mst_mysqli_get_emulated_id(81, $link);
+	if (!isset($threads["slave"][$server_id])) {
+		$threads["slave"][$server_id] = 1;
 	} else {
-		$threads["slave"][$link->thread_id]++;
+		$threads["slave"][$server_id]++;
 	}
 	check_master_slave_threads(90, $threads);
-	if ($threads["slave"][$link->thread_id] != 2) {
-		printf("[091] Slave should have run 2 queries, records report %d\n", $threads["slave"][$link->thread_id]);
+	if ($threads["slave"][$server_id] != 2) {
+		printf("[091] Slave should have run 2 queries, records report %d\n", $threads["slave"][$server_id]);
 	}
 
 	$autocommit = false;
@@ -228,15 +244,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 	/* Should go to the first slave with in_transaction = true */
 	$query = sprintf("/*%s*/SELECT 'slave' AS _message FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
 	$expected = array('_message' => 'slave');
-	mst_mysqli_query(100, $link, $query, $expected);
-	if (!isset($threads["slave"][$link->thread_id])) {
-		$threads["slave"][$link->thread_id] = 1;
+	my_mysqli_query(100, $link, $query, $expected);
+	$server_id = mst_mysqli_get_emulated_id(101, $link);
+	if (!isset($threads["slave"][$server_id])) {
+		$threads["slave"][$server_id] = 1;
 	} else {
-		$threads["slave"][$link->thread_id]++;
+		$threads["slave"][$server_id]++;
 	}
 	check_master_slave_threads(110, $threads);
-	if ($threads["slave"][$link->thread_id] != 3) {
-		printf("[111] Slave should have run 3 queries, records report %d\n", $threads["slave"][$link->thread_id]);
+	if ($threads["slave"][$server_id] != 3) {
+		printf("[111] Slave should have run 3 queries, records report %d\n", $threads["slave"][$server_id]);
 	}
 
 	print "done!";

@@ -20,6 +20,10 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master[1,2]");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -63,36 +67,40 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_round_robin.ini
 
 	/* wrap around to first slave */
 	$role = fetch_role(6, $link);
-	if (isset($servers[$link->thread_id][$role]))
-		$servers[$link->thread_id][$role] = $servers[$link->thread_id][$role] + 1;
+	$server_id = mst_mysqli_get_emulated_id(7, $link);
+	if (isset($servers[$server_id][$role]))
+		$servers[$server_id][$role] = $servers[$server_id][$role] + 1;
 	else
-		$servers[$link->thread_id] = array($role => 1);
+		$servers[$server_id] = array($role => 1);
 
 	/* move forward to second slave */
-	$role = fetch_role(7, $link);
-	if (isset($servers[$link->thread_id][$role]))
-		$servers[$link->thread_id][$role] = $servers[$link->thread_id][$role] + 1;
+	$role = fetch_role(8, $link);
+	$server_id = mst_mysqli_get_emulated_id(9, $link);
+	if (isset($servers[$server_id][$role]))
+		$servers[$server_id][$role] = $servers[$server_id][$role] + 1;
 	else
-		$servers[$link->thread_id] = array($role => 1);
+		$servers[$server_id] = array($role => 1);
 
 	/* wrap around to first master */
-	$role = fetch_role(8, $link, MYSQLND_MS_MASTER_SWITCH);
-	if (isset($servers[$link->thread_id][$role]))
-		$servers[$link->thread_id][$role] = $servers[$link->thread_id][$role] + 1;
+	$role = fetch_role(10, $link, MYSQLND_MS_MASTER_SWITCH);
+	$server_id = mst_mysqli_get_emulated_id(11, $link);
+	if (isset($servers[$server_id][$role]))
+		$servers[$server_id][$role] = $servers[$server_id][$role] + 1;
 	else
-		$servers[$link->thread_id] = array($role => 1);
+		$servers[$server_id] = array($role => 1);
 
 	/* move forward to the second master */
-	$role = fetch_role(9, $link, MYSQLND_MS_MASTER_SWITCH);
-	if (isset($servers[$link->thread_id][$role]))
-		$servers[$link->thread_id][$role] = $servers[$link->thread_id][$role] + 1;
+	$role = fetch_role(12, $link, MYSQLND_MS_MASTER_SWITCH);
+	$server_id = mst_mysqli_get_emulated_id(13, $link);
+	if (isset($servers[$server_id][$role]))
+		$servers[$server_id][$role] = $servers[$server_id][$role] + 1;
 	else
-		$servers[$link->thread_id] = array($role => 1);
+		$servers[$server_id] = array($role => 1);
 
 
-	foreach ($servers as $thread_id => $roles) {
+	foreach ($servers as $server_id => $roles) {
 		foreach ($roles as $role => $num_queries) {
-			printf("%s (%d) has run %d queries\n", $role, $thread_id, $num_queries);
+			printf("%s (%s) has run %d queries\n", $role, $server_id, $num_queries);
 		}
 	}
 	print "done!";
@@ -104,7 +112,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_round_robin.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_round_robin.ini'.\n");
 ?>
 --EXPECTF--
-Slave 1 (%d) has run 1 queries
-Slave 2 (%d) has run 1 queries
-Master 2 (%d) has run 2 queries
+Slave 1 (%s) has run 1 queries
+Slave 2 (%s) has run 1 queries
+Master 2 (%s) has run 2 queries
 done!
