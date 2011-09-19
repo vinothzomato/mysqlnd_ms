@@ -43,6 +43,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_table_assorted_slave.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -58,19 +63,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_assorted_slave.ini
 	} else {
 
 		mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test1");
-		$master = $link->thread_id;
+		$master = mst_mysqli_get_emulated_id(4, $link);
 
 		/* there is no slave to run this query... */
-		if ($res = mst_mysqli_query(4, $link, "SELECT 'one' AS _id FROM test1")) {
+		if ($res = mst_mysqli_query(5, $link, "SELECT 'one' AS _id FROM test1")) {
 			var_dump($res->fetch_assoc());
-	  }
-	  if ($link->thread_id == $master)
-		  printf("[005] Master has replied to slave query\n");
+		}
+		$server_id = mst_mysqli_get_emulated_id(6, $link);
+		if ($server_id == $master)
+			printf("[007] Master has replied to slave query\n");
 
-	  if ($link->thread_id != 0)
-		  printf("[006] Connected to some server, but which one?\n");
+		if (!is_null($server_id))
+		  printf("[008] Connected to some server, but which one?\n");
 
-	  printf("[007] [%s/%d] %s\n", $link->sqlstate, $link->errno, $link->error);
+	  printf("[009] [%s/%d] %s\n", $link->sqlstate, $link->errno, $link->error);
 
 	}
 
@@ -82,5 +88,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_assorted_slave.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_assorted_slave.ini'.\n");
 ?>
 --EXPECTF--
-[007] [HY000/2002] Some meaningful message from mysqlnd_ms, e.g. some connect error
+[009] [HY000/2002] Some meaningful message from mysqlnd_ms, e.g. some connect error
 done!

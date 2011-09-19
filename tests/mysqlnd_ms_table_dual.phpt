@@ -52,6 +52,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_table_dual.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master[1]");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -71,19 +75,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_dual.ini
 
 	/* DUAL has not db in its metadata, where will we send it? */
 	mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL");
-	$threads[$link->thread_id] = array("slave1");
+	$threads[mst_mysqli_get_emulated_id(4, $link)] = array("slave1");
 
-	$res = mst_mysqli_query(4, $link, "SELECT NOW() AS _now");
-	$threads[$link->thread_id][] = "slave1";
+	$res = mst_mysqli_query(5, $link, "SELECT NOW() AS _now");
+	$threads[mst_mysqli_get_emulated_id(6, $link)][] = "slave1";
 
-	$res = mst_mysqli_query(5, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
-	$threads[$link->thread_id] = array("master1");
+	$res = mst_mysqli_query(7, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
+	$threads[mst_mysqli_get_emulated_id(8, $link)] = array("master1");
 
-	$res = mst_mysqli_query(5, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
-	$threads[$link->thread_id][] = "master1";
+	$res = mst_mysqli_query(9, $link, "SELECT NOW() AS _now", MYSQLND_MS_MASTER_SWITCH);
+	$threads[mst_mysqli_get_emulated_id(10, $link)][] = "master1";
 
-	foreach ($threads as $thread_id => $roles) {
-		printf("%d: ", $thread_id);
+	foreach ($threads as $server_id => $roles) {
+		printf("%s: ", $server_id);
 		foreach ($roles as $k => $role)
 		  printf("%s,", $role);
 		printf("\n");
@@ -99,6 +103,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_dual.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_dual.ini'.\n");
 ?>
 --EXPECTF--
-%d: slave1, slave1,
-%d: master1, master1,
+%s: slave1, slave1,
+%s: master1, master1,
 done!

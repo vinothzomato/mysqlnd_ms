@@ -57,6 +57,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_table_evaluation_order.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master[1]");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -87,10 +91,10 @@ mysqlnd_ms.multi_master=1
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $port, $socket);
 	if ($res = mst_mysqli_query(4, $link, "SELECT 1 FROM test"))
 		var_dump($res->fetch_assoc());
-	$threads[$link->thread_id] = array('slave1');
+	$threads[mst_mysqli_get_emulated_id(5, $link)] = array('slave1');
 
-	foreach ($threads as $thread_id => $roles) {
-		printf("%d: ", $thread_id);
+	foreach ($threads as $server_id => $roles) {
+		printf("%s: ", $server_id);
 		foreach ($roles as $k => $role)
 		  printf("%s,", $role);
 		printf("\n");
@@ -112,5 +116,5 @@ array(1) {
   string(1) "1"
 }
 0: master2,
-%d: slave1,
+%s: slave1,
 done!

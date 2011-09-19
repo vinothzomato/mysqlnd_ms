@@ -57,6 +57,11 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_table_evaluation_order_qualified_first.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1]");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master[1]");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -77,10 +82,10 @@ mysqlnd_ms.multi_master=1
 
 	/* db.test -> db.test rule -> master 1 */
 	mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test");
-	$threads[$link->thread_id] = array("master1");
+	$threads[mst_mysqli_get_emulated_id(4, $link)] = array("master1");
 
 	/* db.test2 -> % rule -> master 2 */
-	mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test2");
+	mst_mysqli_query(5, $link, "DROP TABLE IF EXISTS test2");
 	$threads[$link->thread_id] = array("master2");
 
 	/* db.test -> db.test rule -> slave 2 */
@@ -88,8 +93,8 @@ mysqlnd_ms.multi_master=1
 		var_dump($res->fetch_assoc());
 	$threads[$link->thread_id][] = 'slave2';
 
-	foreach ($threads as $thread_id => $roles) {
-		printf("%d: ", $thread_id);
+	foreach ($threads as $server_id => $roles) {
+		printf("%s: ", $server_id);
 		foreach ($roles as $k => $role)
 		  printf("%s,", $role);
 		printf("\n");
@@ -107,6 +112,6 @@ mysqlnd_ms.multi_master=1
 --EXPECTF--
 %Aonnect error, [004] [%d] %s
 %Aonnect error, [005] [%d] %s
-%d: master1,
+%s: master1,
 0: master2,slave2,
 done!
