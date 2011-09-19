@@ -61,11 +61,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser1.ini
 
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	mst_mysqli_query(2, $link, "SELECT 1 FROM test", MYSQLND_MS_SLAVE_SWITCH);
-	$slave_thread_id = $link->thread_id;
-	mst_mysqli_fetch_id(4, mst_mysqli_query(3, $link, "SELECT 'a' AS _id FROM test"));
+	$slave_id = mst_mysqli_get_emulated_id(3, $link);
+	mst_mysqli_fetch_id(5, mst_mysqli_query(4, $link, "SELECT 'a' AS _id FROM test"));
 
-	if ($slave_thread_id != $link->thread_id)
-		printf("[005] Statement has not been executed on the slave\n");
+	$server_id = mst_mysqli_get_emulated_id(6, $link);
+	if ($slave_id != $server_id)
+		printf("[007] Statement has not been executed on the slave\n");
 
 	print "done!";
 ?>
@@ -75,5 +76,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser1.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser1.ini'.\n");
 ?>
 --EXPECTF--
-[004] _id = 'a'
+[005] _id = 'a'
 done!

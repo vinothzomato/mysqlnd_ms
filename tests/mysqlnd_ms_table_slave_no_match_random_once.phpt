@@ -61,6 +61,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_slave_no_match_random_once.ini
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+	/* TODO: what is master and slave server use same thread id? */
+
 	$threads = array();
 	mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test");
 	$threads[$link->thread_id] = array("master");

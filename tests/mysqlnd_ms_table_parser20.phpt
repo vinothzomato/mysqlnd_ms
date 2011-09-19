@@ -45,6 +45,10 @@ if (_skipif_have_feature("table_filter")) {
 
 if ($error = mst_create_config("test_mysqlnd_ms_table_parser20.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -52,8 +56,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser20.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("util.inc");
-	
+	require_once("util.inc");	
 
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	$sql = "SELECT 'h\'ello' AS _id FROM DUAL";
@@ -63,29 +66,30 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser20.ini
 		if (mysqli_connect_errno())
 			printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-		mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
-		$thread_id = $link->thread_id;
+		mst_mysqli_query(3, $link, "SELECT 1 FROM test", MYSQLND_MS_SLAVE_SWITCH);
+		$slave_id = mst_mysqli_get_emulated_id(4, $link);
 
-		mst_mysqli_fetch_id(5, mst_mysqli_query(4, $link, $sql));
-		if ($thread_id != $link->thread_id)
-			printf("[006] Statement has not been executed on the slave\n");
+		mst_mysqli_fetch_id(6, mst_mysqli_query(5, $link, $sql));
+		$server_id = mst_mysqli_get_emulated_id(7, $link);
+		if ($slave_id != $server_id)
+			printf("[008] Statement has not been executed on the slave\n");
 
 	} else {
 		/* fake result */
-		printf("[005] _id = 'h'ello'\n");
+		printf("[006] _id = 'h'ello'\n");
 	}
 
 	$sql = "SELECT '''hello''' AS _id FROM DUAL";
-	if (mst_mysqli_server_supports_query(6, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
+	if (mst_mysqli_server_supports_query(9, $sql, $slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)) {
 
 		$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 		if (mysqli_connect_errno())
-			printf("[007] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+			printf("[010] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-		mst_mysqli_fetch_id(9, mst_mysqli_query(8, $link, $sql));
+		mst_mysqli_fetch_id(12, mst_mysqli_query(11, $link, $sql));
 	} else {
 		/* fake result */
-		printf("[009] _id = ''hello''\n");
+		printf("[012] _id = ''hello''\n");
 	}
 
 	print "done!";
@@ -97,7 +101,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser20.ini
 ?>
 --EXPECTF--
 [001] Testing server support of 'SELECT 'h\'ello' AS _id FROM DUAL'
-[005] _id = 'h'ello'
-[006] Testing server support of 'SELECT '''hello''' AS _id FROM DUAL'
-[009] _id = ''hello''
+[006] _id = 'h'ello'
+[009] Testing server support of 'SELECT '''hello''' AS _id FROM DUAL'
+[012] _id = ''hello''
 done!

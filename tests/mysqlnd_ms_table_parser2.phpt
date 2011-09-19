@@ -46,6 +46,10 @@ if (_skipif_have_feature("table_filter")) {
 
 if ($error = mst_create_config("test_mysqlnd_ms_table_parser2.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -53,8 +57,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser2.ini
 --FILE--
 <?php
 	require_once("connect.inc");
-	require_once("util.inc");
-	
+	require_once("util.inc");	
 
 	/* TODO: not sure if we can make non-table and table filter behaviour identical! */
 
@@ -63,11 +66,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser2.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	mst_mysqli_query(2, $link, "SELECT 1", MYSQLND_MS_SLAVE_SWITCH);
-	$slave_thread_id = $link->thread_id;
+	$slave_id = mst_mysqli_get_emulated_id(3, $link);
 
-	mst_mysqli_fetch_id(4, mst_mysqli_query(3, $link, "SELECT"));
-	if ($slave_thread_id != $link->thread_id)
-		printf("[005] Statement has not been executed on the slave\n");
+	mst_mysqli_fetch_id(5, mst_mysqli_query(4, $link, "SELECT"));
+	$server_id = mst_mysqli_get_emulated_id(6, $link);
+	if ($slave_id != $server_id)
+		printf("[007] Statement has not been executed on the slave\n");
 
 	print "done!";
 ?>
@@ -77,6 +81,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser2.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser2.ini'.\n");
 ?>
 --EXPECTF--
-[003] [1064] %s
-[004] No result
+[004] [1064] %s
+[005] No result
 done!

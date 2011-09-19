@@ -45,6 +45,10 @@ if (_skipif_have_feature("table_filter")) {
 
 if ($error = mst_create_config("test_mysqlnd_ms_table_parser4.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -61,11 +65,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser4.ini
 
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	mst_mysqli_query(2, $link, "SELECT 1 FROM test", MYSQLND_MS_SLAVE_SWITCH);
-	$thread_id = $link->thread_id;
+	$slave_id = mst_mysqli_get_emulated_id(3, $link);	
 
-	mst_mysqli_fetch_id(4, mst_mysqli_query(3, $link, "SELECT NULL, 1 AS _id FROM test"));
-	if ($thread_id != $link->thread_id)
-		printf("[005] Statement has not been executed on the slave\n");
+	mst_mysqli_fetch_id(5, mst_mysqli_query(4, $link, "SELECT NULL, 1 AS _id FROM test"));
+	$server_id = mst_mysqli_get_emulated_id(6, $link);
+	if ($slave_id != $server_id)
+		printf("[007] Statement has not been executed on the slave\n");
 
 	print "done!";
 ?>
@@ -81,5 +86,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser4.ini
 		printf("[clean] %s\n", $err);
 ?>
 --EXPECTF--
-[004] _id = '1'
+[005] _id = '1'
 done!
