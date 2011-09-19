@@ -5,7 +5,7 @@
 // ARG_WITH("mysqlnd_ms", "for mysqlnd_ms support", "no");
 
 // Otherwise, use ARG_ENABLE
-ARG_ENABLE("mysqlnd_ms", "enable mysqlnd_ms support", "no");
+ARG_ENABLE("mysqlnd-ms", "enable mysqlnd_ms support", "no");
 
 if (PHP_MYSQLND_MS != "no") {
 	ADD_EXTENSION_DEP('mysqlnd_ms', 'mysqlnd');
