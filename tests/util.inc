@@ -205,6 +205,8 @@
 	function mst_mysqli_get_emulated_id($offset, $link) {
 
 		$thread_id = $link->thread_id;
+		if (0 == $thread_id)
+			return NULL;
 
 		$query = sprintf("/*%s*//*%d*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles", MYSQLND_MS_LAST_USED_SWITCH, $offset);
 		if (!($res = $link->query($query))) {
