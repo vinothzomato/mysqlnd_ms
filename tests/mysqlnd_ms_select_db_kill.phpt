@@ -93,6 +93,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_select_db_kill.ini
 	if (!unlink("test_mysqlnd_ms_select_db_kill.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_select_db_kill.ini'.\n");
 ?>
+--XFAIL--
+Question behind: what shall dispatched commands do if a connection from the pool is borked
 --EXPECTF--
 [005] [2006] MySQL server has gone away
 [006] [2006] MySQL server has gone away
