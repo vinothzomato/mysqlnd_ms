@@ -5121,10 +5121,10 @@ YY_DECL
 
 
 	/* can't use `yylval` here because `yylval` is initialized by flex to `yylval_param` later */
-	DBG_ENTER("my_lex_routine");
 	zval * token_value = &yylval_param->zv;
 	const char ** kn = &(yylval_param->kn);
 	smart_str ** comment = &(yylval_param->comment);
+	DBG_ENTER("my_lex_routine");
 
 
 #line 5131 "mysqlnd_query_lexer.c"

@@ -58,10 +58,10 @@ int mysqlnd_qp_error(const char *format, ...);
 %%
 %{
 	/* can't use `yylval` here because `yylval` is initialized by flex to `yylval_param` later */
-	DBG_ENTER("my_lex_routine");
 	zval * token_value = &yylval_param->zv;
 	const char ** kn = &(yylval_param->kn);
 	smart_str ** comment = &(yylval_param->comment);
+	DBG_ENTER("my_lex_routine");
 %}
 
 (?i:ACCESSIBLE)						{ *kn = yytext; DBG_INF("QC_TOKEN_ACCESSIBLE");		DBG_RETURN(QC_TOKEN_ACCESSIBLE); }
