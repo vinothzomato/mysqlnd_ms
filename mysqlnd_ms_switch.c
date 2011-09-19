@@ -46,9 +46,7 @@
 #include "mysqlnd_ms_filter_random.h"
 #include "mysqlnd_ms_filter_round_robin.h"
 
-#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 #include "mysqlnd_ms_filter_table_partition.h"
-#endif
 
 #include "mysqlnd_ms_switch.h"
 

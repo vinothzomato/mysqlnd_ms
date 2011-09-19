@@ -18,8 +18,6 @@
 */
 
 /* $Id: mysqlnd_ms.h 311510 2011-05-27 19:36:39Z andrey $ */
-#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
-
 #ifndef MYSQLND_MS_FILTER_TABLE_PARTITION_H
 #define MYSQLND_MS_FILTER_TABLE_PARTITION_H
 struct st_mysqlnd_ms_config_json_entry;
@@ -40,8 +38,6 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 void mysqlnd_ms_filter_ht_dtor(void * data);
 
 #endif	/* MYSQLND_MS_FILTER_TABLE_PARTITION_H */
-
-#endif /* MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION */
 /*
  * Local variables:
  * tab-width: 4

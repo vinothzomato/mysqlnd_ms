@@ -19,8 +19,6 @@
 
 
 /* $Id: mysqlnd_ms.c 311179 2011-05-18 11:26:22Z andrey $ */
-#ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -441,7 +439,6 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 }
 /* }}} */
 
-#endif /* MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION */
 /*
  * Local variables:
  * tab-width: 4
