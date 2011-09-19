@@ -57,7 +57,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser16.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-	
 
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	$sql = "SELECT SQL_CALC_FOUND_ROWS id AS _id FROM test ORDER BY id ASC";
@@ -95,5 +94,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser16.ini
 ?>
 --EXPECTF--
 [001] Testing server support of 'SELECT SQL_CALC_FOUND_ROWS id AS _id FROM test ORDER BY id ASC'
-[005] _id = '1'
+[006] _id = '1'
 done!
