@@ -285,7 +285,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_used_connection, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 
-/* {{{ proto long mysqlnd_ms_get_last_used_connection(object handle)
+/* {{{ proto object mysqlnd_ms_get_last_used_connection(object handle)
    */
 static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 {
