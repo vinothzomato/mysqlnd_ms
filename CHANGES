@@ -1,0 +1,42 @@
+1.1 production ready
+
+  Motto/theme : Cover replication basics with production quality
+  Release data: n/a (planned: 10/2011)
+
+1.1 beta
+
+  Motto/theme : Cover replication basics with production quality
+  Release data: 09/2011
+
+  * Code base refactored to prepare for future releases  
+  * Introduction of (chainable) filter concept  
+  * New powerful JSON based configuration syntax
+  * Lazy connections improved: security relevant, state changing commands covered
+  * Support for (native) prepared statements
+
+  * MySQL replication filter (client-side partitioning) support prepared
+  * Multi-master configuration support prepared
+
+  * Almost 5x more tests, code coverage through tests 75-90% for core files
+  * Fixed PECL #22724 - Server switching (mysqlnd_ms_query_is_select case sensitive)
+  * Fixed PECL #22784 - Using mysql_connect and mysql_select_db won't work
+
+1.0 alpha
+
+  Release date: 04/2011
+  Motto/theme : Cover replication basics to test user feeedback
+
+  * Basic automatic read-write split (read: slave, write: master)
+  * SQL hints to overrule automatic R/W split
+  * Load balancing of slave requests
+
+1.0 pre-alpha
+
+  Release date: 09/2010 
+  Motto/theme : Proof-of-concept
+
+  * Initial check-in
+  * Hardly more than a demo of the mysqlnd
+  * Hardly of any practial use.
+
+
