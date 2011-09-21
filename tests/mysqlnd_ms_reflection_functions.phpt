@@ -26,6 +26,10 @@ require_once('skipif.inc');
 ?>
 --EXPECTF--
 Functions:
+  mysqlnd_ms_get_last_used_connection
+    Deprecated: no
+    Accepted parameters: 0
+    Required parameters: 0
   mysqlnd_ms_get_stats
     Deprecated: no
     Accepted parameters: 0

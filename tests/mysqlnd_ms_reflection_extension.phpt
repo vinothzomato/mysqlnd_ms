@@ -38,12 +38,13 @@ require_once('skipif.inc');
 ?>
 --EXPECTF--
 Name: mysqlnd_ms
-Version: 1.0.2-alpha
+Version: 1.1.0-beta
 Dependencies:
   json - Required
   standard - Required
   mysqlnd - Required
 Functions:
+  mysqlnd_ms_get_last_used_connection
   mysqlnd_ms_get_stats
   mysqlnd_ms_match_wild
   mysqlnd_ms_query_is_select
