@@ -1,5 +1,5 @@
 --TEST--
-mysqlnd_ms_match_wild(string haystack, string wildcard)
+mysqlnd_ms_match_wild(string table_name, string wildcard)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
