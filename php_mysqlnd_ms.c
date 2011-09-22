@@ -285,7 +285,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_used_connection, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 
-/* {{{ proto object mysqlnd_ms_get_last_used_connection(object handle)
+/* {{{ proto array mysqlnd_ms_get_last_used_connection(object handle)
    */
 static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 {
@@ -303,15 +303,15 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 		const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 		zval * error_list = NULL;
 
-		object_init(return_value);
-		add_property_string_ex(return_value, "scheme", sizeof("scheme"), conn->scheme? conn->scheme:"", 1 TSRMLS_CC);
-		add_property_string_ex(return_value, "host", sizeof("host"), conn->host? conn->host:"", 1 TSRMLS_CC);
-		add_property_long_ex(return_value, "port", sizeof("port"), conn->port TSRMLS_CC);
-		add_property_long_ex(return_value, "thread_id", sizeof("thread_id"), conn->thread_id TSRMLS_CC);
-		add_property_string_ex(return_value, "last_message", sizeof("last_message"), conn->last_message? conn->last_message:"", 1 TSRMLS_CC);
-		add_property_long_ex(return_value, "errno", sizeof("errno"), conn->error_info.error_no TSRMLS_CC);
-		add_property_string_ex(return_value, "error", sizeof("error"), conn->error_info.error, 1 TSRMLS_CC);
-		add_property_string_ex(return_value, "sqlstate", sizeof("sqlstate"), conn->error_info.sqlstate, 1 TSRMLS_CC);
+		array_init(return_value);
+		add_assoc_string_ex(return_value, "scheme", sizeof("scheme"), conn->scheme? conn->scheme:"", 1);
+		add_assoc_string_ex(return_value, "host", sizeof("host"), conn->host? conn->host:"", 1);
+		add_assoc_long_ex(return_value, "port", sizeof("port"), conn->port);
+		add_assoc_long_ex(return_value, "thread_id", sizeof("thread_id"), conn->thread_id);
+		add_assoc_string_ex(return_value, "last_message", sizeof("last_message"), conn->last_message? conn->last_message:"", 1);
+		add_assoc_long_ex(return_value, "errno", sizeof("errno"), conn->error_info.error_no);
+		add_assoc_string_ex(return_value, "error", sizeof("error"), (char *) conn->error_info.error, 1);
+		add_assoc_string_ex(return_value, "sqlstate", sizeof("sqlstate"), (char *) conn->error_info.sqlstate, 1);
 		MAKE_STD_ZVAL(error_list);
 		array_init(error_list);
 		if (conn->error_info.error_list) {
@@ -332,8 +332,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 				add_next_index_zval(error_list, row);
 			}
 		}
-		add_property_zval_ex(return_value, "error_list", sizeof("error_list"), error_list TSRMLS_CC);
-		Z_DELREF_P(error_list); /* how stupid is that add_property_zval increments the refcount */
+		add_assoc_zval_ex(return_value, "error_list", sizeof("error_list"), error_list);
 	}
 }
 /* }}} */
