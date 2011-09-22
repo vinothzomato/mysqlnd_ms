@@ -312,27 +312,6 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 		add_assoc_long_ex(return_value, "errno", sizeof("errno"), conn->error_info.error_no);
 		add_assoc_string_ex(return_value, "error", sizeof("error"), (char *) conn->error_info.error, 1);
 		add_assoc_string_ex(return_value, "sqlstate", sizeof("sqlstate"), (char *) conn->error_info.sqlstate, 1);
-		MAKE_STD_ZVAL(error_list);
-		array_init(error_list);
-		if (conn->error_info.error_list) {
-			zend_llist_position	pos;
-			MYSQLND_ERROR_LIST_ELEMENT * error_element;
-
-			for (error_element = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_first_ex(conn->error_info.error_list, &pos);
-				 error_element;
-				 error_element = (MYSQLND_ERROR_LIST_ELEMENT *) zend_llist_get_next_ex(conn->error_info.error_list, &pos))
-			{
-				zval * row;
-
-				MAKE_STD_ZVAL(row);
-				array_init(row);
-				add_assoc_long_ex(row, "errno", sizeof("errno"), error_element->error_no);
-				add_assoc_string_ex(row, "error", sizeof("error"), error_element->error, 1);
-				add_assoc_string_ex(row, "sqlstate", sizeof("sqlstate"), error_element->sqlstate, 1);
-				add_next_index_zval(error_list, row);
-			}
-		}
-		add_assoc_zval_ex(return_value, "error_list", sizeof("error_list"), error_list);
 	}
 }
 /* }}} */

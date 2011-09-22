@@ -29,13 +29,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 
 	function conn_diff($offset, $conn, $members, $expected = NULL) {
 
-		if (!is_object($conn)) {
-			printf("[%03d + 01] No object, got %s\n", $offset, var_export($conn, true));
+		if (!is_array($conn)) {
+			printf("[%03d + 01] No array, got %s\n", $offset, var_export($conn, true));
 			return false;
 		}
 
-		$props = get_object_vars($conn);
-		foreach ($props as $prop => $value) {
+		foreach ($conn as $prop => $value) {
 
 			if (isset($members[$prop])) {
 				$type = gettype($value);
@@ -110,7 +109,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 		"errno" 		=> "int",
 		"error" 		=> "string",
 		"sqlstate" 		=> "string",
-		"error_list"	=> "array",
 	);
 
 	/* mysqli */
@@ -135,9 +133,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 		$expected["scheme"] = sprintf("tcp://%s:%d", $host, $port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	if (!isset($expected["scheme"]) && isset($conn->scheme))
+	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
 		/* accept whatever "&/"&/"§ default socket there may be... */
-		$expected["scheme"] = $conn->scheme;
+		$expected["scheme"] = $conn["scheme"];
 	conn_diff(6, $conn, $members, $expected);
 
 	/* error on non MS */
@@ -145,44 +143,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
-	$errors = array(
-		array(
-			"errno" => $link->errno,
-			"error" => $link->error,
-			"sqlstate" => $link->sqlstate,
-		),
-	);
-	$expected["error_list"] = $errors;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(7, $conn, $members, $expected);
-
-
-	/* error buffer */
+	
 	@$link->query("YEAH, HEY, OK, HEY, ..");
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
-	$errors = array(
-		array(
-			"errno" => $link->errno,
-			"error" => $link->error,
-			"sqlstate" => $link->sqlstate,
-		),
-	);
-	$expected["error_list"] = $errors;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(8, $conn, $members, $expected);
-
-	if (!isset($conn->error_list)) {
-		printf("[009] Error list not set, dumping\n");
-		var_dump($conn);
-	} else {
-		if ($conn->error_list != $errors) {
-			printf("[010] Error list seems wrong, dumping\n");
-			var_dump($conn->error_list);
-			var_dump($errors);
-		}
-	}	
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[011] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
@@ -201,9 +170,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 		$expected["scheme"] = sprintf("tcp://%s:%d", $host, $port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	if (!isset($expected["scheme"]) && isset($conn->scheme))
+	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
 		/* accept whatever "&/"&/"§ default socket there may be... */
-		$expected["scheme"] = $conn->scheme;
+		$expected["scheme"] = $conn["scheme"];
 
 	conn_diff(12, $conn, $members, $expected);
 
@@ -213,14 +182,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
-	$errors = array(
-		array(
-			"errno" => $link->errno,
-			"error" => $link->error,
-			"sqlstate" => $link->sqlstate,
-		),
-	);
-	$expected["error_list"] = $errors;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(13, $conn, $members, $expected);
 
@@ -229,15 +190,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
-	/* note: errors are not buffered in this case */
-	$errors = array(
-		array(
-			"errno" => $link->errno,
-			"error" => $link->error,
-			"sqlstate" => $link->sqlstate,
-		),
-	);
-	$expected["error_list"] = $errors;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(14, $conn, $members, $expected);
 
@@ -245,15 +197,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	@$link->select_db("My-S-Q-L rocks, My-S-Q-L");
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
-	$expected["sqlstate"] = $link->sqlstate;	
-	$errors = array(
-		array(
-			"errno" => $link->errno,
-			"error" => $link->error,
-			"sqlstate" => $link->sqlstate,
-		),
-	);
-	$expected["error_list"] = $errors;
+	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(15, $conn, $members, $expected);
 
@@ -262,8 +206,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	sleep(1);
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
-	$expected["sqlstate"] = $link->sqlstate;
-	$expected["error_list"] = array();
+	$expected["sqlstate"] = $link->sqlstate;	
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(16, $conn, $members, $expected);
 

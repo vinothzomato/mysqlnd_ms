@@ -37,13 +37,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 	function conn_diff($offset, $conn, $members, $expected = NULL) {
 
-		if (!is_object($conn)) {
-			printf("[%03d + 01] No object, got %s\n", $offset, var_export($conn, true));
+		if (!is_array($conn)) {
+			printf("[%03d + 01] No array, got %s\n", $offset, var_export($conn, true));
 			return false;
 		}
-
-		$props = get_object_vars($conn);
-		foreach ($props as $prop => $value) {
+		foreach ($conn as $prop => $value) {
 
 			if (isset($members[$prop])) {
 				$type = gettype($value);
@@ -109,7 +107,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 		"errno" 		=> "int",
 		"error" 		=> "string",
 		"sqlstate" 		=> "string",
-		"error_list"	=> "array",
 	);
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
@@ -132,12 +129,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host, $master_port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	if (!isset($expected["scheme"]) && isset($conn->scheme))
+	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
 		/* accept whatever "&/"&/"§ default socket there may be... */
-		$expected["scheme"] = $conn->scheme;
+		$expected["scheme"] = $conn["scheme"];
 
 	conn_diff(4, $conn, $members, $expected);
-	$threads[mst_mysqli_get_emulated_id(5, $link)] = array($link->thread_id, $conn->scheme);
+	$threads[mst_mysqli_get_emulated_id(5, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* slave 1 */
 	mst_mysqli_query(6, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
@@ -150,12 +147,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 		$expected["scheme"] = sprintf("tcp://%s:%d", $slave_host, $slave_port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	if (!isset($expected["scheme"]) && isset($conn->scheme))
+	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
 		/* accept whatever "&/"&/"§ default socket there may be... */
-		$expected["scheme"] = $conn->scheme;
+		$expected["scheme"] = $conn["scheme"];
 
 	conn_diff(7, $conn, $members, $expected);
-	$threads[mst_mysqli_get_emulated_id(8, $link)] = array($link->thread_id, $conn->scheme);
+	$threads[mst_mysqli_get_emulated_id(8, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* slave 2 */
 	mst_mysqli_query(9, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);	
@@ -163,7 +160,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	$expected["thread_id"] = $link->thread_id;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(10, $conn, $members, $expected);
-	$threads[mst_mysqli_get_emulated_id(11, $link)] = array($link->thread_id, $conn->scheme);
+	$threads[mst_mysqli_get_emulated_id(11, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* rr: slave 1 */
 	$res = mst_mysqli_query(12, $link, "SELECT @myrole AS _role");
@@ -172,10 +169,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	$exp = $threads[mst_mysqli_get_emulated_id(14, $link)];
-	if ($conn->thread_id != $exp[0]) {
+	if ($conn["thread_id"] != $exp[0]) {
 		printf("[015] Thread id seems wrong. Check manually.\n");
 	}
-	if ($conn->scheme != $exp[1]) {
+	if ($conn["scheme"] != $exp[1]) {
 		printf("[016] Scheme seems wrong. Check manually.\n");
 	}
 
@@ -187,10 +184,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	$exp = $threads[mst_mysqli_get_emulated_id(19, $link)];
-	if ($conn->thread_id != $exp[0]) {
+	if ($conn["thread_id"] != $exp[0]) {
 		printf("[020] Thread id seems wrong. Check manually.\n");
 	}
-	if ($conn->scheme != $exp[1]) {
+	if ($conn["scheme"] != $exp[1]) {
 		printf("[021] Scheme seems wrong. Check manually.\n");
 	}
 
@@ -201,10 +198,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	$exp = $threads[mst_mysqli_get_emulated_id(24, $link)];
-	if ($conn->thread_id != $exp[0]) {
+	if ($conn["thread_id"] != $exp[0]) {
 		printf("[025] Thread id seems wrong. Check manually.\n");
 	}
-	if ($conn->scheme != $exp[1]) {
+	if ($conn["scheme"] != $exp[1]) {
 		printf("[026] Scheme seems wrong. Check manually.\n");
 	}
 
@@ -215,10 +212,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	$exp = $threads[mst_mysqli_get_emulated_id(29, $link)];
-	if ($conn->thread_id != $exp[0]) {
+	if ($conn["thread_id"] != $exp[0]) {
 		printf("[030] Thread id seems wrong. Check manually.\n");
 	}
-	if ($conn->scheme != $exp[1]) {
+	if ($conn["scheme"] != $exp[1]) {
 		printf("[031] Scheme seems wrong. Check manually.\n");
 	}
 	
