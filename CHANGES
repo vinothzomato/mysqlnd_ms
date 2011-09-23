@@ -13,14 +13,15 @@
   * New powerful JSON based configuration syntax
   * Lazy connections improved: security relevant, state changing commands covered
   * Support for (native) prepared statements
+  * Added new function - mysqlnd_ms_get_last_used_connection($obj_or_res)
+  * Replaced mysqlnd_ms_set_user_pick_server() with "user" filter
 
   * MySQL replication filter (client-side partitioning) support prepared
-  * Multi-master configuration support prepared
+  * Multi-master configuration support prepared (ini: mysqlnd_ms.multi_master)
 
   * Almost 5x more tests, code coverage through tests 75-90% for core files
   * Fixed PECL #22724 - Server switching (mysqlnd_ms_query_is_select case sensitive)
   * Fixed PECL #22784 - Using mysql_connect and mysql_select_db() won't work
-  * Added new function - mysqlnd_ms_get_last_used_connection($obj_or_res)
 
 1.0 alpha
 
