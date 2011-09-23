@@ -15,9 +15,14 @@
   * Support for (native) prepared statements
   * Added new function - mysqlnd_ms_get_last_used_connection($obj_or_res)
   * Replaced mysqlnd_ms_set_user_pick_server() with "user" filter
-
+  * New statistics: use_slave_guess, use_master_guess
+  * Change of semantics of statistics: use_slave, use_master
+  * List of broadcasted messages extended: ssl_set
+  * Commands monitored to remember settings for lazy connections: change_user,
+    select_db, set_charset, set_autocommit.
+  
   * MySQL replication filter (client-side partitioning) support prepared
-  * Multi-master configuration support prepared (ini: mysqlnd_ms.multi_master)
+  * Multi-master configuration support prepared (ini setting: mysqlnd_ms.multi_master)
 
   * Almost 5x more tests, code coverage through tests 75-90% for core files
   * Fixed PECL #22724 - Server switching (mysqlnd_ms_query_is_select case sensitive)
