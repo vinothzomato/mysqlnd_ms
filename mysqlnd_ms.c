@@ -152,7 +152,7 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 {
 	enum_func_status ret;
 	MYSQLND * connection = element->conn;
-#if BUFFERED_COMMANDS
+#ifdef BUFFERED_COMMANDS
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(connection, mysqlnd_ms_plugin_id);
 #endif
 	DBG_ENTER("mysqlnd_ms_advanced_connect");
@@ -163,7 +163,7 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 	if (PASS == ret) {
 		DBG_INF("Connected");
 		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_SUCCESS:MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
-#if BUFFERED_COMMANDS
+#ifdef BUFFERED_COMMANDS
 		/* let's run the buffered commands */
 		{
 			zend_llist_position	pos;
