@@ -300,7 +300,6 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 	{
 		MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 		const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-		zval * error_list = NULL;
 
 		array_init(return_value);
 		add_assoc_string_ex(return_value, "scheme", sizeof("scheme"), conn->scheme? conn->scheme:"", 1);
