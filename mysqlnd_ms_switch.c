@@ -249,17 +249,18 @@ struct st_specific_ctor_with_name
 	size_t name_len;
 	func_specific_ctor ctor;
 	enum mysqlnd_ms_server_pick_strategy pick_type;
+	zend_bool multi_filter;
 };
 
 
 static const struct st_specific_ctor_with_name specific_ctors[] =
 {
-	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	rr_specific_ctor,		SERVER_PICK_RROBIN},
-	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	random_specific_ctor,	SERVER_PICK_RANDOM},
-	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER},
-	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI},
+	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	rr_specific_ctor,		SERVER_PICK_RROBIN,		FALSE},
+	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	random_specific_ctor,	SERVER_PICK_RANDOM,		FALSE},
+	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER,		FALSE},
+	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI,	TRUE},
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
-	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE},
+	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE,		TRUE},
 #endif
 	{NULL,			0,							NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
 };
@@ -409,6 +410,18 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 		while (specific_ctors[i].name) {
 			DBG_INF_FMT("current_ctor->name=%s", specific_ctors[i].name);
 			if (!strcasecmp(specific_ctors[i].name, filter_name)) {
+				if (zend_llist_count(filters)) {
+					zend_llist_position llist_pos;
+					MYSQLND_MS_FILTER_DATA * prev = *(MYSQLND_MS_FILTER_DATA **)zend_llist_get_last_ex(filters, &llist_pos);
+					if (FALSE == prev->multi_filter) {
+						char error_buf[128];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . "
+								 "Non-multi filter '%s' already created. Stopping", filter_name, prev->name);
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						DBG_RETURN(NULL);	
+					}
+				}
 				if (specific_ctors[i].ctor) {
 					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
 					if (!new_filter_entry) {
@@ -421,12 +434,11 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 				} else {
 					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
 				}
-				if (new_filter_entry) {
-					new_filter_entry->persistent = persistent;
-					new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
-					new_filter_entry->name_len = filter_name_len;
-					new_filter_entry->pick_type = specific_ctors[i].pick_type;
-				}
+				new_filter_entry->persistent = persistent;
+				new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
+				new_filter_entry->name_len = filter_name_len;
+				new_filter_entry->pick_type = specific_ctors[i].pick_type;
+				new_filter_entry->multi_filter = specific_ctors[i].multi_filter;
 				zend_llist_add_element(filters, &new_filter_entry);
 				break;
 			}

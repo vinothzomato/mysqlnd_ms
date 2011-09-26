@@ -235,6 +235,7 @@ typedef struct st_mysqlnd_ms_filter_data
 	char * name;
 	size_t name_len;
 	enum mysqlnd_ms_server_pick_strategy pick_type;
+	zend_bool multi_filter;
 	zend_bool persistent;
 } MYSQLND_MS_FILTER_DATA;
 
