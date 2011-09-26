@@ -222,8 +222,9 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				DBG_ERR_FMT("%s", error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+			} else {
+				SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
 			}
-			SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
 			DBG_RETURN(stgy->last_used_conn);
 		default:
 			/* error */

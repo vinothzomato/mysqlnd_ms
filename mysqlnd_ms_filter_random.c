@@ -131,7 +131,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 							/* should be a very rare case to be here - connection shouldn't be NULL in first place */
-							DBG_RETURN(connection);
+							DBG_RETURN(NULL);
 						}
 					} else {
 						do {
@@ -185,6 +185,7 @@ fallthrough:
 						DBG_ERR(error_buf);
 						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+						DBG_RETURN(NULL);
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
@@ -239,8 +240,9 @@ fallthrough:
 				DBG_ERR(error_buf);
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+			} else {
+				SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
 			}
-			SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
 			DBG_RETURN(stgy->last_used_conn);
 		default:
 			/* error */
