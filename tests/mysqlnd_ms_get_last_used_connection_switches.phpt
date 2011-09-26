@@ -231,4 +231,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 [018] Hi folks, slave2 speaking.
 [023] Hi folks, master speaking.
 [028] Hi folks, master speaking.
-done!!
+done!
