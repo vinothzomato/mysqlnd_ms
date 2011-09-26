@@ -458,12 +458,9 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 		zend_bool section_exists;
 		struct st_mysqlnd_ms_config_json_entry * filters_section =
 				mysqlnd_ms_config_json_sub_section(section, SECT_FILTER_NAME, sizeof(SECT_FILTER_NAME) - 1, &section_exists TSRMLS_CC);
-		zend_bool subsection_is_list = mysqlnd_ms_config_json_section_is_list(filters_section TSRMLS_CC);
-		zend_bool subsection_is_obj_list =
-				subsection_is_list && mysqlnd_ms_config_json_section_is_object_list(filters_section TSRMLS_CC);
 
 		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
-		DBG_INF_FMT("normal filters section =%d", section_exists && filters_section && subsection_is_obj_list);
+		DBG_INF_FMT("normal filters section =%d", section_exists && filters_section);
 		switch (section_exists && filters_section? 1:0) {
 			case 1:
 				do {
