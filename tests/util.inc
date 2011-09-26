@@ -47,7 +47,7 @@
 					}
 				}
 				if (!$found) {
-					printf("[%03d] Cannot find expect connect warning, got '%s'\n", $offset, $haystack);
+					printf("[%03d] Cannot find the expected connect warning, got '%s'\n", $offset, $haystack);
 				}
 			}
 
