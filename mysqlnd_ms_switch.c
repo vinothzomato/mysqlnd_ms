@@ -132,6 +132,7 @@ random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_E
 			 */
 			ret->sticky.once = TRUE;
 		}
+		DBG_INF_FMT("sticky=%d", ret->sticky.once);
 		/* XXX: this could be initialized only in case of ONCE */
 		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
