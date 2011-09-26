@@ -475,7 +475,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 							char error_buf[128];
 							if (filter_name && !filter_name_len) {
 								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
-							} else if (TRUE == mysqlnd_ms_config_json_sub_section_exists(filters_section, NULL, 0, filter_int_name TSRMLS_CC)) {
+							} else if (FALSE == mysqlnd_ms_config_json_section_is_list(current_filter TSRMLS_CC)) { /* filter_int_name */
 								filter_name =
 									mysqlnd_ms_config_json_string_from_section(filters_section, NULL, 0,
 																			   filter_int_name, NULL, NULL TSRMLS_CC);
