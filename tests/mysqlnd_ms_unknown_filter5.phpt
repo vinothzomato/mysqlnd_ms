@@ -60,5 +60,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_unknown_filter5.ini
 ?>
 --EXPECTF--
 Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Unknown filter '5' . Stopping in %s on line %d
-[001] [2000] (mysqlnd_ms) Unknown filter '1' . Stopping
+[001] [2000] (mysqlnd_ms) Unknown filter '5' . Stopping
 done!
