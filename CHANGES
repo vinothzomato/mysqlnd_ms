@@ -20,7 +20,9 @@
   * List of broadcasted messages extended: ssl_set
   * Commands monitored to remember settings for lazy connections: change_user,
     select_db, set_charset, set_autocommit.
-  
+  * The plugin configuration file must contain a slave list. Failing to provide
+    will cause an E_ERROR level error (fatal). The slave list may be empty.
+
   * MySQL replication filter (client-side partitioning) support prepared
   * Multi-master configuration support prepared (ini setting: mysqlnd_ms.multi_master)
 
