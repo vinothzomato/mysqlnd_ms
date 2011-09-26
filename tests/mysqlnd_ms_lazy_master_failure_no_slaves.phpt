@@ -47,7 +47,8 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_no_slaves.ini'.\n");
 ?>
 --EXPECTF--
-connection error
+[002] Cannot find the expected connect warning, got ''
+[002] [1045] %s
 Connection %d -
 ... master
 done!
