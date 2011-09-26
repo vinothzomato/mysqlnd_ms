@@ -11,7 +11,15 @@ _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_so
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'slave' => array(
+				array(
+					"host" => $slave_host_only,
+					"port" => $slave_port,
+					"socket" => $slave_socket,
+					'user' => $user,
+					'password' => $passwd,
+				),
+			),
 		'lazy_connections' => 1
 	),
 );
@@ -54,4 +62,6 @@ mysqlnd_ms.collect_statistics=1
 [002] [1045] %s
 Connection %d -
 ... master
+Connection %d -
+... slave
 done!
