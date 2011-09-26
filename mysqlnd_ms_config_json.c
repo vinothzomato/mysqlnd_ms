@@ -265,7 +265,7 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 
 /* {{{ mysqlnd_ms_config_json_section_exists */
 PHPAPI zend_bool
-mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len,
+mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, ulong nkey,
 									  zend_bool use_lock TSRMLS_DC)
 {
 	zend_bool ret = FALSE;
@@ -276,7 +276,7 @@ mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, co
 		if (use_lock) {
 			MYSQLND_MS_CONFIG_JSON_LOCK(cfg);
 		}
-		ret = mysqlnd_ms_config_json_sub_section_exists(cfg->main_section, section, section_len TSRMLS_CC);
+		ret = mysqlnd_ms_config_json_sub_section_exists(cfg->main_section, section, section_len, nkey TSRMLS_CC);
 		if (use_lock) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(cfg);
 		}
@@ -291,15 +291,19 @@ mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, co
 /* {{{ mysqlnd_ms_config_json_sub_section_exists */
 PHPAPI zend_bool
 mysqlnd_ms_config_json_sub_section_exists(struct st_mysqlnd_ms_config_json_entry * main_section,
-										  const char * section, size_t section_len TSRMLS_DC)
+										  const char * section, size_t section_len, ulong nkey TSRMLS_DC)
 {
 	zend_bool ret = FALSE;
 	DBG_ENTER("mysqlnd_ms_config_json_sub_section_exists");
 	DBG_INF_FMT("section=[%s] len=[%d]", section? section:"n/a", section_len);
 
-	if (main_section && main_section->type == IS_ARRAY && main_section->value.ht && section && section_len) {
+	if (main_section && main_section->type == IS_ARRAY && main_section->value.ht){
 		void ** ini_entry;
-		ret = (SUCCESS == zend_hash_find(main_section->value.ht, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
+		if (section && section_len) {
+			ret = (SUCCESS == zend_hash_find(main_section->value.ht, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
+		} else {
+			ret = (SUCCESS == zend_hash_index_find(main_section->value.ht, nkey, (void **) &ini_entry))? TRUE:FALSE;
+		}
 	}
 
 	DBG_INF_FMT("ret=%d", ret);
@@ -591,7 +595,7 @@ mysqlnd_ms_config_json_string_aux(HashTable * ht, const char * section_name, siz
 /* {{{ mysqlnd_ms_config_json_string_from_section */
 PHPAPI char *
 mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section,
-										   const char * name, size_t name_len,
+										   const char * name, size_t name_len, ulong nkey,
 										   zend_bool * exists, zend_bool * is_list_value TSRMLS_DC)
 {
 	zend_bool tmp_bool;
@@ -614,8 +618,14 @@ mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entr
 
 	if (section && section->type == IS_ARRAY && section->value.ht) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section_entry;
-		if (zend_hash_find(section->value.ht, name, name_len + 1, (void **) &ini_section_entry) == SUCCESS) {
-			ret = mysqlnd_ms_config_json_string_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
+		if (name) {
+			if (zend_hash_find(section->value.ht, name, name_len + 1, (void **) &ini_section_entry) == SUCCESS) {
+				ret = mysqlnd_ms_config_json_string_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
+			}
+		} else {
+			if (zend_hash_index_find(section->value.ht, nkey, (void **) &ini_section_entry) == SUCCESS) {
+				ret = mysqlnd_ms_config_json_string_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
+			}
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret);

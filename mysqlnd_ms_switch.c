@@ -119,7 +119,7 @@ random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_E
 		/* section could be NULL! */
 		if (section) {
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
-			char * once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1,
+			char * once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
 																		   &value_exists, &is_list_value TSRMLS_CC);
 			if (value_exists && once_value) {
 				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
@@ -174,7 +174,7 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 
 			ret->parent.specific_dtor = user_specific_dtor;
 
-			callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1,
+			callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1, 0,
 																  &value_exists, &is_list_value TSRMLS_CC);
 
 			if (value_exists) {
@@ -334,7 +334,7 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
 	{
 		char * failover_strategy =
-			mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,
+			mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1, 0,
 													   &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->failover_strategy = DEFAULT_FAILOVER_STRATEGY;
@@ -351,7 +351,7 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 	{
 		char * master_on_write =
-			mysqlnd_ms_config_json_string_from_section(the_section, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1,
+			mysqlnd_ms_config_json_string_from_section(the_section, MASTER_ON_WRITE_NAME, sizeof(MASTER_ON_WRITE_NAME) - 1, 0,
 													   &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->mysqlnd_ms_flag_master_on_write = FALSE;
@@ -366,7 +366,7 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 	{
 		char * trx_strategy =
-			mysqlnd_ms_config_json_string_from_section(the_section, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1,
+			mysqlnd_ms_config_json_string_from_section(the_section, TRX_STICKINESS_NAME, sizeof(TRX_STICKINESS_NAME) - 1, 0,
 													   &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->trx_stickiness_strategy = DEFAULT_TRX_STICKINESS_STRATEGY;
@@ -464,7 +464,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 
 		zend_llist_init(ret, sizeof(MYSQLND_MS_FILTER_DATA *), (llist_dtor_func_t) mysqlnd_ms_filter_list_dtor /*dtor*/, persistent);
 		DBG_INF_FMT("normal filters section =%d", section_exists && filters_section && subsection_is_obj_list);
-		switch (section_exists && filters_section && subsection_is_obj_list? 1:0) {
+		switch (section_exists && filters_section? 1:0) {
 			case 1:
 				do {
 					char * filter_name = NULL;
@@ -478,9 +478,21 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 							char error_buf[128];
 							if (filter_name && !filter_name_len) {
 								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+							} else if (TRUE == mysqlnd_ms_config_json_sub_section_exists(filters_section, NULL, 0, filter_int_name TSRMLS_CC)) {
+								filter_name =
+									mysqlnd_ms_config_json_string_from_section(filters_section, NULL, 0,
+																			   filter_int_name, NULL, NULL TSRMLS_CC);
+								filter_name_len = strlen(filter_name);
+								DBG_INF_FMT("%d was found as key, the value is %s", filter_int_name, filter_name);
+								if (NULL == mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
+																				  persistent, error_info TSRMLS_CC)) {
+									mnd_pefree(filter_name, 0);
+									goto err;
+								}
+								mnd_pefree(filter_name, 0);
+								continue;
 							} else {
-								snprintf(error_buf, sizeof(error_buf),
-									MYSQLND_MS_ERROR_PREFIX " Unknown filter '%d' . Stopping", filter_int_name);
+								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%d' . Stopping", filter_int_name);							
 							}
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);

@@ -42,8 +42,8 @@ PHPAPI struct st_mysqlnd_ms_json_config * mysqlnd_ms_config_json_init(TSRMLS_D);
 PHPAPI void mysqlnd_ms_config_json_free(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
 PHPAPI enum_func_status mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg TSRMLS_DC);
 
-PHPAPI zend_bool mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, zend_bool use_lock TSRMLS_DC);
-PHPAPI zend_bool mysqlnd_ms_config_json_sub_section_exists(struct st_mysqlnd_ms_config_json_entry * main_section, const char * section, size_t section_len TSRMLS_DC);
+PHPAPI zend_bool mysqlnd_ms_config_json_section_exists(struct st_mysqlnd_ms_json_config * cfg, const char * section, size_t section_len, ulong nkey, zend_bool use_lock TSRMLS_DC);
+PHPAPI zend_bool mysqlnd_ms_config_json_sub_section_exists(struct st_mysqlnd_ms_config_json_entry * main_section, const char * section, size_t section_len, ulong nkey TSRMLS_DC);
 
 #ifdef U0
 /* TODO: never called */
@@ -60,7 +60,7 @@ PHPAPI zend_bool mysqlnd_ms_config_json_section_is_list(struct st_mysqlnd_ms_con
 PHPAPI zend_bool mysqlnd_ms_config_json_section_is_object_list(struct st_mysqlnd_ms_config_json_entry * section TSRMLS_DC);
 PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_next_sub_section(struct st_mysqlnd_ms_config_json_entry * main_section, char ** section_name, size_t * section_name_len, ulong * nkey TSRMLS_DC);
 
-PHPAPI char * mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
+PHPAPI char * mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, ulong nkey, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
 
 
 zend_bool mysqlnd_ms_config_json_string_is_bool_false(const char * value);

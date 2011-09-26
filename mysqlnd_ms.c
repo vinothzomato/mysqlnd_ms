@@ -271,7 +271,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 	DBG_ENTER("mysqlnd_ms_connect_to_host");
 	DBG_INF_FMT("conn:%p", conn);
 
-	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(main_section, subsection_name, subsection_name_len TSRMLS_CC)) {
+	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(main_section, subsection_name, subsection_name_len, 0 TSRMLS_CC)) {
 		subsection =
 			parent_subsection =
 				mysqlnd_ms_config_json_sub_section(main_section, subsection_name, subsection_name_len, &value_exists TSRMLS_CC);
@@ -311,7 +311,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 			break;
 		}
 
-		port_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PORT_NAME, sizeof(SECT_PORT_NAME) - 1,
+		port_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PORT_NAME, sizeof(SECT_PORT_NAME) - 1, 0,
 															  &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists && port_str) {
 			int tmp_port = atoi(port_str);
@@ -329,7 +329,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 			}
 		}
 
-		flags_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_CONNECT_FLAGS_NAME, sizeof(SECT_CONNECT_FLAGS_NAME)-1,
+		flags_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_CONNECT_FLAGS_NAME, sizeof(SECT_CONNECT_FLAGS_NAME)-1, 0,
 															   &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			int tmp_flags = atoi(flags_str);
@@ -347,31 +347,31 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 			}
 		}
 
-		socket_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_SOCKET_NAME, sizeof(SECT_SOCKET_NAME) - 1,
+		socket_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_SOCKET_NAME, sizeof(SECT_SOCKET_NAME) - 1, 0,
 															   &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			cred.socket = socket_to_use;
 		}
-		user_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_USER_NAME, sizeof(SECT_USER_NAME) - 1,
+		user_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_USER_NAME, sizeof(SECT_USER_NAME) - 1, 0,
 																 &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			cred.user = user_to_use;
 		}
-		pass_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PASS_NAME, sizeof(SECT_PASS_NAME) - 1,
+		pass_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PASS_NAME, sizeof(SECT_PASS_NAME) - 1, 0,
 																 &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			cred.passwd = pass_to_use;
 			cred.passwd_len = strlen(cred.passwd);
 		}
 
-		db_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_DB_NAME, sizeof(SECT_DB_NAME) - 1,
+		db_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_DB_NAME, sizeof(SECT_DB_NAME) - 1, 0,
 															   &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			cred.db = db_to_use;
 			cred.db_len = strlen(cred.db);
 		}
 
-		host = mysqlnd_ms_config_json_string_from_section(subsection, SECT_HOST_NAME, sizeof(SECT_HOST_NAME) - 1,
+		host = mysqlnd_ms_config_json_string_from_section(subsection, SECT_HOST_NAME, sizeof(SECT_HOST_NAME) - 1, 0,
 														  &value_exists, &is_list_value TSRMLS_CC);
 		if (FALSE == value_exists) {
 			DBG_ERR_FMT("Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
@@ -461,7 +461,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 	if (hotloading) {
 		MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 	}
-	section_found = mysqlnd_ms_config_json_section_exists(mysqlnd_ms_json_config, host, host_len, hotloading? FALSE:TRUE TSRMLS_CC);
+	section_found = mysqlnd_ms_config_json_section_exists(mysqlnd_ms_json_config, host, host_len, 0, hotloading? FALSE:TRUE TSRMLS_CC);
 	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section (%s)", host);
 		if (hotloading) {
@@ -503,7 +503,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 
 #if 1
 			{
-				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1,
+				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
 													&use_lazy_connections, NULL TSRMLS_CC);
 				/* ignore if lazy_connections ini entry exists or not */
 				use_lazy_connections = TRUE;
@@ -523,7 +523,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 				unsigned int i = 0;
 				for (; i < sizeof(secs_to_check) / sizeof(secs_to_check[0]); ++i) {
 					size_t sec_len = strlen(secs_to_check[i]);
-					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, secs_to_check[i], sec_len TSRMLS_CC)) {
+					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, secs_to_check[i], sec_len, 0 TSRMLS_CC)) {
 						char error_buf[128];
 						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", secs_to_check[i], host);
 						error_buf[sizeof(error_buf) - 1] = '\0';
