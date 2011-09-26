@@ -147,6 +147,8 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 			new_entry->value.dval = Z_DVAL_P(zv);
 			DBG_INF_FMT("dval=%f", new_entry->value.dval);
 			break;
+		case IS_BOOL:
+			DBG_INF("boolean");
 		case IS_LONG:
 			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_json_entry));
 			new_entry->type = IS_LONG;
