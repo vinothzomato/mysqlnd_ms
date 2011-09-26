@@ -132,20 +132,19 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				if (connection) {
 					DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-					if (CONN_GET_STATE(connection) > CONN_ALLOCED ||
-						PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC) ||
-						SERVER_FAILOVER_DISABLED == stgy->failover_strategy)
-					{
+					if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 						SET_EMPTY_ERROR(connection->error_info);
 						DBG_RETURN(connection);
+					} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+						DBG_INF("Failover disabled");
+						DBG_RETURN(connection);					
 					}
 					DBG_INF("Falling back to the master");
 				} else {
 					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
-						SET_EMPTY_ERROR(connection->error_info);
-						DBG_RETURN(connection);
+						DBG_RETURN(NULL);
 					}
 				}
 			}

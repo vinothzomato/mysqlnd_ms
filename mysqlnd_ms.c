@@ -643,7 +643,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	}
 
 	connection = mysqlnd_ms_pick_server_ex(conn, query, query_len TSRMLS_CC);
-	DBG_INF_FMT("Connection %p", connection);
+	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? connection->error_info.error_no:-1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
 	  as we dump a connection from usage till the end of the script.
