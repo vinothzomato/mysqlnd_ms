@@ -214,6 +214,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 							if (!strcasecmp(el->conn->scheme, Z_STRVAL_P(retval))) {
 								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_CALLBACK);
 								ret = el->conn;
+								SET_EMPTY_ERROR(ret->error_info);
 								DBG_INF_FMT("Userfunc chose master host : [%*s]", el->conn->scheme_len, el->conn->scheme);
 							}
 						}
@@ -231,6 +232,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 									DBG_INF_FMT("Userfunc chose LAZY slave host : [%*s]", el->emulated_scheme_len, el->emulated_scheme);
 									if (PASS == mysqlnd_ms_lazy_connect(el, FALSE TSRMLS_CC)) {
 										ret = el->conn;
+										SET_EMPTY_ERROR(ret->error_info);
 									} else {
 										char error_buf[128];
 										snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Callback chose %s but connection failed", el->emulated_scheme);
@@ -245,6 +247,7 @@ mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char
 								if (!strcasecmp(el->conn->scheme, Z_STRVAL_P(retval))) {
 									MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_CALLBACK);
 									ret = el->conn;
+									SET_EMPTY_ERROR(ret->error_info);
 									DBG_INF_FMT("Userfunc chose slave host : [%*s]", el->conn->scheme_len, el->conn->scheme);
 								}
 							}

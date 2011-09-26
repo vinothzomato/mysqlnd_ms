@@ -106,6 +106,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					} else {
 						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+						SET_EMPTY_ERROR(connection->error_info);
 						DBG_RETURN(connection);
 					}
 					break;
@@ -151,6 +152,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							}
 						} while (0);
 						smart_str_free(&fprint);
+						SET_EMPTY_ERROR(connection->error_info);
 						DBG_RETURN(connection);
 					}
 			}/* switch (zend_hash_find) */
@@ -186,6 +188,7 @@ fallthrough:
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+						SET_EMPTY_ERROR(connection->error_info);
 						DBG_RETURN(connection);
 					}
 					break;
@@ -208,6 +211,7 @@ fallthrough:
 								break;
 							}
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+							SET_EMPTY_ERROR(connection->error_info);
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
@@ -236,6 +240,7 @@ fallthrough:
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 			}
+			SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
 			DBG_RETURN(stgy->last_used_conn);
 		default:
 			/* error */

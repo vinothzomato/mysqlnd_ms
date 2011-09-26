@@ -137,12 +137,14 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 						SERVER_FAILOVER_DISABLED == stgy->failover_strategy)
 					{
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+						SET_EMPTY_ERROR(connection->error_info);
 						DBG_RETURN(connection);
 					}
 					DBG_INF("Falling back to the master");
 				} else {
 					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
+						SET_EMPTY_ERROR(connection->error_info);
 						DBG_RETURN(connection);
 					}
 				}
@@ -206,6 +208,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					(void) mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC);
 				}
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+				SET_EMPTY_ERROR(connection->error_info);
 				DBG_RETURN(connection);
 			}
 			break;
@@ -220,6 +223,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				DBG_ERR_FMT("%s", error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 			}
+			SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
 			DBG_RETURN(stgy->last_used_conn);
 		default:
 			/* error */

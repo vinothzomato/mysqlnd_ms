@@ -650,12 +650,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	  Lazy connections can generate connection failures, thus we need to check for them.
 	  If we skip these checks we will get 2014 from original->query.
 	*/
-	if (!connection ||
-		((*conn_data)->stgy.failover_strategy == SERVER_FAILOVER_DISABLED && connection->error_info.error_no) ||
-		connection->error_info.error_no == CR_CONNECTION_ERROR ||
-		connection->error_info.error_no == CR_SERVER_GONE_ERROR ||
-		connection->error_info.error_no == CR_SERVER_LOST)
-	{
+	if (!connection || connection->error_info.error_no) {
 		DBG_RETURN(ret);
 	}
 
