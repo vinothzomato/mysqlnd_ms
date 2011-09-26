@@ -651,6 +651,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	  If we skip these checks we will get 2014 from original->query.
 	*/
 	if (!connection ||
+		((*conn_data)->stgy.failover_strategy == SERVER_FAILOVER_DISABLED && connection->error_info.error_no) ||
 		connection->error_info.error_no == CR_CONNECTION_ERROR ||
 		connection->error_info.error_no == CR_SERVER_GONE_ERROR ||
 		connection->error_info.error_no == CR_SERVER_LOST)
@@ -1352,23 +1353,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND * conn, zend_bool commit TSRMLS_DC)
 		conn_data && *conn_data &&
 		(*conn_data)->initialized && !(*conn_data)->skip_ms_calls)
 	{
-		zend_llist * master_list = &(*conn_data)->master_connections;
-		MYSQLND_MS_LIST_DATA * element = NULL;
-
-		BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
-		{
-			if (element->conn) {
-				DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
-			}
-			DBG_INF_FMT("element->conn=%p conn=%p", element->conn, conn);
-			if (element->conn == conn) {
-				break;
-			}
-		}
-		END_ITERATE_OVER_SERVER_LIST;
-		if (!element || (FAIL == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
-			DBG_RETURN(FAIL);
-		}
+		DBG_RETURN(PASS);
 	}
 	ret = commit? ms_orig_mysqlnd_conn_methods->tx_commit(conn TSRMLS_CC) :
 				  ms_orig_mysqlnd_conn_methods->tx_rollback(conn TSRMLS_CC);
