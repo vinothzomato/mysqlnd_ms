@@ -59,22 +59,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lb_filter_twice_rr_ro.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	$threads = array();
-	mst_mysqli_query(2, $link, "SET @myrole='master'");
-	$threads[mst_mysqli_get_emulated_id(3, $link)] = 'master';
-	mst_mysqli_query(4, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
-	$threads[mst_mysqli_get_emulated_id(5, $link)] = 'slave1';
-	mst_mysqli_query(6, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
-	$threads[mst_mysqli_get_emulated_id(7, $link)] = 'slave2';
-
-	$res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role");
-	$row = $res->fetch_assoc();
-	printf("[009] Hi folks, %s speaking.\n", $row['_role']);
-
-
-	foreach ($threads as $id => $role)
-		printf("%s => %s\n", $id, $role);
-
 	print "done!";
 ?>
 --CLEAN--
@@ -83,8 +67,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lb_filter_twice_rr_ro.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lb_filter_twice_rr_ro.ini'.\n");
 ?>
 --EXPECTF--
-[009] Hi folks, slave1 speaking.
-%s => master
-%s => slave1
-%s => slave2
+Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Error while creating filter 'random' . Non-multi filter 'roundrobin' already created. Stopping in %s on line %d
+[001] [2000] (mysqlnd_ms) Error while creating filter 'random' . Non-multi filter 'roundrobin' already created. Stopping
 done!
