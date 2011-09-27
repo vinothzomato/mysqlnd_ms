@@ -132,7 +132,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 			do {
 				size_t server_name_len;
 				char * server_name =
-					mysqlnd_ms_config_json_string_from_section(current_filter, section_name, section_name_len,
+					mysqlnd_ms_config_json_string_from_section(current_filter, section_name, section_name_len, 0,
 															  &value_exists, &server_list_is_list_value TSRMLS_CC);
 				if (!value_exists) {
 					break;
