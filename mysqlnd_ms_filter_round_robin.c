@@ -203,11 +203,12 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					connection = element->conn;
 				}
 				DBG_INF("Using master connection");
-				if (connection && CONN_GET_STATE(connection) == CONN_ALLOCED) {
-					(void) mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC);
+				if (connection &&
+					(CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)))
+				{
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+					SET_EMPTY_ERROR(connection->error_info);
 				}
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
-				SET_EMPTY_ERROR(connection->error_info);
 				DBG_RETURN(connection);
 			}
 			break;

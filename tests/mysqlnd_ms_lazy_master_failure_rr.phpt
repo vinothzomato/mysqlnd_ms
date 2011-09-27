@@ -86,7 +86,6 @@ mysqlnd_ms.collect_statistics=1
 ----
 Connect error, [002] [%d] %s
 ----
-Stats use_master: 1
 Stats use_master_sql_hint: 1
 Stats lazy_connections_master_failure: 1
 ----
@@ -104,7 +103,6 @@ Stats lazy_connections_slave_success: 2
 ----
 Connect error, [007] [%d] %s
 ----
-Stats use_master: 2
 Stats use_master_sql_hint: 2
 Stats use_last_used_sql_hint: 2
 Stats lazy_connections_master_failure: 2
