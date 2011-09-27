@@ -140,11 +140,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	mst_mysqli_query(6, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
 
 	$expected["thread_id"] = $link->thread_id;
-	$expected["host"] = $slave_host;
+	list($expected["host"]) = explode(':', $slave_host);
 	$expected["port"] = (int)$slave_port;
 	$expected["socket"] = $slave_socket;
 	if ("localhost" != $slave_host && !$slave_socket) {
-		$expected["scheme"] = sprintf("tcp://%s:%d", $slave_host, $slave_port);
+		list($tmp_slave_host) = explode(':', $slave_host);
+		$expected["scheme"] = sprintf("tcp://%s:%d", $tmp_slave_host, $slave_port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
