@@ -873,9 +873,12 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND * const proxy_conn,
 				if (el->passwd) {
 					mnd_pefree(el->passwd, el->persistent);
 				}
+#if PHP_VERSION_ID >= 50399
 				el->passwd_len = passwd_len;
-				el->passwd = passwd? mnd_pestrndup(passwd, passwd_len, el->persistent) : NULL;
-
+#else
+				el->passwd_len = strlen(passwd);
+#endif
+				el->passwd = passwd? mnd_pestrndup(passwd, el->passwd_len, el->persistent) : NULL;
 				if (el->db) {
 					mnd_pefree(el->db, el->persistent);
 				}
