@@ -134,29 +134,26 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							DBG_RETURN(NULL);
 						}
 					} else {
-						if (CONN_GET_STATE(connection) == CONN_ALLOCED &&
-							PASS != mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC))
-						{
-							smart_str_free(&fprint);
-							if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-								/* no failover */
-								DBG_INF("Failover disabled");
-								DBG_RETURN(connection);
+						if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+							SET_EMPTY_ERROR(connection->error_info);
+							if (TRUE == filter->sticky.once) {
+								zend_hash_update(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, &connection,
+												 sizeof(MYSQLND *), NULL);
 							}
-							goto fallthrough;
-						}
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
-						if (TRUE == filter->sticky.once) {
-							zend_hash_update(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, &connection,
-											 sizeof(MYSQLND *), NULL);
+							smart_str_free(&fprint);
+							DBG_RETURN(connection);
 						}
 						smart_str_free(&fprint);
-						SET_EMPTY_ERROR(connection->error_info);
-						DBG_RETURN(connection);
+						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+							/* no failover */
+							DBG_INF("Failover disabled");
+							DBG_RETURN(connection);
+						}
+						/* falling-through */
 					}
 			}/* switch (zend_hash_find) */
 		}
-fallthrough:
 		DBG_INF("FAIL-OVER");
 		/* fall-through */
 		case USE_MASTER:
@@ -204,19 +201,14 @@ fallthrough:
 					connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 
 					if (connection) {
-						do {
-							if (CONN_GET_STATE(connection) == CONN_ALLOCED &&
-								PASS != mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
-							{
-								break;
-							}
+						if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 							SET_EMPTY_ERROR(connection->error_info);
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
 							}
-						} while (0);
+						}
 					} else {
 						char error_buf[256];
 						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
