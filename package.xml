@@ -25,11 +25,11 @@
   <date>2011-09-29</date>
   <time>12:00:00</time>
   <version>
-    <release>1.1.0</release>
+    <release>1.1.1</release>
     <api>1.1.0</api>
   </version>
   <stability>
-    <release>alpha</release>
+    <release>beta</release>
     <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
@@ -393,6 +393,18 @@
 
   <changelog>
     <release>
+      <version>
+        <release>1.1.1</release>
+        <api>1.1.0</api>
+      </version>
+      <stability>
+        <release>beta</release>
+        <api>stable</api>
+      </stability>
+      <date>2011-09-29</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>The same as 1.1.0 code-wise, just labeled beta</notes>
+    </release>
       <version>
         <release>1.1.0</release>
         <api>1.1.0</api>
