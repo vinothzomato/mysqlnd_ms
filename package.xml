@@ -33,7 +33,7 @@
     <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Fixed debug build (credits to Vladimir Getmanshchuk). All 1.0 features implemented.</notes>
+  <notes>Numerous feature enhancements. Refer to CHANGES for more information</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
