@@ -32,7 +32,6 @@
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 
-#include "ext/json/JSON_parser.h"
 #include "ext/json/php_json.h"
 
 
@@ -247,9 +246,9 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 				break;
 			}
 #if PHP_VERSION_ID >= 50399
-			php_json_decode_ex(&json_data, str_data, str_data_len, PHP_JSON_OBJECT_AS_ARRAY, JSON_PARSER_DEFAULT_DEPTH TSRMLS_CC);
+			php_json_decode_ex(&json_data, str_data, str_data_len, PHP_JSON_OBJECT_AS_ARRAY, 512 /* default depth */ TSRMLS_CC);
 #else
-			php_json_decode(&json_data, str_data, str_data_len, 1 /* assoc */, JSON_PARSER_DEFAULT_DEPTH TSRMLS_CC);
+			php_json_decode(&json_data, str_data, str_data_len, 1 /* assoc */, 512 /* default depth */ TSRMLS_CC);
 #endif
 			cfg->main_section = mysqlnd_ms_zval_data_to_hashtable(&json_data TSRMLS_CC);
 			zval_dtor(&json_data);
