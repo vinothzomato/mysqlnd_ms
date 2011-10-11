@@ -33,7 +33,7 @@
     <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Numerous feature enhancements. Refer to CHANGES for more information</notes>
+  <notes>A note added to config.m4 for an experimental and currently unsupported option</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
