@@ -1,15 +1,24 @@
-1.1 production ready
+1.1.2 production ready
 
   Motto/theme : Cover replication basics with production quality
   Release data: n/a (planned: 10/2011)
 
-1.1 beta
+1.1.1 beta
+
+  Motto/theme : Cover replication basics with production quality
+  Release data: 10/2011
+
+  * NOTE: 1.1.0 alpha (PECL version) has reported itself as "1.1.0-beta"
+  * Fixed PECL #59982 - Unusable extension with --enable-mysqlnd-ms-table-filter
+    Use of the option is NOT supported. You must not used it. Added note to m4.
+
+1.1.0 alpha
 
   Motto/theme : Cover replication basics with production quality
   Release data: 09/2011
 
-  * Code base refactored to prepare for future releases  
-  * Introduction of (chainable) filter concept  
+  * Code base refactored to prepare for future releases
+  * Introduction of (chainable) filter concept
   * New powerful JSON based configuration syntax
   * Lazy connections improved: security relevant, state changing commands covered
   * Support for (native) prepared statements
@@ -41,7 +50,7 @@
 
 1.0 pre-alpha
 
-  Release date: 09/2010 
+  Release date: 09/2010
   Motto/theme : Proof-of-concept
 
   * Initial check-in

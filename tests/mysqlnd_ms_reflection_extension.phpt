@@ -38,7 +38,7 @@ require_once('skipif.inc');
 ?>
 --EXPECTF--
 Name: mysqlnd_ms
-Version: 1.1.0-beta
+Version: 1.1.1-beta
 Dependencies:
   json - Required
   standard - Required
