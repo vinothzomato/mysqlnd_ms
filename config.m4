@@ -2,7 +2,7 @@ PHP_ARG_ENABLE(mysqlnd_ms, whether to enable mysqlnd_ms support,
 [  --enable-mysqlnd-ms           Enable mysqlnd_ms support])
 
 PHP_ARG_ENABLE(mysqlnd_ms_table_filter, whether to enable table filter in mysqlnd_ms,
-[  --enable-mysqlnd-ms-table-filter   Enable support for table filter in mysqlnd_ms], no, no)
+[  --enable-mysqlnd-ms-table-filter   Enable support for table filter in mysqlnd_ms (EXPERIMENTAL - do not use!)], no, no)
 
 if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
   PHP_SUBST(MYSQLND_MS_SHARED_LIBADD)
