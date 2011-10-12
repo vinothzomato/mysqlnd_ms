@@ -43,11 +43,11 @@ mysqlnd_ms.collect_statistics=1
 
 	/* let's hope we hit both slaves */
 	for ($i = 0; $i < 10; $i++) {
-	  mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
+	  mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">"));
 	  $connections[$link->thread_id][] = 'slave (fallback to master)';
 	}
 
-	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
+	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
 
 	foreach ($connections as $thread_id => $details) {

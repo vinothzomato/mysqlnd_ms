@@ -44,25 +44,25 @@ mysqlnd_ms.collect_statistics=1
 	mst_compare_stats();
 	echo "----\n";
 
-	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH, true, true);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">"));
 	$connections[$link->thread_id] = array('master');
 	echo "----\n";
 	mst_compare_stats();
 	echo "----\n";
 
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);	
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	echo "----\n";
 	mst_compare_stats();
 	$connections[mst_mysqli_get_emulated_id(4, $link)][] = 'slave';
 	echo "----\n";
 
-	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));	
+	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	echo "----\n";
 	mst_compare_stats();
 	$connections[mst_mysqli_get_emulated_id(6, $link)][] = 'slave';
 	echo "----\n";
 
-	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, true));
+	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'master';
 	echo "----\n";
 	mst_compare_stats();

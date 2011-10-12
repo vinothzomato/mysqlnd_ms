@@ -48,14 +48,14 @@ mysqlnd_ms.collect_statistics=1
 	echo "----\n";
 
 	/* falls back to the master */
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">"));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
 	echo "----\n";
 	mst_compare_stats();
 	echo "----\n";
 
 	/* falls back to the master */
-	mst_mysqli_fech_role(mst_mysqli_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true));
+	mst_mysqli_fech_role(mst_mysqli_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'slave (fallback to master)';
 	echo "----\n";
 	mst_compare_stats();

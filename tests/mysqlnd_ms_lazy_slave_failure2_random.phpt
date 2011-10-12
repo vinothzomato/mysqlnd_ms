@@ -44,12 +44,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_random.ini
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections['master'][] = $link->thread_id;
 
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, true);
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, true, version_compare(PHP_VERSION, '5.3.99', ">"));
 	$connections['slave (no fallback)'][0] = $link->thread_id;
 
 	$states = array("failure" => 0, "connect" => 0);
 	do {
-	  $res = mst_mysqli_query(4, $link, "SELECT CONNECTION_ID() AS _role", NULL, true, false, true);
+	  $res = mst_mysqli_query(4, $link, "SELECT CONNECTION_ID() AS _role", NULL, true, false, true, version_compare(PHP_VERSION, '5.3.99', ">"));
 	  if ($res) {
 		  $row = $res->fetch_assoc();
 		  $res->close();
