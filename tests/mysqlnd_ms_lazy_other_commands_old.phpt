@@ -1,11 +1,11 @@
 --TEST--
-lazy connections and assorted commands called before connect (mysqlnd >= 5.0.9)
+lazy connections and assorted commands called before connect (mysqlnd < 5.0.9)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
-if ($MYSQLND_VERSION < 50009) {
-  die("SKIP Requires mysqlnd 5.0.9+, found $MYSQLND_VERSION");
+if ($MYSQLND_VERSION >= 50009) {
+  die("SKIP Requires mysqlnd < 5.0.9, found $MYSQLND_VERSION");
 }
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -147,22 +147,42 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 [017] NULL
 [018] true
 [019] true
-[020] [%d/%s] %s
-[021] [%d/%s] %s
-[022] [%d/%s] %s
-[023] [%d/%s] %s
-[024] [%d/%s] %s
-[025] [%d/%s] %s
-[026] [%d/%s] %s
-[027] [%d/%s] %s
-[028] [%d/%s] %s
+[020] true
+[021] true
+[022] true
+[023] true
+[024] true
+[025] true
+[026] mysqli_stmt::__set_state(array(
+   'affected_rows' => NULL,
+   'insert_id' => NULL,
+   'num_rows' => NULL,
+   'param_count' => NULL,
+   'field_count' => NULL,
+   'errno' => NULL,
+   'error' => NULL,
+   'sqlstate' => NULL,
+   'id' => NULL,
+))
+[027] true
+[028] mysqli_stmt::__set_state(array(
+   'affected_rows' => NULL,
+   'insert_id' => NULL,
+   'num_rows' => NULL,
+   'param_count' => NULL,
+   'field_count' => NULL,
+   'errno' => NULL,
+   'error' => NULL,
+   'sqlstate' => NULL,
+   'id' => NULL,
+))
 
 Warning: mysqli::kill(): processid should have positive value in %s on line %d
 [029] false
 [030] true
 [031] true
-[032] [%d/%s] %s
-[033] [%d/%s] %s
+[032] true
+[033] true
 
 Warning: check_codes(): Couldn't fetch mysqli in %s on line %d
 [035] true
