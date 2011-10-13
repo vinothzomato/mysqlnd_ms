@@ -66,10 +66,7 @@
 		PHP 5.3.0 to version 5.0.4 = 5 * 10000 + 0 * 100 + 4 = 50004.
 		PHP 5.3.0	reports mysqlnd 5.0.5 dev (= 5 * 10000 + 0 * 100 + 5 = 50005.
 		*/
-		if (preg_match('@Revision:\s+(\d+)\s*\$@ism', mysqli_get_client_info(), $matches)) {
-			/* something prior to PHP 5.3.0 */
-			$MYSQLND_VERSION = 50004;
-		} else if (preg_match('@^mysqlnd (\d+)\.(\d+)\.(\d+).*@ism', mysqli_get_client_info(), $matches)) {
+		if (preg_match('@^mysqlnd (\d+)\.(\d+)\.(\d+).*@ism', mysqli_get_client_info(), $matches)) {
 			/* formatting schema used by PHP 5.3.0 */
 			$MYSQLND_VERSION = (int)$matches[1] * 10000 + (int)$matches[2] * 100 + (int)$matches[3];
 		} else if (preg_match('@^mysqlnd/PHP 6.0.0-dev@ism', mysqli_get_client_info(), $matches)) {

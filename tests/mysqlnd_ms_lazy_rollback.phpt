@@ -4,6 +4,10 @@ lazy connections and rollback
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
+if ($MYSQLND_VERSION < 50009) {
+
+  die("SKIP Requires mysqlnd 5.0.9+, found $MYSQLND_VERSION");
+}
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -81,6 +85,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_rollback.ini
 [005] [%d] %s
 array(1) {
   [1]=>
-  string(1) "1"
+  string(1) "x1"
 }
 done!
