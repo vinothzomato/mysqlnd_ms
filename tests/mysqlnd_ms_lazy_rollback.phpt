@@ -85,6 +85,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_rollback.ini
 [005] [%d] %s
 array(1) {
   [1]=>
-  string(1) "x1"
+  string(1) "1"
 }
 done!
