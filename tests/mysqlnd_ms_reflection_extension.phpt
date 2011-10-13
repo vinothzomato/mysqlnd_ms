@@ -3,6 +3,9 @@ ReflectionExtension basics to check API
 --SKIPIF--
 <?php
 require_once('skipif.inc');
+if (version_compare(PHP_VERSION, '5.3.99', "<")) {
+ die("SKIP Test expects PHP 5.4 only functions");
+}
 ?>
 --FILE--
 <?php
