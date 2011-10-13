@@ -74,7 +74,7 @@ mysqlnd_ms.collect_statistics=1
 	mst_compare_stats();
 	echo "----\n";
 
-	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH, true, false, true, version_compare(PHP_VERSION, '5.3.99', ">"));
 	$connections[$link->thread_id] = array('master');
 	echo "----\n";
 	mst_compare_stats();
@@ -92,7 +92,7 @@ mysqlnd_ms.collect_statistics=1
 	mst_compare_stats();
 	echo "----\n";
 
-	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH));
+	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH, true, false, true, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'master';
 	echo "----\n";
 	mst_compare_stats();
@@ -114,9 +114,6 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 ----
 ----
-pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
-[E_WARNING] mysqli::query(): [%d] %s
-Connect error, [002] [%d] %s
 ----
 Stats use_master_sql_hint: 1
 Stats use_master_callback: 1
@@ -129,14 +126,11 @@ Stats use_slave_callback: 1
 Stats lazy_connections_slave_success: 1
 ----
 pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-This is 'slave %s' speaking
+This is 'slave %d' speaking
 ----
 Stats use_slave_guess: 1
 Stats use_slave_callback: 2
 ----
-pick_server('myapp', '/*ms=master*//*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => master
-%AE_WARNING] mysqli::query(): [%d] %s
-Connect error, [005] [%d] %s
 ----
 Stats use_master_sql_hint: 2
 Stats use_master_callback: 2

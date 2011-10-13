@@ -43,7 +43,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 	set_error_handler('mst_error_handler');
 
 	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
-		static $slave_idx = 0;			
+		static $slave_idx = 0;
 
 		$where = mysqlnd_ms_query_is_select($query);
 		$server = '';
@@ -81,16 +81,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections[mst_mysqli_get_emulated_id(3, $link)] = array('master');
 
-	mst_mysqli_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, true, version_compare(PHP_VERSION, '5.3.99', ">"));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
 	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
 	$connections[mst_mysqli_get_emulated_id(6, $link)] = array('slave');
 
-	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", true, false, true, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
-	mst_mysqli_fech_role(mst_mysqli_query(8, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role"));
+	mst_mysqli_fech_role(mst_mysqli_query(8, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", true, false, true, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
 	foreach ($connections as $thread_id => $details) {
@@ -108,20 +108,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure2_user.ini
 ?>
 --EXPECTF--
 pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
-pick_server('myapp', '/*ms=slave*//*4*/SET @myrole='slave'') => slave
-[E_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [004] [%d] %s
 pick_server('myapp', '/*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
 This is '' speaking
-pick_server('myapp', '/*7*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable2:6033 but connection failed in %s on line %d
-Connect error, [007] [%d] %s
-pick_server('myapp', '/*8*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [008] [%d] %s
+pick_server('myapp', '/*1*//*7*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+%AE_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable2:6033 but connection failed in %s on line %A
+pick_server('myapp', '/*1*//*8*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
+%AE_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %A
 Connection master-%d -
 ... master
 Connection 0 -

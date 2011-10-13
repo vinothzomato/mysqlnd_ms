@@ -73,13 +73,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_user.ini
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$connections[$link->thread_id] = array('master');
 
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">"));
+	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH, true, false, false, version_compare(PHP_VERSION, '5.3.99', ">"));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
-	mst_mysqli_fech_role(mst_mysqli_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">")));
+	mst_mysqli_fech_role(mst_mysqli_query(4, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, false, false, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
-	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, true, false, version_compare(PHP_VERSION, '5.3.99', ">")));
+	mst_mysqli_fech_role(mst_mysqli_query(5, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", NULL, true, false, false, version_compare(PHP_VERSION, '5.3.99', ">")));
 	$connections[$link->thread_id][] = 'slave (no fallback)';
 
 	foreach ($connections as $thread_id => $details) {
@@ -97,18 +97,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_slave_failure_user.ini
 ?>
 --EXPECTF--
 pick_server('myapp', '/*ms=master*//*2*/SET @myrole='master'') => master
-pick_server('myapp', '/*ms=slave*//*3*/SET @myrole='slave'') => slave
-[E_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [003] [%d] %s
-pick_server('myapp', '/*4*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [004] [%d] %s
-pick_server('myapp', '/*5*/SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role') => slave
-[E_WARNING] mysqli::query(): [%d] %s
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Callback chose tcp://unreachable:6033 but connection failed in %s on line %d
-Connect error, [005] [%d] %s
+Connect error, [003] [2002] %s
+Connect error, [004] [2002] %s
+Connect error, [005] [2002] %s
 Connection %d -
 ... master
 Connection 0 -
