@@ -3,6 +3,9 @@ mysqlnd_ms_get_last_used_connection()
 --SKIPIF--
 <?php
 require_once('skipif.inc');
+if (version_compare(PHP_VERSION, '5.3.99', "<")) {
+	die("SKIP Function not available before PHP 5.4.0");
+}
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($host, $user, $passwd, $db, $port, $socket);
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -41,13 +44,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 				$type = ("integer" == $type) ? "int" : $type;
 				if ($type != $members[$prop]) {
 					printf("[%03d + 02] Property %s should be of type %s, got %s\n",
-					  $offset, $members[$prop], $type);				
+					  $offset, $members[$prop], $type);
 				}
 
 				if (isset($expected[$prop])) {
 					if ($expected[$prop] !== $value) {
 						printf("[%03d + 03] Expecting %s = %s, got %s\n",
-							$offset, $prop, var_export($expected[$prop], true), var_export($value, true));						
+							$offset, $prop, var_export($expected[$prop], true), var_export($value, true));
 					}
 					unset($expected[$prop]);
 				} else {
@@ -55,19 +58,19 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 						case "string":
 							if ($value !== "") {
 								printf("[%03d + 04] Expecting %s = <empty string>, got %s\n",
-									$offset, $prop, var_export($value, true));								
+									$offset, $prop, var_export($value, true));
 							}
 							break;
 						case "int":
 							if ($value !== 0) {
 								printf("[%03d + 05] Expecting %s = 0, got %s\n",
-								  $offset, $prop, var_export($value, true));								
+								  $offset, $prop, var_export($value, true));
 							}
 							break;
 						case "array":
 							if (0 !== count($value)) {
 								printf("[%03d + 06] Expecting %s = <empty array>, got %s\n",
-									$offset, $prop, var_export($value, true));								
+									$offset, $prop, var_export($value, true));
 							}
 							break;
 						default:
@@ -87,7 +90,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 			var_dump($members);
 			return false;
 		}
-			
+
 		return true;
 	}
 
@@ -127,9 +130,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 		"thread_id" => $link->thread_id,
 		"errno" 	=> $link->errno,
 		"error" 	=> $link->error,
-		"sqlstate" 	=> $link->sqlstate,	
+		"sqlstate" 	=> $link->sqlstate,
 	);
-	if ("localhost" != $host && !$socket) {		
+	if ("localhost" != $host && !$socket) {
 		$expected["scheme"] = sprintf("tcp://%s:%d", $host, $port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
@@ -145,7 +148,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(7, $conn, $members, $expected);
-	
+
 	@$link->query("YEAH, HEY, OK, HEY, ..");
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
@@ -206,7 +209,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	sleep(1);
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
-	$expected["sqlstate"] = $link->sqlstate;	
+	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	conn_diff(16, $conn, $members, $expected);
 

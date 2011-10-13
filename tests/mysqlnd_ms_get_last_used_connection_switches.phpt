@@ -3,6 +3,9 @@ mysqlnd_ms_get_last_used_connection() switching
 --SKIPIF--
 <?php
 require_once('skipif.inc');
+if (version_compare(PHP_VERSION, '5.3.99', "<")) {
+	die("SKIP Function not available before PHP 5.4.0");
+}
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($host, $user, $passwd, $db, $port, $socket);
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -119,7 +122,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	conn_diff(2, $conn, $members, $expected);
 
 	/* master */
-	mst_mysqli_query(3, $link, "SET @myrole='master'");	
+	mst_mysqli_query(3, $link, "SET @myrole='master'");
 
 	$expected["thread_id"] = $link->thread_id;
 	$expected["host"] = $master_host;
@@ -156,7 +159,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	$threads[mst_mysqli_get_emulated_id(8, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* slave 2 */
-	mst_mysqli_query(9, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);	
+	mst_mysqli_query(9, $link, "SET @myrole='slave2'", MYSQLND_MS_SLAVE_SWITCH);
 
 	$expected["thread_id"] = $link->thread_id;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
@@ -219,7 +222,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	if ($conn["scheme"] != $exp[1]) {
 		printf("[031] Scheme seems wrong. Check manually.\n");
 	}
-	
+
 	print "done!";
 ?>
 --CLEAN--
