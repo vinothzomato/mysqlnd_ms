@@ -28,6 +28,9 @@
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
+#if PHP_VERSION_ID >= 50400
+#include "ext/mysqlnd/mysqlnd_ext_plugin.h"
+#endif
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 #include "ext/standard/php_rand.h"
