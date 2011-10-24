@@ -5,7 +5,6 @@ lazy connections and rollback
 require_once('skipif.inc');
 require_once("connect.inc");
 if ($MYSQLND_VERSION < 50009) {
-
   die("SKIP Requires mysqlnd 5.0.9+, found $MYSQLND_VERSION");
 }
 
