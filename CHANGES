@@ -3,6 +3,8 @@
   Motto/theme : Cover replication basics with production quality
   Release data: n/a (planned: 10/2011)
 
+  * Introduced mysqlnd_ms.disable_rw_split ini setting
+
 1.1.1 beta
 
   Motto/theme : Cover replication basics with production quality
