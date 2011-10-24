@@ -78,6 +78,7 @@ php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 	mysqlnd_ms_globals->user_pick_server = NULL;
 	mysqlnd_ms_globals->collect_statistics = FALSE;
 	mysqlnd_ms_globals->multi_master = FALSE;
+	mysqlnd_ms_globals->disable_rw_split = FALSE;
 }
 /* }}} */
 
@@ -126,6 +127,7 @@ PHP_INI_BEGIN()
 	STD_PHP_INI_ENTRY("mysqlnd_ms.ini_file", NULL, PHP_INI_SYSTEM, OnUpdateString, ini_file, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.collect_statistics", "0", PHP_INI_SYSTEM, OnUpdateBool, collect_statistics, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 	STD_PHP_INI_ENTRY("mysqlnd_ms.multi_master", "0", PHP_INI_SYSTEM, OnUpdateBool, multi_master, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
+	STD_PHP_INI_ENTRY("mysqlnd_ms.disable_rw_split", "0", PHP_INI_SYSTEM, OnUpdateBool, disable_rw_split, zend_mysqlnd_ms_globals, mysqlnd_ms_globals)
 PHP_INI_END()
 /* }}} */
 
@@ -295,7 +297,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 		return;
 	}
 	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
-		RETURN_FALSE;	
+		RETURN_FALSE;
 	}
 	{
 		MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);

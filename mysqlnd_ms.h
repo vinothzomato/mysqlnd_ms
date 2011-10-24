@@ -45,6 +45,7 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zval * user_pick_server;
 	zend_bool collect_statistics;
 	zend_bool multi_master;
+	zend_bool disable_rw_split;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
 

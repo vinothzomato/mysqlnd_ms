@@ -12,6 +12,7 @@ require_once('skipif.inc');
 		"mysqlnd_ms.ini_file" 			=> "mysqlnd_ms.ini_file",
 		"mysqlnd_ms.collect_statistics"	=> "mysqlnd_ms.collect_statistics",
 		"mysqlnd_ms.multi_master"		=> "mysqlnd_ms.multi_master",
+		"mysqlnd_ms.disable_rw_split"	=> "mysqlnd_ms.disable_rw_split",
 	);
 
 	$inigetall_list = ini_get_all("mysqlnd_ms", true);
@@ -54,4 +55,5 @@ mysqlnd_ms.force_config_usage [PHP_INI_SYSTEM] '0'
 mysqlnd_ms.ini_file [PHP_INI_SYSTEM] ''
 mysqlnd_ms.collect_statistics [PHP_INI_SYSTEM] '0'
 mysqlnd_ms.multi_master [PHP_INI_SYSTEM] '0'
+mysqlnd_ms.disable_rw_split [PHP_INI_SYSTEM] '0'
 done!

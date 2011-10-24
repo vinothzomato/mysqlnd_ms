@@ -419,7 +419,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 								 "Non-multi filter '%s' already created. Stopping", filter_name, prev->name);
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						DBG_RETURN(NULL);	
+						DBG_RETURN(NULL);
 					}
 				}
 				if (specific_ctors[i].ctor) {
@@ -502,7 +502,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 								mnd_pefree(filter_name, 0);
 								continue;
 							} else {
-								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%d' . Stopping", filter_int_name);							
+								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%d' . Stopping", filter_int_name);
 							}
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
@@ -578,9 +578,13 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_FORCED);
 		} else if (!strncasecmp(Z_STRVAL(token.value), SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1)) {
 			DBG_INF("forced slave");
-			ret = USE_SLAVE;
+			if (MYSQLND_MS_G(disable_rw_split)) {
+				ret = USE_MASTER;
+			} else {
+				ret = USE_SLAVE;
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
+			}
 			*forced = TRUE;
-			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
 		} else if (!strncasecmp(Z_STRVAL(token.value), LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
 			DBG_INF("forced last used");
 			ret = USE_LAST_USED;
@@ -597,7 +601,9 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 		token = mysqlnd_qp_get_token(scanner TSRMLS_CC);
 	}
 	if (*forced == FALSE) {
-		if (token.token == QC_TOKEN_SELECT) {
+	  	if (MYSQLND_MS_G(disable_rw_split)) {
+			ret = USE_MASTER;
+		} else if (token.token == QC_TOKEN_SELECT) {
 			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_GUESS);
 			ret = USE_SLAVE;
 #ifdef ALL_SERVER_DISPATCH
