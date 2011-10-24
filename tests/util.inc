@@ -22,7 +22,7 @@
 		return $ret;
 	}
 
-	function mst_mysqli_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
+	function mst_mysqli_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false, $weak_connect_warning = false) {
 		global $mst_connect_errno_codes;
 
 		$query = "/*$offset*/$query";
@@ -45,6 +45,14 @@
 					if (false !== ($found = strpos($haystack, $needle))) {
 						break;
 					}
+				}
+				if (!$found && $weak_connect_warning) {
+					/*
+						In 5.4-beta a warning disappeared due to network code re-factoring.
+						It was the second of two warnings about the same mistake.
+						After 5.4-beta there is only one warning left.
+					*/
+					$found = strpos($haystack, "php_network_getaddresses: getaddrinfo failed");
 				}
 				if (!$found) {
 					printf("[%03d] Cannot find the expected connect warning, got '%s'\n", $offset, $haystack);
