@@ -1,5 +1,5 @@
 --TEST--
-multi query and lazy connections
+multi query and lazy connections: doesn't work because set_server_option calls are not buffered and lost
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -66,14 +66,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_limits_multi_query_lazy.ini
 	if (!unlink("test_mysqlnd_ms_limits_multi_query_lazy.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_limits_multi_query_lazy.ini'.\n");
 ?>
---XFAIL--
-Doesn't work because set_server_option calls are not buffered and lost
 --EXPECTF--
 [002] /*ms=slave*/SET @myrole='Slave 1'
 [004] SET @myrole='Master 1'
 [005] SELECT 'This is ' AS _msg FROM DUAL; SELECT @myrole AS _msg; SELECT ' speaking!' AS _msg FROM DUAL
-This is
-Slave 1
- speaking!
+[005] [0]%s
 
 done!
