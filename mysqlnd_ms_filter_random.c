@@ -106,7 +106,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					} else {
 						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
-						SET_EMPTY_ERROR(connection->error_info);
+						SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 						DBG_RETURN(connection);
 					}
 					break;
@@ -136,7 +136,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					} else {
 						if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
-							SET_EMPTY_ERROR(connection->error_info);
+							SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
@@ -185,7 +185,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
-						SET_EMPTY_ERROR(connection->error_info);
+						SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 						DBG_RETURN(connection);
 					}
 					break;
@@ -203,7 +203,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					if (connection) {
 						if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
 							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
-							SET_EMPTY_ERROR(connection->error_info);
+							SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 							if (TRUE == filter->sticky.once) {
 								zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
 												 sizeof(MYSQLND *), NULL);
@@ -232,7 +232,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 			} else {
-				SET_EMPTY_ERROR(stgy->last_used_conn->error_info);
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(stgy->last_used_conn));
 			}
 			DBG_RETURN(stgy->last_used_conn);
 		default:

@@ -391,7 +391,7 @@ mysqlnd_ms_connect_to_host(MYSQLND * proxy_conn, MYSQLND * conn, zend_llist * co
 												   lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
-					(*error_info) = tmp_conn->error_info;
+					(*error_info) = MYSQLND_MS_ERROR_INFO(tmp_conn);
 					failures++;
 					if (tmp_conn != conn) {
 						tmp_conn->m->dtor(tmp_conn TSRMLS_CC);
@@ -470,7 +470,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 		if (hotloading) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
-		SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section");
+		SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section");
 		DBG_RETURN(FAIL);
 	}
 	mysqlnd_ms_conn_free_plugin_data(conn TSRMLS_CC);
@@ -520,7 +520,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 #else
 			use_lazy_connections = FALSE;
 #endif
-			SET_EMPTY_ERROR(conn->error_info);
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 			{
 				const char * const secs_to_check[] = {MASTER_NAME, SLAVE_NAME};
 				unsigned int i = 0;
@@ -530,7 +530,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 						char error_buf[128];
 						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", secs_to_check[i], host);
 						error_buf[sizeof(error_buf) - 1] = '\0';
-						SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
 					}
 				}
@@ -543,13 +543,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 conn->persistent, MYSQLND_MS_G(multi_master) /* multimaster*/,
 											 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
 											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
-											 &conn->error_info TSRMLS_CC);
-			if (FAIL == ret || conn->error_info.error_no) {
+											 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+			if (FAIL == ret || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
 				break;
 			}
 
-			SET_EMPTY_ERROR(conn->error_info);
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 
 			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
 			ret = mysqlnd_ms_connect_to_host(conn, NULL, &(*conn_data)->slave_connections, &(*conn_data)->cred, the_section,
@@ -558,21 +558,21 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND * conn,
 											 conn->persistent, TRUE /* multi*/,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
 											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
-											 &conn->error_info TSRMLS_CC);
+											 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 
-			if (FAIL == ret || conn->error_info.error_no) {
+			if (FAIL == ret || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
 				break;
 			}
 			DBG_INF_FMT("master_list=%p count=%d", &(*conn_data)->master_connections, zend_llist_count(&(*conn_data)->master_connections));
 			DBG_INF_FMT("slave_list=%p count=%d", &(*conn_data)->slave_connections, zend_llist_count(&(*conn_data)->slave_connections));
-			(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &conn->error_info,
+			(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
 																		 TRUE /* load all config persistently */ TSRMLS_CC);
 			if (!(*conn_data)->stgy.filters) {
 				ret = FAIL;
 				break;
 			}
-			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &conn->error_info TSRMLS_CC);
+			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
 
@@ -608,7 +608,7 @@ mysqlnd_ms_do_send_query(MYSQLND * conn, const char * query, unsigned int query_
 			char error_buf[128];
 			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Asynchronous queries are not supported");
 			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			DBG_RETURN(FAIL);
 		}
@@ -646,14 +646,14 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 	}
 
 	connection = mysqlnd_ms_pick_server_ex(conn, query, query_len TSRMLS_CC);
-	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? connection->error_info.error_no:-1);
+	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? (MYSQLND_MS_ERROR_INFO(connection).error_no) : -1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
 	  as we dump a connection from usage till the end of the script.
 	  Lazy connections can generate connection failures, thus we need to check for them.
 	  If we skip these checks we will get 2014 from original->query.
 	*/
-	if (!connection || connection->error_info.error_no) {
+	if (!connection || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
 		DBG_RETURN(ret);
 	}
 
@@ -673,8 +673,8 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND * conn, const char * query, unsigned i
 		PASS == connection->m->reap_query(connection TSRMLS_CC))
 	{
 		ret = PASS;
-		if (connection->last_query_type == QUERY_UPSERT && connection->upsert_status.affected_rows) {
-			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, connection->upsert_status.affected_rows);
+		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
+			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
 		}
 	}
 
@@ -827,7 +827,7 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND * const proxy_conn, char *news
 	} else {
 		newstr[0] = '\0';
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection");
-		SET_CLIENT_ERROR(conn->error_info, CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
+		SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
 		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
 	DBG_RETURN(ret);
@@ -1197,7 +1197,7 @@ MYSQLND_METHOD(mysqlnd_ms, error_no)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-	return conn->error_info.error_no;
+	return MYSQLND_MS_ERROR_INFO(conn).error_no;
 }
 /* }}} */
 
@@ -1208,7 +1208,7 @@ MYSQLND_METHOD(mysqlnd_ms, error)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-	return conn->error_info.error;
+	return MYSQLND_MS_ERROR_INFO(conn).error;
 }
 /* }}} */
 
@@ -1219,7 +1219,7 @@ MYSQLND_METHOD(mysqlnd_ms, sqlstate)(const MYSQLND * const proxy_conn TSRMLS_DC)
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-	return conn->error_info.sqlstate[0] ? conn->error_info.sqlstate:MYSQLND_SQLSTATE_NULL;
+	return (MYSQLND_MS_ERROR_INFO(conn).sqlstate[0]) ? (MYSQLND_MS_ERROR_INFO(conn).sqlstate): MYSQLND_SQLSTATE_NULL;
 }
 /* }}} */
 
@@ -1252,7 +1252,7 @@ MYSQLND_METHOD(mysqlnd_ms, insert_id)(const MYSQLND * const proxy_conn TSRMLS_DC
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-	return conn->upsert_status.last_insert_id;
+	return MYSQLND_MS_UPSERT_STATUS(conn).last_insert_id;
 }
 /* }}} */
 
@@ -1263,7 +1263,7 @@ MYSQLND_METHOD(mysqlnd_ms, affected_rows)(const MYSQLND * const proxy_conn TSRML
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-	return conn->upsert_status.affected_rows;
+	return MYSQLND_MS_UPSERT_STATUS(conn).affected_rows;
 }
 /* }}} */
 
@@ -1274,7 +1274,7 @@ MYSQLND_METHOD(mysqlnd_ms, warning_count)(const MYSQLND * const proxy_conn TSRML
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 	const MYSQLND * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-	return conn->upsert_status.warning_count;
+	return MYSQLND_MS_UPSERT_STATUS(conn).warning_count;
 }
 /* }}} */
 

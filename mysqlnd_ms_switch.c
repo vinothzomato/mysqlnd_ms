@@ -736,14 +736,14 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 				case SERVER_PICK_USER:
 					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,
 															 selected_masters, selected_slaves, stgy,
-															 &conn->error_info TSRMLS_CC);
+															 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 				case SERVER_PICK_USER_MULTI:
 					multi_filter = TRUE;
 					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
 														 selected_masters, selected_slaves,
 														 output_masters, output_slaves, stgy,
-														 &conn->error_info TSRMLS_CC);
+														 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 				case SERVER_PICK_TABLE:
@@ -753,15 +753,15 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 															  	conn->connect_or_select_db:
 															  	(*conn_data)->cred.db,
 															  selected_masters, selected_slaves, output_masters, output_slaves,
-															  stgy, &conn->error_info TSRMLS_CC);
+															  stgy, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 #endif
 				case SERVER_PICK_RANDOM:
-					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, &conn->error_info,
+					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
 																	 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
-					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, &conn->error_info,
+					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
 																 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				default:
@@ -769,7 +769,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					char error_buf[128];
 					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
 					error_buf[sizeof(error_buf) - 1] = '\0';
-					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 				}
 			}
@@ -804,7 +804,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " No connection selected by the last filter");
 				error_buf[sizeof(error_buf) - 1] = '\0';
-				SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 				goto end;
 			}
@@ -818,7 +818,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t
 					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
 					error_buf[sizeof(error_buf) - 1] = '\0';
 					DBG_ERR(error_buf);
-					SET_CLIENT_ERROR(conn->error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+					SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					goto end;
 				}

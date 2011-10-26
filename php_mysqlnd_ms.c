@@ -312,9 +312,9 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 		add_assoc_long_ex(return_value, "port", sizeof("port"), conn->port);
 		add_assoc_long_ex(return_value, "thread_id", sizeof("thread_id"), conn->thread_id);
 		add_assoc_string_ex(return_value, "last_message", sizeof("last_message"), conn->last_message? conn->last_message:"", 1);
-		add_assoc_long_ex(return_value, "errno", sizeof("errno"), conn->error_info.error_no);
-		add_assoc_string_ex(return_value, "error", sizeof("error"), (char *) conn->error_info.error, 1);
-		add_assoc_string_ex(return_value, "sqlstate", sizeof("sqlstate"), (char *) conn->error_info.sqlstate, 1);
+		add_assoc_long_ex(return_value, "errno", sizeof("errno"), MYSQLND_MS_ERROR_INFO(conn).error_no);
+		add_assoc_string_ex(return_value, "error", sizeof("error"), (char *) MYSQLND_MS_ERROR_INFO(conn).error, 1);
+		add_assoc_string_ex(return_value, "sqlstate", sizeof("sqlstate"), (char *) MYSQLND_MS_ERROR_INFO(conn).sqlstate, 1);
 	}
 }
 /* }}} */
