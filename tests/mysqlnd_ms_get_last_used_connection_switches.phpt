@@ -102,14 +102,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	}
 
 	$members = array(
-		"scheme" 		=> "string",
-		"host" 			=> "string",
-		"port" 			=> "int",
-		"thread_id" 	=> "int",
-		"last_message" 	=> "string",
-		"errno" 		=> "int",
-		"error" 		=> "string",
-		"sqlstate" 		=> "string",
+		"scheme" 			=> "string",
+		"host_info"			=> "string",
+		"host" 				=> "string",
+		"port" 				=> "int",
+		"socket_or_pipe"	=> "string",
+		"thread_id" 		=> "int",
+		"last_message" 		=> "string",
+		"errno" 			=> "int",
+		"error" 			=> "string",
+		"sqlstate" 			=> "string",
 	);
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
@@ -124,10 +126,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	/* master */
 	mst_mysqli_query(3, $link, "SET @myrole='master'");
 
-	$expected["thread_id"] = $link->thread_id;
-	$expected["host"] = $master_host;
-	$expected["port"] = (int)$master_port;
-	$expected["socket"] = $master_socket;
+	$expected = array(
+		"host" 				=> ("localhost" == $master_host) ? "" : $master_host,
+		"host_info" 		=> $link->host_info,
+		"port"				=> (int)$master_port,
+		"socket_or_pipe"	=> ("localhost" == $master_host) ? (($master_socket) ? $master_socket : "/tmp/mysql.sock") : "",
+		"thread_id" 		=> $link->thread_id,
+		"errno" 			=> $link->errno,
+		"error" 			=> $link->error,
+		"sqlstate" 			=> $link->sqlstate,
+	);
 	if ("localhost" != $master_host && !$master_socket) {
 		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host, $master_port);
 	}
@@ -143,11 +151,13 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	mst_mysqli_query(6, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
 
 	$expected["thread_id"] = $link->thread_id;
-	list($expected["host"]) = explode(':', $slave_host);
+	list($tmp_slave_host) = explode(':', $slave_host);
+	$expected["host"] = ("localhost" == $tmp_slave_host) ? "" : $tmp_slave_host;
 	$expected["port"] = (int)$slave_port;
-	$expected["socket"] = $slave_socket;
+	$expected["socket_or_pipe"] = ("localhost" == $tmp_slave_host) ? (($slave_socket) ? $slave_socket : "/tmp/mysql.sock") : "";
+	$expected["host_info"] = $link->host_info;
+
 	if ("localhost" != $slave_host && !$slave_socket) {
-		list($tmp_slave_host) = explode(':', $slave_host);
 		$expected["scheme"] = sprintf("tcp://%s:%d", $tmp_slave_host, $slave_port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);

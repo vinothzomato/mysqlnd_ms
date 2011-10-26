@@ -104,14 +104,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 	  printf("[003] Expecting NULL got %s\n", var_export($ret, true));
 
 	$members = array(
-		"scheme" 		=> "string",
-		"host" 			=> "string",
-		"port" 			=> "int",
-		"thread_id" 	=> "int",
-		"last_message" 	=> "string",
-		"errno" 		=> "int",
-		"error" 		=> "string",
-		"sqlstate" 		=> "string",
+		"scheme" 			=> "string",
+		"host_info"			=> "string",
+		"host" 				=> "string",
+		"port" 				=> "int",
+		"socket_or_pipe"	=> "string",
+		"thread_id" 		=> "int",
+		"last_message" 		=> "string",
+		"errno" 			=> "int",
+		"error" 			=> "string",
+		"sqlstate" 			=> "string",
 	);
 
 	/* mysqli */
@@ -125,13 +127,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 			$host, $user, $db, $port, $socket);
 
 	$expected = array(
-		"host" 		=> $host,
-		"port"		=> (int)$port,
-		"thread_id" => $link->thread_id,
-		"errno" 	=> $link->errno,
-		"error" 	=> $link->error,
-		"sqlstate" 	=> $link->sqlstate,
+		"host" 				=> ("localhost" == $host) ? "" : $host,
+		"host_info" 		=> $link->host_info,
+		"port"				=> (int)$port,
+		"socket_or_pipe"	=> ("localhost" == $host) ? (($socket) ? $socket : "/tmp/mysql.sock") : "",
+		"thread_id" 		=> $link->thread_id,
+		"errno" 			=> $link->errno,
+		"error" 			=> $link->error,
+		"sqlstate" 			=> $link->sqlstate,
 	);
+
 	if ("localhost" != $host && !$socket) {
 		$expected["scheme"] = sprintf("tcp://%s:%d", $host, $port);
 	}
@@ -161,12 +166,14 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 			$host, $user, $db, $port, $socket);
 
 	$expected = array(
-		"host" 		=> $host,
-		"port"		=> (int)$port,
-		"thread_id" => $link->thread_id,
-		"errno" 	=> $link->errno,
-		"error" 	=> $link->error,
-		"sqlstate" 	=> $link->sqlstate,
+		"host" 				=> ("localhost" == $host) ? "" : $host,
+		"host_info" 		=> $link->host_info,
+		"port"				=> (int)$port,
+		"socket_or_pipe"	=> ("localhost" == $host) ? (($socket) ? $socket : "/tmp/mysql.sock") : "",
+		"thread_id" 		=> $link->thread_id,
+		"errno" 			=> $link->errno,
+		"error" 			=> $link->error,
+		"sqlstate" 			=> $link->sqlstate,
 	);
 	if ("localhost" != $host && !$socket) {
 		$expected["port"] == $port;

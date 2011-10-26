@@ -308,8 +308,10 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 
 		array_init(return_value);
 		add_assoc_string_ex(return_value, "scheme", sizeof("scheme"), conn->scheme? conn->scheme:"", 1);
+		add_assoc_string_ex(return_value, "host_info", sizeof("host_info"), conn->host_info? conn->host_info:"", 1);
 		add_assoc_string_ex(return_value, "host", sizeof("host"), conn->host? conn->host:"", 1);
 		add_assoc_long_ex(return_value, "port", sizeof("port"), conn->port);
+		add_assoc_string_ex(return_value, "socket_or_pipe", sizeof("socket_or_pipe"), conn->unix_socket? conn->unix_socket:"", 1);
 		add_assoc_long_ex(return_value, "thread_id", sizeof("thread_id"), conn->thread_id);
 		add_assoc_string_ex(return_value, "last_message", sizeof("last_message"), conn->last_message? conn->last_message:"", 1);
 		add_assoc_long_ex(return_value, "errno", sizeof("errno"), MYSQLND_MS_ERROR_INFO(conn).error_no);
