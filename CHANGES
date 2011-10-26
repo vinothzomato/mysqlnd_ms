@@ -4,6 +4,7 @@
   Release data: n/a (planned: 10/2011)
 
   * Introduced mysqlnd_ms.disable_rw_split ini setting
+  * Fixed Bug #60119 - 	host="localhost" lost in mysqlnd_ms_get_last_used_connection()
 
 1.1.1 beta
 

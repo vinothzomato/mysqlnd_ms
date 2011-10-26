@@ -41,7 +41,7 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 ?>
 --EXPECTF--
 Name: mysqlnd_ms
-Version: 1.1.1-beta
+Version: 1.1.2
 Dependencies:
   json - Required
   standard - Required
