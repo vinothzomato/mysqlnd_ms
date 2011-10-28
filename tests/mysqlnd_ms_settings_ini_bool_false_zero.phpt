@@ -6,6 +6,7 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
+_skipif_connect($host, $user, $passwd, $db, $port, $socket);
 
 $settings = array(
 	"name_of_a_config_section" => array(

@@ -6,6 +6,7 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
+_skipif_connect($host, $user, $passwd, $db, $port, $socket);
 
 $settings = array(
 	"name_of_a_config_section" => array(
@@ -15,6 +16,8 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_ini_bool_false_false.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
