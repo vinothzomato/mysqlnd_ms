@@ -36,7 +36,7 @@
 
 
 /* {{{ mysqlnd_ms_choose_connection_rr */
-MYSQLND *
+MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const size_t query_len,
 								struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info,
 								zend_llist * master_connections, zend_llist * slave_connections,
@@ -105,7 +105,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			{
 				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
-				MYSQLND * connection = NULL;
+				MYSQLND_CONN_DATA * connection = NULL;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
 					if (i == *pos) {
@@ -179,7 +179,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			{
 				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
-				MYSQLND * connection = NULL;
+				MYSQLND_CONN_DATA * connection = NULL;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
 					if (i == *pos) {

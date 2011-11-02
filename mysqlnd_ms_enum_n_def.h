@@ -213,7 +213,7 @@ typedef enum mysqlnd_ms_collected_stats
 typedef struct st_mysqlnd_ms_list_data
 {
 	char * name_from_config;
-	MYSQLND * conn;
+	MYSQLND_CONN_DATA * conn;
 	char * host;
 	char * user;
 	char * passwd;
@@ -295,8 +295,8 @@ struct mysqlnd_ms_lb_strategies
 	enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
 	zend_bool in_transaction;
 
-	MYSQLND * last_used_conn;
-	MYSQLND * random_once_slave;
+	MYSQLND_CONN_DATA * last_used_conn;
+	MYSQLND_CONN_DATA * random_once_slave;
 
 	zend_llist * filters;
 };
@@ -307,7 +307,7 @@ typedef struct st_mysqlnd_ms_conn_data
 	zend_bool initialized;
 	zend_bool skip_ms_calls;
 	enum mysqlnd_ms_on_broadcast_command on_command;
-	MYSQLND * proxy_conn;
+	MYSQLND_CONN_DATA * proxy_conn;
 	char * connect_host;
 	zend_llist delayed_commands;
 	zend_llist master_connections;
@@ -352,8 +352,8 @@ typedef struct st_mysqlnd_ms_command
 	zend_bool persistent;
 } MYSQLND_MS_COMMAND;
 
-extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
-
+extern struct st_mysqlnd_conn_data_methods * ms_orig_mysqlnd_conn_methods;
+extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_handle_methods;
 #endif /* MYSQLND_MS_ENUM_N_DEF_H */
 
 /*

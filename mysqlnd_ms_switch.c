@@ -665,11 +665,11 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 
 
 /* {{{ mysqlnd_ms_pick_server_ex */
-MYSQLND *
-mysqlnd_ms_pick_server_ex(MYSQLND * conn, const char * const query, const size_t query_len TSRMLS_DC)
+MYSQLND_CONN_DATA *
+mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, const size_t query_len TSRMLS_DC)
 {
-	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(conn, mysqlnd_ms_plugin_id);
-	MYSQLND * connection = conn;
+	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn, mysqlnd_ms_plugin_id);
+	MYSQLND_CONN_DATA * connection = conn;
 	DBG_ENTER("mysqlnd_ms_pick_server_ex");
 	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
 

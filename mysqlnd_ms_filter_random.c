@@ -37,7 +37,7 @@
 
 
 /* {{{ mysqlnd_ms_choose_connection_random */
-MYSQLND *
+MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, const size_t query_len,
 									struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info,
 									zend_llist * master_connections, zend_llist * slave_connections,
@@ -85,8 +85,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			MYSQLND_MS_LIST_DATA * element = NULL, ** element_pp = NULL;
 			unsigned long rnd_idx;
 			uint i = 0;
-			MYSQLND * connection = NULL;
-			MYSQLND ** context_pos;
+			MYSQLND_CONN_DATA * connection = NULL;
+			MYSQLND_CONN_DATA ** context_pos;
 			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 
 			DBG_INF_FMT("%d slaves to choose from", zend_llist_count(l));
@@ -163,8 +163,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			MYSQLND_MS_LIST_DATA * element = NULL, ** element_pp = NULL;
 			unsigned long rnd_idx;
 			uint i = 0;
-			MYSQLND * connection = NULL;
-			MYSQLND ** context_pos;
+			MYSQLND_CONN_DATA * connection = NULL;
+			MYSQLND_CONN_DATA ** context_pos;
 			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 
 			DBG_INF_FMT("%d masters to choose from", zend_llist_count(l));
