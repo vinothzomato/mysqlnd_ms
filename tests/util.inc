@@ -147,7 +147,7 @@
 		}
 
 		if (!$link->query(sprintf("DROP TABLE IF EXISTS %s", $link->real_escape_string($tablename))) ||
-			!$link->query(sprintf("CREATE TABLE %s(id INT)", $link->real_escape_string($tablename))) ||
+			!$link->query(sprintf("CREATE TABLE %s(id INT) ENGINE=InnoDB", $link->real_escape_string($tablename))) ||
 			!$link->query(sprintf("INSERT INTO %s(id) VALUES (1), (2), (3), (4), (5)", $link->real_escape_string($tablename))))
 			return sprintf("[%d] %s\n", $link->errno, $link->error);
 
