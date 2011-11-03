@@ -166,18 +166,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection.ini
 			$host, $user, $db, $port, $socket);
 
 	$expected = array(
-		"host" 				=> ("localhost" == $host) ? "" : $host,
+		"host" 				=> ("localhost" == $master_host_only) ? "" : $master_host_only,
 		"host_info" 		=> $link->host_info,
-		"port"				=> (int)$port,
-		"socket_or_pipe"	=> ("localhost" == $host) ? (($socket) ? $socket : "/tmp/mysql.sock") : "",
+		"port"				=> (int)$master_port,
+		"socket_or_pipe"	=> ("localhost" == $master_host_only) ? (($master_socket) ? $master_socket : "/tmp/mysql.sock") : "",
 		"thread_id" 		=> $link->thread_id,
 		"errno" 			=> $link->errno,
 		"error" 			=> $link->error,
 		"sqlstate" 			=> $link->sqlstate,
 	);
-	if ("localhost" != $host && !$socket) {
-		$expected["port"] == $port;
-		$expected["scheme"] = sprintf("tcp://%s:%d", $host, $port);
+	if ("localhost" != $master_host_only && !$master_socket) {
+		$expected["port"] == $master_port;
+		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host_only, $master_port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	if (!isset($expected["scheme"]) && isset($conn["scheme"]))

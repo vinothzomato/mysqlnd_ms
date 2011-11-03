@@ -151,14 +151,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	mst_mysqli_query(6, $link, "SET @myrole='slave1'", MYSQLND_MS_SLAVE_SWITCH);
 
 	$expected["thread_id"] = $link->thread_id;
-	list($tmp_slave_host) = explode(':', $slave_host);
-	$expected["host"] = ("localhost" == $tmp_slave_host) ? "" : $tmp_slave_host;
+	$expected["host"] = ("localhost" == $slave_host_only) ? "" : $slave_host_only;
 	$expected["port"] = (int)$slave_port;
-	$expected["socket_or_pipe"] = ("localhost" == $tmp_slave_host) ? (($slave_socket) ? $slave_socket : "/tmp/mysql.sock") : "";
+	$expected["socket_or_pipe"] = ("localhost" == $slave_host_only) ? (($slave_socket) ? $slave_socket : "/tmp/mysql.sock") : "";
 	$expected["host_info"] = $link->host_info;
 
-	if ("localhost" != $slave_host && !$slave_socket) {
-		$expected["scheme"] = sprintf("tcp://%s:%d", $tmp_slave_host, $slave_port);
+	if (("localhost" != $slave_host_only) && (!$slave_socket)) {
+		$expected["scheme"] = sprintf("tcp://%s:%d", $slave_host_only, $slave_port);
+	} else {
+		unset($expected["scheme"]);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
@@ -166,6 +167,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 		$expected["scheme"] = $conn["scheme"];
 
 	conn_diff(7, $conn, $members, $expected);
+
 	$threads[mst_mysqli_get_emulated_id(8, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* slave 2 */

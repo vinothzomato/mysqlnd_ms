@@ -53,12 +53,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-	
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
-
 
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	mst_mysqli_fetch_id(5, mst_mysqli_verbose_query(4, $link, "SELECT CONNECTION_ID() AS _id FROM test"));
