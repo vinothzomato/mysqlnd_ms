@@ -1,7 +1,7 @@
-1.1.2 production ready
+1.1.2 stale / production ready
 
   Motto/theme : Cover replication basics with production quality
-  Release data: n/a (planned: 10/2011)
+  Release data: 11/2011
 
   * Introduced mysqlnd_ms.disable_rw_split ini setting
   * Fixed Bug #60119 - 	host="localhost" lost in mysqlnd_ms_get_last_used_connection()

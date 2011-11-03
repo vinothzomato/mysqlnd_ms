@@ -403,7 +403,7 @@
       </stability>
       <date>2011-11-03</date>
       <license uri="http://www.php.net/license">PHP License</license>
-      <notes>Fixed the build for 5.4. Declaring the code as stable</notes>
+      <notes>Fixed the build for 5.4. Declaring the code as stable. Refer to CHANGES for more information</notes>
     </release>
     <release>
       <version>
