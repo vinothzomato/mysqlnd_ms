@@ -668,7 +668,7 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 MYSQLND_CONN_DATA *
 mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, const size_t query_len TSRMLS_DC)
 {
-	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn, mysqlnd_ms_plugin_id);
+	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection = conn;
 	DBG_ENTER("mysqlnd_ms_pick_server_ex");
 	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
@@ -864,12 +864,12 @@ static enum_func_status
 mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned int query_len,
 					 zend_llist * master_connections, zend_llist * slave_connections TSRMLS_DC)
 {
+	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	enum_func_status ret = PASS;
-	MYSQLND_MS_CONN_DATA ** conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data(proxy_conn, mysqlnd_ms_plugin_id);
 
 	DBG_ENTER("mysqlnd_ms_query_all");
 	if (!conn_data || !*conn_data) {
-		DBG_RETURN(ms_orig_mysqlnd_conn_methods->query(proxy_conn, query, query_len TSRMLS_CC));
+		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(proxy_conn, query, query_len TSRMLS_CC));
 	} else {
 		zend_llist * lists[] = {NULL, &(*conn_data)->master_connections, &(*conn_data)->slave_connections, NULL};
 		zend_llist ** list = lists;
@@ -880,7 +880,7 @@ mysqlnd_ms_query_all(MYSQLND * const proxy_conn, const char * query, unsigned in
 			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(*list, &pos); el_pp && (el = *el_pp) && el->conn;
 					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(*list, &pos))
 			{
-				if (PASS != ms_orig_mysqlnd_conn_methods->query(el->conn, query, query_len TSRMLS_CC)) {
+				if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(el->conn, query, query_len TSRMLS_CC)) {
 					ret = FAIL;
 				}
 			}

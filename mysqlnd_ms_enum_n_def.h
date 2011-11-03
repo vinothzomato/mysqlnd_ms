@@ -21,6 +21,36 @@
 #ifndef MYSQLND_MS_ENUM_N_DEF_H
 #define MYSQLND_MS_ENUM_N_DEF_H
 
+#if MYSQLND_VERSION_ID < 50010
+typedef MYSQLND MYSQLND_CONN_DATA;
+#endif
+
+#if MYSQLND_VERSION_ID >= 50010
+#define MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection) \
+	MYSQLND_MS_CONN_DATA ** conn_data = \
+		(MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data((connection), mysqlnd_ms_plugin_id)
+
+#define MS_LOAD_CONN_DATA(conn_data, connection) \
+	(conn_data) = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data((connection), mysqlnd_ms_plugin_id)
+
+#define MS_CALL_ORIGINAL_CONN_HANDLE_METHOD(method) ms_orig_mysqlnd_conn_handle_methods->method
+#define MS_CALL_ORIGINAL_CONN_DATA_METHOD(method) ms_orig_mysqlnd_conn_methods->method
+extern struct st_mysqlnd_conn_data_methods * ms_orig_mysqlnd_conn_methods;
+extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_handle_methods;
+
+#else
+
+#define MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection) \
+	MYSQLND_MS_CONN_DATA ** conn_data = \
+		(MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data((connection), mysqlnd_ms_plugin_id)
+
+#define MS_LOAD_CONN_DATA(conn_data, connection) \
+	(conn_data) = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data((connection), mysqlnd_ms_plugin_id)
+
+#define MS_CALL_ORIGINAL_CONN_HANDLE_METHOD(method) ms_orig_mysqlnd_conn_methods->method
+#define MS_CALL_ORIGINAL_CONN_DATA_METHOD(method) ms_orig_mysqlnd_conn_methods->method
+extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
+#endif
 
 #define BEGIN_ITERATE_OVER_SERVER_LISTS(el, masters, slaves) \
 { \
@@ -352,8 +382,6 @@ typedef struct st_mysqlnd_ms_command
 	zend_bool persistent;
 } MYSQLND_MS_COMMAND;
 
-extern struct st_mysqlnd_conn_data_methods * ms_orig_mysqlnd_conn_methods;
-extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_handle_methods;
 #endif /* MYSQLND_MS_ENUM_N_DEF_H */
 
 /*
