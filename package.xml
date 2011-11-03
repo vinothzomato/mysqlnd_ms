@@ -22,18 +22,18 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2011-10-11</date>
+  <date>2011-11-03</date>
   <time>12:00:00</time>
   <version>
-    <release>1.1.1</release>
+    <release>1.1.2</release>
     <api>1.1.0</api>
   </version>
   <stability>
-    <release>beta</release>
+    <release>stable</release>
     <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>A note added to config.m4 for an experimental and currently unsupported option</notes>
+  <notes>Fixed the build for 5.4. Declaring the code as stable</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
@@ -50,7 +50,9 @@
         <file name="mysqlnd_ms_config_access.phpt" role="test"/>
         <file name="mysqlnd_ms_connection_references.phpt" role="test"/>
         <file name="mysqlnd_ms_constants.phpt" role="test"/>
+        <file name="mysqlnd_ms_disable_rw_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_empty_slave_list.phpt" role="test"/>
+        <file name="mysqlnd_ms_enable_rw_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_error_errno_sqlstate.phpt" role="test"/>
         <file name="mysqlnd_ms_error_message.phpt" role="test"/>
         <file name="mysqlnd_ms_field_count.phpt" role="test"/>
@@ -87,6 +89,7 @@
         <file name="mysqlnd_ms_lazy_master_failure_user.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_more_results.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_next_result.phpt" role="test"/>
+        <file name="mysqlnd_ms_lazy_other_commands_old.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_other_commands.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_prepared_statements.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_real_escape.phpt" role="test"/>
@@ -137,10 +140,6 @@
         <file name="mysqlnd_ms_pick_random.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_round_robin.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_unknown_policy.phpt" role="test"/>
-        <file name="mysqlnd_ms_pick_user_class_private.phpt" role="test"/>
-        <file name="mysqlnd_ms_pick_user_class_private_static.phpt" role="test"/>
-        <file name="mysqlnd_ms_pick_user_class_public.phpt" role="test"/>
-        <file name="mysqlnd_ms_pick_user_class_public_static.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_complex.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_error.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_function.phpt" role="test"/>
@@ -152,6 +151,7 @@
         <file name="mysqlnd_ms_prepared_statements.phpt" role="test"/>
         <file name="mysqlnd_ms_proto_info.phpt" role="test"/>
         <file name="mysqlnd_ms_query_is_select.phpt" role="test"/>
+        <file name="mysqlnd_ms_query_is_select_rw_disabled.phpt" role="test"/>
         <file name="mysqlnd_ms_random_once_unknown_parameter.phpt" role="test"/>
         <file name="mysqlnd_ms_random_unknown_parameter.phpt" role="test"/>
         <file name="mysqlnd_ms_real_escape.phpt" role="test"/>
@@ -280,7 +280,7 @@
         <file name="README" role="test"/>
         <file name="skipif.inc" role="test"/>
         <file name="util.inc" role="test"/>
-		
+
         <dir name="bench">
          <file name="README" role="test" />
 
@@ -394,6 +394,19 @@
   <changelog>
     <release>
       <version>
+        <release>1.1.2</release>
+        <api>1.1.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <date>2011-11-03</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>Fixed the build for 5.4. Declaring the code as stable</notes>
+    </release>
+    <release>
+      <version>
         <release>1.1.1</release>
         <api>1.1.0</api>
       </version>
@@ -445,5 +458,4 @@
       <notes>Initial package release. All 1.0 features implemented.</notes>
     </release>
   </changelog>
-
 </package>
