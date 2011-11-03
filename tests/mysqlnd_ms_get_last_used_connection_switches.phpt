@@ -127,17 +127,17 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	mst_mysqli_query(3, $link, "SET @myrole='master'");
 
 	$expected = array(
-		"host" 				=> ("localhost" == $master_host) ? "" : $master_host,
+		"host" 				=> ("localhost" == $master_host_only) ? "" : $master_host_only,
 		"host_info" 		=> $link->host_info,
 		"port"				=> (int)$master_port,
-		"socket_or_pipe"	=> ("localhost" == $master_host) ? (($master_socket) ? $master_socket : "/tmp/mysql.sock") : "",
+		"socket_or_pipe"	=> ("localhost" == $master_host_only) ? (($master_socket) ? $master_socket : "/tmp/mysql.sock") : "",
 		"thread_id" 		=> $link->thread_id,
 		"errno" 			=> $link->errno,
 		"error" 			=> $link->error,
 		"sqlstate" 			=> $link->sqlstate,
 	);
 	if ("localhost" != $master_host && !$master_socket) {
-		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host, $master_port);
+		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host_only, $master_port);
 	}
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
