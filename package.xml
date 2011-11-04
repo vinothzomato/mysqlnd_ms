@@ -22,7 +22,7 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2011-11-03</date>
+  <date>2011-11-04</date>
   <time>12:00:00</time>
   <version>
     <release>1.1.2</release>
@@ -401,7 +401,7 @@
         <release>stable</release>
         <api>stable</api>
       </stability>
-      <date>2011-11-03</date>
+      <date>2011-11-04</date>
       <license uri="http://www.php.net/license">PHP License</license>
       <notes>Fixed the build for 5.4. Declaring the code as stable. Refer to CHANGES for more information</notes>
     </release>
