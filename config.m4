@@ -9,7 +9,7 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
 
   mysqlnd_ms_sources="php_mysqlnd_ms.c mysqlnd_ms.c mysqlnd_ms_switch.c mysqlnd_ms_config_json.c \
                   mf_wcomp.c mysqlnd_query_lexer.c \
-				  mysqlnd_ms_filter_random.c mysqlnd_ms_filter_round_robin.c mysqlnd_ms_filter_user.c"
+				  mysqlnd_ms_filter_random.c mysqlnd_ms_filter_round_robin.c mysqlnd_ms_filter_user.c mysqlnd_ms_filter_qos.c"
 
   if test "$PHP_MYSQLND_MS_TABLE_FILTER" && test "$PHP_MYSQLND_MS_TABLE_FILTER" != "no"; then
     AC_DEFINE([MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION], 1, [Enable table partition support])

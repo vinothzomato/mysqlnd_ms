@@ -166,6 +166,12 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION", 1, CONST_CS | CONST_PERSISTENT);
 #endif
 
+#if PHP_VERSION_ID >= 50399
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_STRONG", CONSISTENCY_STRONG, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_SESSION", CONSISTENCY_SESSION, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL", CONSISTENCY_EVENTUAL, CONST_CS | CONST_PERSISTENT);
+#endif
+
 	return SUCCESS;
 }
 /* }}} */
@@ -320,6 +326,50 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 	}
 }
 /* }}} */
+
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_qos, 0, 0, 2)
+	ZEND_ARG_INFO(0, object)
+	ZEND_ARG_INFO(0, service_level)
+ZEND_END_ARG_INFO()
+
+
+/* {{{ proto bool mysqlnd_ms_set_qos)
+   */
+static PHP_FUNCTION(mysqlnd_ms_set_qos)
+{
+	zval * handle;
+	double service_level;
+	MYSQLND * proxy_conn;
+
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd", &handle, &service_level) == FAILURE) {
+		return;
+	}
+	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	switch ((int)service_level)
+	{
+		case CONSISTENCY_STRONG:
+		case CONSISTENCY_SESSION:
+		case CONSISTENCY_EVENTUAL:
+			break;
+
+		default:
+			/* TODO: decide wheter warning, error or nothing */
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid service level");
+			RETURN_FALSE;
+			break;
+	}
+
+	if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn, (enum mysqlnd_ms_filter_qos_consistency)service_level TSRMLS_CC))
+		RETURN_TRUE;
+
+	RETURN_FALSE;
+}
+
 #endif
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_query_is_select, 0, 0, 1)
@@ -388,6 +438,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
 #if PHP_VERSION_ID > 50399
 	PHP_FE(mysqlnd_ms_get_last_used_connection,	arginfo_mysqlnd_ms_get_stats)
+	PHP_FE(mysqlnd_ms_set_qos,	arginfo_mysqlnd_ms_set_qos)
 #endif
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };

@@ -48,8 +48,8 @@
 #include "mysqlnd_ms_filter_user.h"
 #include "mysqlnd_ms_filter_random.h"
 #include "mysqlnd_ms_filter_round_robin.h"
-
 #include "mysqlnd_ms_filter_table_partition.h"
+#include "mysqlnd_ms_filter_qos.h"
 
 #include "mysqlnd_ms_switch.h"
 
@@ -90,7 +90,6 @@ rr_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
 /* }}} */
-
 
 /* {{{ random_specific_dtor */
 static void
@@ -145,7 +144,7 @@ random_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_E
 /* }}} */
 
 
-/* {{{ once_specific_dtor */
+/* {{{ user_specific_dtor */
 static void
 user_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 {
@@ -162,7 +161,7 @@ user_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 /* }}} */
 
 
-/* {{{ once_specific_ctor */
+/* {{{ user_specific_ctor */
 static MYSQLND_MS_FILTER_DATA *
 user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
@@ -199,6 +198,90 @@ user_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERR
 			}
 		}
 	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
+/* {{{ qos_specific_dtor */
+static void
+qos_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_QOS_DATA * filter = (MYSQLND_MS_FILTER_QOS_DATA *) pDest;
+	DBG_ENTER("qos_specific_dtor");
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ qos_specific_ctor */
+static MYSQLND_MS_FILTER_DATA *
+qos_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_QOS_DATA * ret;
+	DBG_ENTER("qos_specific_ctor");
+	DBG_INF_FMT("section=%p", section);
+	if (section) {
+		ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
+
+
+		if (ret) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			char * service;
+
+			ret->parent.specific_dtor = qos_specific_dtor;
+			ret->consistency = CONSISTENCY_LAST_ENUM_ENTRY;
+
+			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_STRONG, sizeof(SECT_QOS_STRONG) - 1, 0,
+																  &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+			  DBG_INF("strong consistency");
+			  mnd_efree(service);
+			  ret->consistency = CONSISTENCY_STRONG;
+			}
+
+			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_SESSION, sizeof(SECT_QOS_SESSION) - 1, 0,
+																  &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+			  DBG_INF("session consistency");
+			  mnd_efree(service);
+			  if (ret->consistency) {
+				mnd_pefree(ret, persistent);
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_SESSION);
+			  } else {
+				ret->consistency = CONSISTENCY_SESSION;
+			  }
+			}
+
+			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_EVENTUAL, sizeof(SECT_QOS_EVENTUAL) - 1, 0,
+																  &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+			  DBG_INF("eventual consistency");
+			  mnd_efree(service);
+			  if (ret->consistency) {
+				mnd_pefree(ret, persistent);
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_EVENTUAL);
+			  } else {
+				ret->consistency = CONSISTENCY_EVENTUAL;
+			  }
+			}
+
+			if ((ret->consistency != CONSISTENCY_STRONG) &&
+				(ret->consistency != CONSISTENCY_SESSION) &&
+				(ret->consistency != CONSISTENCY_EVENTUAL))
+				{
+				mnd_pefree(ret, persistent);
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping.", PICK_QOS, SECT_QOS_STRONG, SECT_QOS_SESSION, SECT_QOS_EVENTUAL);
+			}
+
+		}
+	}
+
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
 /* }}} */
@@ -256,16 +339,18 @@ struct st_specific_ctor_with_name
 };
 
 
+/* TODO: write copy ctors */
 static const struct st_specific_ctor_with_name specific_ctors[] =
 {
-	{PICK_RROBIN,	sizeof(PICK_RROBIN) - 1,	rr_specific_ctor,		SERVER_PICK_RROBIN,		FALSE},
-	{PICK_RANDOM,	sizeof(PICK_RANDOM) - 1,	random_specific_ctor,	SERVER_PICK_RANDOM,		FALSE},
-	{PICK_USER,		sizeof(PICK_USER) - 1,		user_specific_ctor,		SERVER_PICK_USER,		FALSE},
-	{PICK_USER_MULTI,sizeof(PICK_USER_MULTI) - 1,user_specific_ctor,	SERVER_PICK_USER_MULTI,	TRUE},
+	{PICK_RROBIN,		sizeof(PICK_RROBIN) - 1,		rr_specific_ctor,		SERVER_PICK_RROBIN,		FALSE},
+	{PICK_RANDOM,		sizeof(PICK_RANDOM) - 1,		random_specific_ctor,	SERVER_PICK_RANDOM,		FALSE},
+	{PICK_USER,			sizeof(PICK_USER) - 1,			user_specific_ctor,		SERVER_PICK_USER,		FALSE},
+	{PICK_USER_MULTI,	sizeof(PICK_USER_MULTI) - 1,	user_specific_ctor,		SERVER_PICK_USER_MULTI,	TRUE},
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
-	{PICK_TABLE,	sizeof(PICK_TABLE) - 1,		table_specific_ctor,	SERVER_PICK_TABLE,		TRUE},
+	{PICK_TABLE,		sizeof(PICK_TABLE) - 1,			table_specific_ctor,	SERVER_PICK_TABLE,		TRUE},
 #endif
-	{NULL,			0,							NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
+	{PICK_QOS,			sizeof(PICK_QOS) -1,			qos_specific_ctor,		SERVER_PICK_QOS,		TRUE},
+	{NULL,				0,								NULL, 					SERVER_PICK_LAST_ENUM_ENTRY}
 };
 
 
@@ -394,6 +479,51 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 	DBG_VOID_RETURN;
 }
 /* }}} */
+
+static int
+mysqlnd_ms_remove_qos_filter(void * element, void * data) {
+	MYSQLND_MS_FILTER_DATA * filter = *(MYSQLND_MS_FILTER_DATA **)element;
+	return (filter->pick_type == SERVER_PICK_QOS) ? 1 : 0;
+}
+
+
+
+enum_func_status
+mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_filter_qos_consistency consistency TSRMLS_DC) {
+  	MYSQLND_MS_CONN_DATA ** conn_data;
+	enum_func_status ret = FAIL;
+	/* not sure... */
+	zend_bool persistent = proxy_conn->persistent;
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+
+	DBG_ENTER("mysqlnd_ms_section_filters_prepend_qos");
+	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
+
+	if (conn_data && *conn_data) {
+		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
+		zend_llist * filters = stgy->filters;
+		MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
+		MYSQLND_MS_FILTER_QOS_DATA * new_qos_filter = NULL;
+
+		zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
+
+		/* new QOS filter comes first */
+		new_qos_filter = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
+		new_qos_filter->parent.specific_dtor = qos_specific_dtor;
+		new_qos_filter->consistency = consistency;
+		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
+		new_filter_entry->persistent = persistent;
+		new_filter_entry->name = mnd_pestrndup(PICK_QOS, sizeof(PICK_QOS) -1, persistent);
+		new_filter_entry->name_len = sizeof(PICK_QOS) -1;
+		new_filter_entry->pick_type = (enum mysqlnd_ms_server_pick_strategy)SERVER_PICK_QOS;
+		new_filter_entry->multi_filter = TRUE;
+		zend_llist_prepend_element(filters, &new_filter_entry);
+	}
+
+	ret = PASS;
+	DBG_RETURN(ret);
+}
 
 
 /* {{{ mysqlnd_ms_section_filters_add_filter */
@@ -763,6 +893,13 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 				case SERVER_PICK_RROBIN:
 					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
 																 selected_masters, selected_slaves, NULL TSRMLS_CC);
+					break;
+				case SERVER_PICK_QOS:
+					multi_filter = TRUE;
+					mysqlnd_ms_qos_pick_server(filter, (*conn_data)->connect_host, query, query_len,
+														 selected_masters, selected_slaves,
+														 output_masters, output_slaves, stgy,
+														 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 				default:
 				{

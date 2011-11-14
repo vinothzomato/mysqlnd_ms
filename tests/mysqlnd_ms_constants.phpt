@@ -25,6 +25,12 @@ require_once('skipif.inc');
 		$expected["MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION"] = false;
 	}
 
+	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
+		$expected["MYSQLND_MS_QOS_CONSISTENCY_STRONG"] = false;
+		$expected["MYSQLND_MS_QOS_CONSISTENCY_SESSION"] = false;
+		$expected["MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL"] = false;
+	}
+
 	$constants = get_defined_constants(true);
 	$constants = (isset($constants['mysqlnd_ms'])) ? $constants['mysqlnd_ms'] : array();
 	ksort($constants);

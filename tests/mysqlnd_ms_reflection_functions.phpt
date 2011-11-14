@@ -11,10 +11,18 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 <?php
 	$r = new ReflectionExtension("mysqlnd_ms");
 
+	$ignore = array();
+	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
+		$ignore['mysqlnd_ms_set_qos'] = true;
+	}
+
 	$functions = $r->getFunctions();
 	asort($functions);
 	printf("Functions:\n");
 	foreach ($functions as $func) {
+		if (isset($ignore[$func->name]))
+			continue;
+
 		printf("  %s\n", $func->name);
 		$rf = new ReflectionFunction($func->name);
 		printf("    Deprecated: %s\n", $rf->isDeprecated() ? "yes" : "no");

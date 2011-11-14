@@ -31,11 +31,26 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 	foreach ($dependencies as $what => $how)
 		printf("  %s - %s\n", $what, $how);
 
+	$ignore = array();
+	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
+		$ignore['mysqlnd_ms_set_qos'] = true;
+	}
+
 	$functions = $r->getFunctions();
 	asort($functions);
 	printf("Functions:\n");
-	foreach ($functions as $func)
-		printf("  %s\n", $func->name);
+	foreach ($functions as $func) {
+		if (isset($ignore[$func->name])) {
+			unset($ignore[$func->name]);
+		} else {
+			printf("  %s\n", $func->name);
+		}
+	}
+	if (!empty($ignore)) {
+		printf("Dumping version dependent and missing functions\n");
+		var_dump($ignore);
+	}
+
 
 	print "done!";
 ?>

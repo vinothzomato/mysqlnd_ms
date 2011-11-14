@@ -138,6 +138,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define PICK_USER				"user"
 #define PICK_USER_MULTI			"user_multi"
 #define PICK_TABLE				"table"
+#define PICK_QOS				"quality_of_service"
 #define LAZY_NAME				"lazy_connections"
 #define FAILOVER_NAME			"failover"
 #define FAILOVER_DISABLED 		"disabled"
@@ -156,6 +157,9 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_FILTER_PRIORITY_NAME "priority"
 #define SECT_FILTER_NAME		"filters"
 #define SECT_USER_CALLBACK		"callback"
+#define SECT_QOS_STRONG			"strong_consistency"
+#define SECT_QOS_SESSION		"session_consistency"
+#define SECT_QOS_EVENTUAL		"eventual_consistency"
 
 
 typedef enum
@@ -189,6 +193,7 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_USER,
 	SERVER_PICK_USER_MULTI,
 	SERVER_PICK_TABLE,
+	SERVER_PICK_QOS,
 	SERVER_PICK_LAST_ENUM_ENTRY
 };
 
@@ -303,6 +308,22 @@ typedef struct st_mysqlnd_ms_filter_random_data
 		zend_bool once;
 	} sticky;
 } MYSQLND_MS_FILTER_RANDOM_DATA;
+
+
+enum mysqlnd_ms_filter_qos_consistency
+{
+	CONSISTENCY_STRONG,
+	CONSISTENCY_SESSION,
+	CONSISTENCY_EVENTUAL,
+	CONSISTENCY_LAST_ENUM_ENTRY
+};
+
+
+typedef struct st_mysqlnd_ms_filter_qos_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+	enum mysqlnd_ms_filter_qos_consistency consistency;
+} MYSQLND_MS_FILTER_QOS_DATA;
 
 
 enum mysqlnd_ms_on_broadcast_command
