@@ -509,6 +509,7 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_fil
 		MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
 		MYSQLND_MS_FILTER_QOS_DATA * new_qos_filter = NULL;
 
+		/* remove all existing QOS filters */
 		zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
 
 		/* new QOS filter comes first */

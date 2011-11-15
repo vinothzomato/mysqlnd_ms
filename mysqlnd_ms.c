@@ -50,7 +50,7 @@
 	memcpy(&(ms_methods), (orig_methods), sizeof(struct st_mysqlnd_conn_methods));
 
 #define MS_SET_CONN_HANDLE_METHODS(ms_methods) mysqlnd_conn_set_methods((ms_methods));
-	
+
 #define MS_LOAD_AND_COPY_CONN_DATA_METHODS(orig_methods, ms_methods) \
 	(orig_methods) = mysqlnd_conn_data_get_methods(); \
 	memcpy(&(ms_methods), (orig_methods), sizeof(struct st_mysqlnd_conn_data_methods));
@@ -69,7 +69,7 @@ static struct st_mysqlnd_conn_data_methods my_mysqlnd_conn_methods;
 
 #define MS_LOAD_AND_COPY_CONN_HANDLE_METHODS(orig_methods, ms_methods)
 #define MS_SET_CONN_HANDLE_METHODS(ms_methods)
-	
+
 #define MS_LOAD_AND_COPY_CONN_DATA_METHODS(orig_methods, ms_methods) \
 	(orig_methods) = mysqlnd_conn_get_methods(); \
 	memcpy(&(ms_methods), (orig_methods), sizeof(struct st_mysqlnd_conn_methods));
@@ -163,6 +163,17 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		mnd_pefree(element->emulated_scheme, element->persistent);
 		element->emulated_scheme = NULL;
 	}
+
+	if (element->global_trx_on_connect) {
+		mnd_pefree(element->global_trx_on_connect, element->persistent);
+		element->global_trx_on_connect = NULL;
+	}
+
+	if (element->global_trx_on_commit) {
+		mnd_pefree(element->global_trx_on_commit, element->persistent);
+		element->global_trx_on_commit = NULL;
+	}
+
 	mnd_pefree(element, element->persistent);
 	DBG_VOID_RETURN;
 }
@@ -220,10 +231,16 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 																	cmd->ignore_upsert_status TSRMLS_CC);
 			}
 		}
+#else
+		if (master && element->global_trx_on_connect)
+			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, element->global_trx_on_connect, element->global_trx_on_connect_len TSRMLS_CC))) {
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+			}
 #endif
 	} else {
 		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_FAILURE:MS_STAT_LAZY_CONN_SLAVE_FAILURE);
 	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -232,8 +249,10 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 /* {{{ mysqlnd_ms_connect_to_host_aux */
 static enum_func_status
 mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn, const char * name_from_config,
+							   zend_bool is_master,
 							   const char * host, zend_llist * conn_list,
 							   struct st_mysqlnd_ms_conn_credentials * cred,
+							   struct st_mysqlnd_ms_global_trx_injection * global_trx,
 							   zend_bool lazy_connections, zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret;
@@ -276,6 +295,16 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 		new_element->socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
 		new_element->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(new_element, &new_element->emulated_scheme,
 																			   persistent TSRMLS_CC);
+
+#ifndef BUFFERED_COMMANDS
+		/* TODO: we need this as long as we don't have BUFFERED_COMMANDS */
+		new_element->global_trx_on_connect_len = global_trx->on_connect_len;
+		new_element->global_trx_on_connect = global_trx->on_connect? mnd_pestrndup(global_trx->on_connect, global_trx->on_connect_len, conn->persistent) : NULL;
+
+		new_element->global_trx_on_commit_len = global_trx->on_commit_len;
+		new_element->global_trx_on_commit = global_trx->on_commit? mnd_pestrndup(global_trx->on_commit, global_trx->on_commit_len, conn->persistent) : NULL;
+#endif
+
 		zend_llist_add_element(conn_list, &new_element);
 
 		{
@@ -287,8 +316,35 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			}
 			(*conn_data)->skip_ms_calls = FALSE;
 			(*conn_data)->proxy_conn = proxy_conn;
+			(*conn_data)->global_trx_is_master = is_master;
 			zend_llist_init(&(*conn_data)->delayed_commands, sizeof(MYSQLND_MS_COMMAND),
 							(llist_dtor_func_t) mysqlnd_ms_commands_list_dtor, conn->persistent);
+		}
+
+		/* TODO: error handling */
+		if (global_trx->on_connect_len > 0) {
+			if (lazy_connections) {
+				/* buffer gtrx on_connect */
+#ifdef BUFFERED_COMMANDS
+				  /* TODO - inject COM_QUERY into delayed_commands */
+				MYSQLND_MS_COMMAND new_command = {0};
+				new_command.command = COM_QUERY;
+				new_command.persistent = conn->persistent
+				new_command.payload_len = global_trx->on_connect_len
+				new_command.payload = mnd_pemalloc(new_command.payload_len, new_command.persistent);
+				memcpy(new_command.payload, global_trx->on_connect, new_command.payload_len);
+				/* Who will handle response? */
+				new_command.ok_packet = PROT_LAST;
+				new_command.silent = FALSE;
+				new_command.ignore_upsert_status = FALSE;
+
+				zend_llist_add_element(&(*conn_data)->delayed_commands, &new_command);
+#endif
+			} else {
+				/* run gtrx on_connect */
+				/* TODO - does nothing ?!?!?! */
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(new_element->conn, global_trx->on_connect, global_trx->on_connect_len TSRMLS_CC);
+			}
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
@@ -299,8 +355,10 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 
 /* {{{ mysqlnd_ms_connect_to_host */
 static enum_func_status
-mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn, zend_llist * conn_list,
+mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn,
+						   zend_llist * conn_list, zend_bool is_master,
 						   struct st_mysqlnd_ms_conn_credentials * master_credentials,
+						   struct st_mysqlnd_ms_global_trx_injection * master_global_trx,
 						   struct st_mysqlnd_ms_config_json_entry * main_section,
 						   const char * const subsection_name, size_t subsection_name_len,
 						   zend_bool lazy_connections, zend_bool persistent,
@@ -430,7 +488,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 			MYSQLND * tmp_conn_handle = NULL;
 			MYSQLND_CONN_DATA * tmp_conn = NULL;
 			if (conn && i==0) {
-				tmp_conn = conn;		
+				tmp_conn = conn;
 			} else {
 				tmp_conn_handle = mysqlnd_init(persistent);
 				if (tmp_conn_handle) {
@@ -442,8 +500,8 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 #endif
 			if (tmp_conn) {
 				enum_func_status status =
-					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, host, conn_list, &cred,
-												   lazy_connections, persistent TSRMLS_CC);
+					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, is_master, host, conn_list, &cred,
+												   master_global_trx, lazy_connections, persistent TSRMLS_CC);
 #if MYSQLND_VERSION_ID >= 50010
 				if (tmp_conn_handle) {
 					tmp_conn_handle->m->dtor(tmp_conn_handle TSRMLS_CC);
@@ -556,6 +614,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->cred.port = port;
 		(*conn_data)->cred.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
 		(*conn_data)->cred.mysql_flags = mysql_flags;
+		(*conn_data)->global_trx.on_commit = NULL;
+		(*conn_data)->global_trx.on_commit_len = (size_t)0;
+		(*conn_data)->global_trx.on_connect = NULL;
+		(*conn_data)->global_trx.on_connect_len = (size_t)0;
+		(*conn_data)->global_trx_is_master = FALSE;
 		(*conn_data)->initialized = TRUE;
 
 		if (!hotloading) {
@@ -567,6 +630,36 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			/* create master connection */
 			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+
+			{
+				zend_bool entry_exists;
+				zend_bool entry_is_list;
+				struct st_mysqlnd_ms_config_json_entry * g_trx_section =
+					mysqlnd_ms_config_json_sub_section(the_section, SECT_G_TRX_NAME, sizeof(SECT_G_TRX_NAME) - 1, &entry_exists TSRMLS_CC);
+
+				if (entry_exists && g_trx_section) {
+					char * on_command = NULL;
+					size_t on_command_len;
+
+					/* TODO: error handling */
+					on_command = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_COMMIT, sizeof(SECT_G_TRX_ON_COMMIT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+					if (entry_exists && on_command && !entry_is_list) {
+						on_command_len = strlen(on_command);
+						(*conn_data)->global_trx.on_commit = mnd_pestrndup(on_command, on_command_len, conn->persistent);
+						(*conn_data)->global_trx.on_commit_len = strlen(on_command);
+					}
+					mnd_pefree(on_command, 0);
+
+					on_command = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_CONNECT, sizeof(SECT_G_TRX_ON_CONNECT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+					if (entry_exists && on_command && !entry_is_list) {
+						on_command_len = strlen(on_command);
+						(*conn_data)->global_trx.on_connect = mnd_pestrndup(on_command, on_command_len, conn->persistent);
+						(*conn_data)->global_trx.on_connect_len = strlen(on_command);
+					}
+					mnd_pefree(on_command, 0);
+				}
+			}
 #if 1
 			{
 				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
@@ -583,7 +676,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 #else
 			use_lazy_connections = FALSE;
 #endif
-			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 			{
 				const char * const secs_to_check[] = {MASTER_NAME, SLAVE_NAME};
 				unsigned int i = 0;
@@ -600,7 +692,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			}
 
 			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
-			ret = mysqlnd_ms_connect_to_host(conn, conn, &(*conn_data)->master_connections, &(*conn_data)->cred, the_section,
+			ret = mysqlnd_ms_connect_to_host(conn, conn, &(*conn_data)->master_connections,
+											 TRUE, &(*conn_data)->cred,
+											 &(*conn_data)->global_trx, the_section,
 											 MASTER_NAME, sizeof(MASTER_NAME) - 1,
 											 use_lazy_connections,
 											 conn->persistent, MYSQLND_MS_G(multi_master) /* multimaster*/,
@@ -615,7 +709,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 
 			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
-			ret = mysqlnd_ms_connect_to_host(conn, NULL, &(*conn_data)->slave_connections, &(*conn_data)->cred, the_section,
+			ret = mysqlnd_ms_connect_to_host(conn, NULL, &(*conn_data)->slave_connections,
+											 FALSE, &(*conn_data)->cred,
+											 &(*conn_data)->global_trx, the_section,
 											 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
 											 use_lazy_connections,
 											 conn->persistent, TRUE /* multi*/,
@@ -662,7 +758,7 @@ static enum_func_status
 mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, unsigned int query_len, zend_bool pick_server TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
-	enum_func_status ret = FAIL;
+	enum_func_status ret = PASS;
 	DBG_ENTER("mysqlnd_ms::do_send_query");
 
 	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
@@ -677,6 +773,7 @@ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, unsigned 
 			DBG_RETURN(FAIL);
 		}
 	}
+
 	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
@@ -739,6 +836,18 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		ret = PASS;
 		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
 			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
+		}
+	}
+
+	if (PASS == ret) {
+		/* TODO: how expensive is the load? */
+		MS_LOAD_CONN_DATA(conn_data, connection);
+		if ((*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
+			(FALSE == (*conn_data)->stgy.in_transaction) && (TRUE == (*conn_data)->global_trx_is_master) &&
+			((*conn_data)->global_trx.on_commit))
+		{
+			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
 		}
 	}
 
@@ -815,6 +924,18 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 
 		(*data_pp)->cred.port = 0;
 		(*data_pp)->cred.mysql_flags = 0;
+
+		if ((*data_pp)->global_trx.on_connect) {
+			mnd_pefree((*data_pp)->global_trx.on_connect, conn->persistent);
+			(*data_pp)->global_trx.on_connect = NULL;
+			(*data_pp)->global_trx.on_connect_len = 0;
+		}
+
+		if ((*data_pp)->global_trx.on_commit) {
+			mnd_pefree((*data_pp)->global_trx.on_commit, conn->persistent);
+			(*data_pp)->global_trx.on_commit = NULL;
+			(*data_pp)->global_trx.on_commit_len = 0;
+		}
 
 		DBG_INF_FMT("cleaning the llists");
 		zend_llist_clean(&(*data_pp)->master_connections);
@@ -1408,7 +1529,7 @@ static enum_func_status
 mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
-	enum_func_status ret = FAIL;
+	enum_func_status ret = PASS;
 
 	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
 
@@ -1418,8 +1539,18 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	{
 		DBG_RETURN(PASS);
 	}
-	ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
-				  MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
+
+/*
+	if (commit && (*conn_data) && ((*conn_data)->global_trx.on_commit)) {
+		if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
+	}
+*/
+
+	/* TODO: I think, it needs to be a hard error, not sure, though */
+	if (ret == PASS)
+		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
+					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1432,7 +1563,9 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 	enum_func_status ret = FAIL;
 
 	DBG_ENTER("mysqlnd_ms::tx_commit");
+
 	ret = mysqlnd_ms_tx_commit_or_rollback(conn, TRUE TSRMLS_CC);
+
 	DBG_RETURN(ret);
 }
 /* }}} */

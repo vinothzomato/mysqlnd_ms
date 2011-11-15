@@ -411,7 +411,8 @@
 				if (isset($config['trx_stickiness'])) {
 				  $json[$application]['trx_stickiness'] = (string)$config['trx_stickiness'];
 				}
-
+				if (isset($config['global_transaction_id_injection']))
+				  $json[$application]['global_transaction_id_injection'] = $config['global_transaction_id_injection'];
 			}
 
 			fwrite($fp, json_encode($json));

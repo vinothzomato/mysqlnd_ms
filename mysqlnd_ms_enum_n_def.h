@@ -160,6 +160,9 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_QOS_STRONG			"strong_consistency"
 #define SECT_QOS_SESSION		"session_consistency"
 #define SECT_QOS_EVENTUAL		"eventual_consistency"
+#define SECT_G_TRX_NAME			"global_transaction_id_injection"
+#define SECT_G_TRX_ON_CONNECT	"on_connect"
+#define SECT_G_TRX_ON_COMMIT	"on_commit"
 
 
 typedef enum
@@ -261,6 +264,13 @@ typedef struct st_mysqlnd_ms_list_data
 	char * emulated_scheme;
 	size_t emulated_scheme_len;
 	zend_bool persistent;
+#ifndef BUFFERED_COMMANDS
+	char * global_trx_on_connect;
+	size_t global_trx_on_connect_len;
+	char * global_trx_on_commit;
+	size_t global_trx_on_commit_len;
+#endif
+
 } MYSQLND_MS_LIST_DATA;
 
 
@@ -376,6 +386,15 @@ typedef struct st_mysqlnd_ms_conn_data
 		char * socket;
 		unsigned long mysql_flags;
 	} cred;
+
+	struct st_mysqlnd_ms_global_trx_injection {
+		char * on_commit;
+		size_t on_commit_len;
+		char * on_connect;
+		size_t on_connect_len;
+	} global_trx;
+	zend_bool global_trx_is_master;
+
 } MYSQLND_MS_CONN_DATA;
 
 typedef struct st_mysqlnd_ms_table_filter
