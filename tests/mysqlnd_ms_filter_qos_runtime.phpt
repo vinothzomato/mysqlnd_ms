@@ -2,6 +2,9 @@
 Filter QOS
 --SKIPIF--
 <?php
+if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
+	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
+
 require_once('skipif.inc');
 require_once("connect.inc");
 

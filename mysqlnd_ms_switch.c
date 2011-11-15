@@ -480,14 +480,17 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 }
 /* }}} */
 
+#if PHP_VERSION_ID > 50399
+/* {{{ mysqlnd_ms_remove_qos_filter */
 static int
 mysqlnd_ms_remove_qos_filter(void * element, void * data) {
 	MYSQLND_MS_FILTER_DATA * filter = *(MYSQLND_MS_FILTER_DATA **)element;
 	return (filter->pick_type == SERVER_PICK_QOS) ? 1 : 0;
 }
+/* }}} */
 
 
-
+/* {{{ mysqlnd_ms_section_filters_prepend_qos */
 enum_func_status
 mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_filter_qos_consistency consistency TSRMLS_DC) {
   	MYSQLND_MS_CONN_DATA ** conn_data;
@@ -524,7 +527,8 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_fil
 	ret = PASS;
 	DBG_RETURN(ret);
 }
-
+/* }}} */
+#endif
 
 /* {{{ mysqlnd_ms_section_filters_add_filter */
 static MYSQLND_MS_FILTER_DATA *
