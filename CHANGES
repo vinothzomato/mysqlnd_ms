@@ -3,6 +3,8 @@
   Motto/theme:TBD
   Release date: 12/2011
 
+  * HACK: introduced quality-of-service (qos) filter
+  * HACK: added gloabl transaction ID injection
 
 
 1.1.2 stale / production ready

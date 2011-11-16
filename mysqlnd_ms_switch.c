@@ -522,7 +522,6 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_fil
 		new_filter_entry->name_len = sizeof(PICK_QOS) -1;
 		new_filter_entry->pick_type = (enum mysqlnd_ms_server_pick_strategy)SERVER_PICK_QOS;
 		new_filter_entry->multi_filter = TRUE;
-		zend_llist_prepend_element(filters, &new_filter_entry);
 	}
 
 	ret = PASS;
