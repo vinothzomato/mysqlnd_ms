@@ -32,7 +32,7 @@ $settings = array(
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
 			'set_on_slave'				=> false,
-			'report_error'				=> false,
+			'report_error'				=> true,
 		),
 
 		'lazy_connections' => 1,
@@ -60,6 +60,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
+	$link->autocommit(TRUE);
 
 	$link->query("SET @myrole='master'");
 var_dump($link->error);

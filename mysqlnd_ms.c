@@ -1512,17 +1512,29 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 		DBG_RETURN(PASS);
 	}
 
-/*
-	if (commit && (*conn_data) && ((*conn_data)->global_trx.on_commit)) {
-		if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
-	}
-*/
-
 	/* TODO: I think, it needs to be a hard error, not sure, though */
 	if (ret == PASS)
 		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
 					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
+
+
+	if (commit && PASS == ret) {
+		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
+		{
+			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave))
+				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
+
+			if (FALSE == (*conn_data)->global_trx.report_error) {
+				/* clear error */
+				ret = PASS;
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+			} else {
+			  /* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+			}
+		}
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
