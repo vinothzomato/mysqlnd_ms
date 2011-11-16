@@ -165,6 +165,8 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_G_TRX_ON_COMMIT	"on_commit"
 #define SECT_G_TRX_SET_ON_SLAVE "set_on_slave"
 #define SECT_G_TRX_REPORT_ERROR "report_error"
+#define SECT_G_TRX_MULTI_STMT   "use_multi_statement"
+
 
 typedef enum
 {
@@ -388,6 +390,9 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool is_master;
 		zend_bool set_on_slave;
 		zend_bool report_error;
+		zend_bool use_multi_statement;
+		zend_bool multi_statement_user_enabled;
+		zend_bool multi_statement_gtx_enabled;
 	} global_trx;
 
 } MYSQLND_MS_CONN_DATA;

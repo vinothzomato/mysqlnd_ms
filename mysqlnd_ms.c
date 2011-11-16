@@ -308,6 +308,11 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			(*conn_data)->global_trx.is_master = is_master;
 			(*conn_data)->global_trx.set_on_slave = global_trx->set_on_slave;
 			(*conn_data)->global_trx.report_error = global_trx->report_error;
+			(*conn_data)->global_trx.use_multi_statement = global_trx->use_multi_statement;
+			(*conn_data)->global_trx.multi_statement_user_enabled = global_trx->multi_statement_user_enabled;
+			(*conn_data)->global_trx.multi_statement_gtx_enabled = global_trx->multi_statement_gtx_enabled;
+			/* TODO: what is it used for ?!? global trx logic sets on it */
+			(*conn_data)->initialized = TRUE;
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
@@ -569,6 +574,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
 		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+
 		(*conn_data)->cred.user = user? mnd_pestrdup(user, conn->persistent) : NULL;
 		(*conn_data)->cred.passwd_len = passwd_len;
 		(*conn_data)->cred.passwd = passwd? mnd_pestrndup(passwd, passwd_len, conn->persistent) : NULL;
@@ -577,11 +583,16 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->cred.port = port;
 		(*conn_data)->cred.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
 		(*conn_data)->cred.mysql_flags = mysql_flags;
+
 		(*conn_data)->global_trx.on_commit = NULL;
 		(*conn_data)->global_trx.on_commit_len = (size_t)0;
 		(*conn_data)->global_trx.is_master = FALSE;
 		(*conn_data)->global_trx.set_on_slave = FALSE;
 		(*conn_data)->global_trx.report_error = TRUE;
+		(*conn_data)->global_trx.use_multi_statement = FALSE;
+		(*conn_data)->global_trx.multi_statement_user_enabled = FALSE;
+		(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
+
 		(*conn_data)->initialized = TRUE;
 
 		if (!hotloading) {
@@ -627,6 +638,12 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_REPORT_ERROR, sizeof(SECT_G_TRX_REPORT_ERROR) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 					if (entry_exists && json_value) {
 						(*conn_data)->global_trx.report_error = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
+						mnd_efree(json_value);
+					}
+
+					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_MULTI_STMT, sizeof(SECT_G_TRX_MULTI_STMT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+					if (entry_exists && json_value) {
+						(*conn_data)->global_trx.use_multi_statement = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
 						mnd_efree(json_value);
 					}
 				}
@@ -766,6 +783,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection;
 	enum_func_status ret = FAIL;
+	smart_str multi_query = {0};
 #ifdef ALL_SERVER_DISPATCH
 	zend_bool use_all = 0;
 #endif
@@ -806,20 +824,54 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	  Doing it here - for now - to avoid trouble with result sets.
 	  How expensive is the load?
 	*/
+	ret = PASS;
 	MS_LOAD_CONN_DATA(conn_data, connection);
-	if ((*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
-		(FALSE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
-	{
-		if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
-			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
-				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
-		}
 
-		if (FALSE == (*conn_data)->global_trx.report_error) {
-			ret = PASS;
-			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+	if ((*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
+		((*conn_data)->global_trx.on_commit) &&
+		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+	{
+		if (FALSE == (*conn_data)->stgy.in_transaction) {
+
+			/* autocommit mode */
+			if (TRUE == (*conn_data)->global_trx.use_multi_statement) {
+				smart_str_appendl(&multi_query, (*conn_data)->global_trx.on_commit, (*conn_data)->global_trx.on_commit_len);
+				smart_str_appendc(&multi_query, ';');
+				smart_str_appendl(&multi_query, query, query_len);
+				smart_str_appendc(&multi_query, '\0');
+				query = multi_query.c;
+				query_len = strlen(query);
+
+				if (TRUE == (*conn_data)->global_trx.multi_statement_user_enabled) {
+					/* user has activated multi statement already */
+					(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
+				} else {
+					/* we need to send server option */
+					(*conn_data)->global_trx.multi_statement_gtx_enabled = TRUE;
+					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_ON TSRMLS_CC);
+				}
+
+			} else {
+				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+
+				if (FALSE == (*conn_data)->global_trx.report_error) {
+					ret = PASS;
+					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+				} else {
+					/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+				}
+			}
 		} else {
-		  /* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+			/* autocommit off */
+			if (TRUE == (*conn_data)->global_trx.multi_statement_gtx_enabled) {
+				/* for whatever reason, it was not reset! */
+				php_printf("we never want to get here - FIXME");
+				if (FALSE == (*conn_data)->global_trx.multi_statement_user_enabled) {
+					/* no, the user has not requested multi statement, forbid it... */
+					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
+				}
+			}
 		}
 	}
 
@@ -831,6 +883,13 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
 			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
 		}
+	}
+
+	/* TODO: I don't think error forwarding to user will work. we probably need to add checks! */
+	if (multi_query.c && (PASS == ret)) {
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(more_results)(connection TSRMLS_CC);
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(next_result)(connection TSRMLS_CC);
+		smart_str_free(&multi_query);
 	}
 
 	DBG_RETURN(ret);
@@ -862,7 +921,16 @@ MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND_CONN_DATA * const proxy_conn TS
 	MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::store_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, conn->thread_id);
+
 	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC);
+	if ((*conn_data)->global_trx.use_multi_statement &&
+		(FALSE == (*conn_data)->global_trx.multi_statement_user_enabled))
+	{
+		/* TODO: What shall happen in case of an error? */
+		enum_func_status ret = FAIL;
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(conn, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
+	}
+
 	DBG_RETURN(result);
 }
 /* }}} */
@@ -1261,6 +1329,15 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
+					/* If enabled, we don't need to enable if global trx injection is using multi statement */
+					switch (option) {
+						case MYSQL_OPTION_MULTI_STATEMENTS_ON:
+							(*el_conn_data)->global_trx.multi_statement_user_enabled = TRUE;
+							break;
+						case MYSQL_OPTION_MULTI_STATEMENTS_OFF:
+							(*el_conn_data)->global_trx.multi_statement_user_enabled = FALSE;
+							break;
+					}
 				}
 			}
 		}

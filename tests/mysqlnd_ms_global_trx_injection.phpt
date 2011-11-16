@@ -33,6 +33,7 @@ $settings = array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
 			'set_on_slave'				=> true,
 			'report_error'				=> true,
+			'use_multi_statement'		=> true,
 		),
 
 		'lazy_connections' => 1,
@@ -61,18 +62,28 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
-	$link->autocommit(FALSE);
 
+
+/*
 printf("...Master\n");
 	$link->query("SET @myrole='master'");
+$link->query("SET @myrole='master'");
 var_dump($link->error);
-
+*/
 printf("...Slave\n");
 	$res = $link->query("SELECT 1 FROM DUAL");
-var_dump($link->error);
-	var_dump($res->fetch_assoc());
-$link->commit();
 	var_dump($link->error);
+	var_dump($res->fetch_assoc());
+	var_dump($link->thread_id);
+printf("...Slave\n");
+$res = $link->query("SELECT 1 FROM DUAL");
+var_dump($link->error);
+var_dump($res->fetch_assoc());
+var_dump($link->thread_id);
+printf("...Slave\n");
+	$res = $link->query("SELECT 1 FROM DUAL");
+	var_dump($link->error);
+	var_dump($res->fetch_assoc());
 	var_dump($link->thread_id);
 
 printf("...Master\n");
