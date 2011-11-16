@@ -195,9 +195,8 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 {
 	enum_func_status ret;
 	MYSQLND_CONN_DATA * connection = element->conn;
-#ifdef BUFFERED_COMMANDS
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
-#endif
+
 	DBG_ENTER("mysqlnd_ms_advanced_connect");
 	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(connect)(connection, element->host, element->user,
 												   element->passwd, element->passwd_len,
@@ -206,6 +205,9 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 	if (PASS == ret) {
 		DBG_INF("Connected");
 		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_SUCCESS:MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+		/* TODO: without this the global trx id injection logic will fail on recently opened lazy connections */
+		if (conn_data && *conn_data)
+			(*conn_data)->initialized = TRUE;
 #ifdef BUFFERED_COMMANDS
 		/* let's run the buffered commands */
 		{
@@ -799,33 +801,35 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC" query=%s", connection->thread_id, query);
 
-	if (PASS == mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC) &&
+	/* TODO:
+	  This is wrong - we should do injection *after* successful query.
+	  Doing it here - for now - to avoid trouble with result sets.
+	  How expensive is the load?
+	*/
+	MS_LOAD_CONN_DATA(conn_data, connection);
+	if ((*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
+		(FALSE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
+	{
+		if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
+			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+		}
+
+		if (FALSE == (*conn_data)->global_trx.report_error) {
+			ret = PASS;
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+		} else {
+		  /* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+		}
+	}
+
+	if (PASS == ret &&
+		PASS == mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC) &&
 		PASS == connection->m->reap_query(connection TSRMLS_CC))
 	{
 		ret = PASS;
 		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
 			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
-		}
-	}
-
-	if (PASS == ret) {
-		/* TODO: how expensive is the load? */
-		/* TODO: what happens to affected rows, into and so forth? */
-		MS_LOAD_CONN_DATA(conn_data, connection);
-		if ((*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
-			(FALSE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
-		{
-			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave))
-				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
-					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
-
-			if (FALSE == (*conn_data)->global_trx.report_error) {
-				/* clear error */
-				ret = PASS;
-				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-			} else {
-			  /* TODO: do we want to prefix the error to make clear it comes from trx injection? */
-			}
 		}
 	}
 
@@ -1474,8 +1478,10 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 				} else if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_autocommit)(el->conn, mode TSRMLS_CC)) {
 					ret = FAIL;
 				}
+				/* TODO: Can we ever have a connection with no plugin data? If so, tx handling will break! */
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
+					(*el_conn_data)->stgy.in_transaction = (mode) ? FALSE : TRUE;
 				}
 			}
 		}
@@ -1483,10 +1489,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 	}
 
 	if (mode) {
-		(*conn_data)->stgy.in_transaction = FALSE;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_AUTOCOMMIT_ON);
 	} else {
-		(*conn_data)->stgy.in_transaction = TRUE;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_AUTOCOMMIT_OFF);
 	}
 	DBG_INF_FMT("in_transaction = %d", (*conn_data)->stgy.in_transaction);
@@ -1503,6 +1507,11 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	enum_func_status ret = PASS;
 
+	if ((*conn_data) && (*conn_data)->stgy.last_used_conn) {
+		conn = (*conn_data)->stgy.last_used_conn;
+		MS_LOAD_CONN_DATA(conn_data, conn);
+	}
+
 	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
 
 	if (CONN_GET_STATE(conn) == CONN_ALLOCED &&
@@ -1512,25 +1521,25 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 		DBG_RETURN(PASS);
 	}
 
-	/* TODO: I think, it needs to be a hard error, not sure, though */
-	if (ret == PASS)
-		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
+	(*conn_data)->skip_ms_calls = TRUE;
+	ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
 					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
+	(*conn_data)->skip_ms_calls = FALSE;
 
-
-	if (commit && PASS == ret) {
+	if (commit && (PASS == ret)) {
 		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
 		{
-			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave))
+			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
 				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
+			}
 
 			if (FALSE == (*conn_data)->global_trx.report_error) {
 				/* clear error */
 				ret = PASS;
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 			} else {
-			  /* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+			  /* TODO: Error does not make it to the user! */
 			}
 		}
 	}

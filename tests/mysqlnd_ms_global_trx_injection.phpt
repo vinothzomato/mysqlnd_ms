@@ -6,7 +6,7 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 require_once('skipif.inc');
-require_once("connect.inc");
+  require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -31,11 +31,12 @@ $settings = array(
 
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
-			'set_on_slave'				=> false,
+			'set_on_slave'				=> true,
 			'report_error'				=> true,
 		),
 
 		'lazy_connections' => 1,
+		'trx_stickiness' => 'disabled',
 		'filters' => array(
 			"roundrobin" => array(),
 		),
@@ -60,21 +61,27 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
-	$link->autocommit(TRUE);
+	$link->autocommit(FALSE);
 
+printf("...Master\n");
 	$link->query("SET @myrole='master'");
 var_dump($link->error);
 
-	$res = $link->query("SELECT @myrole FROM DUAL");
-	var_dump($res->fetch_assoc());
-var_dump($link->error);
-
+printf("...Slave\n");
 	$res = $link->query("SELECT 1 FROM DUAL");
+var_dump($link->error);
 	var_dump($res->fetch_assoc());
-var_dump($link->error);
+$link->commit();
+	var_dump($link->error);
+	var_dump($link->thread_id);
 
-	$link->commit();
+printf("...Master\n");
+	$link->query("SET @myrole='master'");
 var_dump($link->error);
+var_dump($link->thread_id);
+$link->commit();
+var_dump($link->error);
+var_dump($link->thread_id);
 
 	print "done!";
 ?>
