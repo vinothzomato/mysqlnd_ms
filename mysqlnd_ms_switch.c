@@ -848,7 +848,6 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 		zend_llist_init(output_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
 
 		mysqlnd_ms_select_servers_all(master_list, slave_list, selected_masters, selected_slaves TSRMLS_CC);
-
 		connection = NULL;
 
 		for (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_first_ex(filters, &pos);
@@ -867,6 +866,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 				output_masters = tmp_sel_masters;
 				output_slaves = tmp_sel_slaves;
 			}
+
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
 					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,

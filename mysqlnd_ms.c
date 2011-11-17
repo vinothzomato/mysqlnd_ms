@@ -311,8 +311,9 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			(*conn_data)->global_trx.use_multi_statement = global_trx->use_multi_statement;
 			(*conn_data)->global_trx.multi_statement_user_enabled = global_trx->multi_statement_user_enabled;
 			(*conn_data)->global_trx.multi_statement_gtx_enabled = global_trx->multi_statement_gtx_enabled;
-			/* TODO: what is it used for ?!? global trx logic sets on it */
+			/* TODO: what is it used for ?!? global trx logic sets on it
 			(*conn_data)->initialized = TRUE;
+			*/
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
@@ -827,7 +828,8 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	ret = PASS;
 	MS_LOAD_CONN_DATA(conn_data, connection);
 
-	if ((*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
+	if (conn_data && *conn_data &&
+		(*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
 		((*conn_data)->global_trx.on_commit) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
 	{
@@ -840,7 +842,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 				smart_str_appendl(&multi_query, query, query_len);
 				smart_str_appendc(&multi_query, '\0');
 				query = multi_query.c;
-				query_len = strlen(query);
+				query_len = multi_query.len - 1;
 
 				if (TRUE == (*conn_data)->global_trx.multi_statement_user_enabled) {
 					/* user has activated multi statement already */
@@ -854,6 +856,9 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 			} else {
 				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+
+				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
 				if (FALSE == (*conn_data)->global_trx.report_error) {
 					ret = PASS;
@@ -886,10 +891,18 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	}
 
 	/* TODO: I don't think error forwarding to user will work. we probably need to add checks! */
-	if (multi_query.c && (PASS == ret)) {
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(more_results)(connection TSRMLS_CC);
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(next_result)(connection TSRMLS_CC);
+	if (multi_query.c) {
+		if (PASS == ret) {
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(more_results)(connection TSRMLS_CC);
+			if (PASS == ret)
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(next_result)(connection TSRMLS_CC);
+		}
 		smart_str_free(&multi_query);
+
+		/* NOTE: we cannot tell what caused a failure: original user statement or injected SQL */
+		/* TODO: document */
+		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+			MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 	}
 
 	DBG_RETURN(ret);
@@ -923,10 +936,10 @@ MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND_CONN_DATA * const proxy_conn TS
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, conn->thread_id);
 
 	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC);
-	if ((*conn_data)->global_trx.use_multi_statement &&
+	if (conn_data && *conn_data && (*conn_data)->global_trx.use_multi_statement &&
 		(FALSE == (*conn_data)->global_trx.multi_statement_user_enabled))
 	{
-		/* TODO: What shall happen in case of an error? */
+		/* TODO: What shall happen in case of an error: how to inform the user? */
 		enum_func_status ret = FAIL;
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(conn, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
 	}
@@ -1584,32 +1597,37 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	enum_func_status ret = PASS;
 
+	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
+
+
 	if ((*conn_data) && (*conn_data)->stgy.last_used_conn) {
 		conn = (*conn_data)->stgy.last_used_conn;
 		MS_LOAD_CONN_DATA(conn_data, conn);
 	}
+	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
 
-	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
+
+	/* TODO: why do we need no if (conn_data && *conn_data) ?! */
 
 	if (CONN_GET_STATE(conn) == CONN_ALLOCED &&
 		conn_data && *conn_data &&
 		(*conn_data)->initialized && !(*conn_data)->skip_ms_calls)
 	{
+		/* TODO: what is this good for ? */
 		DBG_RETURN(PASS);
 	}
 
-	(*conn_data)->skip_ms_calls = TRUE;
-	ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
-					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
-	(*conn_data)->skip_ms_calls = FALSE;
-
-	if (commit && (PASS == ret)) {
+	/* Must add query before committing ... */
+	if (commit) {
 		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
 		{
 			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
 				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
 			}
+
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS :
+				MS_STAT_GTID_COMMIT_FAILURE);
 
 			if (FALSE == (*conn_data)->global_trx.report_error) {
 				/* clear error */
@@ -1619,6 +1637,14 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 			  /* TODO: Error does not make it to the user! */
 			}
 		}
+	}
+
+	if (PASS == ret) {
+		(*conn_data)->skip_ms_calls = TRUE;
+		/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
+		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
+						MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
+		(*conn_data)->skip_ms_calls = FALSE;
 	}
 
 	DBG_RETURN(ret);
@@ -1633,9 +1659,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 	enum_func_status ret = FAIL;
 
 	DBG_ENTER("mysqlnd_ms::tx_commit");
-
 	ret = mysqlnd_ms_tx_commit_or_rollback(conn, TRUE TSRMLS_CC);
-
 	DBG_RETURN(ret);
 }
 /* }}} */
