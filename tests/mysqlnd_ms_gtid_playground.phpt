@@ -44,14 +44,14 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_global_trx_injection.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_gtid_playground.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_global_trx_injection.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_playground.ini
 mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
@@ -98,9 +98,11 @@ var_dump($link->thread_id);
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_global_trx_injection.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_global_trx_injection.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_gtid_playground.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_playground.ini'.\n");
 ?>
+--XFAIL--
+Playground
 --EXPECTF--
 string(0) ""
 array(1) {
