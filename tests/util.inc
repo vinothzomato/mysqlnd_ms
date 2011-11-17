@@ -235,4 +235,45 @@
 		$row = $res->fetch_assoc();
 		return sprintf("%s-%d", $row['role'], $link->thread_id);
 	}
+
+
+	function mst_get_gtid_sql($mst_gtid_db) {
+	  return array(
+		'drop' 		=> 'DROP TABLE IF EXISTS ' . $mst_gtid_db . '.trx',
+		'create'	=> 'CREATE TABLE ' . $mst_gtid_db . '.trx(trx_id INT, last_update TIMESTAMP) ENGINE=InnoDB',
+		'insert'	=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (1)',
+		'update'	=> 'UPDATE ' . $mst_gtid_db . '.trx SET trx_id = trx_id + 1',
+		'select'	=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx',
+	  );
+	}
+
+	function mst_mysqli_setup_gtid_table($host, $user, $passwd, $db, $port, $socket, $drop = NULL, $create = NULL, $insert = NULL) {
+		global $mst_gtid_db;
+
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		$sql = mst_get_gtid_sql($db);
+
+		if (!$link->query(($drop) ? $drop : $sql['drop']))
+			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+		if (!$link->query(($create) ? $create : $sql['create']))
+			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+		if (!$link->query(($insert) ? $insert : $sql['insert']))
+			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+	}
+
+	function mst_mysqli_fetch_gtid($offset, $link, $db) {
+		$sql = mst_get_gtid_sql($db);
+
+		$query = sprintf("/*%d*/%s", $offset, $sql['select']);
+		if (!($res = $link->query($query))) {
+			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link_>error);
+			return NULL;
+		}
+		$row = $res->fetch_row();
+		return $row[0];
+	}
 ?>
