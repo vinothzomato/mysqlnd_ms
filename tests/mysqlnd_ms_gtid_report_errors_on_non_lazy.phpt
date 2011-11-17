@@ -1,5 +1,5 @@
 --TEST--
-GTID autocommit and report errors
+GTID and report errors on
 --SKIPIF--
 <?php
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
@@ -50,7 +50,7 @@ $settings = array(
 			'set_on_slave'				=> true,
 		),
 
-		'lazy_connections' => 1,
+		'lazy_connections' => 0,
 		'trx_stickiness' => 'disabled',
 		'filters' => array(
 			"roundrobin" => array(),
@@ -58,12 +58,12 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_gtid_autocommit_report_errors.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_autocommit_report_errors.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -171,8 +171,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_gtid_autocommit_report_errors.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_autocommit_report_errors.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini'.\n");
 ?>
 --EXPECTF--
 [005] [1146] Table %s doesn't exist

@@ -398,6 +398,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool multi_statement_user_enabled;
 		zend_bool multi_statement_gtx_enabled;
 	} global_trx;
+	zend_bool connection_opened;
 
 } MYSQLND_MS_CONN_DATA;
 

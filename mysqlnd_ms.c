@@ -206,8 +206,10 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 		DBG_INF("Connected");
 		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_SUCCESS:MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 		/* TODO: without this the global trx id injection logic will fail on recently opened lazy connections */
-		if (conn_data && *conn_data)
+		if (conn_data && *conn_data) {
 			(*conn_data)->initialized = TRUE;
+			(*conn_data)->connection_opened = TRUE;
+		}
 #ifdef BUFFERED_COMMANDS
 		/* let's run the buffered commands */
 		{
@@ -314,6 +316,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			/* TODO: what is it used for ?!? global trx logic sets on it
 			(*conn_data)->initialized = TRUE;
 			*/
+			(*conn_data)->connection_opened = (lazy_connections) ? FALSE : TRUE;
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
@@ -594,6 +597,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->global_trx.multi_statement_user_enabled = FALSE;
 		(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
 
+		(*conn_data)->connection_opened = FALSE;
 		(*conn_data)->initialized = TRUE;
 
 		if (!hotloading) {
@@ -826,8 +830,10 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	  How expensive is the load?
 	*/
 	MS_LOAD_CONN_DATA(conn_data, connection);
+
+	/* (*conn_data)->initialized replaced with connection_opened */
 	if (conn_data && *conn_data &&
-		(*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
+		(*conn_data)->connection_opened && (FALSE == (*conn_data)->skip_ms_calls) &&
 		((*conn_data)->global_trx.on_commit) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
 	{
