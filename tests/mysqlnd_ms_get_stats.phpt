@@ -51,6 +51,13 @@ mysqlnd_ms.collect_statistics=1
 		"trx_master_forced"						=> true,
 	);
 
+	if (MYSQLND_MS_VERSION_ID >= 10200) {
+		$expected["gtid_autocommit_injections_success"] = true;
+		$expected["gtid_autocommit_injections_failure"] = true;
+		$expected["gtid_commit_injections_success"] = true;
+		$expected["gtid_commit_injections_failure"] = true;
+	}
+
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {
 		printf("[001] Expecting NULL got %s/%s\n", gettype($ret), $ret);
 	}
