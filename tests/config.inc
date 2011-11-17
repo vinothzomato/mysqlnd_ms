@@ -19,7 +19,4 @@
 
 	putenv("MYSQL_TEST_MASTER_HOST=". getenv("MYSQL_TEST_HOST"));
 	putenv("MYSQL_TEST_SLAVE_HOST=". getenv("MYSQL_TEST_HOST"));
-
-	putenv("MYSQL_TEST_MASTER_HOST=192.168.78.137:3307");
-	// putenv("MYSQL_TEST_SLAVE_HOST=127.0.0.1:3306");
 ?>
