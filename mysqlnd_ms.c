@@ -825,7 +825,6 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	  Doing it here - for now - to avoid trouble with result sets.
 	  How expensive is the load?
 	*/
-	ret = PASS;
 	MS_LOAD_CONN_DATA(conn_data, connection);
 
 	if (conn_data && *conn_data &&
@@ -878,11 +877,13 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 				}
 			}
 		}
+	} else {
+		ret = PASS;
 	}
 
-	if (PASS == ret &&
-		PASS == mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC) &&
-		PASS == connection->m->reap_query(connection TSRMLS_CC))
+	if ((PASS == ret) &&
+		(PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
+		(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC))))
 	{
 		ret = PASS;
 		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
