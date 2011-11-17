@@ -826,14 +826,12 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	  How expensive is the load?
 	*/
 	MS_LOAD_CONN_DATA(conn_data, connection);
-
 	if (conn_data && *conn_data &&
 		(*conn_data)->initialized && (FALSE == (*conn_data)->skip_ms_calls) &&
 		((*conn_data)->global_trx.on_commit) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
 	{
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
-
 			/* autocommit mode */
 			if (TRUE == (*conn_data)->global_trx.use_multi_statement) {
 				smart_str_appendl(&multi_query, (*conn_data)->global_trx.on_commit, (*conn_data)->global_trx.on_commit_len);
@@ -868,9 +866,9 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 			}
 		} else {
 			/* autocommit off */
+			ret = PASS;
 			if (TRUE == (*conn_data)->global_trx.multi_statement_gtx_enabled) {
 				/* for whatever reason, it was not reset! */
-				php_printf("we never want to get here - FIXME");
 				if (FALSE == (*conn_data)->global_trx.multi_statement_user_enabled) {
 					/* no, the user has not requested multi statement, forbid it... */
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
