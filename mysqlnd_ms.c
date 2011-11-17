@@ -1598,15 +1598,11 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 
 	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
 
-
-	if ((*conn_data) && (*conn_data)->stgy.last_used_conn) {
+	if (conn_data && *conn_data && (*conn_data)->stgy.last_used_conn) {
 		conn = (*conn_data)->stgy.last_used_conn;
 		MS_LOAD_CONN_DATA(conn_data, conn);
 	}
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
-
-
-	/* TODO: why do we need no if (conn_data && *conn_data) ?! */
 
 	if (CONN_GET_STATE(conn) == CONN_ALLOCED &&
 		conn_data && *conn_data &&
@@ -1617,7 +1613,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	}
 
 	/* Must add query before committing ... */
-	if (commit) {
+	if (conn_data && *conn_data && commit) {
 		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
 		{
 			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
@@ -1639,11 +1635,13 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	}
 
 	if (PASS == ret) {
-		(*conn_data)->skip_ms_calls = TRUE;
+		if (conn_data && *conn_data)
+			(*conn_data)->skip_ms_calls = TRUE;
 		/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
 		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
 						MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
-		(*conn_data)->skip_ms_calls = FALSE;
+		if (conn_data && *conn_data)
+			(*conn_data)->skip_ms_calls = FALSE;
 	}
 
 	DBG_RETURN(ret);
