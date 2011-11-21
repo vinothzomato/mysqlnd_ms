@@ -56,7 +56,6 @@ $settings = array(
 			"roundrobin" => array(),
 		),
 	),
-
 );
 if ($error = mst_create_config("test_mysqlnd_ms_gtid_report_errors_off_non_lazy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
@@ -65,8 +64,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_gtid_report_errors_off_non_lazy.
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_report_errors_off_non_lazy.ini
 mysqlnd_ms.collect_statistics=1
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
-
 --FILE--
 <?php
 	require_once("connect.inc");
