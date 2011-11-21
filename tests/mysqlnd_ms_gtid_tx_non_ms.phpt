@@ -10,6 +10,9 @@ _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_so
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 include_once("util.inc");
+$sql = mst_get_gtid_sql($db);
+if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+  die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
 $settings = array(
 	"myapp" => array(
