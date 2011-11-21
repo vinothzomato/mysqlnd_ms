@@ -1918,6 +1918,59 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_stmt::execute */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
+{
+	enum_func_status ret;
+	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+	MYSQLND_CONN_DATA * connection = NULL;
+
+	DBG_ENTER("mysqlnd_ms_stmt::execute");
+	if (!s || !s->data || !s->data->conn ||
+		!(MS_LOAD_CONN_DATA(conn_data, s->data->conn)) ||
+		!conn_data || !*conn_data || (*conn_data)->skip_ms_calls)
+	{
+		DBG_INF("skip MS");
+		ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
+		DBG_RETURN(ret);
+	}
+	connection = s->data->conn;
+
+	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, connection->thread_id);
+	ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
+
+	if ((PASS == ret) && ((*conn_data)->global_trx.on_commit) &&
+		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+	{
+
+		if (FALSE == (*conn_data)->stgy.in_transaction) {
+			/* autocommit mode */
+			if (TRUE == (*conn_data)->global_trx.use_multi_statement) {
+				/* TODO - will this work at all? Do PS support multi statement? */
+				php_printf("FIXME, TODO: PS + multi_statement");
+			} else {
+			  if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+
+				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+
+				if (FALSE == (*conn_data)->global_trx.report_error) {
+					ret = PASS;
+					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+				} else {
+					/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+				}
+			}
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_conn::ssl_set */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, ssl_set)(MYSQLND_CONN_DATA * const proxy_conn, const char * key, const char * const cert,
@@ -2033,6 +2086,7 @@ mysqlnd_ms_register_hooks()
 	memcpy(&my_mysqlnd_stmt_methods, ms_orig_mysqlnd_stmt_methods, sizeof(struct st_mysqlnd_stmt_methods));
 
 	my_mysqlnd_stmt_methods.prepare = MYSQLND_METHOD(mysqlnd_ms_stmt, prepare);
+	my_mysqlnd_stmt_methods.execute = MYSQLND_METHOD(mysqlnd_ms_stmt, execute);
 
 	mysqlnd_stmt_set_methods(&my_mysqlnd_stmt_methods);
 }
