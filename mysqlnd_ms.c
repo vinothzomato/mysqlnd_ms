@@ -1938,6 +1938,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	zend_bool trx_handling = FALSE;
 
 	DBG_ENTER("mysqlnd_ms_stmt::execute");
+
 	if (!s || !s->data || !s->data->conn ||
 		!(MS_LOAD_CONN_DATA(conn_data, s->data->conn)) ||
 		!conn_data || !*conn_data || (*conn_data)->skip_ms_calls)
@@ -1947,6 +1948,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 		DBG_RETURN(ret);
 	}
 	connection = s->data->conn;
+
 
 	if (((*conn_data)->global_trx.on_commit) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
@@ -1967,10 +1969,10 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 					(*stmt_data)->global_trx_injection_res = NULL;
 					(*stmt_data)->buffered_result_fetched = FALSE;
 					trx_handling = TRUE;
-					php_printf("alloc\n");
 				} else {
 					if ((*stmt_data)->global_trx_injection_res && !(*stmt_data)->buffered_result_fetched) {
 						ret = FAIL;
+
 						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(connection), CR_COMMANDS_OUT_OF_SYNC,
 							UNKNOWN_SQLSTATE,	 mysqlnd_out_of_sync);
 
@@ -1978,7 +1980,8 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 							UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
 
 					} else {
-					  trx_handling = TRUE;
+						trx_handling = TRUE;
+						(*stmt_data)->use_buffered_result = FALSE;
 					}
 				}
 			}
@@ -1991,7 +1994,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 
 	if ((PASS == ret) && (TRUE == trx_handling)) {
 
-		(*stmt_data)->global_trx_injection_res = ms_orig_mysqlnd_stmt_methods->store_result(s TSRMLS_CC);
+		(*stmt_data)->global_trx_injection_res = ms_orig_mysqlnd_stmt_methods->get_result(s TSRMLS_CC);
 		(*stmt_data)->use_buffered_result = TRUE;
 		(*stmt_data)->buffered_result_fetched = FALSE;
 
@@ -2033,7 +2036,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, free_stmt_content)(MYSQLND_STMT * const s TSRMLS
 /* }}} */
 
 
-/* {{{ mysqlnd_stmt::store_result */
+/* {{{ mysqlnd_ms_stmt::store_result */
 static MYSQLND_RES *
 MYSQLND_METHOD(mysqlnd_ms_stmt, store_result)(MYSQLND_STMT * const s TSRMLS_DC)
 {
@@ -2056,6 +2059,33 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, store_result)(MYSQLND_STMT * const s TSRMLS_DC)
 	}
 
 	DBG_RETURN(result);
+}
+/* }}} */
+
+/* {{{ mysqlnd_ms_stmt::get_result */
+static MYSQLND_RES *
+MYSQLND_METHOD(mysqlnd_ms_stmt, get_result)(MYSQLND_STMT * const s TSRMLS_DC)
+{
+	MYSQLND_RES * result = NULL;
+	MYSQLND_MS_STMT_DATA ** stmt_data = NULL;
+	MS_LOAD_STMT_DATA(stmt_data, s);
+
+	DBG_ENTER("mysqlnd_ms_stmt::get_result");
+
+	if (!stmt_data || !*stmt_data || (*stmt_data)->skip_ms_calls) {
+		result = ms_orig_mysqlnd_stmt_methods->get_result(s TSRMLS_CC);
+		DBG_RETURN(result);
+	}
+
+	if ((*stmt_data)->use_buffered_result && !(*stmt_data)->buffered_result_fetched) {
+		result = (*stmt_data)->global_trx_injection_res;
+		(*stmt_data)->buffered_result_fetched = TRUE;
+	} else {
+		result = ms_orig_mysqlnd_stmt_methods->get_result(s TSRMLS_CC);
+	}
+
+	DBG_RETURN(result);
+
 }
 /* }}} */
 #endif
@@ -2179,6 +2209,7 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_stmt_methods.execute = MYSQLND_METHOD(mysqlnd_ms_stmt, execute);
 	my_mysqlnd_stmt_methods.free_stmt_content = MYSQLND_METHOD(mysqlnd_ms_stmt, free_stmt_content);
 	my_mysqlnd_stmt_methods.store_result = MYSQLND_METHOD(mysqlnd_ms_stmt, store_result);
+	my_mysqlnd_stmt_methods.get_result = MYSQLND_METHOD(mysqlnd_ms_stmt, get_result);
 #endif
 
 	mysqlnd_stmt_set_methods(&my_mysqlnd_stmt_methods);
