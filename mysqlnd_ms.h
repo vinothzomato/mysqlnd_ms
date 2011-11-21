@@ -38,8 +38,14 @@
 
 #if MYSQLND_VERSION_ID < 50010
 #define MYSQLND_MS_ERROR_INFO(conn_object) ((conn_object)->error_info)
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+#define MYSQLND_MS_STMT_ERROR_INFO(stmt_object) ((stmt_object)->error_info)
+#endif
 #else
 #define MYSQLND_MS_ERROR_INFO(conn_object) (*((conn_object)->error_info))
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+#define MYSQLND_MS_STMT_ERROR_INFO(stmt_object) (((stmt_object)->data))
+#endif
 #endif
 
 #if MYSQLND_VERSION_ID < 50010

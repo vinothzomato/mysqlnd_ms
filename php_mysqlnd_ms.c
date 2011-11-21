@@ -59,11 +59,13 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("trx_autocommit_on") },
 	{ STR_W_LEN("trx_autocommit_off") },
 	{ STR_W_LEN("trx_master_forced") },
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	/* TODO: document */
 	{ STR_W_LEN("gtid_autocommit_injections_success") },
 	{ STR_W_LEN("gtid_autocommit_injections_failure") },
 	{ STR_W_LEN("gtid_commit_injections_success") },
 	{ STR_W_LEN("gtid_commit_injections_failure") },
+#endif
 };
 /* }}} */
 

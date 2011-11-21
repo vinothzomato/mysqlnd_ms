@@ -52,6 +52,12 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_handle_methods;
 extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #endif
 
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+#define MS_LOAD_STMT_DATA(stmt_data, statement) \
+	(stmt_data) = \
+		(MYSQLND_MS_STMT_DATA **)  mysqlnd_plugin_get_plugin_stmt_data((statement), mysqlnd_ms_plugin_id);
+#endif
+
 #define BEGIN_ITERATE_OVER_SERVER_LISTS(el, masters, slaves) \
 { \
 	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
@@ -244,10 +250,12 @@ typedef enum mysqlnd_ms_collected_stats
 	MS_STAT_TRX_AUTOCOMMIT_ON,
 	MS_STAT_TRX_AUTOCOMMIT_OFF,
 	MS_STAT_TRX_MASTER_FORCED,
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	MS_STAT_GTID_AUTOCOMMIT_SUCCESS,
 	MS_STAT_GTID_AUTOCOMMIT_FAILURE,
 	MS_STAT_GTID_COMMIT_SUCCESS,
 	MS_STAT_GTID_COMMIT_FAILURE,
+#endif
 	MS_STAT_LAST /* Should be always the last */
 } enum_mysqlnd_ms_collected_stats;
 
@@ -388,6 +396,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		unsigned long mysql_flags;
 	} cred;
 
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	struct st_mysqlnd_ms_global_trx_injection {
 		char * on_commit;
 		size_t on_commit_len;
@@ -399,6 +408,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool multi_statement_gtx_enabled;
 	} global_trx;
 	zend_bool connection_opened;
+#endif
 
 } MYSQLND_MS_CONN_DATA;
 
@@ -426,6 +436,15 @@ typedef struct st_mysqlnd_ms_command
 	zend_bool ignore_upsert_status;
 	zend_bool persistent;
 } MYSQLND_MS_COMMAND;
+
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+typedef struct st_mysqlnd_ms_stmt_data {
+	zend_bool skip_ms_calls;
+	zend_bool use_buffered_result;
+	zend_bool buffered_result_fetched;
+	MYSQLND_RES * global_trx_injection_res;
+} MYSQLND_MS_STMT_DATA;
+#endif
 
 #endif /* MYSQLND_MS_ENUM_N_DEF_H */
 

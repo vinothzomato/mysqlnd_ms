@@ -205,11 +205,13 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 	if (PASS == ret) {
 		DBG_INF("Connected");
 		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_SUCCESS:MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 		/* TODO: without this the global trx id injection logic will fail on recently opened lazy connections */
 		if (conn_data && *conn_data) {
 			(*conn_data)->initialized = TRUE;
 			(*conn_data)->connection_opened = TRUE;
 		}
+#endif
 #ifdef BUFFERED_COMMANDS
 		/* let's run the buffered commands */
 		{
@@ -299,7 +301,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 
 			zend_llist_init(&(*conn_data)->delayed_commands, sizeof(MYSQLND_MS_COMMAND),
 							(llist_dtor_func_t) mysqlnd_ms_commands_list_dtor, conn->persistent);
-
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 			if (TRUE == is_master || ((FALSE == is_master) && (TRUE == global_trx->set_on_slave))) {
 				(*conn_data)->global_trx.on_commit_len = global_trx->on_commit_len;
 				(*conn_data)->global_trx.on_commit = global_trx->on_commit;
@@ -313,10 +315,8 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			(*conn_data)->global_trx.use_multi_statement = global_trx->use_multi_statement;
 			(*conn_data)->global_trx.multi_statement_user_enabled = global_trx->multi_statement_user_enabled;
 			(*conn_data)->global_trx.multi_statement_gtx_enabled = global_trx->multi_statement_gtx_enabled;
-			/* TODO: what is it used for ?!? global trx logic sets on it
-			(*conn_data)->initialized = TRUE;
-			*/
 			(*conn_data)->connection_opened = (lazy_connections) ? FALSE : TRUE;
+#endif
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
@@ -587,7 +587,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->cred.port = port;
 		(*conn_data)->cred.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
 		(*conn_data)->cred.mysql_flags = mysql_flags;
-
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 		(*conn_data)->global_trx.on_commit = NULL;
 		(*conn_data)->global_trx.on_commit_len = (size_t)0;
 		(*conn_data)->global_trx.is_master = FALSE;
@@ -596,8 +596,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->global_trx.use_multi_statement = FALSE;
 		(*conn_data)->global_trx.multi_statement_user_enabled = FALSE;
 		(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
-
 		(*conn_data)->connection_opened = FALSE;
+#endif
 		(*conn_data)->initialized = TRUE;
 
 		if (!hotloading) {
@@ -610,7 +610,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
-
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 			/* TODO: move global transaction id stuff into dedicated function */
 			{
 				zend_bool entry_exists;
@@ -653,6 +653,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 					}
 				}
 			}
+#endif
 #if 1
 			{
 				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
@@ -831,7 +832,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	*/
 	MS_LOAD_CONN_DATA(conn_data, connection);
 
-	/* (*conn_data)->initialized replaced with connection_opened */
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	if (conn_data && *conn_data &&
 		(*conn_data)->connection_opened && (FALSE == (*conn_data)->skip_ms_calls) &&
 		((*conn_data)->global_trx.on_commit) &&
@@ -884,7 +885,9 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	} else {
 		ret = PASS;
 	}
-
+#else
+	ret = PASS;
+#endif
 	if ((PASS == ret) &&
 		(PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
 		(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC))))
@@ -895,6 +898,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		}
 	}
 
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	/* TODO: I don't think error forwarding to user will work. we probably need to add checks! */
 	if (multi_query.c) {
 		if (PASS == ret) {
@@ -909,6 +913,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
 			MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 	}
+#endif
 
 	DBG_RETURN(ret);
 }
@@ -992,13 +997,13 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 
 		(*data_pp)->cred.port = 0;
 		(*data_pp)->cred.mysql_flags = 0;
-
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 		if ((*data_pp)->global_trx.on_commit) {
 			mnd_pefree((*data_pp)->global_trx.on_commit, conn->persistent);
 			(*data_pp)->global_trx.on_commit = NULL;
 			(*data_pp)->global_trx.on_commit_len = 0;
 		}
-
+#endif
 		DBG_INF_FMT("cleaning the llists");
 		zend_llist_clean(&(*data_pp)->master_connections);
 		zend_llist_clean(&(*data_pp)->slave_connections);
@@ -1347,6 +1352,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 					/* If enabled, we don't need to enable if global trx injection is using multi statement */
 					switch (option) {
 						case MYSQL_OPTION_MULTI_STATEMENTS_ON:
@@ -1356,6 +1362,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 							(*el_conn_data)->global_trx.multi_statement_user_enabled = FALSE;
 							break;
 					}
+#endif
 				}
 			}
 		}
@@ -1619,6 +1626,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	}
 
 	/* Must add query before committing ... */
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	if (conn_data && *conn_data && commit) {
 		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
 		{
@@ -1635,10 +1643,11 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 				ret = PASS;
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 			} else {
-			  /* TODO: Error does not make it to the user! */
+			  /* TODO: Error does not make it to the user?! */
 			}
 		}
 	}
+#endif
 
 	if (PASS == ret) {
 		if (conn_data && *conn_data)
@@ -1917,14 +1926,16 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 }
 /* }}} */
 
-
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 /* {{{ mysqlnd_ms_stmt::execute */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 {
-	enum_func_status ret;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+	MYSQLND_MS_STMT_DATA ** stmt_data = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
+	zend_bool trx_handling = FALSE;
 
 	DBG_ENTER("mysqlnd_ms_stmt::execute");
 	if (!s || !s->data || !s->data->conn ||
@@ -1937,32 +1948,65 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	}
 	connection = s->data->conn;
 
-	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, connection->thread_id);
-	ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
-
-	if ((PASS == ret) && ((*conn_data)->global_trx.on_commit) &&
+	if (((*conn_data)->global_trx.on_commit) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
 	{
 
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
 			if (TRUE == (*conn_data)->global_trx.use_multi_statement) {
-				/* TODO - will this work at all? Do PS support multi statement? */
-				php_printf("FIXME, TODO: PS + multi_statement");
+				/* TODO: Decide on error */
+				ret = FAIL;
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " Multi-statement based global transaction ID injection cannot be used with prepared statements.");
 			} else {
-			  if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
-					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
-
-				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
-					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
-
-				if (FALSE == (*conn_data)->global_trx.report_error) {
-					ret = PASS;
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+				MS_LOAD_STMT_DATA(stmt_data, s);
+				if (!stmt_data || !*stmt_data) {
+					*stmt_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_STMT_DATA), s->persistent);
+					(*stmt_data)->skip_ms_calls = FALSE;
+					(*stmt_data)->use_buffered_result = FALSE;
+					(*stmt_data)->global_trx_injection_res = NULL;
+					(*stmt_data)->buffered_result_fetched = FALSE;
+					trx_handling = TRUE;
+					php_printf("alloc\n");
 				} else {
-					/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+					if ((*stmt_data)->global_trx_injection_res && !(*stmt_data)->buffered_result_fetched) {
+						ret = FAIL;
+						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(connection), CR_COMMANDS_OUT_OF_SYNC,
+							UNKNOWN_SQLSTATE,	 mysqlnd_out_of_sync);
+
+						SET_STMT_ERROR(MYSQLND_MS_STMT_ERROR_INFO(s), CR_COMMANDS_OUT_OF_SYNC,
+							UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
+
+					} else {
+					  trx_handling = TRUE;
+					}
 				}
 			}
+		}
+	}
+
+	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, connection->thread_id);
+	if (PASS == ret)
+		ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
+
+	if ((PASS == ret) && (TRUE == trx_handling)) {
+
+		(*stmt_data)->global_trx_injection_res = ms_orig_mysqlnd_stmt_methods->store_result(s TSRMLS_CC);
+		(*stmt_data)->use_buffered_result = TRUE;
+		(*stmt_data)->buffered_result_fetched = FALSE;
+
+		if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+
+		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+		  MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+
+		if (FALSE == (*conn_data)->global_trx.report_error) {
+			ret = PASS;
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+			/* todo clear stmt error */
+		} else {
+		/* todo ms prefix */
 		}
 	}
 
@@ -1970,6 +2014,51 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 }
 /* }}} */
 
+
+/* {{{ mysqlnd_stmt::free_stmt_content */
+static void
+MYSQLND_METHOD(mysqlnd_ms_stmt, free_stmt_content)(MYSQLND_STMT * const s TSRMLS_DC) {
+	DBG_ENTER("mysqlnd_ms_stmt::free_stmt_content");
+	MYSQLND_MS_STMT_DATA ** stmt_data = NULL;
+	MS_LOAD_STMT_DATA(stmt_data, s);
+
+	ms_orig_mysqlnd_stmt_methods->free_stmt_content(s TSRMLS_CC);
+	if (stmt_data && *stmt_data) {
+		mnd_pefree(*stmt_data, s->persistent);
+		*stmt_data = NULL;
+	}
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_stmt::store_result */
+static MYSQLND_RES *
+MYSQLND_METHOD(mysqlnd_ms_stmt, store_result)(MYSQLND_STMT * const s TSRMLS_DC)
+{
+	MYSQLND_RES * result = NULL;
+	MYSQLND_MS_STMT_DATA ** stmt_data = NULL;
+	MS_LOAD_STMT_DATA(stmt_data, s);
+
+	DBG_ENTER("mysqlnd_ms_stmt::store_result");
+
+	if (!stmt_data || !*stmt_data || (*stmt_data)->skip_ms_calls) {
+		result = ms_orig_mysqlnd_stmt_methods->store_result(s TSRMLS_CC);
+		DBG_RETURN(result);
+	}
+
+	if ((*stmt_data)->use_buffered_result && !(*stmt_data)->buffered_result_fetched) {
+		result = (*stmt_data)->global_trx_injection_res;
+		(*stmt_data)->buffered_result_fetched = TRUE;
+	} else {
+		result = ms_orig_mysqlnd_stmt_methods->store_result(s TSRMLS_CC);
+	}
+
+	DBG_RETURN(result);
+}
+/* }}} */
+#endif
 
 /* {{{ mysqlnd_conn::ssl_set */
 static enum_func_status
@@ -2086,7 +2175,11 @@ mysqlnd_ms_register_hooks()
 	memcpy(&my_mysqlnd_stmt_methods, ms_orig_mysqlnd_stmt_methods, sizeof(struct st_mysqlnd_stmt_methods));
 
 	my_mysqlnd_stmt_methods.prepare = MYSQLND_METHOD(mysqlnd_ms_stmt, prepare);
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
 	my_mysqlnd_stmt_methods.execute = MYSQLND_METHOD(mysqlnd_ms_stmt, execute);
+	my_mysqlnd_stmt_methods.free_stmt_content = MYSQLND_METHOD(mysqlnd_ms_stmt, free_stmt_content);
+	my_mysqlnd_stmt_methods.store_result = MYSQLND_METHOD(mysqlnd_ms_stmt, store_result);
+#endif
 
 	mysqlnd_stmt_set_methods(&my_mysqlnd_stmt_methods);
 }
