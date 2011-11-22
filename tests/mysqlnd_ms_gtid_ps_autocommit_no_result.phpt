@@ -110,7 +110,8 @@ mysqlnd_ms.collect_statistics=1
 	if (!$stmt->execute())
 		printf("[012] [%d] %s\n", $stmt->errno, $stmt->error);
 
-	/* matter of definition if this shall change stats, I think, it should not */
+	/* We do the injection before execute */
+	$expected['gtid_autocommit_injections_success']++;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(13, $stats, $expected);
 

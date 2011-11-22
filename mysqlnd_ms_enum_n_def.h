@@ -437,15 +437,6 @@ typedef struct st_mysqlnd_ms_command
 	zend_bool persistent;
 } MYSQLND_MS_COMMAND;
 
-#ifndef MYSQLND_HAS_INJECTION_FEATURE
-typedef struct st_mysqlnd_ms_stmt_data {
-	zend_bool skip_ms_calls;
-	zend_bool use_buffered_result;
-	zend_bool buffered_result_fetched;
-	MYSQLND_RES * global_trx_injection_res;
-} MYSQLND_MS_STMT_DATA;
-#endif
-
 #endif /* MYSQLND_MS_ENUM_N_DEF_H */
 
 /*

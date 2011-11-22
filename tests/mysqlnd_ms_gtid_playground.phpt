@@ -33,7 +33,7 @@ $settings = array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
 			'set_on_slave'				=> true,
 			'report_error'				=> true,
-			'use_multi_statement'		=> true,
+			'use_multi_statement'		=> false,
 		),
 
 		'lazy_connections' => 1,
@@ -63,6 +63,21 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+
+	$stmt = $link->prepare("SELECT 1 FROM DUAL");
+$stmt->bind_result($one);
+	var_dump($link->error);
+	var_dump($stmt->execute());
+var_dump($stmt->store_result());
+var_dump($stmt->fetch());
+var_dump($one);
+	var_dump($stmt->error);
+	var_dump($stmt->execute());
+var_dump($stmt->store_result());
+var_dump($stmt->fetch());
+var_dump($one);
+	var_dump($stmt->error);
+die(":)");
 
 /*
 printf("...Master\n");

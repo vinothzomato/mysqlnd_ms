@@ -33,12 +33,12 @@ $settings = array(
 		'lazy_connections' => 1
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_get_result.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_ps_autocommit_get_result.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -60,7 +60,7 @@ mysqlnd_ms.collect_statistics=1
 		}
 	}
 
-	if (!($link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $port, $socket)))
+	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	  $expected = array(
@@ -167,7 +167,8 @@ mysqlnd_ms.collect_statistics=1
 	if (!$stmt->execute())
 		printf("[027] [%d] %s\n", $stmt->errno, $stmt->error);
 
-	/* matter of definition if this shall change stats, I think, it should not */
+	/* injection is done before execute */
+	$expected['gtid_autocommit_injections_success']++;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(28, $stats, $expected);
 
@@ -175,15 +176,13 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_get_result.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_get_result.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini'.\n");
 ?>
---XFAIL--
-My hack stinks. Waiting for Andrey, the magician.
 --EXPECTF--
 Rows 0
 Rows 1
-[016] [0]
+[016] [0%A
 [017] [%d] %s
 Rows 2
 [027] [%d] %s

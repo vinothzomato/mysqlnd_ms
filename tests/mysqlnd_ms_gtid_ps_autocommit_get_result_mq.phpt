@@ -101,7 +101,6 @@ mysqlnd_ms.collect_statistics=1
 		printf("[007] [%d] %s\n", $stmt->errno, $stmt->error);
 
 	$expected['gtid_autocommit_injections_success']++;
-
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(8, $stats, $expected);
 
@@ -110,13 +109,15 @@ mysqlnd_ms.collect_statistics=1
 			var_dump($res->fetch_assoc());
 	} while ($stmt->more_results() && $stmt->next_result());
 
+	$stats = mysqlnd_ms_get_stats();
 	compare_stats(9, $stats, $expected);
 
 	/* check if line is useable */
-	if (!($res = $link->query("SELECT 'Is the line' AS _msg FROM DUAL")))
+	if (!($res = $link->query(sprintf("/*%s*/SELECT 'Is the line' AS _msg FROM DUAL", MYSQLND_MS_MASTER_SWITCH))))
 		printf("[010] [%d] %s\n", $link->errno, $link->error);
 
 	$expected['gtid_autocommit_injections_success']++;
+	$stats = mysqlnd_ms_get_stats();
 	compare_stats(11, $stats, $expected);
 
 	$row = $res->fetch_assoc();
@@ -130,7 +131,6 @@ mysqlnd_ms.collect_statistics=1
 		printf("[013] [%d] %s\n", $stmt->errno, $stmt->error);
 
 	$expected['gtid_autocommit_injections_success']++;
-
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(14, $stats, $expected);
 
@@ -139,13 +139,14 @@ mysqlnd_ms.collect_statistics=1
 			var_dump($res->fetch_assoc());
 	} while ($stmt->more_results() && $stmt->next_result());
 
+	$stats = mysqlnd_ms_get_stats();
 	compare_stats(15, $stats, $expected);
 
-
+	/* slave, no increment */
 	if (!($res = $link->query("SELECT 'still useable?' AS _msg FROM DUAL")))
 		printf("[016] [%d] %s\n", $link->errno, $link->error);
 
-	$expected['gtid_autocommit_injections_success']++;
+	$stats = mysqlnd_ms_get_stats();
 	compare_stats(17, $stats, $expected);
 
 	$row = $res->fetch_assoc();
@@ -159,7 +160,7 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini'.\n");
 ?>
 --XFAIL--
-Leaks and stuff without Andrey the magician. Multi results are not handled by my hack. EXPECTF is a bit of a guess.
+Why error 2031?
 --EXPECTF--
 array(1) {
   ["_ver_out"]=>
