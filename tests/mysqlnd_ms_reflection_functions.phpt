@@ -14,6 +14,7 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 	$ignore = array();
 	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
 		$ignore['mysqlnd_ms_set_qos'] = true;
+		$ignore['mysqlnd_ms_get_last_gtid'] = true;
 	}
 
 	$functions = $r->getFunctions();
@@ -39,8 +40,9 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 Functions:
   mysqlnd_ms_get_last_used_connection
     Deprecated: no
-    Accepted parameters: 0
-    Required parameters: 0
+    Accepted parameters: 1
+    Required parameters: 1
+      Parameter #0 [ <required> $object ]
   mysqlnd_ms_get_stats
     Deprecated: no
     Accepted parameters: 0

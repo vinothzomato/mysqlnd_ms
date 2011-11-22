@@ -34,6 +34,7 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 	$ignore = array();
 	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
 		$ignore['mysqlnd_ms_set_qos'] = true;
+		$ignore['mysqlnd_ms_get_last_gtid'] = true;
 	}
 
 	$functions = $r->getFunctions();

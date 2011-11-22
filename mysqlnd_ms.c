@@ -304,11 +304,21 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 			if (TRUE == is_master || ((FALSE == is_master) && (TRUE == global_trx->set_on_slave))) {
 				(*conn_data)->global_trx.on_commit_len = global_trx->on_commit_len;
-				(*conn_data)->global_trx.on_commit = global_trx->on_commit;
+				(*conn_data)->global_trx.on_commit = (global_trx->on_commit) ?
+					mnd_pestrndup(global_trx->on_commit, global_trx->on_commit_len, conn->persistent) : NULL;
 			} else {
 				(*conn_data)->global_trx.on_commit_len = 0;
 				(*conn_data)->global_trx.on_commit = NULL;
 			}
+
+			(*conn_data)->global_trx.fetch_last_gtid_len = global_trx->fetch_last_gtid_len;
+			(*conn_data)->global_trx.fetch_last_gtid = (global_trx->fetch_last_gtid) ?
+				mnd_pestrndup(global_trx->fetch_last_gtid, global_trx->fetch_last_gtid_len, conn->persistent) : NULL;
+
+			(*conn_data)->global_trx.check_for_gtid_len = global_trx->check_for_gtid_len;
+			(*conn_data)->global_trx.check_for_gtid = (global_trx->check_for_gtid) ?
+				mnd_pestrndup(global_trx->check_for_gtid, global_trx->check_for_gtid_len, conn->persistent) : NULL;
+
 			(*conn_data)->global_trx.is_master = is_master;
 			(*conn_data)->global_trx.set_on_slave = global_trx->set_on_slave;
 			(*conn_data)->global_trx.report_error = global_trx->report_error;
@@ -590,6 +600,10 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		(*conn_data)->global_trx.on_commit = NULL;
 		(*conn_data)->global_trx.on_commit_len = (size_t)0;
+		(*conn_data)->global_trx.fetch_last_gtid = NULL;
+		(*conn_data)->global_trx.fetch_last_gtid_len = (size_t)0;
+		(*conn_data)->global_trx.check_for_gtid = NULL;
+		(*conn_data)->global_trx.check_for_gtid_len = (size_t)0;
 		(*conn_data)->global_trx.is_master = FALSE;
 		(*conn_data)->global_trx.set_on_slave = FALSE;
 		(*conn_data)->global_trx.report_error = TRUE;
@@ -630,6 +644,30 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 							json_value_len = strlen(json_value);
 							(*conn_data)->global_trx.on_commit = mnd_pestrndup(json_value, json_value_len, conn->persistent);
 							(*conn_data)->global_trx.on_commit_len = strlen(json_value);
+						}
+						mnd_efree(json_value);
+					}
+
+					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_FETCH_LAST_GTID, sizeof(SECT_G_TRX_FETCH_LAST_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+					if (entry_exists && json_value) {
+						if (entry_is_list) {
+							/* TODO: bail out */
+						} else {
+							json_value_len = strlen(json_value);
+							(*conn_data)->global_trx.fetch_last_gtid = mnd_pestrndup(json_value, json_value_len, conn->persistent);
+							(*conn_data)->global_trx.fetch_last_gtid_len = strlen(json_value);
+						}
+						mnd_efree(json_value);
+					}
+
+					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_CHECK_FOR_GTID, sizeof(SECT_G_TRX_CHECK_FOR_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+					if (entry_exists && json_value) {
+						if (entry_is_list) {
+							/* TODO: bail out */
+						} else {
+							json_value_len = strlen(json_value);
+							(*conn_data)->global_trx.check_for_gtid = mnd_pestrndup(json_value, json_value_len, conn->persistent);
+							(*conn_data)->global_trx.check_for_gtid_len = strlen(json_value);
 						}
 						mnd_efree(json_value);
 					}
@@ -1002,6 +1040,16 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 			mnd_pefree((*data_pp)->global_trx.on_commit, conn->persistent);
 			(*data_pp)->global_trx.on_commit = NULL;
 			(*data_pp)->global_trx.on_commit_len = 0;
+		}
+		if ((*data_pp)->global_trx.fetch_last_gtid) {
+			mnd_pefree((*data_pp)->global_trx.fetch_last_gtid, conn->persistent);
+			(*data_pp)->global_trx.fetch_last_gtid = NULL;
+			(*data_pp)->global_trx.fetch_last_gtid_len = (size_t)0;
+		}
+		if ((*data_pp)->global_trx.check_for_gtid) {
+			mnd_pefree((*data_pp)->global_trx.check_for_gtid, conn->persistent);
+			(*data_pp)->global_trx.check_for_gtid = NULL;
+			(*data_pp)->global_trx.check_for_gtid_len = (size_t)0;
 		}
 #endif
 		DBG_INF_FMT("cleaning the llists");
@@ -1951,6 +1999,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	if (((*conn_data)->global_trx.on_commit) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
 	{
+		/* TODO: do we want to bail about multi statement mode or silently default to non-multi? */
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
 			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
@@ -1964,7 +2013,10 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				/* todo clear stmt error */
 			} else {
-				/* todo ms prefix for error */
+				/* TODO ms prefix for error */
+				/* TODO error never makes it to user -
+				  most likely user gets 2014 out of sync.
+				  Try with dropped trx table to force injection failure */
 			}
 		}
 	}

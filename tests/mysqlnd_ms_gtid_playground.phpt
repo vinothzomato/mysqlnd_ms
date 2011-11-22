@@ -31,6 +31,8 @@ $settings = array(
 
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
+			'fetch_last_gtid'			=> "SELECT MAX(trx_id) FROM test.trx",
+			'check_for_gtid'			=> "SELECT trx_id FROM test.trx WHERE trx_id = {gtid}",
 			'set_on_slave'				=> true,
 			'report_error'				=> true,
 			'use_multi_statement'		=> false,
@@ -64,6 +66,13 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	}
 
 
+	var_dump(mysqlnd_ms_get_last_gtid($link));
+	$link->query("SELECT 1 FROM DUAL");
+	var_dump(mysqlnd_ms_get_last_gtid($link));
+	$link->query("SELECT 1 FROM DUAL");
+	var_dump(mysqlnd_ms_get_last_gtid($link));
+
+die(":)");
 	$stmt = $link->prepare("SELECT 1 FROM DUAL");
 $stmt->bind_result($one);
 	var_dump($link->error);

@@ -339,6 +339,70 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 /* }}} */
 
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_gtid, 0, 0, 1)
+	ZEND_ARG_INFO(0, object)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto array mysqlnd_ms_last_gtid(object handle)
+   */
+static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
+{
+	zval * handle;
+	MYSQLND * proxy_conn;
+	MYSQLND_CONN_DATA * conn = NULL;
+	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &handle) == FAILURE) {
+		return;
+	}
+	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+	{
+		MYSQLND_RES * res = NULL;
+		zval * row;
+		zval ** gtid;
+
+		conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+		if (!conn_data || !(*conn_data))
+			RETURN_FALSE;
+
+		conn = (conn_data && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn->data;
+		MS_LOAD_CONN_DATA(conn_data, conn);
+
+		/* TODO: error handling */
+		(*conn_data)->skip_ms_calls = TRUE;
+		if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, (*conn_data)->global_trx.fetch_last_gtid, (*conn_data)->global_trx.fetch_last_gtid_len TSRMLS_CC))
+			goto getlastidfailure;
+
+		if (PASS !=  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC))
+			goto getlastidfailure;
+
+		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+			goto getlastidfailure;
+
+		(*conn_data)->skip_ms_calls = FALSE;
+
+		MAKE_STD_ZVAL(row);
+		/* TODO: row = IS_NULL, row = IS_FALSE */
+		mysqlnd_fetch_into(res, MYSQLND_FETCH_NUM, row, MYSQLND_MYSQL);
+
+		if (Z_TYPE_P(row) != IS_ARRAY)
+			RETURN_FALSE;
+
+		if (SUCCESS == zend_hash_index_find(Z_ARRVAL_P(row), 0, (void**)&gtid))
+			RETURN_STRING(Z_STRVAL_PP(gtid), 1);
+	}
+
+getlastidfailure:
+	if (conn_data && (*conn_data)) {
+		(*conn_data)->skip_ms_calls = FALSE;
+	}
+	RETURN_FALSE;
+}
+/* }}} */
+
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_qos, 0, 0, 2)
 	ZEND_ARG_INFO(0, object)
 	ZEND_ARG_INFO(0, service_level)
@@ -448,7 +512,8 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
 #if PHP_VERSION_ID > 50399
-	PHP_FE(mysqlnd_ms_get_last_used_connection,	arginfo_mysqlnd_ms_get_stats)
+	PHP_FE(mysqlnd_ms_get_last_used_connection,	arginfo_mysqlnd_ms_get_last_used_connection)
+	PHP_FE(mysqlnd_ms_get_last_gtid,	arginfo_mysqlnd_ms_get_last_gtid)
 	PHP_FE(mysqlnd_ms_set_qos,	arginfo_mysqlnd_ms_set_qos)
 #endif
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */

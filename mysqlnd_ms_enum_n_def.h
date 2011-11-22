@@ -136,42 +136,43 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define ALL_SERVER_SWITCH "ms=all"
 
 
-#define MASTER_NAME				"master"
-#define SLAVE_NAME				"slave"
-#define PICK_RANDOM				"random"
-#define PICK_ONCE				"sticky"
-#define PICK_RROBIN				"roundrobin"
-#define PICK_USER				"user"
-#define PICK_USER_MULTI			"user_multi"
-#define PICK_TABLE				"table"
-#define PICK_QOS				"quality_of_service"
-#define LAZY_NAME				"lazy_connections"
-#define FAILOVER_NAME			"failover"
-#define FAILOVER_DISABLED 		"disabled"
-#define FAILOVER_MASTER			"master"
-#define MASTER_ON_WRITE_NAME	"master_on_write"
-#define TRX_STICKINESS_NAME		"trx_stickiness"
-#define TRX_STICKINESS_MASTER	"master"
-#define TABLE_RULES				"rules"
-#define SECT_HOST_NAME			"host"
-#define SECT_PORT_NAME			"port"
-#define SECT_SOCKET_NAME		"socket"
-#define SECT_USER_NAME			"user"
-#define SECT_PASS_NAME			"password"
-#define SECT_DB_NAME			"db"
-#define SECT_CONNECT_FLAGS_NAME	"connect_flags"
-#define SECT_FILTER_PRIORITY_NAME "priority"
-#define SECT_FILTER_NAME		"filters"
-#define SECT_USER_CALLBACK		"callback"
-#define SECT_QOS_STRONG			"strong_consistency"
-#define SECT_QOS_SESSION		"session_consistency"
-#define SECT_QOS_EVENTUAL		"eventual_consistency"
-#define SECT_G_TRX_NAME			"global_transaction_id_injection"
-#define SECT_G_TRX_ON_COMMIT	"on_commit"
-#define SECT_G_TRX_SET_ON_SLAVE "set_on_slave"
-#define SECT_G_TRX_REPORT_ERROR "report_error"
-#define SECT_G_TRX_MULTI_STMT   "use_multi_statement"
-
+#define MASTER_NAME					"master"
+#define SLAVE_NAME					"slave"
+#define PICK_RANDOM					"random"
+#define PICK_ONCE					"sticky"
+#define PICK_RROBIN					"roundrobin"
+#define PICK_USER					"user"
+#define PICK_USER_MULTI				"user_multi"
+#define PICK_TABLE					"table"
+#define PICK_QOS					"quality_of_service"
+#define LAZY_NAME					"lazy_connections"
+#define FAILOVER_NAME				"failover"
+#define FAILOVER_DISABLED 			"disabled"
+#define FAILOVER_MASTER				"master"
+#define MASTER_ON_WRITE_NAME		"master_on_write"
+#define TRX_STICKINESS_NAME			"trx_stickiness"
+#define TRX_STICKINESS_MASTER		"master"
+#define TABLE_RULES					"rules"
+#define SECT_HOST_NAME				"host"
+#define SECT_PORT_NAME				"port"
+#define SECT_SOCKET_NAME			"socket"
+#define SECT_USER_NAME				"user"
+#define SECT_PASS_NAME				"password"
+#define SECT_DB_NAME				"db"
+#define SECT_CONNECT_FLAGS_NAME		"connect_flags"
+#define SECT_FILTER_PRIORITY_NAME 	"priority"
+#define SECT_FILTER_NAME			"filters"
+#define SECT_USER_CALLBACK			"callback"
+#define SECT_QOS_STRONG				"strong_consistency"
+#define SECT_QOS_SESSION			"session_consistency"
+#define SECT_QOS_EVENTUAL			"eventual_consistency"
+#define SECT_G_TRX_NAME				"global_transaction_id_injection"
+#define SECT_G_TRX_ON_COMMIT		"on_commit"
+#define SECT_G_TRX_SET_ON_SLAVE 	"set_on_slave"
+#define SECT_G_TRX_REPORT_ERROR 	"report_error"
+#define SECT_G_TRX_MULTI_STMT   	"use_multi_statement"
+#define SECT_G_TRX_FETCH_LAST_GTID 	"fetch_last_gtid"
+#define SECT_G_TRX_CHECK_FOR_GTID 	"check_for_gtid"
 
 typedef enum
 {
@@ -399,6 +400,10 @@ typedef struct st_mysqlnd_ms_conn_data
 	struct st_mysqlnd_ms_global_trx_injection {
 		char * on_commit;
 		size_t on_commit_len;
+		char * fetch_last_gtid;
+		size_t fetch_last_gtid_len;
+		char * check_for_gtid;
+		size_t check_for_gtid_len;
 		zend_bool is_master;
 		zend_bool set_on_slave;
 		zend_bool report_error;
