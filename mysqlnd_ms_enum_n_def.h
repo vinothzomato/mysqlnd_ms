@@ -167,7 +167,6 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_QOS_SESSION		"session_consistency"
 #define SECT_QOS_EVENTUAL		"eventual_consistency"
 #define SECT_G_TRX_NAME			"global_transaction_id_injection"
-#define SECT_G_TRX_ON_CONNECT	"on_connect"
 #define SECT_G_TRX_ON_COMMIT	"on_commit"
 #define SECT_G_TRX_SET_ON_SLAVE "set_on_slave"
 #define SECT_G_TRX_REPORT_ERROR "report_error"
