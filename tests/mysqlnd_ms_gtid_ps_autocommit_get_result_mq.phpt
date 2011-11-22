@@ -36,7 +36,7 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-if (!($link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $port, $socket)))
+if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		die(sprintf("Cannot connect, [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
 
 if (!$link->query("DROP PROCEDURE IF EXISTS p") ||
@@ -127,7 +127,7 @@ mysqlnd_ms.collect_statistics=1
 	if (!$link->commit())
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
 
-	if (!$stmt->execute())
+	if (!$stmt->bind_param('s', $version) || !$stmt->execute())
 		printf("[013] [%d] %s\n", $stmt->errno, $stmt->error);
 
 	$expected['gtid_autocommit_injections_success']++;
@@ -159,8 +159,6 @@ mysqlnd_ms.collect_statistics=1
 	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini'.\n");
 ?>
---XFAIL--
-Why error 2031?
 --EXPECTF--
 array(1) {
   ["_ver_out"]=>
@@ -171,5 +169,13 @@ array(1) {
   int(1)
 }
 Is the line
+array(1) {
+  ["_ver_out"]=>
+  string(4) "12.3"
+}
+array(1) {
+  [1]=>
+  int(1)
+}
 still useable?
 done!
