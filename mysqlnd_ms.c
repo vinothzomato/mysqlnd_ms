@@ -720,7 +720,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				}
 			}
 #endif
-#if 1
 			{
 				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
 													&use_lazy_connections, NULL TSRMLS_CC);
@@ -733,9 +732,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 					lazy_connections = NULL;
 				}
 			}
-#else
-			use_lazy_connections = FALSE;
-#endif
 			{
 				const char * const secs_to_check[] = {MASTER_NAME, SLAVE_NAME};
 				unsigned int i = 0;
