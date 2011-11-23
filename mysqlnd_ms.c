@@ -583,6 +583,82 @@ mysqlnd_ms_init_trx_to_null(struct st_mysqlnd_ms_global_trx_injection * trx TSRM
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_load_trx_config */
+static void
+mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section,
+						   struct st_mysqlnd_ms_global_trx_injection * trx,
+						   zend_bool persistent TSRMLS_DC)
+{
+	zend_bool entry_exists;
+	zend_bool entry_is_list;
+	struct st_mysqlnd_ms_config_json_entry * g_trx_section;
+	DBG_ENTER("mysqlnd_ms_load_trx_config");
+
+	g_trx_section =	mysqlnd_ms_config_json_sub_section(main_section, SECT_G_TRX_NAME, sizeof(SECT_G_TRX_NAME) - 1, &entry_exists TSRMLS_CC);
+
+	if (entry_exists && g_trx_section) {
+		char * json_value = NULL;
+		size_t json_value_len;
+
+		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_COMMIT, sizeof(SECT_G_TRX_ON_COMMIT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists && json_value) {
+			if (entry_is_list) {
+				/* TODO: bail out */
+			} else {
+				json_value_len = strlen(json_value);
+				trx->on_commit = mnd_pestrndup(json_value, json_value_len, persistent);
+				trx->on_commit_len = strlen(json_value);
+			}
+			mnd_efree(json_value);
+		}
+
+		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_FETCH_LAST_GTID, sizeof(SECT_G_TRX_FETCH_LAST_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists && json_value) {
+			if (entry_is_list) {
+				/* TODO: bail out */
+			} else {
+				json_value_len = strlen(json_value);
+				trx->fetch_last_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
+				trx->fetch_last_gtid_len = strlen(json_value);
+			}
+			mnd_efree(json_value);
+		}
+
+		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_CHECK_FOR_GTID, sizeof(SECT_G_TRX_CHECK_FOR_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists && json_value) {
+			if (entry_is_list) {
+				/* TODO: bail out */
+			} else {
+				json_value_len = strlen(json_value);
+				trx->check_for_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
+				trx->check_for_gtid_len = strlen(json_value);
+			}
+			mnd_efree(json_value);
+		}
+
+		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_SET_ON_SLAVE, sizeof(SECT_G_TRX_SET_ON_SLAVE) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists && json_value) {
+			trx->set_on_slave = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
+			mnd_efree(json_value);
+		}
+
+		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_REPORT_ERROR, sizeof(SECT_G_TRX_REPORT_ERROR) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists && json_value) {
+			trx->report_error = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
+			mnd_efree(json_value);
+		}
+
+		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_MULTI_STMT, sizeof(SECT_G_TRX_MULTI_STMT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists && json_value) {
+			trx->use_multi_statement = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
+			mnd_efree(json_value);
+		}
+	}
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
@@ -653,72 +729,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-			/* TODO: move global transaction id stuff into dedicated function */
-			{
-				zend_bool entry_exists;
-				zend_bool entry_is_list;
-				struct st_mysqlnd_ms_config_json_entry * g_trx_section =
-					mysqlnd_ms_config_json_sub_section(the_section, SECT_G_TRX_NAME, sizeof(SECT_G_TRX_NAME) - 1, &entry_exists TSRMLS_CC);
-
-				if (entry_exists && g_trx_section) {
-					char * json_value = NULL;
-					size_t json_value_len;
-
-					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_COMMIT, sizeof(SECT_G_TRX_ON_COMMIT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-					if (entry_exists && json_value) {
-						if (entry_is_list) {
-							/* TODO: bail out */
-						} else {
-							json_value_len = strlen(json_value);
-							(*conn_data)->global_trx.on_commit = mnd_pestrndup(json_value, json_value_len, conn->persistent);
-							(*conn_data)->global_trx.on_commit_len = strlen(json_value);
-						}
-						mnd_efree(json_value);
-					}
-
-					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_FETCH_LAST_GTID, sizeof(SECT_G_TRX_FETCH_LAST_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-					if (entry_exists && json_value) {
-						if (entry_is_list) {
-							/* TODO: bail out */
-						} else {
-							json_value_len = strlen(json_value);
-							(*conn_data)->global_trx.fetch_last_gtid = mnd_pestrndup(json_value, json_value_len, conn->persistent);
-							(*conn_data)->global_trx.fetch_last_gtid_len = strlen(json_value);
-						}
-						mnd_efree(json_value);
-					}
-
-					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_CHECK_FOR_GTID, sizeof(SECT_G_TRX_CHECK_FOR_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-					if (entry_exists && json_value) {
-						if (entry_is_list) {
-							/* TODO: bail out */
-						} else {
-							json_value_len = strlen(json_value);
-							(*conn_data)->global_trx.check_for_gtid = mnd_pestrndup(json_value, json_value_len, conn->persistent);
-							(*conn_data)->global_trx.check_for_gtid_len = strlen(json_value);
-						}
-						mnd_efree(json_value);
-					}
-
-					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_SET_ON_SLAVE, sizeof(SECT_G_TRX_SET_ON_SLAVE) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-					if (entry_exists && json_value) {
-						(*conn_data)->global_trx.set_on_slave = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
-						mnd_efree(json_value);
-					}
-
-					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_REPORT_ERROR, sizeof(SECT_G_TRX_REPORT_ERROR) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-					if (entry_exists && json_value) {
-						(*conn_data)->global_trx.report_error = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
-						mnd_efree(json_value);
-					}
-
-					json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_MULTI_STMT, sizeof(SECT_G_TRX_MULTI_STMT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-					if (entry_exists && json_value) {
-						(*conn_data)->global_trx.use_multi_statement = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
-						mnd_efree(json_value);
-					}
-				}
-			}
+			mysqlnd_ms_load_trx_config(the_section, &(*conn_data)->global_trx, conn->persistent TSRMLS_CC);
 #endif
 			{
 				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
