@@ -237,6 +237,43 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_connect_init_global_trx */
+static void
+mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection * new_global_trx,
+									  struct st_mysqlnd_ms_global_trx_injection * orig_global_trx,
+									  zend_bool is_master, zend_bool persistent TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_init_connection_global_trx");
+
+	if (TRUE == is_master || ((FALSE == is_master) && (TRUE == orig_global_trx->set_on_slave))) {
+		new_global_trx->on_commit_len = orig_global_trx->on_commit_len;
+		new_global_trx->on_commit = (orig_global_trx->on_commit) ?
+			mnd_pestrndup(orig_global_trx->on_commit, orig_global_trx->on_commit_len, persistent) : NULL;
+	} else {
+		new_global_trx->on_commit_len = 0;
+		new_global_trx->on_commit = NULL;
+	}
+
+	new_global_trx->fetch_last_gtid_len = orig_global_trx->fetch_last_gtid_len;
+	new_global_trx->fetch_last_gtid = (orig_global_trx->fetch_last_gtid) ?
+		mnd_pestrndup(orig_global_trx->fetch_last_gtid, orig_global_trx->fetch_last_gtid_len, persistent) : NULL;
+
+	new_global_trx->check_for_gtid_len = orig_global_trx->check_for_gtid_len;
+	new_global_trx->check_for_gtid = (orig_global_trx->check_for_gtid) ?
+		mnd_pestrndup(orig_global_trx->check_for_gtid, orig_global_trx->check_for_gtid_len, persistent) : NULL;
+
+	new_global_trx->is_master = is_master;
+	new_global_trx->set_on_slave = orig_global_trx->set_on_slave;
+	new_global_trx->report_error = orig_global_trx->report_error;
+	new_global_trx->use_multi_statement = orig_global_trx->use_multi_statement;
+	new_global_trx->multi_statement_user_enabled = orig_global_trx->multi_statement_user_enabled;
+	new_global_trx->multi_statement_gtx_enabled = orig_global_trx->multi_statement_gtx_enabled;
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_connect_to_host_aux */
 static enum_func_status
 mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn, const char * name_from_config,
@@ -302,29 +339,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			zend_llist_init(&(*conn_data)->delayed_commands, sizeof(MYSQLND_MS_COMMAND),
 							(llist_dtor_func_t) mysqlnd_ms_commands_list_dtor, conn->persistent);
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-			if (TRUE == is_master || ((FALSE == is_master) && (TRUE == global_trx->set_on_slave))) {
-				(*conn_data)->global_trx.on_commit_len = global_trx->on_commit_len;
-				(*conn_data)->global_trx.on_commit = (global_trx->on_commit) ?
-					mnd_pestrndup(global_trx->on_commit, global_trx->on_commit_len, conn->persistent) : NULL;
-			} else {
-				(*conn_data)->global_trx.on_commit_len = 0;
-				(*conn_data)->global_trx.on_commit = NULL;
-			}
-
-			(*conn_data)->global_trx.fetch_last_gtid_len = global_trx->fetch_last_gtid_len;
-			(*conn_data)->global_trx.fetch_last_gtid = (global_trx->fetch_last_gtid) ?
-				mnd_pestrndup(global_trx->fetch_last_gtid, global_trx->fetch_last_gtid_len, conn->persistent) : NULL;
-
-			(*conn_data)->global_trx.check_for_gtid_len = global_trx->check_for_gtid_len;
-			(*conn_data)->global_trx.check_for_gtid = (global_trx->check_for_gtid) ?
-				mnd_pestrndup(global_trx->check_for_gtid, global_trx->check_for_gtid_len, conn->persistent) : NULL;
-
-			(*conn_data)->global_trx.is_master = is_master;
-			(*conn_data)->global_trx.set_on_slave = global_trx->set_on_slave;
-			(*conn_data)->global_trx.report_error = global_trx->report_error;
-			(*conn_data)->global_trx.use_multi_statement = global_trx->use_multi_statement;
-			(*conn_data)->global_trx.multi_statement_user_enabled = global_trx->multi_statement_user_enabled;
-			(*conn_data)->global_trx.multi_statement_gtx_enabled = global_trx->multi_statement_gtx_enabled;
+			mysqlnd_ms_init_connection_global_trx(&(*conn_data)->global_trx, global_trx, is_master, conn->persistent TSRMLS_CC);
 			(*conn_data)->connection_opened = (lazy_connections) ? FALSE : TRUE;
 #endif
 		}
@@ -544,6 +559,30 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_init_trx_to_null */
+static void
+mysqlnd_ms_init_trx_to_null(struct st_mysqlnd_ms_global_trx_injection * trx TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_init_trx_to_null");
+
+	trx->on_commit = NULL;
+	trx->on_commit_len = (size_t)0;
+	trx->fetch_last_gtid = NULL;
+	trx->fetch_last_gtid_len = (size_t)0;
+	trx->check_for_gtid = NULL;
+	trx->check_for_gtid_len = (size_t)0;
+	trx->is_master = FALSE;
+	trx->set_on_slave = FALSE;
+	trx->report_error = TRUE;
+	trx->use_multi_statement = FALSE;
+	trx->multi_statement_user_enabled = FALSE;
+	trx->multi_statement_gtx_enabled = FALSE;
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
@@ -598,18 +637,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->cred.socket = socket? mnd_pestrdup(socket, conn->persistent) : NULL;
 		(*conn_data)->cred.mysql_flags = mysql_flags;
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-		(*conn_data)->global_trx.on_commit = NULL;
-		(*conn_data)->global_trx.on_commit_len = (size_t)0;
-		(*conn_data)->global_trx.fetch_last_gtid = NULL;
-		(*conn_data)->global_trx.fetch_last_gtid_len = (size_t)0;
-		(*conn_data)->global_trx.check_for_gtid = NULL;
-		(*conn_data)->global_trx.check_for_gtid_len = (size_t)0;
-		(*conn_data)->global_trx.is_master = FALSE;
-		(*conn_data)->global_trx.set_on_slave = FALSE;
-		(*conn_data)->global_trx.report_error = TRUE;
-		(*conn_data)->global_trx.use_multi_statement = FALSE;
-		(*conn_data)->global_trx.multi_statement_user_enabled = FALSE;
-		(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
+		mysqlnd_ms_init_trx_to_null(&(*conn_data)->global_trx TSRMLS_CC);
 		(*conn_data)->connection_opened = FALSE;
 #endif
 		(*conn_data)->initialized = TRUE;
