@@ -40,7 +40,8 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 
 #if PHP_VERSION_ID > 50399
 enum_func_status
-mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_filter_qos_consistency consistency TSRMLS_DC);
+mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_filter_qos_consistency consistency,
+									   enum mysqlnd_ms_filter_qos_option option, long option_value TSRMLS_DC);
 #endif
 
 #endif	/* MYSQLND_MS_SWITCH_H */

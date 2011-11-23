@@ -337,11 +337,20 @@ enum mysqlnd_ms_filter_qos_consistency
 	CONSISTENCY_LAST_ENUM_ENTRY
 };
 
+enum mysqlnd_ms_filter_qos_option
+{
+	QOS_OPTION_NONE,
+	QOS_OPTION_GTID,
+	QOS_OPTION_AGE,
+	QOS_OPTION_LAST_ENUM_ENTRY
+};
 
 typedef struct st_mysqlnd_ms_filter_qos_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
 	enum mysqlnd_ms_filter_qos_consistency consistency;
+	enum mysqlnd_ms_filter_qos_option option;
+	long option_value;
 } MYSQLND_MS_FILTER_QOS_DATA;
 
 

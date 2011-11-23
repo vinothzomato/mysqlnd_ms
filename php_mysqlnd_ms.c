@@ -177,6 +177,8 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_STRONG", CONSISTENCY_STRONG, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_SESSION", CONSISTENCY_SESSION, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL", CONSISTENCY_EVENTUAL, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_OPTION_GTID", QOS_OPTION_GTID, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_OPTION_AGE", QOS_OPTION_AGE, CONST_CS | CONST_PERSISTENT);
 #endif
 
 	return SUCCESS;
@@ -343,7 +345,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_gtid, 0, 0, 1)
 	ZEND_ARG_INFO(0, object)
 ZEND_END_ARG_INFO()
 
-/* {{{ proto array mysqlnd_ms_last_gtid(object handle)
+/* {{{ proto string mysqlnd_ms_last_gtid(object handle)
    */
 static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 {
@@ -370,7 +372,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 		conn = (conn_data && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn->data;
 		MS_LOAD_CONN_DATA(conn_data, conn);
 
-		/* TODO: error handling */
+		/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
 		(*conn_data)->skip_ms_calls = TRUE;
 		if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, (*conn_data)->global_trx.fetch_last_gtid, (*conn_data)->global_trx.fetch_last_gtid_len TSRMLS_CC))
 			goto getlastidfailure;
@@ -406,6 +408,8 @@ getlastidfailure:
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_qos, 0, 0, 2)
 	ZEND_ARG_INFO(0, object)
 	ZEND_ARG_INFO(0, service_level)
+	ZEND_ARG_INFO(0, option)
+	ZEND_ARG_INFO(0, option_value)
 ZEND_END_ARG_INFO()
 
 
@@ -414,13 +418,49 @@ ZEND_END_ARG_INFO()
 static PHP_FUNCTION(mysqlnd_ms_set_qos)
 {
 	zval * handle;
+	double option;
+	zval * option_value;
+	long gtid_or_age = 0;
 	double service_level;
 	MYSQLND * proxy_conn;
 
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd", &handle, &service_level) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd|dz!",
+		&handle, &service_level, &option, &option_value) == FAILURE) {
 		return;
 	}
+
+	if (ZEND_NUM_ARGS() > 2) {
+		  switch ((int)option) {
+			case QOS_OPTION_GTID:
+				if (service_level != CONSISTENCY_SESSION) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID option value must be used with MYSQLND_MS_QOS_CONSISTENCY_SESSION only");
+					return;
+				}
+				if (!option_value) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option value required");
+					return;
+				}
+				/* TODO: For 32bit systems, do we need to store a GTID BIGINT in char* ?
+				Maybe char* is better anyway for GTIDs? */
+				convert_to_long(option_value);
+				gtid_or_age = Z_LVAL_P(option_value);
+				if (gtid_or_age < 0L) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID must have a positive value");
+					return;
+				}
+				break;
+
+			case QOS_OPTION_AGE:
+			default:
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid option");
+				return;
+				break;
+		  }
+	} else {
+		option = QOS_OPTION_NONE;
+	}
+
 	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
@@ -428,8 +468,24 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 	switch ((int)service_level)
 	{
 		case CONSISTENCY_STRONG:
-		case CONSISTENCY_SESSION:
+			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
+					(enum mysqlnd_ms_filter_qos_consistency)service_level,
+					(enum mysqlnd_ms_filter_qos_option)option, gtid_or_age TSRMLS_CC))
+				RETURN_TRUE;
+			break;
+
 		case CONSISTENCY_EVENTUAL:
+			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
+					(enum mysqlnd_ms_filter_qos_consistency)service_level,
+					(enum mysqlnd_ms_filter_qos_option)option, gtid_or_age TSRMLS_CC))
+				RETURN_TRUE;
+			break;
+
+		case CONSISTENCY_SESSION:
+			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
+					(enum mysqlnd_ms_filter_qos_consistency)service_level,
+					(enum mysqlnd_ms_filter_qos_option)option, gtid_or_age TSRMLS_CC))
+				RETURN_TRUE;
 			break;
 
 		default:
@@ -438,9 +494,6 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 			RETURN_FALSE;
 			break;
 	}
-
-	if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn, (enum mysqlnd_ms_filter_qos_consistency)service_level TSRMLS_CC))
-		RETURN_TRUE;
 
 	RETURN_FALSE;
 }

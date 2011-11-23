@@ -30,13 +30,45 @@
 #ifndef mnd_emalloc
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
+#if PHP_VERSION_ID >= 50400
+#include "ext/mysqlnd/mysqlnd_ext_plugin.h"
+#endif
+
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 
 #include "mysqlnd_ms_enum_n_def.h"
 
-/* {{{ mysqlnd_ms_qos_pick_server */
+/* {{{ mysqlnd_ms_qos_get_gtid */
+static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
+		MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len TSRMLS_DC) {
+	MYSQLND_RES * res = NULL;
 
+	DBG_ENTER("mysqlnd_ms_server_has_gtid");
+
+	/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
+	(*conn_data)->skip_ms_calls = TRUE;
+	if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC))
+		goto serverhasgtidfailure;
+
+	if (PASS !=  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC))
+		goto serverhasgtidfailure;
+
+	if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+		goto serverhasgtidfailure;
+
+	(*conn_data)->skip_ms_calls = FALSE;
+	php_printf("affected %d\n", MYSQLND_MS_UPSERT_STATUS(conn).affected_rows);
+	DBG_RETURN((MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL);
+
+serverhasgtidfailure:
+	(*conn_data)->skip_ms_calls = FALSE;
+	DBG_RETURN(FAIL);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_qos_pick_server */
 enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
 									 zend_llist * master_list, zend_llist * slave_list,
 									 zend_llist * selected_masters, zend_llist * selected_slaves,
@@ -68,6 +100,45 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				 all slaves which have replicated the latest updates on the
 				 table in question. Not sure if that makes sense.
 			*/
+			if (QOS_OPTION_GTID == filter_data->option) {
+				unsigned int i = 0;
+				MYSQLND_MS_LIST_DATA * element = NULL;
+				MYSQLND_CONN_DATA * connection = NULL;
+				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list);
+					if (element->conn) {
+						connection = element->conn;
+						MS_LOAD_CONN_DATA(conn_data, connection);
+						if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid) {
+							 smart_str sql = {0};
+							 char * pos;
+							 char buf[32];
+
+							/* TODO: Do we need this check, can we have conns without data ?! */
+							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+
+							/* FIXME */
+							pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
+							if (pos) {
+								smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
+								snprintf(buf, sizeof(buf), "%ld", filter_data->option_value);
+								smart_str_appends(&sql, buf);
+								smart_str_appendc(&sql, '\0');
+								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1 TSRMLS_CC)) {
+									zend_llist_add_element(selected_slaves, &element);
+								}
+							}
+
+						}
+					}
+					i++;
+				END_ITERATE_OVER_SERVER_LIST;
+
+				zend_llist_copy(selected_masters, master_list);
+				break;
+			}
+
 		case CONSISTENCY_STRONG:
 			/*
 			For now and forever...
@@ -104,6 +175,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 	DBG_RETURN(ret);
 }
 /* }}} */
+
 
 /*
  * Local variables:

@@ -492,7 +492,10 @@ mysqlnd_ms_remove_qos_filter(void * element, void * data) {
 
 /* {{{ mysqlnd_ms_section_filters_prepend_qos */
 enum_func_status
-mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_filter_qos_consistency consistency TSRMLS_DC) {
+mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
+										enum mysqlnd_ms_filter_qos_consistency consistency,
+										enum mysqlnd_ms_filter_qos_option option,
+										long option_value TSRMLS_DC) {
   	MYSQLND_MS_CONN_DATA ** conn_data;
 	enum_func_status ret = FAIL;
 	/* not sure... */
@@ -516,6 +519,8 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn, enum mysqlnd_ms_fil
 		new_qos_filter = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
 		new_qos_filter->parent.specific_dtor = qos_specific_dtor;
 		new_qos_filter->consistency = consistency;
+		new_qos_filter->option = option;
+		new_qos_filter->option_value = option_value;
 		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
 		new_filter_entry->persistent = persistent;
 		new_filter_entry->name = mnd_pestrndup(PICK_QOS, sizeof(PICK_QOS) -1, persistent);
@@ -900,6 +905,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 																 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_QOS:
+					/* TODO: MS must not bail if slave or master list is empty */
 					multi_filter = TRUE;
 					mysqlnd_ms_qos_pick_server(filter, (*conn_data)->connect_host, query, query_len,
 														 selected_masters, selected_slaves,

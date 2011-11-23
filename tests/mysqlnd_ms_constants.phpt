@@ -29,6 +29,8 @@ require_once('skipif.inc');
 		$expected["MYSQLND_MS_QOS_CONSISTENCY_STRONG"] = false;
 		$expected["MYSQLND_MS_QOS_CONSISTENCY_SESSION"] = false;
 		$expected["MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL"] = false;
+		$expected["MYSQLND_MS_QOS_OPTION_GTID"] = false;
+		$expected["MYSQLND_MS_QOS_OPTION_AGE"] = false;
 	}
 
 	$constants = get_defined_constants(true);
