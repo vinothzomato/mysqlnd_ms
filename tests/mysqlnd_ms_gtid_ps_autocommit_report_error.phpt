@@ -1,5 +1,5 @@
 --TEST--
-PS, autocommit, GTID, stmt.store_result
+PS, autocommit, GTID, error
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -33,12 +33,12 @@ $settings = array(
 		'lazy_connections' => 1
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_report_error.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_ps_autocommit_report_error.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -94,117 +94,100 @@ mysqlnd_ms.collect_statistics=1
 	if (!$stmt->bind_result($num_rows))
 		printf("[007] [%d] %s\n", $stmt->errno, $stmt->error);
 
-	if (!($res = $stmt->store_result()))
+	if (!($res = $stmt->fetch()))
 		printf("[008] [%d] %s\n", $stmt->errno, $stmt->error);
 
-	if (!($res = $stmt->fetch()))
-		printf("[009] [%d] %s\n", $stmt->errno, $stmt->error);
-
 	printf("Rows %d\n", $num_rows);
 
-	if (!$link->query("INSERT INTO test(id) VALUES (1)"))
-		printf("[010] [%d] %s\n", $link->errno, $link->error);
+	while ($stmt->fetch())
+		printf("[009] Clean line...\n");
 
-	$expected['gtid_autocommit_injections_success']++;
-	$stats = mysqlnd_ms_get_stats();
-	compare_stats(11, $stats, $expected);
+	if ($err = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[010] %s\n", $err);
 
-	if (!$stmt->execute())
-		printf("[012] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	$expected['gtid_autocommit_injections_success']++;
-	$stats = mysqlnd_ms_get_stats();
-	compare_stats(13, $stats, $expected);
-
-	if (!($res = $stmt->store_result()))
-		printf("[014] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	if (!($res = $stmt->fetch()))
-		printf("[015] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	printf("Rows %d\n", $num_rows);
-
-	if (!$stmt->store_result()) {
-		printf("[016] [%d] %s\n", $stmt->errno, $stmt->error);
-		printf("[017] [%d] %s\n", $link->errno, $link->error);
+	if (!$stmt->execute()) {
+		printf("[011] [%d/%s] %s\n", $stmt->errno, $stmt->sqlstate, $stmt->error);
+		printf("[012] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
 	} else {
-		if (!($res = $stmt->fetch()))
-			printf("[018] [%d] %s\n", $stmt->errno, $stmt->error);
-
-		printf("Rows %d\n", $num_rows);
+		printf("[013] Expecting error from execute!\n");
 	}
+	$expected['gtid_autocommit_injections_failure']++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(14, $stats, $expected);
 
 	if (!$link->query("INSERT INTO test(id) VALUES (1)"))
-		printf("[019] [%d] %s\n", $link->errno, $link->error);
+		printf("[015] [%d] %s\n", $link->errno, $link->error);
 
-	$expected['gtid_autocommit_injections_success']++;
+	$expected['gtid_autocommit_injections_failure']++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(16, $stats, $expected);
+
+	if (!$stmt->execute()) {
+		printf("[017] [%d/%s] %s\n", $stmt->errno, $stmt->sqlstate, $stmt->error);
+		printf("[018] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
+	} else {
+		printf("[019] Expecting error from execute!\n");
+	}
+	$expected['gtid_autocommit_injections_failure']++;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(20, $stats, $expected);
 
-	if (!$stmt->execute())
-		printf("[021] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	$expected['gtid_autocommit_injections_success']++;
-	$stats = mysqlnd_ms_get_stats();
-	compare_stats(22, $stats, $expected);
-
-	if (!($res = $stmt->store_result()))
-		printf("[023] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	if (!($res = $stmt->fetch()))
-		printf("[024] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	printf("Rows %d\n", $num_rows);
-
-	if (!$stmt->execute())
-		printf("[025] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	$expected['gtid_autocommit_injections_success']++;
-	$stats = mysqlnd_ms_get_stats();
-	compare_stats(26, $stats, $expected);
-
-	if (!$stmt->execute()) {
-		printf("[027] [%d] %s\n", $stmt->errno, $stmt->error);
-		printf("[028] [%d] %s\n", $link->errno, $link->error);
+	if (!($res = $stmt->get_result())) {
+		printf("[021] [%d/%s] %s\n", $stmt->errno, $stmt->sqlstate, $stmt->error);
+		printf("[022] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
+	} else {
+		$row = $res->fetch_assoc();
+		printf("Rows %d\n", $row['_num_rows']);
 	}
 
-	/* commands out of sync */
+	if (!$link->query("INSERT INTO test(id) VALUES (1)"))
+		printf("[023] [%d] %s\n", $link->errno, $link->error);
+
 	$expected['gtid_autocommit_injections_failure']++;
 	$stats = mysqlnd_ms_get_stats();
-	compare_stats(29, $stats, $expected);
+	compare_stats(24, $stats, $expected);
 
-	if (!($res = $stmt->store_result()))
-		printf("[030] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	if (!$link->query("DROP TABLE IF EXISTS test"))
-		printf("[031] [%d] %s\n", $link->errno, $link->error);
-
-	$expected['gtid_autocommit_injections_success']++;
+	if (!$stmt->execute()) {
+		printf("[025] [%d/%s] %s\n", $stmt->errno, $stmt->sqlstate, $stmt->error);
+		printf("[026] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
+	} else {
+		printf("[027] Expecting error from execute!\n");
+	}
+	$expected['gtid_autocommit_injections_failure']++;
 	$stats = mysqlnd_ms_get_stats();
-	compare_stats(32, $stats, $expected);
+	compare_stats(28, $stats, $expected);
 
-	if (!$stmt->execute())
-		printf("[033] [%d] %s\n", $stmt->errno, $stmt->error);
-
-	/* injection is done before execute */
-	$expected['gtid_autocommit_injections_success']++;
-	$stats = mysqlnd_ms_get_stats();
-	compare_stats(34, $stats, $expected);
+	$num_rows = NULL;
+	if (!$stmt->bind_result($num_rows)) {
+		printf("[029] [%d/%s] %s\n", $stmt->errno, $stmt->sqlstate, $stmt->error);
+		printf("[030] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
+	}
+	if (!($res = $stmt->store_result())) {
+		printf("[031] [%d/%s] %s\n", $stmt->errno, $stmt->sqlstate, $stmt->error);
+		printf("[032] [%d/%s] %s\n", $link->errno, $link->sqlstate, $link->error);
+	} else {
+		printf("Rows %d\n", $num_rows);
+	}
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_store_result.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_report_error.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_report_error.ini'.\n");
 ?>
 --EXPECTF--
 Rows 0
-Rows 1
-[016] [0%A
-[017] [2014] %s
-Rows 2
-[027] [0%A
-[028] [2014] %s
-[033] [1146] %s
+[011] [0/00000%A
+[012] [1146/42S02] %s
+[015] [1146] %s
+[017] [0/00000%A
+[018] [1146/42S02] %s
+[021] [0/00000%A
+[022] [2014/HY000] %s
+[023] [1146] %s
+[025] [0/00000%A
+[026] [1146/42S02] %s
+[031] [0/00000%A
+[032] [2014/HY000] %s
 done!

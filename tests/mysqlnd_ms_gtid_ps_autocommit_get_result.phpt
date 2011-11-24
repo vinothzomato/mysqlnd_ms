@@ -103,7 +103,7 @@ mysqlnd_ms.collect_statistics=1
 	compare_stats(9, $stats, $expected);
 
 	if (!$stmt->execute())
-		printf("[010] [%d] %s\n", $stmt->errno, $stmt->error);
+		printf("[010%A [%d] %s\n", $stmt->errno, $stmt->error);
 
 	$expected['gtid_autocommit_injections_success']++;
 	$stats = mysqlnd_ms_get_stats();
@@ -142,20 +142,39 @@ mysqlnd_ms.collect_statistics=1
 	$row = $res->fetch_assoc();
 	printf("Rows %d\n", $row['_num_rows']);
 
-	if (!$link->query("DROP TABLE IF EXISTS test"))
-		printf("[020] [%d] %s\n", $link->errno, $link->error);
+	if (!$stmt->execute())
+		printf("[020%A [%d] %s\n", $stmt->errno, $stmt->error);
 
 	$expected['gtid_autocommit_injections_success']++;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(21, $stats, $expected);
 
-	if (!$stmt->execute())
+	/* commands out of sync */
+	if (!$stmt->execute()) {
 		printf("[022] [%d] %s\n", $stmt->errno, $stmt->error);
+		printf("[023] [%d] %s\n", $link->errno, $link->error);
+	}
+	$expected['gtid_autocommit_injections_failure']++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(24, $stats, $expected);
+
+	if (!($res = $stmt->get_result()))
+		printf("[025] [%d] %s\n", $stmt->errno, $stmt->error);
+
+	if (!$link->query("DROP TABLE IF EXISTS test"))
+		printf("[026] [%d] %s\n", $link->errno, $link->error);
+
+	$expected['gtid_autocommit_injections_success']++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(27, $stats, $expected);
+
+	if (!$stmt->execute())
+		printf("[028] [%d] %s\n", $stmt->errno, $stmt->error);
 
 	/* we do the injection before execute! */
 	$expected['gtid_autocommit_injections_success']++;
 	$stats = mysqlnd_ms_get_stats();
-	compare_stats(23, $stats, $expected);
+	compare_stats(29, $stats, $expected);
 
 	print "done!";
 ?>
@@ -167,8 +186,10 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 Rows 0
 Rows 1
-[013] [0%s
+[013] [0%A
 [014] [2014] %s
 Rows 2
-[022] [%d] %s
+[022] [0%A
+[023] [2014] %s
+[028] [1146] %s
 done!
