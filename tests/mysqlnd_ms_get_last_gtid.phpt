@@ -70,11 +70,32 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid.ini
 	if (!$link->query("DROP TABLE IF EXISTS test"))
 		printf("[002] [%d] %s\n", $link->errno, $link->error);
 
-	if (1 != ($ret = mysqlnd_ms_get_last_gtid($link))) {
-		printf("[003] Expecting 1, got %s\n", var_export($ret, true));
+	if (1 != ($gtid = mysqlnd_ms_get_last_gtid($link))) {
+		printf("[003] Expecting 1, got %s\n", var_export($gtid, true));
 	} else {
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
 	}
+	$last_gtid = $gtid;
+
+	$link->autocommit(false);
+
+	if (!$link->query("CREATE TABLE test(id INT)"))
+		printf("[005] [%d] %s\n", $link->errno, $link->error);
+
+	if ($last_gtid !== ($gtid = mysqlnd_ms_get_last_gtid($link)))
+		printf("[006] Expecting %s got %s, [%d] %s\n", $last_gtid, $gtid, $link->errno, $link->error);
+
+	if (!$link->rollback())
+		printf("[007] [%d] %s\n", $link->errno, $link->error);
+
+	if (!$link->commit())
+		printf("[008] [%d] %s\n", $link->errno, $link->error);
+
+	if (false === ($gtid = mysqlnd_ms_get_last_gtid($link)))
+		printf("[009] [%d] %s\n", $last_gtid, $gtid, $link->errno, $link->error);
+
+	if ($gtid <= $last_gtid)
+		printf("[010] last %s, new %s\n", $last_gtid, $gtid);
 
 	print "done!";
 ?>
@@ -84,5 +105,5 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid.ini'.\n");
 ?>
 --EXPECTF--
-[004] [0%A
+[004] [0%s
 done!
