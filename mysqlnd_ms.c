@@ -91,6 +91,9 @@ static void mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
 
+#define CONN_DATA_NOT_SET(conn_data) (!(conn_data) || !*(conn_data) || !(*(conn_data))->initialized || (*(conn_data))->skip_ms_calls)
+
+
 /* {{{ mysqlnd_ms_get_scheme_from_list_data */
 static int
 mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, zend_bool persistent TSRMLS_DC)
@@ -828,7 +831,7 @@ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, unsigned 
 	enum_func_status ret = PASS;
 	DBG_ENTER("mysqlnd_ms::do_send_query");
 
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 	} else if (pick_server) {
 		DBG_INF("Must be async query, blocking and failing");
 		if (conn) {
@@ -869,7 +872,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	DBG_ENTER("mysqlnd_ms::query");
 	DBG_INF_FMT("query=%s", query);
 
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, query_len TSRMLS_CC);
 		DBG_RETURN(ret);
 	}
@@ -1167,7 +1170,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND_CONN_DATA * const proxy_conn,
 
 	DBG_ENTER("mysqlnd_ms::change_user");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 #if PHP_VERSION_ID >= 50399
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(change_user)(proxy_conn, user, passwd, db, silent, passwd_len TSRMLS_CC));
 #else
@@ -1317,7 +1320,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 
 	DBG_ENTER("mysqlnd_ms::select_db");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(select_db)(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
@@ -1363,7 +1366,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 
 	DBG_ENTER("mysqlnd_ms::set_charset");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(proxy_conn, csname TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
@@ -1416,7 +1419,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 
 	DBG_ENTER("mysqlnd_ms::set_server_option");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(proxy_conn, option TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
@@ -1465,7 +1468,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND_CONN_DATA * const proxy_co
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms::set_server_option");
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(proxy_conn, option, value TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
@@ -1643,7 +1646,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 
 	DBG_ENTER("mysqlnd_ms::set_autocommit");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_INF("Using original");
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_autocommit)(proxy_conn, mode TSRMLS_CC);
 		DBG_RETURN(ret);
@@ -1673,11 +1676,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
-	if (mode) {
-		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_AUTOCOMMIT_ON);
-	} else {
-		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_AUTOCOMMIT_OFF);
-	}
+	MYSQLND_MS_INC_STATISTIC(mode? MS_STAT_TRX_AUTOCOMMIT_ON:MS_STAT_TRX_AUTOCOMMIT_OFF);
 	DBG_INF_FMT("in_transaction = %d", (*conn_data)->stgy.in_transaction);
 
 	DBG_RETURN(ret);
@@ -1700,33 +1699,28 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	}
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
 
-	if (CONN_GET_STATE(conn) == CONN_ALLOCED &&
-		conn_data && *conn_data &&
-		(*conn_data)->initialized && !(*conn_data)->skip_ms_calls)
-	{
+	if (CONN_GET_STATE(conn) == CONN_ALLOCED && !CONN_DATA_NOT_SET(conn_data)) {
 		/* TODO: what is this good for ? */
 		DBG_RETURN(PASS);
 	}
 
 	/* Must add query before committing ... */
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-	if (conn_data && *conn_data && commit) {
-		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit))
-		{
+	if (conn_data && *conn_data && TRUE == commit) {
+		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit)) {
 			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
 				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
 			}
 
-			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS :
-				MS_STAT_GTID_COMMIT_FAILURE);
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
 
 			if (FALSE == (*conn_data)->global_trx.report_error) {
 				/* clear error */
 				ret = PASS;
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 			} else {
-			  /* TODO: Error does not make it to the user?! */
+				/* TODO: Error does not make it to the user?! */
 			}
 		}
 	}
@@ -1861,6 +1855,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_connection_stats)(const MYSQLND_CONN_DATA * const
 }
 /* }}} */
 
+
 /* {{{ mysqlnd_ms::dump_debug_info */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, dump_debug_info)(MYSQLND_CONN_DATA * const proxy_conn TSRMLS_DC)
@@ -1989,7 +1984,7 @@ MYSQLND_METHOD(mysqlnd_ms, ssl_set)(MYSQLND_CONN_DATA * const proxy_conn, const 
 
 	DBG_ENTER("mysqlnd_ms::ssl_set");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, proxy_conn->thread_id);
-	if (!conn_data || !*conn_data || !(*conn_data)->initialized || (*conn_data)->skip_ms_calls) {
+	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(ssl_set)(proxy_conn, key, cert, ca, capath, cipher TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
