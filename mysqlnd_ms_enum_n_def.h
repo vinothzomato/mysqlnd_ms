@@ -354,45 +354,32 @@ typedef struct st_mysqlnd_ms_filter_qos_data
 } MYSQLND_MS_FILTER_QOS_DATA;
 
 
-enum mysqlnd_ms_on_broadcast_command
-{
-	MYSQLND_MS_BCAST_NOP = 0,
-	MYSQLND_MS_BCAST_BUFFER_COMMAND,
-	MYSQLND_MS_BCAST_AUTO_CONNECT
-};
-
-
-struct mysqlnd_ms_lb_strategies
-{
-	HashTable table_filters;
-
-	enum mysqlnd_ms_server_failover_strategy failover_strategy;
-
-	zend_bool mysqlnd_ms_flag_master_on_write;
-	zend_bool master_used;
-
-	enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
-	zend_bool in_transaction;
-
-	MYSQLND_CONN_DATA * last_used_conn;
-	MYSQLND_CONN_DATA * random_once_slave;
-
-	zend_llist * filters;
-};
-
-
 typedef struct st_mysqlnd_ms_conn_data
 {
 	zend_bool initialized;
 	zend_bool skip_ms_calls;
-	enum mysqlnd_ms_on_broadcast_command on_command;
 	MYSQLND_CONN_DATA * proxy_conn;
 	char * connect_host;
 	zend_llist delayed_commands;
 	zend_llist master_connections;
 	zend_llist slave_connections;
 
-	struct mysqlnd_ms_lb_strategies stgy;
+	struct mysqlnd_ms_lb_strategies {
+		HashTable table_filters;
+
+		enum mysqlnd_ms_server_failover_strategy failover_strategy;
+
+		zend_bool mysqlnd_ms_flag_master_on_write;
+		zend_bool master_used;
+
+		enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
+		zend_bool in_transaction;
+
+		MYSQLND_CONN_DATA * last_used_conn;
+		MYSQLND_CONN_DATA * random_once_slave;
+
+		zend_llist * filters;
+	} stgy;
 
 	struct st_mysqlnd_ms_conn_credentials {
 		char * user;
@@ -422,8 +409,8 @@ typedef struct st_mysqlnd_ms_conn_data
 	} global_trx;
 	zend_bool connection_opened;
 #endif
-
 } MYSQLND_MS_CONN_DATA;
+
 
 typedef struct st_mysqlnd_ms_table_filter
 {

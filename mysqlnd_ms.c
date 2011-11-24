@@ -1874,97 +1874,6 @@ MYSQLND_METHOD(mysqlnd_ms, dump_debug_info)(MYSQLND_CONN_DATA * const proxy_conn
 /* }}} */
 
 
-#ifdef BUFFERED_COMMANDS
-/* {{{ mysqlnd_ms::simple_command */
-static enum_func_status
-MYSQLND_METHOD(mysqlnd_ms, simple_command)(MYSQLND_CONN_DATA * conn, enum php_mysqlnd_server_command command,
-			   const zend_uchar * const arg, size_t arg_len, enum mysqlnd_packet_type ok_packet, zend_bool silent,
-			   zend_bool ignore_upsert_status TSRMLS_DC)
-{
-	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
-	enum_func_status ret = PASS;
-	MYSQLND_CONN_DATA * connection = conn;
-
-	DBG_ENTER("mysqlnd_ms::simple_command");
-	DBG_INF_FMT("command=%d ok_packet=%u silent=%u state=%d", command, ok_packet, silent, CONN_GET_STATE(conn));
-	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, conn->thread_id);
-
-	if (CONN_GET_STATE(connection) == CONN_ALLOCED && conn_data) {
-		MYSQLND_MS_CONN_DATA ** proxy_conn_data =
-			(MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data((*conn_data)->proxy_conn, mysqlnd_ms_plugin_id);
-
-		switch ((*conn_data)->on_command) {
-			case MYSQLND_MS_BCAST_AUTO_CONNECT:
-			{
-				zend_llist * master_list = &(*proxy_conn_data)->master_connections;
-				zend_llist * slave_list = &(*proxy_conn_data)->slave_connections;
-				MYSQLND_MS_LIST_DATA * element = NULL;
-
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list);
-				{
-					if (element->conn) {
-						DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
-					}
-					DBG_INF_FMT("element->conn=%p connection=%p", element->conn, connection);
-					if (element->conn == connection) {
-						break;
-					}
-				}
-				END_ITERATE_OVER_SERVER_LIST;
-
-				DBG_INF("Lazy connection");
-				/* lazy connection, connect now */
-				if (element) {
-					DBG_INF("trying to connect...");
-					ret = mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC);
-				} else {
-					BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list);
-					{
-						if (element->conn) {
-							DBG_INF_FMT("checking thread_id="MYSQLND_LLU_SPEC, element->conn->thread_id);
-						}
-						DBG_INF_FMT("element->conn=%p connection=%p", element->conn, connection);
-						if (element->conn == connection) {
-							break;
-						}
-					}
-					END_ITERATE_OVER_SERVER_LIST;
-					if (element) {
-						DBG_INF("trying to connect...");
-						ret = mysqlnd_ms_lazy_connect(element, FALSE  TSRMLS_CC);
-					}
-				}
-				break;
-			}
-			case MYSQLND_MS_BCAST_BUFFER_COMMAND:
-			{
-				MYSQLND_MS_COMMAND new_command = {0};
-				new_command.command = command;
-				new_command.persistent = (*conn_data)->proxy_conn->persistent;
-				new_command.payload_len = arg_len;
-				new_command.payload = mnd_pemalloc(new_command.payload_len, new_command.persistent);
-				memcpy(new_command.payload, arg, new_command.payload_len);
-				new_command.ok_packet = ok_packet;
-				new_command.silent = silent;
-				new_command.ignore_upsert_status = ignore_upsert_status;
-
-				DBG_INF("Buffering command");
-				zend_llist_add_element(&(*conn_data)->delayed_commands, &new_command);
-			}
-			/* fallthrough */
-			default:
-			case MYSQLND_MS_BCAST_NOP:
-				DBG_RETURN(PASS);
-		}
-	}
-	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, connection->thread_id);
-	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(simple_command)(connection, command, arg, arg_len, ok_packet, silent, ignore_upsert_status TSRMLS_CC);
-	DBG_RETURN(ret);
-}
-/* }}} */
-#endif
-
-
 /* {{{ mysqlnd_ms_stmt::prepare */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * const query, unsigned int query_len TSRMLS_DC)
@@ -1983,7 +1892,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 		DBG_RETURN(ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC));
 	}
 
-	/* this can possible reroute us to another server */
+	/* this can possibly reroute us to another server */
 	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, query, query_len TSRMLS_CC);
 	DBG_INF_FMT("Connection %p", connection);
 
@@ -2008,6 +1917,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	DBG_RETURN(ret);
 }
 /* }}} */
+
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 /* {{{ mysqlnd_ms_stmt::execute */
@@ -2037,11 +1947,13 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 		/* TODO: do we want to bail about multi statement mode or silently default to non-multi? */
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
-			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)
+					(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
+			if (PASS == ret) {
 				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+			}
 
-			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
-			MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
 			if (FALSE == (*conn_data)->global_trx.report_error) {
 				ret = PASS;
@@ -2049,15 +1961,18 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 				/* todo clear stmt error */
 			} else {
 				/* TODO ms prefix for error */
-				/* TODO error never makes it to user -
+				/*
+				  TODO error never makes it to user -
 				  most likely user gets 2014 out of sync.
-				  Try with dropped trx table to force injection failure */
+				  Try with dropped trx table to force injection failure
+				*/
 			}
 		}
 	}
 
-	if (PASS == ret)
+	if (PASS == ret) {
 		ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
+	}
 
 	DBG_RETURN(ret);
 }
