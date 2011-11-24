@@ -14,18 +14,11 @@ _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socke
 
 include_once("util.inc");
 $sql = mst_get_gtid_sql($db);
+if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+  die(sprintf("SKIP Failed to drop GTID on master, %s\n", $error));
 
-$link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-if (mysqli_connect_errno())
-	die(sprintf("SKIP [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
-if (!$link->query($sql['drop']))
-	die(sprintf("SKIP [%d] %s\n", $link->errno, $link->error));
-
-$link = mst_mysqli_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-if (mysqli_connect_errno())
-	die(sprintf("SKIP [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
-if (!$link->query($sql['drop']))
-	die(sprintf("SKIP [%d] %s\n", $link->errno, $link->error));
+if ($error = mst_mysqli_drop_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+  die(sprintf("SKIP Failed to drop GTID on master, %s\n", $error));
 
 $settings = array(
 	"myapp" => array(
@@ -156,11 +149,32 @@ mysqlnd_ms.collect_statistics=1
 	/* Note: we inject before the original query, thus we see the inection error */
 	mst_mysqli_query(36, $link, "SET MY LIFE ON FIRE");
 	mst_mysqli_query(38, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+	$expected['gtid_autocommit_injections_failure'] += 2;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(40, $stats, $expected);
 
 	$link->autocommit(false);
 
-	mst_mysqli_query(40, $link, "SET MY LIFE ON FIRE");
-	mst_mysqli_query(42, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(42, $link, "SET MY LIFE ON FIRE");
+	mst_mysqli_query(44, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+
+	/* commit on master connection only */
+	$link->commit();
+	$stats = mysqlnd_ms_get_stats();
+	$expected['gtid_commit_injections_failure']++;
+	compare_stats(46, $stats, $expected);
+
+	printf("[047] [%d] %s\n", $link->errno, $link->error);
+
+	if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[048] %s\n", $error);
+
+	if (!$link->query("DROP TABLE IF EXISTS test") ||
+		!$link->query("CREATE TABLE test(id INT) ENGINE=InnoDB") ||
+		!$link->query("INSERT INTO test(id) VALUES (1)"))
+		printf("[049] [%d] %s\n", $link->errno, $link->error);
+
+	$link->autocommit(true);
 
 	print "done!";
 ?>
@@ -175,8 +189,9 @@ mysqlnd_ms.collect_statistics=1
 [021] Master says again 'master'
 Slave says '1'
 Master says '2'
-[036] [1193] Unknown system variable 'MY'
-[038] [1193] Unknown system variable 'MY'
-[040] [1193] Unknown system variable 'MY'
-[042] [1193] Unknown system variable 'MY'
+[036] [1193] %s
+[038] [1193] %s
+[042] [1193] %s
+[044] [1193] %s
+[047] [0%A
 done!
