@@ -160,12 +160,36 @@ mysqlnd_ms.collect_statistics=1
 
 	/* Note: we inject before the original query, thus we see the inection error */
 	mst_mysqli_query(36, $link, "SET MY LIFE ON FIRE");
+	$expected['gtid_autocommit_injections_failure']++;
 	mst_mysqli_query(38, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+	$expected['gtid_autocommit_injections_failure']++;
+
+	$sql = mst_get_gtid_sql($db);
+	if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[040] %s\n", $error);
+
+	if ($error = mst_mysqli_setup_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+		printf("[041] %s\n", $error);
+
+	mst_mysqli_query(42, $link, "SET MY LIFE ON FIRE");
+	$expected['gtid_autocommit_injections_success']++;
+	mst_mysqli_query(44, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+	$expected['gtid_autocommit_injections_success']++;
+
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(45, $stats, $expected);
+
+	if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[046] %s\n", $error);
+
+	if ($error = mst_mysqli_setup_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+		printf("[047] %s\n", $error);
 
 	$link->autocommit(false);
 
-	mst_mysqli_query(40, $link, "SET MY LIFE ON FIRE");
-	mst_mysqli_query(42, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+	mst_mysqli_query(48, $link, "SET MY LIFE ON FIRE");
+	mst_mysqli_query(50, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+
 
 	print "done!";
 ?>
@@ -175,18 +199,20 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on.ini'.\n");
 ?>
 --EXPECTF--
-[005] [1146] Table %s doesn't exist
-[007] [1146] Table %s doesn't exist
+[005] [1146] %s
+[007] [1146] %s
 [013] Slave says ''
 [017] Master says ''
 [021] Master says again ''
-[025] [1146] Table %s doesn't exist
+[025] [1146] %s
 Slave says '1'
-[029] [1146] Table %s doesn't exist
+[029] [1146] %s
 Master says '2'
-[033] [1146] Table %s doesn't exist
-[036] [1146] Table %s doesn't exist
-[038] [1146] Table %s doesn't exist
-[040] [1193] Unknown system variable 'MY'
-[042] [1193] Unknown system variable 'MY'
+[033] [1146] %s
+[036] [1146] %s
+[038] [1146] %s
+[042] [1193] %s
+[044] [1193] %s
+[048] [1193] %s
+[050] [1193] %s
 done!
