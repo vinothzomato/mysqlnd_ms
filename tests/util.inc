@@ -239,26 +239,40 @@
 
 	function mst_get_gtid_sql($mst_gtid_db) {
 	  return array(
-		'drop' 		=> 'DROP TABLE IF EXISTS ' . $mst_gtid_db . '.trx',
-		'create'	=> 'CREATE TABLE ' . $mst_gtid_db . '.trx(trx_id INT, last_update TIMESTAMP) ENGINE=InnoDB',
-		'insert'	=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (1)',
-		'update'	=> 'UPDATE ' . $mst_gtid_db . '.trx SET trx_id = trx_id + 1',
-		'select'	=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx',
+		'drop' 				=> 'DROP TABLE IF EXISTS ' . $mst_gtid_db . '.trx',
+		'create'			=> 'CREATE TABLE ' . $mst_gtid_db . '.trx(trx_id INT, last_update TIMESTAMP) ENGINE=InnoDB',
+		'insert'			=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (1)',
+		'update'			=> 'UPDATE ' . $mst_gtid_db . '.trx SET trx_id = trx_id + 1',
+		'select'			=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx',
+		'fetch_last_gtid'	=> 'SELECT MAX(trx_id) FROM ' . $mst_gtid_db . '.trx',
+		'check_for_gtid'	=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx WHERE trx_id >= #GTID',
 	  );
 	}
 
-	function mst_mysqli_setup_gtid_table($host, $user, $passwd, $db, $port, $socket, $drop = NULL, $create = NULL, $insert = NULL) {
-		global $mst_gtid_db;
-
+	function mst_mysqli_drop_gtid_table($host, $user, $passwd, $db, $port, $socket, $drop = NULL) {
 		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
 		if (mysqli_connect_errno()) {
 			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 		}
 
 		$sql = mst_get_gtid_sql($db);
-
 		if (!$link->query(($drop) ? $drop : $sql['drop']))
 			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+
+		return NULL;
+	}
+
+	function mst_mysqli_setup_gtid_table($host, $user, $passwd, $db, $port, $socket, $drop = NULL, $create = NULL, $insert = NULL) {
+
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if ($err =  mst_mysqli_drop_gtid_table($host, $user, $passwd, $db, $port, $socket, $drop))
+			return $err;
+
+		$sql = mst_get_gtid_sql($db);
 		if (!$link->query(($create) ? $create : $sql['create']))
 			return sprintf("[%d] %s\n", $link->errno, $link_>error);
 		if (!$link->query(($insert) ? $insert : $sql['insert']))
