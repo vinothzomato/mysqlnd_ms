@@ -400,17 +400,20 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 
 		(*conn_data)->skip_ms_calls = FALSE;
 
-		/* TODO: free */
 		MAKE_STD_ZVAL(row);
-		/* TODO: row = IS_NULL, row = IS_FALSE */
 		mysqlnd_fetch_into(res, MYSQLND_FETCH_NUM, row, MYSQLND_MYSQL);
-
 		if (Z_TYPE_P(row) != IS_ARRAY) {
+			zval_ptr_dtor(&row);
+			res->m.free_result(res, FALSE TSRMLS_CC);
 			RETURN_FALSE;
 		}
 
 		if (SUCCESS == zend_hash_index_find(Z_ARRVAL_P(row), 0, (void**)&gtid)) {
-			RETURN_STRING(Z_STRVAL_PP(gtid), 1);
+			char gtid_str[64];
+			strncpy(gtid_str, Z_STRVAL_PP(gtid), sizeof(gtid_str) - 1);
+			zval_ptr_dtor(&row);
+			res->m.free_result(res, FALSE TSRMLS_CC);
+			RETURN_STRING(gtid_str, 1);
 		}
 	}
 
