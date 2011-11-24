@@ -366,11 +366,26 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 		zval ** gtid;
 
 		conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+		if (!conn_data || !(*conn_data)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection or no statement has been run yet");
+			RETURN_FALSE;
+		}
+
+		if (!conn_data || !(*conn_data) || !(*conn_data)->stgy.last_used_conn) {
+  			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection or no ID has been injected yet");
+			RETURN_FALSE;
+		}
+		conn = (*conn_data)->stgy.last_used_conn;
+		MS_LOAD_CONN_DATA(conn_data, conn);
+
+		/* TODO: bail, should never happen, I think */
 		if (!conn_data || !(*conn_data))
 			RETURN_FALSE;
 
-		conn = (conn_data && (*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn->data;
-		MS_LOAD_CONN_DATA(conn_data, conn);
+		if (!(*conn_data)->global_trx.fetch_last_gtid) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "SQL to fetch last global transaction ID is not set");
+			RETURN_FALSE;
+		}
 
 		/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
 		(*conn_data)->skip_ms_calls = TRUE;
@@ -385,15 +400,18 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 
 		(*conn_data)->skip_ms_calls = FALSE;
 
+		/* TODO: free */
 		MAKE_STD_ZVAL(row);
 		/* TODO: row = IS_NULL, row = IS_FALSE */
 		mysqlnd_fetch_into(res, MYSQLND_FETCH_NUM, row, MYSQLND_MYSQL);
 
-		if (Z_TYPE_P(row) != IS_ARRAY)
+		if (Z_TYPE_P(row) != IS_ARRAY) {
 			RETURN_FALSE;
+		}
 
-		if (SUCCESS == zend_hash_index_find(Z_ARRVAL_P(row), 0, (void**)&gtid))
+		if (SUCCESS == zend_hash_index_find(Z_ARRVAL_P(row), 0, (void**)&gtid)) {
 			RETURN_STRING(Z_STRVAL_PP(gtid), 1);
+		}
 	}
 
 getlastidfailure:

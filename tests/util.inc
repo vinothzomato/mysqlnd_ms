@@ -241,7 +241,7 @@
 	  return array(
 		'drop' 				=> 'DROP TABLE IF EXISTS ' . $mst_gtid_db . '.trx',
 		'create'			=> 'CREATE TABLE ' . $mst_gtid_db . '.trx(trx_id INT, last_update TIMESTAMP) ENGINE=InnoDB',
-		'insert'			=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (1)',
+		'insert'			=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (0)',
 		'update'			=> 'UPDATE ' . $mst_gtid_db . '.trx SET trx_id = trx_id + 1',
 		'select'			=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx',
 		'fetch_last_gtid'	=> 'SELECT MAX(trx_id) FROM ' . $mst_gtid_db . '.trx',
