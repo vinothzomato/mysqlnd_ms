@@ -43,27 +43,22 @@
 static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 		MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len TSRMLS_DC) {
 	MYSQLND_RES * res = NULL;
+	enum_func_status ret = FAIL;
 
 	DBG_ENTER("mysqlnd_ms_server_has_gtid");
 
 	/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
 	(*conn_data)->skip_ms_calls = TRUE;
-	if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC))
-		goto serverhasgtidfailure;
+	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
+		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
+		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
+		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
+		res->m.free_result(res, FALSE TSRMLS_CC);
 
-	if (PASS !=  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC))
-		goto serverhasgtidfailure;
-
-	if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
-		goto serverhasgtidfailure;
-
+	}
 	(*conn_data)->skip_ms_calls = FALSE;
-	php_printf("affected %d\n", MYSQLND_MS_UPSERT_STATUS(conn).affected_rows);
-	DBG_RETURN((MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL);
 
-serverhasgtidfailure:
-	(*conn_data)->skip_ms_calls = FALSE;
-	DBG_RETURN(FAIL);
+	DBG_RETURN(ret);
 }
 /* }}} */
 
