@@ -53,13 +53,12 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_get_last_gtid.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_get_last_gtid_config.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid.ini
-mysqlnd_ms.collect_statistics=1
+mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid_config.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -103,8 +102,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_get_last_gtid.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_get_last_gtid_config.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid_config.ini'.\n");
 ?>
 --EXPECTF--
 Warning: mysqlnd_ms_get_last_gtid(): SQL to fetch last global transaction ID is not set in %s on line %d
