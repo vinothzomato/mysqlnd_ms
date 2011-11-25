@@ -1663,11 +1663,11 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 			Must inject before second=current autocommit call.
 			*/
 			/* TODO: we can't offer multi query injection here, ignore? */
-			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(proxy_conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC))) {
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(proxy_conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
+			if (PASS == ret) {
 				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(proxy_conn TSRMLS_CC);
 
-				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS :
-				MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
+				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS : MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
 
 				if (FALSE == (*conn_data)->global_trx.report_error) {
 					ret = PASS;
