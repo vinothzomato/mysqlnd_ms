@@ -257,7 +257,7 @@
 
 		$sql = mst_get_gtid_sql($db);
 		if (!$link->query(($drop) ? $drop : $sql['drop']))
-			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
 
 		return NULL;
 	}
@@ -274,9 +274,9 @@
 
 		$sql = mst_get_gtid_sql($db);
 		if (!$link->query(($create) ? $create : $sql['create']))
-			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
 		if (!$link->query(($insert) ? $insert : $sql['insert']))
-			return sprintf("[%d] %s\n", $link->errno, $link_>error);
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
 	}
 
 	function mst_mysqli_fetch_gtid($offset, $link, $db) {
