@@ -1662,19 +1662,17 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 			Implicit commit when autocommit(false) ..query().. autocommit(true).
 			Must inject before second=current autocommit call.
 			*/
-			/* TODO: we can't offer multi query injection here, ignore? */
 			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(proxy_conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
 			if (PASS == ret) {
 				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(proxy_conn TSRMLS_CC);
+			}
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS : MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
 
-				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS : MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
-
-				if (FALSE == (*conn_data)->global_trx.report_error) {
-					ret = PASS;
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(proxy_conn));
-				} else {
-					/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
-				}
+			if (FALSE == (*conn_data)->global_trx.report_error) {
+				ret = PASS;
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(proxy_conn));
+			} else {
+				/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
 			}
 		}
 #endif
@@ -1734,35 +1732,31 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 
 	/* Must add query before committing ... */
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-	if (conn_data && *conn_data && TRUE == commit) {
-		if ((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit)) {
-			if ((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) {
-				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
-					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
-			}
+	if ((conn_data && *conn_data && TRUE == commit) &&
+		((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit)) &&
+		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+	{
 
-			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
+		if (PASS == ret)
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
+		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
 
-			if (FALSE == (*conn_data)->global_trx.report_error) {
-				/* clear error */
-				ret = PASS;
-				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
-			} else {
-				/* TODO: Error does not make it to the user?! */
-			}
+		if ((FAIL == ret) && (FALSE == (*conn_data)->global_trx.report_error)) {
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+		}else {
+			/* TODO: Error does not make it to the user?! */
 		}
 	}
 #endif
 
-	if (PASS == ret) {
-		if (conn_data && *conn_data)
-			(*conn_data)->skip_ms_calls = TRUE;
-		/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
-		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
-						MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
-		if (conn_data && *conn_data)
-			(*conn_data)->skip_ms_calls = FALSE;
-	}
+	if (conn_data && *conn_data)
+		(*conn_data)->skip_ms_calls = TRUE;
+	/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
+	ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
+					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
+	if (conn_data && *conn_data)
+		(*conn_data)->skip_ms_calls = FALSE;
 
 	DBG_RETURN(ret);
 }
@@ -1965,31 +1959,27 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, connection->thread_id);
 
 	if (((*conn_data)->global_trx.on_commit) &&
-		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) &&
+		(FALSE == (*conn_data)->stgy.in_transaction))
 	{
-		/* TODO: do we want to bail about multi statement mode or silently default to non-multi? */
-		if (FALSE == (*conn_data)->stgy.in_transaction) {
-			/* autocommit mode */
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)
-					(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
-			if (PASS == ret) {
-				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
-			}
+		/* autocommit mode */
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)
+				(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
+		if (PASS == ret) {
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
+		}
+		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
-			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
-
-			if (FALSE == (*conn_data)->global_trx.report_error) {
-				ret = PASS;
-				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				/* todo clear stmt error */
-			} else {
-				/* TODO ms prefix for error */
-				/*
-				  TODO error never makes it to user -
-				  most likely user gets 2014 out of sync.
-				  Try with dropped trx table to force injection failure
-				*/
-			}
+		if ((FAIL == ret) && (FALSE == (*conn_data)->global_trx.report_error)) {
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+			/* todo clear stmt error */
+		} else {
+			/* TODO ms prefix for error */
+			/*
+			  TODO error never makes it to user -
+			  most likely user gets 2014 out of sync.
+			  Try with dropped trx table to force injection failure
+			*/
 		}
 	}
 
