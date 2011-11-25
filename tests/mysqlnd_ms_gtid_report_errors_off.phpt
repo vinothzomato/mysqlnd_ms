@@ -181,7 +181,7 @@ mysqlnd_ms.collect_statistics=1
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_report_errors_off.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_off.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_off.ini'.\n");
 ?>
 --EXPECTF--
 [013] Slave says 'slave'

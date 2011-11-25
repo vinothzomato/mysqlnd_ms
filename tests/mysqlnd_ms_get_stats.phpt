@@ -56,6 +56,8 @@ mysqlnd_ms.collect_statistics=1
 		$expected["gtid_autocommit_injections_failure"] = true;
 		$expected["gtid_commit_injections_success"] = true;
 		$expected["gtid_commit_injections_failure"] = true;
+		$expected["gtid_implicit_commit_injections_success"] = true;
+		$expected["gtid_implicit_commit_injections_failure"] = true;
 	}
 
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {

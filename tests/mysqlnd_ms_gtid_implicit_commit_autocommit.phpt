@@ -17,9 +17,6 @@ $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
   die(sprintf("SKIP Failed to drop GTID on master, %s\n", $error));
 
-if ($error = mst_mysqli_setup_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
-  die(sprintf("SKIP Failed to drop GTID on master, %s\n", $error));
-
 $settings = array(
 	"myapp" => array(
 		'master' => array(
@@ -88,6 +85,8 @@ mysqlnd_ms.collect_statistics=1
 		"gtid_autocommit_injections_failure" => 0,
 		"gtid_commit_injections_success" => 0,
 		"gtid_commit_injections_failure" => 0,
+		"gtid_implicit_commit_injections_success" => 0,
+		"gtid_implicit_commit_injections_failure" => 0,
 	);
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(4, $stats, $expected);
@@ -126,7 +125,7 @@ mysqlnd_ms.collect_statistics=1
 	if (!$link->autocommit(true))
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
 
-	$expected['gtid_commit_injections_success']++;
+	$expected['gtid_implicit_commit_injections_success']++;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(13, $stats, $expected);
 
@@ -140,7 +139,15 @@ mysqlnd_ms.collect_statistics=1
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_implicit_commit_autocommit.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_implicit_commit_autocommit.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_implicit_commit_autocommit.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n");
+
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 Rows 2

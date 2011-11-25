@@ -91,6 +91,8 @@ mysqlnd_ms.collect_statistics=1
 		"gtid_autocommit_injections_failure" => 0,
 		"gtid_commit_injections_success" => 0,
 		"gtid_commit_injections_failure" => 0,
+		"gtid_implicit_commit_injections_success" => 0,
+		"gtid_implicit_commit_injections_failure" => 0,
 	);
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(4, $stats, $expected);
@@ -183,20 +185,31 @@ mysqlnd_ms.collect_statistics=1
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(38, $stats, $expected);
 
-	/* back to autocommit for failure testing */
-	$link->autocommit(TRUE);
+	/* implicit commit */
+	if (!$link->autocommit(TRUE))
+		printf("[039] [%d] %s\n", $link->errno, $link->error);
+
+	$new_gtid = mst_mysqli_fetch_gtid(40, $master_link, $db);
+	if ($new_gtid <= $gtid) {
+		printf("[041] GTID not incremented\n");
+	}
+	$gtid = $new_gtid;
+	$expected["gtid_implicit_commit_injections_success"]++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(42, $stats, $expected);
+
 	$link->kill($link->thread_id);
 
-	if (!($res = mst_mysqli_query(39, $link, "SELECT @myrole AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
+	if (!($res = mst_mysqli_query(43, $link, "SELECT @myrole AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 		$expected['gtid_autocommit_injections_failure']++;
 	} else {
-		printf("[020] Who has run this query?!\n");
+		printf("[045] Who has run this query?!\n");
 		var_dump($res->fetch_assoc());
 	}
 
-	$new_gtid = mst_mysqli_fetch_gtid(41, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(46, $master_link, $db);
 	if ($new_gtid != $gtid) {
-		printf("[043] GTID must not change. Link to master killed.\n");
+		printf("[047] GTID incremented.\n");
 	}
 	$gtid = $new_gtid;
 	$stats = mysqlnd_ms_get_stats();
@@ -207,10 +220,15 @@ mysqlnd_ms.collect_statistics=1
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_autocommit_stats.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_autocommit_stats.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_autocommit_stats.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 Hi there, this is your Master speaking
 Let me be your #1
-[039] [%d] %s
+[043] [%d] %s
 done!

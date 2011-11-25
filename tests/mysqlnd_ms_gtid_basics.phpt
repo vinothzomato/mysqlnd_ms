@@ -107,30 +107,37 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_basics.ini
 	}
 	$gtid = $new_gtid;
 
-	/* back to auto commit */
+	/* back to auto commit  - implicit commit */
 	$link->autocommit(TRUE);
-	/* commit shall be ignored, it is not needed. We increment after every master statement */
 	$link->commit();
 	$new_gtid = mst_mysqli_fetch_gtid(20, $master_link, $db);
+	if ($new_gtid <= $gtid) {
+		printf("[022] GTID not incremented\n");
+	}
+	$gtid = $new_gtid;
+
+	/* commit shall be ignored, it is not needed. We increment after every master statement */
+	$link->commit();
+	$new_gtid = mst_mysqli_fetch_gtid(23, $master_link, $db);
 	if ($new_gtid != $gtid) {
-		printf("[022] commit() shall not change GTID in auto commit mode\n");
+		printf("[024] GTID increment\n");
 	}
 	$gtid = $new_gtid;
 
 	/* increment, tested above ...*/
-	$res = mst_mysqli_query(23, $link, "SELECT @myrole AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(25, $link, "SELECT @myrole AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	if (!$res) {
-		printf("[025] [%d] %s\n", $link->errno, $link->error);
+		printf("[027] [%d] %s\n", $link->errno, $link->error);
 	}
 	$row = $res->fetch_assoc();
 	printf("Heho from '%s'\n", $row['_role']);
-	$gtid = mst_mysqli_fetch_gtid(26, $master_link, $db);
+	$gtid = mst_mysqli_fetch_gtid(28, $master_link, $db);
 
 	/* commit shall be ignored, it is not needed. We increment after every master statement */
 	$link->commit();
-	$new_gtid = mst_mysqli_fetch_gtid(28, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(29, $master_link, $db);
 	if ($new_gtid != $gtid) {
-		printf("[029] commit() shall not change GTID in auto commit mode\n");
+		printf("[030] commit() shall not change GTID in auto commit mode\n");
 	}
 	$gtid = $new_gtid;
 
@@ -140,6 +147,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_basics.ini
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_basics.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_basics.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 Heho from 'Master'

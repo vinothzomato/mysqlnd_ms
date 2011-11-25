@@ -9,10 +9,6 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-if (($master_host == $slave_host)) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 include_once("util.inc");
 $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
@@ -171,7 +167,15 @@ mysqlnd_ms.collect_statistics=1
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_use_result.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_use_result.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_use_result.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n");
+
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 Rows 0

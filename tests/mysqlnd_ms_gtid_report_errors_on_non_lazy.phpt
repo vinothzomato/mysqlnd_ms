@@ -172,7 +172,7 @@ mysqlnd_ms.collect_statistics=1
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini'.\n");
 ?>
 --EXPECTF--
 [005] [1146] Table %s doesn't exist

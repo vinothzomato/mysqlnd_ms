@@ -157,7 +157,12 @@ mysqlnd_ms.collect_statistics=1
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 array(1) {

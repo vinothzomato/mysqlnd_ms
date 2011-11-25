@@ -103,7 +103,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid_slave.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_get_last_gtid_slave.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid_slave.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid_slave.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n");
+
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
+
+	if ($error = mst_mysqli_drop_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 [005] [0%s

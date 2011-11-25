@@ -6,11 +6,20 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 require_once('skipif.inc');
-  require_once("connect.inc");
+require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+
+include_once("util.inc");
+$sql = mst_get_gtid_sql($db);
+if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+  die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
+
+if ($error = mst_mysqli_setup_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+  die(sprintf("SKIP Failed to setup GTID on slave, %s\n", $error));
+
 
 $settings = array(
 	"myapp" => array(
@@ -32,8 +41,8 @@ $settings = array(
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
 			'fetch_last_gtid'			=> "SELECT MAX(trx_id) FROM test.trx",
-			'check_for_gtid'			=> "SELECT trx_id FROM test.trx WHERE trx_id = {gtid}",
-			'set_on_slave'				=> true,
+			'check_for_gtid'			=> "SELECT trx_id FROM test.trx WHERE trx_id >= #GTID",
+			'set_on_slave'				=> false,
 			'report_error'				=> true,
 			'use_multi_statement'		=> false,
 		),
@@ -65,12 +74,18 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+	$link->query("DROP TABLE IF EXISTS ulf");
+var_dump($link->thread_id);
+$gtid = mysqlnd_ms_get_last_gtid($link);
+var_dump($gtid);
+	$link->query("SELECT 1 FROM DUAL");
+var_dump($link->thread_id);
 
-	var_dump(mysqlnd_ms_get_last_gtid($link));
-	$link->query("SELECT 1 FROM DUAL");
-	var_dump(mysqlnd_ms_get_last_gtid($link));
-	$link->query("SELECT 1 FROM DUAL");
-	var_dump(mysqlnd_ms_get_last_gtid($link));
+
+	var_dump(mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID, $gtid));
+	$res = $link->query("SELECT MAX(trx_id) FROM test.trx");
+var_dump($link->thread_id);
+var_dump($res->fetch_all());
 
 die(":)");
 	$stmt = $link->prepare("SELECT 1 FROM DUAL");
@@ -123,7 +138,18 @@ var_dump($link->thread_id);
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_playground.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_playground.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_playground.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n");
+
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
+
+	if ($error = mst_mysqli_drop_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --XFAIL--
 Playground

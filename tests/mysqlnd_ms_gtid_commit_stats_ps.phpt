@@ -108,6 +108,8 @@ mysqlnd_ms.collect_statistics=1
 		"gtid_autocommit_injections_failure" => 0,
 		"gtid_commit_injections_success" => 0,
 		"gtid_commit_injections_failure" => 0,
+		"gtid_implicit_commit_injections_success" => 0,
+		"gtid_implicit_commit_injections_failure" => 0,
 	);
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(4, $stats, $expected);
@@ -216,36 +218,60 @@ mysqlnd_ms.collect_statistics=1
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(43, $stats, $expected);
 
-	/* no change */
+	/* implicit commit */
 	$link->autocommit(true);
+
+	$new_gtid = mst_mysqli_fetch_gtid(44, $master_link, $db);
+	if ($new_gtid <= $gtid) {
+		printf("[045] GTID not incremented\n");
+	}
+	$gtid = $new_gtid;
+	$expected["gtid_implicit_commit_injections_success"]++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(46, $stats, $expected);
+
 	$link->commit();
+
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(47, $stats, $expected);
+
 	$link->autocommit(false);
 
-	$new_gtid = mst_mysqli_fetch_gtid(41, $master_link, $db);
-	if ($new_gtid != $gtid) {
-		printf("[044] GTID has must not change because of auto commit\n");
-	}
 	$stats = mysqlnd_ms_get_stats();
-	compare_stats(45, $stats, $expected);
+	compare_stats(48, $stats, $expected);
+
+
+	$new_gtid = mst_mysqli_fetch_gtid(49, $master_link, $db);
+	if ($new_gtid != $gtid) {
+		printf("[050] GTID incremented $new_gtid $gtid\n");
+	}
+	$gtid = $new_gtid;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(51, $stats, $expected);
 
 	/* failure */
 	$link->kill($link->thread_id);
 	$link->commit();
 
-	$new_gtid = mst_mysqli_fetch_gtid(46, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(52, $master_link, $db);
 	if ($new_gtid != $gtid) {
-		printf("[047] GTID has must not change because commit was done on dead connection\n");
+		printf("[053] GTID has must not change because commit was done on dead connection\n");
 	}
 	$stats = mysqlnd_ms_get_stats();
 	$expected["gtid_commit_injections_failure"]++;
-	compare_stats(48, $stats, $expected);
+	compare_stats(54, $stats, $expected);
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_commit_stats.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_commit_stats.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_commit_stats.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 I am the Master of poor me, the Slave.

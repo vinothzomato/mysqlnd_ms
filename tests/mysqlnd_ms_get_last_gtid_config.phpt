@@ -6,7 +6,7 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 require_once('skipif.inc');
-  require_once("connect.inc");
+require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -103,7 +103,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid_config.ini
 --CLEAN--
 <?php
 	if (!unlink("test_mysqlnd_ms_get_last_gtid_config.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid_config.ini'.\n");
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_get_last_gtid_config.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n");
+
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
+
+	if ($error = mst_mysqli_drop_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 Warning: mysqlnd_ms_get_last_gtid(): SQL to fetch last global transaction ID is not set in %s on line %d
