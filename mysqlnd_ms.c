@@ -1,4 +1,4 @@
-/*
+/*s
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
@@ -927,10 +927,22 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 				if (TRUE == (*conn_data)->global_trx.multi_statement_user_enabled) {
 					/* user has activated multi statement already */
 					(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
+					ret = PASS;
 				} else {
 					/* we need to send server option */
 					(*conn_data)->global_trx.multi_statement_gtx_enabled = TRUE;
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_ON TSRMLS_CC);
+				}
+
+				if (FAIL == ret) {
+					if (TRUE == (*conn_data)->global_trx.report_error) {
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+						if (multi_query.c)
+							smart_str_free(&multi_query);
+						DBG_RETURN(ret);
+					}
+
+					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				}
 
 			} else {
@@ -940,35 +952,37 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
 					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
-				if (FALSE == (*conn_data)->global_trx.report_error) {
-					ret = PASS;
+				if (FAIL == ret) {
+					if (TRUE == (*conn_data)->global_trx.report_error) {
+						DBG_RETURN(ret);
+					}
+
 					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				} else {
-					/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
 				}
 			}
 		} else {
 			/* autocommit off */
-			ret = PASS;
-			if (TRUE == (*conn_data)->global_trx.multi_statement_gtx_enabled) {
-				/* for whatever reason, it was not reset! */
-				if (FALSE == (*conn_data)->global_trx.multi_statement_user_enabled) {
-					/* no, the user has not requested multi statement, forbid it... */
-					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
+			if ((TRUE == (*conn_data)->global_trx.multi_statement_gtx_enabled) &&
+				(FALSE == (*conn_data)->global_trx.multi_statement_user_enabled))
+			{
+				/* no, the user has not requested multi statement, forbid it... */
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
+
+				if (FAIL == ret) {
+					if (TRUE == (*conn_data)->global_trx.report_error) {
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+						DBG_RETURN(ret);
+					}
+
+					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				}
 			}
 		}
-	} else {
-		ret = PASS;
 	}
-#else
-	ret = PASS;
 #endif
-	if ((PASS == ret) &&
-		(PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
+	if ((PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
 		(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC))))
 	{
-		ret = PASS;
 		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
 			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
 		}
@@ -978,16 +992,21 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	/* TODO: I don't think error forwarding to user will work. we probably need to add checks! */
 	if (multi_query.c) {
 		if (PASS == ret) {
+			/* user query has not failed */
 			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(more_results)(connection TSRMLS_CC);
 			if (PASS == ret)
 				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(next_result)(connection TSRMLS_CC);
+
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+				MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+
+			if ((FAIL == ret) &&  (FALSE == (*conn_data)->global_trx.report_error))
+			{
+				ret = PASS;
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+			}
 		}
 		smart_str_free(&multi_query);
-
-		/* NOTE: we cannot tell what caused a failure: original user statement or injected SQL */
-		/* TODO: document */
-		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
-			MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 	}
 #endif
 
@@ -1660,19 +1679,21 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		{
 			/*
 			Implicit commit when autocommit(false) ..query().. autocommit(true).
-			Must inject before second=current autocommit call.
+			Must inject before second=current autocommit() call.
 			*/
 			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(proxy_conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
 			if (PASS == ret) {
 				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(proxy_conn TSRMLS_CC);
 			}
-			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS : MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS :
+				MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
 
-			if (FALSE == (*conn_data)->global_trx.report_error) {
+			if (FAIL == ret) {
+				if (TRUE == (*conn_data)->global_trx.report_error)
+					DBG_RETURN(ret);
+
 				ret = PASS;
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(proxy_conn));
-			} else {
-				/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
 			}
 		}
 #endif
@@ -1736,16 +1757,16 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 		((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit)) &&
 		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
 	{
-
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
 		if (PASS == ret)
 			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
 
-		if ((FAIL == ret) && (FALSE == (*conn_data)->global_trx.report_error)) {
+		if (FAIL == ret) {
+			if (TRUE == (*conn_data)->global_trx.report_error)
+				DBG_RETURN(ret);
+
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
-		}else {
-			/* TODO: Error does not make it to the user?! */
 		}
 	}
 #endif
@@ -1970,22 +1991,17 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 		}
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
-		if ((FAIL == ret) && (FALSE == (*conn_data)->global_trx.report_error)) {
+		if (FAIL == ret) {
+			/* TODO: copy to stmt error? */
+			if (TRUE == (*conn_data)->global_trx.report_error)
+				DBG_RETURN(ret);
+
+			/* TODO: clear stmt error? */
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-			/* todo clear stmt error */
-		} else {
-			/* TODO ms prefix for error */
-			/*
-			  TODO error never makes it to user -
-			  most likely user gets 2014 out of sync.
-			  Try with dropped trx table to force injection failure
-			*/
 		}
 	}
 
-	if (PASS == ret) {
-		ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
-	}
+	ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
 
 	DBG_RETURN(ret);
 }
