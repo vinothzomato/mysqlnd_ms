@@ -92,7 +92,7 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
 
 #define CONN_DATA_NOT_SET(conn_data) (!(conn_data) || !*(conn_data) || !(*(conn_data))->initialized || (*(conn_data))->skip_ms_calls)
-
+#define CONN_DATA_TRY_TRX_INJECTION(conn_data) (((*(conn_data))->connection_opened) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && ((TRUE == (*(conn_data))->global_trx.is_master) || (TRUE == (*(conn_data))->global_trx.set_on_slave)))
 
 /* {{{ mysqlnd_ms_get_scheme_from_list_data */
 static int
@@ -909,10 +909,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_LOAD_CONN_DATA(conn_data, connection);
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-	if (conn_data && *conn_data &&
-		(*conn_data)->connection_opened && (FALSE == (*conn_data)->skip_ms_calls) &&
-		((*conn_data)->global_trx.on_commit) &&
-		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+	if (!CONN_DATA_NOT_SET(conn_data) && CONN_DATA_TRY_TRX_INJECTION(conn_data))
 	{
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
@@ -1673,9 +1670,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		if (((TRUE == (*conn_data)->stgy.in_transaction) && mode) &&
-			(*conn_data)->connection_opened && (FALSE == (*conn_data)->skip_ms_calls) &&
-			((*conn_data)->global_trx.on_commit) &&
-			((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+			CONN_DATA_TRY_TRX_INJECTION(conn_data))
 		{
 			/*
 			Implicit commit when autocommit(false) ..query().. autocommit(true).
@@ -1754,8 +1749,8 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	/* Must add query before committing ... */
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 	if ((conn_data && *conn_data && TRUE == commit) &&
-		((TRUE == (*conn_data)->stgy.in_transaction) && ((*conn_data)->global_trx.on_commit)) &&
-		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+		((TRUE == (*conn_data)->stgy.in_transaction)) &&
+		CONN_DATA_TRY_TRX_INJECTION(conn_data))
 	{
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
 		if (PASS == ret)
@@ -1979,8 +1974,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	connection = s->data->conn;
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, connection->thread_id);
 
-	if (((*conn_data)->global_trx.on_commit) &&
-		((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)) &&
+	if (CONN_DATA_TRY_TRX_INJECTION(conn_data) &&
 		(FALSE == (*conn_data)->stgy.in_transaction))
 	{
 		/* autocommit mode */
