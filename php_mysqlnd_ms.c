@@ -65,6 +65,8 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("gtid_autocommit_injections_failure") },
 	{ STR_W_LEN("gtid_commit_injections_success") },
 	{ STR_W_LEN("gtid_commit_injections_failure") },
+	{ STR_W_LEN("gtid_implicit_commit_injections_success") },
+	{ STR_W_LEN("gtid_implicit_commit_injections_failure") },
 #endif
 };
 /* }}} */

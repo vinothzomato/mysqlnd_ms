@@ -255,6 +255,8 @@ typedef enum mysqlnd_ms_collected_stats
 	MS_STAT_GTID_AUTOCOMMIT_FAILURE,
 	MS_STAT_GTID_COMMIT_SUCCESS,
 	MS_STAT_GTID_COMMIT_FAILURE,
+	MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS,
+	MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE,
 #endif
 	MS_STAT_LAST /* Should be always the last */
 } enum_mysqlnd_ms_collected_stats;

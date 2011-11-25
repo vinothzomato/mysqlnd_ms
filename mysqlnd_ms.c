@@ -1651,6 +1651,34 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_autocommit)(proxy_conn, mode TSRMLS_CC);
 		DBG_RETURN(ret);
 	} else {
+
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+		if (((TRUE == (*conn_data)->stgy.in_transaction) && mode) &&
+			(*conn_data)->connection_opened && (FALSE == (*conn_data)->skip_ms_calls) &&
+			((*conn_data)->global_trx.on_commit) &&
+			((TRUE == (*conn_data)->global_trx.is_master) || (TRUE == (*conn_data)->global_trx.set_on_slave)))
+		{
+			/*
+			Implicit commit when autocommit(false) ..query().. autocommit(true).
+			Must inject before second=current autocommit call.
+			*/
+			/* TODO: we can't offer multi query injection here, ignore? */
+			if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(proxy_conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC))) {
+				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(proxy_conn TSRMLS_CC);
+
+				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS :
+				MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
+
+				if (FALSE == (*conn_data)->global_trx.report_error) {
+					ret = PASS;
+					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(proxy_conn));
+				} else {
+					/* TODO: do we want to prefix the error to make clear it comes from trx injection? */
+				}
+			}
+		}
+#endif
+
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
