@@ -65,7 +65,7 @@ mysqlnd_ms.collect_statistics=1
 		foreach ($stats as $name => $value) {
 			if (isset($expected[$name])) {
 				if ($value != $expected[$name]) {
-					printf("[%03d] Expecting %s = %d got %d\n", $name, $expected[$name], $value);
+					printf("[%03d] Expecting %s = %d got %d\n", $offset, $name, $expected[$name], $value);
 				}
 				unset($expected[$name]);
 			}

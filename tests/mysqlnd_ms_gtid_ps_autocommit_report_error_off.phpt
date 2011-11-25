@@ -116,6 +116,7 @@ mysqlnd_ms.collect_statistics=1
 
 	if (!($res = $stmt->get_result()))
 		printf("[014] [%d] %s\n", $stmt->errno, $stmt->error);
+
 	$row = $res->fetch_assoc();
 	printf("Rows %d\n", $row['_num_rows']);
 

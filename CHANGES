@@ -3,9 +3,24 @@
   Motto/theme:TBD
   Release date: 12/2011
 
-  * HACK: introduced quality-of-service (qos) filter
-  * HACK: added gloabl transaction ID injection
+  * Introduced quality-of-service (qos) filter
+  * Added mysqlnd_ms_set_qos() function to set required connection quality at runtime
+  * New constants related to mysqlnd_ms_set_qos()
+    - MYSQLND_MS_QOS_CONSISTENCY_STRONG
+    - MYSQLND_MS_QOS_CONSISTENCY_SESSION
+    - MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL
+    - MYSQLND_MS_QOS_OPTION_GTID
+    - MYSQLND_MS_QOS_OPTION_AGE
 
+  * Added gloabl transaction ID injection (GTID)
+  * Added mysqlnd_ms_get_last_gtid() to fetch last transaction id
+  * New statistics related to GTID:
+    - gtid_autocommit_injections_success
+    - gtid_autocommit_injections_failure
+    - gtid_commit_injections_success
+	- gtid_commit_injections_failure
+	- gtid_implicit_commit_injections_success
+    - gtid_implicit_commit_injections_failure
 
 1.1.2 stale / production ready
 

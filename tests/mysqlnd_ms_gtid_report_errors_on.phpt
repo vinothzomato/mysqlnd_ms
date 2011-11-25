@@ -127,8 +127,8 @@ mysqlnd_ms.collect_statistics=1
 	printf("[021] Master says again '%s'\n", $row['_role']);
 
 	mst_mysqli_query(22, $link, "SET @myrole='master'");
-	if ($link->commit())
-		printf("[024] Commit should have failed\n");
+	if (!$link->commit())
+		printf("[024] Commit should be done although there is an injection error\n");
 	else
 		printf("[025] [%d] %s\n", $link->errno, $link->error);
 	$expected['gtid_commit_injections_failure']++;
@@ -147,8 +147,8 @@ mysqlnd_ms.collect_statistics=1
 	$row = $res->fetch_assoc();
 	printf("Master says '%d'\n", $row['_two']);
 
-	if ($link->commit())
-		printf("[032] Commit should have failed\n");
+	if (!$link->commit())
+		printf("[032] Commit should be done although there is an injection error\n");
 	else
 		printf("[033] [%d] %s\n", $link->errno, $link->error);
 	$expected['gtid_commit_injections_failure']++;
