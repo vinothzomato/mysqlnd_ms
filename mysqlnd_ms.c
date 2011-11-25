@@ -94,6 +94,10 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 #define CONN_DATA_NOT_SET(conn_data) (!(conn_data) || !*(conn_data) || !(*(conn_data))->initialized || (*(conn_data))->skip_ms_calls)
 #define CONN_DATA_TRY_TRX_INJECTION(conn_data) (((*(conn_data))->connection_opened) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && ((TRUE == (*(conn_data))->global_trx.is_master) || (TRUE == (*(conn_data))->global_trx.set_on_slave)))
 
+#define MS_TRX_INJECT(ret, connection, conn_data) \
+	if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)((connection), ((*(conn_data))->global_trx.on_commit), ((*(conn_data))->global_trx.on_commit_len) TSRMLS_CC))) \
+		(ret) = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)((connection) TSRMLS_CC);
+
 /* {{{ mysqlnd_ms_get_scheme_from_list_data */
 static int
 mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, zend_bool persistent TSRMLS_DC)
@@ -943,9 +947,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 				}
 
 			} else {
-				if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC)))
-					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
-
+				MS_TRX_INJECT(ret, connection, conn_data);
 				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
 					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
@@ -1676,10 +1678,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 			Implicit commit when autocommit(false) ..query().. autocommit(true).
 			Must inject before second=current autocommit() call.
 			*/
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(proxy_conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
-			if (PASS == ret) {
-				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(proxy_conn TSRMLS_CC);
-			}
+			MS_TRX_INJECT(ret, proxy_conn, conn_data);
 			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS :
 				MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
 
@@ -1752,9 +1751,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 		((TRUE == (*conn_data)->stgy.in_transaction)) &&
 		CONN_DATA_TRY_TRX_INJECTION(conn_data))
 	{
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
-		if (PASS == ret)
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC);
+		MS_TRX_INJECT(ret, conn, conn_data);
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
 
 		if (FAIL == ret) {
@@ -1978,12 +1975,9 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 		(FALSE == (*conn_data)->stgy.in_transaction))
 	{
 		/* autocommit mode */
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)
-				(connection, ((*conn_data)->global_trx.on_commit), ((*conn_data)->global_trx.on_commit_len) TSRMLS_CC);
-		if (PASS == ret) {
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC);
-		}
-		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+		MS_TRX_INJECT(ret, connection, conn_data);
+		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+			MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
 		if (FAIL == ret) {
 			/* TODO: copy to stmt error? */
