@@ -168,7 +168,6 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_QOS_EVENTUAL			"eventual_consistency"
 #define SECT_G_TRX_NAME				"global_transaction_id_injection"
 #define SECT_G_TRX_ON_COMMIT		"on_commit"
-#define SECT_G_TRX_SET_ON_SLAVE 	"set_on_slave"
 #define SECT_G_TRX_REPORT_ERROR 	"report_error"
 #define SECT_G_TRX_MULTI_STMT   	"use_multi_statement"
 #define SECT_G_TRX_FETCH_LAST_GTID 	"fetch_last_gtid"
@@ -403,7 +402,6 @@ typedef struct st_mysqlnd_ms_conn_data
 		char * check_for_gtid;
 		size_t check_for_gtid_len;
 		zend_bool is_master;
-		zend_bool set_on_slave;
 		zend_bool report_error;
 		zend_bool use_multi_statement;
 		zend_bool multi_statement_user_enabled;
