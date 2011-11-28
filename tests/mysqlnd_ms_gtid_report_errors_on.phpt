@@ -103,7 +103,6 @@ mysqlnd_ms.collect_statistics=1
 	mst_mysqli_query(5, $link, "SET @myrole='master'");
 	$expected['gtid_autocommit_injections_failure']++;
 	mst_mysqli_query(7, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$expected['gtid_autocommit_injections_failure']++;
 
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(9, $stats, $expected);
@@ -147,30 +146,34 @@ mysqlnd_ms.collect_statistics=1
 
 	if (!$link->commit())
 		printf("[033] [%d] %s\n", $link->errno, $link->error);
-	$expected['gtid_commit_injections_failure']++;
 
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(34, $stats, $expected);
 
 	if (!$link->autocommit(true)) {
 		printf("[035] [%d] %s\n", $link->errno, $link->error);
+		/* NOTE: the user MUST do rollback to prevent deadlock */
+		$link->rollback();
 	}
+	/* autocommit failed, still in transaction mode */
 
 	/* Note: we inject before the original query, thus we see the inection error */
 	if (!$link->query("SET MY LIFE ON FIRE")) {
 		printf("[036] %d %s\n", $link->errno, $link->error);
 	}
-die(":)");
-	$expected['gtid_autocommit_injections_failure']++;
 	var_dump(mst_mysqli_query(38, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH));
-	$expected['gtid_autocommit_injections_failure']++;
 
 	$sql = mst_get_gtid_sql($db);
 	if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
 		printf("[040] %s\n", $error);
 
-	if ($error = mst_mysqli_setup_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
-		printf("[041] %s\n", $error);
+	if (!$link->autocommit(true)) {
+		printf("[041] [%d] %s\n", $link->errno, $link->error);
+		/* NOTE: the user MUST do rollback to prevent deadlock */
+		$link->rollback();
+	}
+	/* autocommit success */
+
 
 	mst_mysqli_query(42, $link, "SET MY LIFE ON FIRE");
 	$expected['gtid_autocommit_injections_success']++;
@@ -199,22 +202,19 @@ die(":)");
 	if (!unlink("test_mysqlnd_ms_gtid_report_errors_on.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on.ini'.\n");
 ?>
---XFAIL--
-Deadlick with MySQL 5.5.3+. User must be allowed to send commit() with no GTID injection
-attempt being done.
 --EXPECTF--
 [005] [1146] %s
-[007] [1146] %s
-[013] Slave says ''
+[013] Slave says 'slave'
 [017] Master says ''
 [021] Master says again ''
-[025] [1146] %s
+[024] [1146] %s
 Slave says '1'
-[029] [1146] %s
 Master says '2'
 [033] [1146] %s
-[036] [1146] %s
-[038] [1146] %s
+[035] [1146] %s
+[036] 1193 %s
+[038] [1193] %s
+bool(false)
 [042] [1193] %s
 [044] [1193] %s
 [048] [1193] %s
