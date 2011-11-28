@@ -187,12 +187,15 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 }
 /* }}} */
 
+
 /* {{{ PHP_MSHUTDOWN_FUNCTION
  */
 PHP_MSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
 	UNREGISTER_INI_ENTRIES();
 	if (MYSQLND_MS_G(enable)) {
+		mysqlnd_stats_end(mysqlnd_ms_stats);
+
 		mysqlnd_ms_config_json_free(mysqlnd_ms_json_config TSRMLS_CC);
 		mysqlnd_ms_json_config = NULL;
 	}
