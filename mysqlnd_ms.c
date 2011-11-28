@@ -1680,8 +1680,9 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 				MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
 
 			if (FAIL == ret) {
-				if (TRUE == (*conn_data)->global_trx.report_error)
+				if (TRUE == (*conn_data)->global_trx.report_error) {
 					DBG_RETURN(ret);
+				}
 
 				ret = PASS;
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(proxy_conn));
@@ -1751,8 +1752,9 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
 
 		if (FAIL == ret) {
-			if (TRUE == (*conn_data)->global_trx.report_error)
+			if (TRUE == (*conn_data)->global_trx.report_error) {
 				DBG_RETURN(ret);
+			}
 
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 		}
@@ -1764,8 +1766,9 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
 	ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
 					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
-	if (conn_data && *conn_data)
+	if (conn_data && *conn_data) {
 		(*conn_data)->skip_ms_calls = FALSE;
+	}
 
 	DBG_RETURN(ret);
 }
@@ -1972,13 +1975,13 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	{
 		/* autocommit mode */
 		MS_TRX_INJECT(ret, connection, conn_data);
-		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
-			MS_STAT_GTID_AUTOCOMMIT_FAILURE);
+		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
 		if (FAIL == ret) {
 			/* TODO: copy to stmt error? */
-			if (TRUE == (*conn_data)->global_trx.report_error)
+			if (TRUE == (*conn_data)->global_trx.report_error) {
 				DBG_RETURN(ret);
+			}
 
 			/* TODO: clear stmt error? */
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
