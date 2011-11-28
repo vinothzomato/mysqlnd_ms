@@ -89,7 +89,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_eventual_consistency.ini
 		printf("Greetings from '%s'\n", $row['_msg']);
 
 		$server_id = mst_mysqli_get_emulated_id(7, $link);
-		if ($server_id != $slave_id)
+		if ($server_id != $slave_id) {
+			printf("[008] Wrong server %s, slave = %s, master = %s\n",
+			  $server_id, $slave_id, $master_id);
+		}
 
 	} else {
 		printf("[%d] %s\n", $link->errno, $link->error);
