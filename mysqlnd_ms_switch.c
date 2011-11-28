@@ -247,7 +247,7 @@ qos_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERRO
 			if (value_exists) {
 			  DBG_INF("session consistency");
 			  mnd_efree(service);
-			  if (ret->consistency) {
+			  if (ret->consistency != CONSISTENCY_LAST_ENUM_ENTRY) {
 				mnd_pefree(ret, persistent);
 				php_error_docref(NULL TSRMLS_CC, E_ERROR,
 									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_SESSION);
@@ -261,7 +261,7 @@ qos_specific_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERRO
 			if (value_exists) {
 			  DBG_INF("eventual consistency");
 			  mnd_efree(service);
-			  if (ret->consistency) {
+			  if (ret->consistency != CONSISTENCY_LAST_ENUM_ENTRY) {
 				mnd_pefree(ret, persistent);
 				php_error_docref(NULL TSRMLS_CC, E_ERROR,
 									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_EVENTUAL);
