@@ -347,6 +347,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_gtid, 0, 0, 1)
 	ZEND_ARG_INFO(0, object)
 ZEND_END_ARG_INFO()
 
+
 /* {{{ proto string mysqlnd_ms_last_gtid(object handle)
    */
 static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
@@ -381,8 +382,9 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 		MS_LOAD_CONN_DATA(conn_data, conn);
 
 		/* TODO: bail, should never happen, I think */
-		if (!conn_data || !(*conn_data))
+		if (!conn_data || !(*conn_data)) {
 			RETURN_FALSE;
+		}
 
 		if (!(*conn_data)->global_trx.fetch_last_gtid) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "SQL to fetch last global transaction ID is not set");
@@ -391,14 +393,17 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 
 		/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
 		(*conn_data)->skip_ms_calls = TRUE;
-		if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, (*conn_data)->global_trx.fetch_last_gtid, (*conn_data)->global_trx.fetch_last_gtid_len TSRMLS_CC))
+		if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, (*conn_data)->global_trx.fetch_last_gtid, (*conn_data)->global_trx.fetch_last_gtid_len TSRMLS_CC)) {
 			goto getlastidfailure;
+		}
 
-		if (PASS !=  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC))
+		if (PASS !=  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) {
 			goto getlastidfailure;
+		}
 
-		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
 			goto getlastidfailure;
+		}
 
 		(*conn_data)->skip_ms_calls = FALSE;
 

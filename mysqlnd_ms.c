@@ -1665,6 +1665,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_autocommit)(proxy_conn, mode TSRMLS_CC);
 		DBG_RETURN(ret);
 	} else {
+		MYSQLND_MS_LIST_DATA * el;
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		if (((TRUE == (*conn_data)->stgy.in_transaction) && mode) &&
@@ -1688,7 +1689,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		}
 #endif
 
-		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
 			if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
