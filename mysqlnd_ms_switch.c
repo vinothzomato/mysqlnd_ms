@@ -501,9 +501,9 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 	/* not sure... */
 	zend_bool persistent = proxy_conn->persistent;
 
-	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
-
 	DBG_ENTER("mysqlnd_ms_section_filters_prepend_qos");
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
 	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
 
 	if (conn_data && *conn_data) {
@@ -660,6 +660,16 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					}
 				} while (1);
 				if (zend_llist_count(ret)) {
+					zend_llist_position llist_pos;
+					MYSQLND_MS_FILTER_DATA * prev = *(MYSQLND_MS_FILTER_DATA **)zend_llist_get_last_ex(ret, &llist_pos);
+					if (FALSE != prev->multi_filter) {
+						char error_buf[128];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error in configuration. "
+							"Last filter is multi filter. Needs to be non-multi one. Stopping");
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						goto err;
+					}
 					break;
 				}
 				/* fall-through */
