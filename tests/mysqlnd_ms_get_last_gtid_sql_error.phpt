@@ -6,7 +6,7 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 require_once('skipif.inc');
-  require_once("connect.inc");
+require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);

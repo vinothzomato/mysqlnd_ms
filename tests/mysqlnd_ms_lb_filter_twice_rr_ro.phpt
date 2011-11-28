@@ -5,6 +5,10 @@ Stacking LB filter: rr | random_once - second ignored
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -44,7 +48,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_lb_filter_twice_rr_ro.ini", $set
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

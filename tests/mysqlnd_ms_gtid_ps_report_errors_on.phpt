@@ -6,7 +6,7 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 require_once('skipif.inc');
-  require_once("connect.inc");
+require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -114,6 +114,20 @@ mysqlnd_ms.collect_statistics=1
 	$expected["gtid_autocommit_injections_failure"]++;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(12, $stats, $expected);
+
+	/* ... and here comes the trx table back to life  */
+	if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[013] %s\n", $error);
+
+
+	if (!$stmt->execute()) {
+		printf("[014] [%d] %s\n", $stmt->errno, $stmt->error);
+		printf("[015] [%d] %s\n", $link->errno, $link->error);
+	}
+
+	$expected["gtid_autocommit_injections_success"]++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(16, $stats, $expected);
 
 	print "done!";
 ?>

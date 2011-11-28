@@ -4,6 +4,9 @@ table filter: rule evaluation order
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_check_feature(array("table_filter"));
@@ -61,7 +64,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_table_evaluation_order_qualified
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1]");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master[1]");
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

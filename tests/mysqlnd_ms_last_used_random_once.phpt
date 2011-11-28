@@ -17,7 +17,7 @@ $settings = array(
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_last_used_random_once.ini", $settings))
-  die(sprintf("SKIP %s\n", $error));
+	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1

@@ -5,6 +5,10 @@ Load Balancing: random (slaves)
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -22,7 +26,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_pick_random.ini", $settings))
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2,3]");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
-
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -70,7 +73,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random.ini
 		$server_id = mst_mysqli_get_emulated_id(6, $link);
 		$slaves[$server_id]['queries']++;
 		$sequence_id = $server_id;
-		
+
 		mst_mysqli_query(7, $link, "SELECT 1");
 		$server_id = mst_mysqli_get_emulated_id(8, $link);
 		$slaves[$server_id]['queries']++;

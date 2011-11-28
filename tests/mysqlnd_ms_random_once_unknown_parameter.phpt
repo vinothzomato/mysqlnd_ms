@@ -5,6 +5,10 @@ LB random once: unknown parameter
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -61,7 +65,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_random_once_unknown_parameter.ini
 	$server_id = mst_mysqli_get_emulated_id(3, $link);
 	if (is_null($server_id))
 		printf("[004] Which server has run this?");
-	
+
 	$last_server_id = NULL;
 	for ($i = 0; $i < 10; $i++) {
 		mst_mysqli_query(5, $link, "SELECT 1 FROM DUAL");

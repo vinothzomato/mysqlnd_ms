@@ -37,7 +37,6 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_config.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

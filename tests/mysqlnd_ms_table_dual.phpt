@@ -4,6 +4,9 @@ table filter: SELECT * FROM DUAL (no db)
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_check_feature(array("table_filter"));

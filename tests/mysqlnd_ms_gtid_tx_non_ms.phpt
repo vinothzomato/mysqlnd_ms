@@ -3,7 +3,7 @@ GTID - transactions in non MS connections
 --SKIPIF--
 <?php
 require_once('skipif.inc');
-  require_once("connect.inc");
+require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);

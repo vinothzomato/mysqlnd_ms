@@ -5,6 +5,10 @@ Stacking LB filters and partitioning filter
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_check_feature(array("table_filter"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);

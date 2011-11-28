@@ -6,6 +6,11 @@ require_once('skipif.inc');
 if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 	die("SKIP Function not available before PHP 5.4.0");
 }
+
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($host, $user, $passwd, $db, $port, $socket);
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -27,8 +32,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_get_last_used_connection_switche
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
-
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

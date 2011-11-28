@@ -47,7 +47,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_session_consistency.i
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave1");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master1");
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

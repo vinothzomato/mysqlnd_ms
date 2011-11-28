@@ -28,7 +28,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $sett
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

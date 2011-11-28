@@ -5,6 +5,10 @@ mysqli->protocol_version / mysqli_get_proto_info()
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -23,7 +27,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_proto_info.ini", $settings))
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
 msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
-
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -42,7 +45,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_proto_info.ini
 	mst_mysqli_query(2, $link, "SELECT 1 AS _one FROM DUAL");
 	$server_id = mst_mysqli_get_emulated_id(3, $link);
 	$threads[$server_id] = array('role' => 'Slave 1', 'version' => $link->protocol_version);
-	
+
 
 	/* slave 2 */
 	mst_mysqli_query(4, $link, "SELECT 12 AS _one FROM DUAL");
