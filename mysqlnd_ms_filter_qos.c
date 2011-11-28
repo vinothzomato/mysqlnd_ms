@@ -106,9 +106,9 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 						connection = element->conn;
 						MS_LOAD_CONN_DATA(conn_data, connection);
 						if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid) {
-							 smart_str sql = {0};
-							 char * pos;
-							 char buf[32];
+							smart_str sql = {0};
+							char * pos;
+							char buf[32];
 
 							/* TODO: Do we need this check, can we have conns without data ?! */
 							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
@@ -123,6 +123,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1 TSRMLS_CC)) {
 									zend_llist_add_element(selected_slaves, &element);
 								}
+								smart_str_free(&sql);
 							}
 
 						}
