@@ -5,6 +5,10 @@ mysqlnd connection statistics
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -41,7 +45,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_connection_stats.ini
 	/* slave 1 */
 	mst_mysqli_query(2, $link, "SELECT 1 AS _one FROM DUAL");
 	$stats = mysqli_get_connection_stats($link);
-	$bytes = $stats['bytes_sent'];	
+	$bytes = $stats['bytes_sent'];
 	$threads[mst_mysqli_get_emulated_id(3, $link)] = array('role' => 'Slave 1', 'bytes' => $bytes, 'com_query' => $stats['com_query']);
 
 	/* slave 2 */

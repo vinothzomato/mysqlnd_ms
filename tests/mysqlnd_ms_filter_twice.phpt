@@ -5,6 +5,10 @@ Two LB filters
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -71,7 +75,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_twice.ini
 	  $res = mst_mysqli_query(4, $link, "SELECT 1 FROM DUAL");
 	  $threads[mst_mysqli_get_emulated_id(5, $link)] = array("slave");
 	  if (!$res)
-		  printf("[006] [%d] %s\n", $link->errno, $link->error);	  
+		  printf("[006] [%d] %s\n", $link->errno, $link->error);
 	}
 
 
