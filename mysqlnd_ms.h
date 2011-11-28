@@ -36,19 +36,6 @@
 #include "ext/mysqlnd/mysqlnd_reverse_api.h"
 #endif
 
-#if MYSQLND_VERSION_ID < 50010
-#define MYSQLND_MS_ERROR_INFO(conn_object) ((conn_object)->error_info)
-#else
-#define MYSQLND_MS_ERROR_INFO(conn_object) (*((conn_object)->error_info))
-#endif
-
-#if MYSQLND_VERSION_ID < 50010
-#define MYSQLND_MS_UPSERT_STATUS(conn_object) ((conn_object)->upsert_status)
-#else
-#define MYSQLND_MS_UPSERT_STATUS(conn_object) (*((conn_object)->upsert_status))
-#endif
-
-
 
 #ifdef ZTS
 #include "TSRM.h"

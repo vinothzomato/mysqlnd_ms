@@ -54,9 +54,23 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 #define MS_LOAD_STMT_DATA(stmt_data, statement) \
-	(stmt_data) = \
-		(MYSQLND_MS_STMT_DATA **)  mysqlnd_plugin_get_plugin_stmt_data((statement), mysqlnd_ms_plugin_id);
+	(stmt_data) = (MYSQLND_MS_STMT_DATA **)  mysqlnd_plugin_get_plugin_stmt_data((statement), mysqlnd_ms_plugin_id);
 #endif
+
+
+#if MYSQLND_VERSION_ID < 50010
+#define MYSQLND_MS_ERROR_INFO(conn_object) ((conn_object)->error_info)
+#else
+#define MYSQLND_MS_ERROR_INFO(conn_object) (*((conn_object)->error_info))
+#endif
+
+#if MYSQLND_VERSION_ID < 50010
+#define MYSQLND_MS_UPSERT_STATUS(conn_object) ((conn_object)->upsert_status)
+#else
+#define MYSQLND_MS_UPSERT_STATUS(conn_object) (*((conn_object)->upsert_status))
+#endif
+
+
 
 #define BEGIN_ITERATE_OVER_SERVER_LISTS(el, masters, slaves) \
 { \
