@@ -5,6 +5,10 @@ Filter QOS, eventual consistency
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -40,11 +44,12 @@ if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_consistency.
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
+msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave1");
+msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master1");
 ?>
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_eventual_consistency.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -73,13 +78,19 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	*/
 
 	mst_mysqli_query(2, $link, "SET @myrole='master'");
-	mst_mysqli_query(3, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	printf("[%d] %s\n", $link->errno, $link->error);
+	$master_id = mst_mysqli_get_emulated_id(3, $link);
+
+	mst_mysqli_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	$slave_id = mst_mysqli_get_emulated_id(5, $link);
 
 	/* slave access shall be allowed */
-	if ($res = mst_mysqli_query(4, $link, "SELECT @myrole AS _msg")) {
+	if ($res = mst_mysqli_query(6, $link, "SELECT @myrole AS _msg")) {
 		$row = $res->fetch_assoc();
 		printf("Greetings from '%s'\n", $row['_msg']);
+
+		$server_id = mst_mysqli_get_emulated_id(7, $link);
+		if ($server_id != $slave_id)
+
 	} else {
 		printf("[%d] %s\n", $link->errno, $link->error);
 	}
@@ -93,5 +104,4 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 ?>
 --EXPECTF--
 Greetings from 'slave'
-See test
 done!

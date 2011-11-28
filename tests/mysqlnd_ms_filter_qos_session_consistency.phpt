@@ -5,6 +5,10 @@ Filter QOS, session consistency
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($master_host == $slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
@@ -48,7 +52,6 @@ msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_session_consistency.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");

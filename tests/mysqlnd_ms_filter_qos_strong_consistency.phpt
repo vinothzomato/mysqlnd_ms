@@ -1,5 +1,5 @@
 --TEST--
-Filter QOS
+Filter QOS, strong consistency
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -37,8 +37,6 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_strong_consistency.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
-
-include_once("util.inc");
 ?>
 --INI--
 mysqlnd_ms.enable=1

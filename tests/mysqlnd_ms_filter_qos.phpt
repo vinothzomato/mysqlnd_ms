@@ -37,13 +37,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_filter_qos.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
-
-include_once("util.inc");
 ?>
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -58,8 +55,12 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	mst_mysqli_query(2, $link, "SET @myrole='master'");
 
 	/* master, if strong_consistency or session_consistency */
-	$res = mst_mysqli_query(4, $link, "SELECT @myrole FROM DUAL");
-	var_dump($res->fetch_assoc());
+	if ($res = mst_mysqli_query(4, $link, "SELECT @myrole FROM DUAL"))
+		var_dump($res->fetch_assoc());
+
+	/* master - ignore SQL hint */
+	if ($res = mst_mysqli_query(6, $link, "SELECT @myrole FROM DUAL", MYSQLND_MS_SLAVE_SWITCH))
+		var_dump($res->fetch_assoc());
 
 	print "done!";
 ?>
@@ -69,6 +70,10 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos.ini'.\n");
 ?>
 --EXPECTF--
+array(1) {
+  ["@myrole"]=>
+  string(6) "master"
+}
 array(1) {
   ["@myrole"]=>
   string(6) "master"
