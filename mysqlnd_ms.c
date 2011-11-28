@@ -93,7 +93,7 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
 #define CONN_DATA_NOT_SET(conn_data) (!(conn_data) || !*(conn_data) || !(*(conn_data))->initialized || (*(conn_data))->skip_ms_calls)
 #define CONN_DATA_TRX_SET(conn_data) ((conn_data) && (*(conn_data)) && (!(*(conn_data))->skip_ms_calls))
-#define CONN_DATA_TRY_TRX_INJECTION(conn_data) (((*(conn_data))->connection_opened) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && ((TRUE == (*(conn_data))->global_trx.is_master) || (TRUE == (*(conn_data))->global_trx.set_on_slave)))
+#define CONN_DATA_TRY_TRX_INJECTION(conn_data) (((*(conn_data))->connection_opened) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && (TRUE == (*(conn_data))->global_trx.is_master))
 
 #define MS_TRX_INJECT(ret, connection, conn_data) \
 	if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)((connection), ((*(conn_data))->global_trx.on_commit), ((*(conn_data))->global_trx.on_commit_len) TSRMLS_CC))) \
@@ -253,7 +253,7 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 {
 	DBG_ENTER("mysqlnd_ms_init_connection_global_trx");
 
-	if (TRUE == is_master || ((FALSE == is_master) && (TRUE == orig_global_trx->set_on_slave))) {
+	if (TRUE == is_master) {
 		new_global_trx->on_commit_len = orig_global_trx->on_commit_len;
 		new_global_trx->on_commit = (orig_global_trx->on_commit) ?
 			mnd_pestrndup(orig_global_trx->on_commit, orig_global_trx->on_commit_len, persistent) : NULL;
@@ -271,7 +271,6 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 		mnd_pestrndup(orig_global_trx->check_for_gtid, orig_global_trx->check_for_gtid_len, persistent) : NULL;
 
 	new_global_trx->is_master = is_master;
-	new_global_trx->set_on_slave = orig_global_trx->set_on_slave;
 	new_global_trx->report_error = orig_global_trx->report_error;
 	new_global_trx->use_multi_statement = orig_global_trx->use_multi_statement;
 	new_global_trx->multi_statement_user_enabled = orig_global_trx->multi_statement_user_enabled;
@@ -580,7 +579,6 @@ mysqlnd_ms_init_trx_to_null(struct st_mysqlnd_ms_global_trx_injection * trx TSRM
 	trx->check_for_gtid = NULL;
 	trx->check_for_gtid_len = (size_t)0;
 	trx->is_master = FALSE;
-	trx->set_on_slave = FALSE;
 	trx->report_error = TRUE;
 	trx->use_multi_statement = FALSE;
 	trx->multi_statement_user_enabled = FALSE;
@@ -641,12 +639,6 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 				trx->check_for_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
 				trx->check_for_gtid_len = strlen(json_value);
 			}
-			mnd_efree(json_value);
-		}
-
-		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_SET_ON_SLAVE, sizeof(SECT_G_TRX_SET_ON_SLAVE) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-		if (entry_exists && json_value) {
-			trx->set_on_slave = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
 			mnd_efree(json_value);
 		}
 

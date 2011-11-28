@@ -102,7 +102,7 @@ mysqlnd_ms.collect_statistics=1
 	/* auto commit on (default) */
 	mst_mysqli_query(5, $link, "SET @myrole='master'");
 	$expected['gtid_autocommit_injections_failure']++;
-	mst_mysqli_query(7, $link, "SET @myrole'slave'", MYSQLND_MS_SLAVE_SWITCH);
+	mst_mysqli_query(7, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$expected['gtid_autocommit_injections_failure']++;
 
 	$stats = mysqlnd_ms_get_stats();
@@ -128,40 +128,41 @@ mysqlnd_ms.collect_statistics=1
 
 	mst_mysqli_query(22, $link, "SET @myrole='master'");
 	if (!$link->commit())
-		printf("[024] Commit should be done although there is an injection error\n");
-	else
-		printf("[025] [%d] %s\n", $link->errno, $link->error);
+		printf("[024] [%d] %s\n", $link->errno, $link->error);
 	$expected['gtid_commit_injections_failure']++;
+	/* we continue to run in transaction mode! */
 
 	$res = mst_mysqli_query(26, $link, "SELECT 1 AS _one FROM DUAL");
 	$row = $res->fetch_assoc();
 	printf("Slave says '%d'\n", $row['_one']);
 
-	if ($link->commit())
-		printf("[028] Commit should have failed\n");
-	else
+	if (!$link->commit())
 		printf("[029] [%d] %s\n", $link->errno, $link->error);
 	$expected['gtid_commit_injections_failure']++;
+	/* we continue to run in transaction mode! */
 
 	$res = mst_mysqli_query(30, $link, "SELECT 2 AS _two FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$row = $res->fetch_assoc();
 	printf("Master says '%d'\n", $row['_two']);
 
 	if (!$link->commit())
-		printf("[032] Commit should be done although there is an injection error\n");
-	else
 		printf("[033] [%d] %s\n", $link->errno, $link->error);
 	$expected['gtid_commit_injections_failure']++;
 
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(34, $stats, $expected);
 
-	$link->autocommit(true);
+	if (!$link->autocommit(true)) {
+		printf("[035] [%d] %s\n", $link->errno, $link->error);
+	}
 
 	/* Note: we inject before the original query, thus we see the inection error */
-	mst_mysqli_query(36, $link, "SET MY LIFE ON FIRE");
+	if (!$link->query("SET MY LIFE ON FIRE")) {
+		printf("[036] %d %s\n", $link->errno, $link->error);
+	}
+die(":)");
 	$expected['gtid_autocommit_injections_failure']++;
-	mst_mysqli_query(38, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH);
+	var_dump(mst_mysqli_query(38, $link, "SET MY LIFE ON FIRE", MYSQLND_MS_MASTER_SWITCH));
 	$expected['gtid_autocommit_injections_failure']++;
 
 	$sql = mst_get_gtid_sql($db);
@@ -198,6 +199,9 @@ mysqlnd_ms.collect_statistics=1
 	if (!unlink("test_mysqlnd_ms_gtid_report_errors_on.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on.ini'.\n");
 ?>
+--XFAIL--
+Deadlick with MySQL 5.5.3+. User must be allowed to send commit() with no GTID injection
+attempt being done.
 --EXPECTF--
 [005] [1146] %s
 [007] [1146] %s

@@ -42,7 +42,6 @@ $settings = array(
 			'on_commit'	 				=> "UPDATE test.trx SET trx_id = trx_id + 1",
 			'fetch_last_gtid'			=> "SELECT MAX(trx_id) FROM test.trx",
 			'check_for_gtid'			=> "SELECT trx_id FROM test.trx WHERE trx_id >= #GTID",
-			'set_on_slave'				=> false,
 			'report_error'				=> true,
 			'use_multi_statement'		=> false,
 		),
@@ -151,19 +150,17 @@ var_dump($link->thread_id);
 	if ($error = mst_mysqli_drop_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
 		printf("[clean] %s\n", $error));
 ?>
---XFAIL--
-Playground
 --EXPECTF--
-string(0) ""
+int(%d)
+string(1) "1"
+int(%d)
+bool(true)
+int(%d)
 array(1) {
-  ["@myrole"]=>
-  NULL
+  [0]=>
+  array(1) {
+    [0]=>
+    string(1) "2"
+  }
 }
-string(0) ""
-array(1) {
-  [1]=>
-  string(1) "1"
-}
-string(0) ""
-string(0) ""
-done!
+:)

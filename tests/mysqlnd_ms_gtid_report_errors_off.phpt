@@ -40,7 +40,6 @@ $settings = array(
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> $sql['update'],
 			'report_error'				=> false,
-			'set_on_slave'				=> true,
 		),
 
 		'lazy_connections' => 1,
@@ -95,9 +94,8 @@ mysqlnd_ms.collect_statistics=1
 	/* auto commit on (default) */
 	mst_mysqli_query(5, $link, "SET @myrole='master'");
 	$expected['gtid_autocommit_injections_failure']++;
-	mst_mysqli_query(7, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$expected['gtid_autocommit_injections_failure']++;
 
+	mst_mysqli_query(7, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(9, $stats, $expected);
 
@@ -130,8 +128,6 @@ mysqlnd_ms.collect_statistics=1
 
 	if (!$link->commit())
 		printf("[029] [%d] %s\n", $link->errno, $link->error);
-
-	$expected['gtid_commit_injections_failure']++;
 
 	$res = mst_mysqli_query(30, $link, "SELECT 2 AS _two FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$row = $res->fetch_assoc();

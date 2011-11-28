@@ -106,8 +106,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid_sql_error.ini
 	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
 		printf("[clean] %s\n");
 ?>
---XFAIL--
-Decide what is supposed to happen. We should probably not set error code on the line, should we?
 --EXPECTF--
 [006] [1064] %s
 [012] [1064] %s

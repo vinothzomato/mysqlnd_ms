@@ -102,12 +102,10 @@ mysqlnd_ms.collect_statistics=1
 	/* auto commit on (default) */
 	mst_mysqli_query(5, $link, "SET @myrole='master'");
 	$expected['gtid_autocommit_injections_failure']++;
-	mst_mysqli_query(7, $link, "SET @myrole'slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$expected['gtid_autocommit_injections_failure']++;
+	mst_mysqli_query(7, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(9, $stats, $expected);
-
 	$link->autocommit(false);
 
 	/* SET should have not been executed */
@@ -127,9 +125,7 @@ mysqlnd_ms.collect_statistics=1
 	printf("[021] Master says again '%s'\n", $row['_role']);
 
 	mst_mysqli_query(22, $link, "SET @myrole='master'");
-	if ($link->commit())
-		printf("[024] Commit should have failed\n");
-	else
+	if (!$link->commit())
 		printf("[025] [%d] %s\n", $link->errno, $link->error);
 	$expected['gtid_commit_injections_failure']++;
 
@@ -137,11 +133,8 @@ mysqlnd_ms.collect_statistics=1
 	$row = $res->fetch_assoc();
 	printf("Slave says '%d'\n", $row['_one']);
 
-	if ($link->commit())
-		printf("[028] Commit should have failed\n");
-	else
+	if (!$link->commit())
 		printf("[029] [%d] %s\n", $link->errno, $link->error);
-	$expected['gtid_commit_injections_failure']++;
 
 	$res = mst_mysqli_query(30, $link, "SELECT 2 AS _two FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
 	$row = $res->fetch_assoc();
@@ -175,18 +168,16 @@ mysqlnd_ms.collect_statistics=1
 		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini'.\n");
 ?>
 --EXPECTF--
-[005] [1146] Table %s doesn't exist
-[007] [1146] Table %s doesn't exist
-[013] Slave says ''
+[005] [1146] %s
+[013] Slave says 'slave'
 [017] Master says ''
 [021] Master says again ''
-[025] [1146] Table %s doesn't exist
+[025] [1146] %s
 Slave says '1'
-[029] [1146] Table %s doesn't exist
 Master says '2'
-[033] [1146] Table %s doesn't exist
-[036] [1146] Table %s doesn't exist
-[038] [1146] Table %s doesn't exist
-[040] [1193] Unknown system variable 'MY'
-[042] [1193] Unknown system variable 'MY'
+[033] [1146] %s
+[036] [1193] %s
+[038] [1193] %s
+[040] [1193] %s
+[042] [1193] %s
 done!
