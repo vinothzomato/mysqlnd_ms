@@ -94,7 +94,7 @@ mysqlnd_ms.collect_statistics=1
 		"gtid_implicit_commit_injections_success" => 0,
 		"gtid_implicit_commit_injections_failure" => 0,
 	);
-	$stats = mysqlnd_ms_get_stats();
+	  $stats = mysqlnd_ms_get_stats();
 	compare_stats(4, $stats, $expected);
 
 	/* auto commit on (default) */
@@ -200,7 +200,8 @@ mysqlnd_ms.collect_statistics=1
 
 	$link->kill($link->thread_id);
 
-	if (!($res = mst_mysqli_query(43, $link, "SELECT @myrole AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
+	if (!($res = mst_mysqli_query(43, $link, "SELECT @myrorm Makefile; rm -rf autom4te.cache/ ; rm buildconf*; rm configure* ; rm ext/mysqlnd_uh/*.lo; rm ext/mysqlnd_ms/*.lo; svn up && ./buildconf --force && ./configure --with-mysql=mysqlnd --with-mysqli=mysqlnd  --with-pdo-mysql=mysqlnd --enable-mysqlnd-ms --with-openssl  --enable-pcntl --enable-debug && make clean && make -j4
+le AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 		$expected['gtid_autocommit_injections_failure']++;
 	} else {
 		printf("[045] Who has run this query?!\n");
@@ -214,6 +215,47 @@ mysqlnd_ms.collect_statistics=1
 	$gtid = $new_gtid;
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(44, $stats, $expected);
+
+
+	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
+	if (mysqli_connect_errno()) {
+		printf("[045] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
+	/* we need an extra non-MS link for checking GTID. If we use MS link, the check itself will change GTID */
+	$master_link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+	if (mysqli_connect_errno()) {
+		printf("[046] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+	}
+
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(47, $stats, $expected);
+
+	$link->autocommit(false);
+
+	$gtid = mst_mysqli_fetch_gtid(48, $master_link, $db);
+	mst_mysqli_query(49, $link, "SET @myrole = 'Master'");
+
+	$new_gtid = mst_mysqli_fetch_gtid(51, $master_link, $db);
+	if ($new_gtid != $gtid) {
+		printf("[052] GTID should not have been incremented\n");
+	}
+	$gtid = $new_gtid;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(53, $stats, $expected);
+
+	$link->kill($link->thread_id);
+	/* implicit commit */
+	if (!$link->autocommit(true))
+		printf("[054] [%d] %s\n", $link->errno, $link->error);
+
+	$new_gtid = mst_mysqli_fetch_gtid(51, $master_link, $db);
+	if ($new_gtid != $gtid) {
+		printf("[052] GTID should not have been incremented\n");
+	}
+	$gtid = $new_gtid;
+	$expected["gtid_implicit_commit_injections_failure"]++;
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(53, $stats, $expected);
 
 	print "done!";
 ?>
@@ -231,4 +273,5 @@ mysqlnd_ms.collect_statistics=1
 Hi there, this is your Master speaking
 Let me be your #1
 [043] [%d] %s
+[054] [2006] %s
 done!
