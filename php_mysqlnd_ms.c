@@ -374,7 +374,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 			RETURN_FALSE;
 		}
 
-		if (!conn_data || !(*conn_data) || !(*conn_data)->stgy.last_used_conn) {
+		if (!(*conn_data)->stgy.last_used_conn) {
   			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection or no ID has been injected yet");
 			RETURN_FALSE;
 		}
