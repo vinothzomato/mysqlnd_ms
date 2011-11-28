@@ -31,6 +31,7 @@ $settings = array(
 			"quality_of_service" => array(
 				"strong_consistency" => 1,
 			),
+			"random" => array(),
 		),
 	),
 

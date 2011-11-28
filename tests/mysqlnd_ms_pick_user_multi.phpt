@@ -12,6 +12,7 @@ $settings = array(
 	"myapp" => array(
 		'filters'	=> array(
 			'user_multi' => array('callback' => 'pick_server'),
+			"random" => array()
 		),
 		'master' 	=> array($master_host),
 		'slave' 	=> array("unknown"),
