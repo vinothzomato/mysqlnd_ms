@@ -92,6 +92,7 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
 
 #define CONN_DATA_NOT_SET(conn_data) (!(conn_data) || !*(conn_data) || !(*(conn_data))->initialized || (*(conn_data))->skip_ms_calls)
+#define CONN_DATA_TRX_SET(conn_data) ((conn_data) && (*(conn_data)) && (!(*(conn_data))->skip_ms_calls))
 #define CONN_DATA_TRY_TRX_INJECTION(conn_data) (((*(conn_data))->connection_opened) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && ((TRUE == (*(conn_data))->global_trx.is_master) || (TRUE == (*(conn_data))->global_trx.set_on_slave)))
 
 #define MS_TRX_INJECT(ret, connection, conn_data) \
@@ -913,10 +914,11 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_LOAD_CONN_DATA(conn_data, connection);
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-	if (!CONN_DATA_NOT_SET(conn_data) && CONN_DATA_TRY_TRX_INJECTION(conn_data))
+	if (CONN_DATA_TRX_SET(conn_data) && CONN_DATA_TRY_TRX_INJECTION(conn_data))
 	{
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
+
 			if (TRUE == (*conn_data)->global_trx.use_multi_statement) {
 				smart_str_appendl(&multi_query, (*conn_data)->global_trx.on_commit, (*conn_data)->global_trx.on_commit_len);
 				smart_str_appendc(&multi_query, ';');
@@ -947,6 +949,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 				}
 
 			} else {
+
 				MS_TRX_INJECT(ret, connection, conn_data);
 				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
 					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
@@ -961,6 +964,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 			}
 		} else {
 			/* autocommit off */
+
 			if ((TRUE == (*conn_data)->global_trx.multi_statement_gtx_enabled) &&
 				(FALSE == (*conn_data)->global_trx.multi_statement_user_enabled))
 			{
