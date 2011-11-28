@@ -128,5 +128,5 @@ array(1) {
     string(1) "1"
   }
 }
-[009] Run on %d
+[009] Run on %s
 done!
