@@ -37,7 +37,6 @@ $settings = array(
 			'fetch_last_gtid'			=> 'Hi there!',
 			'check_for_gtid'			=> $sql['check_for_gtid'],
 			'report_error'				=> true,
-			'set_on_slave'				=> true,
 		),
 
 		'lazy_connections' => 1,

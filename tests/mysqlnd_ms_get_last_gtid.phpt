@@ -39,7 +39,6 @@ $settings = array(
 			'fetch_last_gtid'			=> $sql['fetch_last_gtid'],
 			'check_for_gtid'			=> $sql['check_for_gtid'],
 			'report_error'				=> true,
-			'set_on_slave'				=> false,
 		),
 
 		'lazy_connections' => 1,
@@ -111,6 +110,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_get_last_gtid.ini
 
 	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
 		printf("[clean] %s\n", $error));
+
+
 ?>
 --EXPECTF--
 [004] [0%s

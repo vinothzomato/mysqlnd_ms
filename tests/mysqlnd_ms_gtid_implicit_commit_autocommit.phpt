@@ -37,7 +37,6 @@ $settings = array(
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> $sql['update'],
 			'report_error'				=> true,
-			'set_on_slave'				=> true,
 		),
 
 		'lazy_connections' => 1,
