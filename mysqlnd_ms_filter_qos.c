@@ -45,22 +45,20 @@ static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 	MYSQLND_RES * res = NULL;
 	enum_func_status ret = FAIL;
 
-	DBG_ENTER("mysqlnd_ms_server_has_gtid");
+	DBG_ENTER("mysqlnd_ms_qos_server_has_gtid");
 
-	/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
 	(*conn_data)->skip_ms_calls = TRUE;
 	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
 		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
 		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
-		res->m.free_result(res, FALSE TSRMLS_CC);
-
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
 	if (res) {
 		res->m.free_result(res, FALSE TSRMLS_CC);
 	}
 
+	DBG_INF_FMT("ret = %d", ret);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -112,7 +110,6 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 							(CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
 							((CONN_GET_STATE(connection) > CONN_ALLOCED) ||	(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))))
 							{
-
 							smart_str sql = {0};
 							char * pos;
 							char buf[32];
@@ -130,8 +127,21 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 								smart_str_appendc(&sql, '\0');
 								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1 TSRMLS_CC)) {
 									zend_llist_add_element(selected_slaves, &element);
+								} else {
+									MYSQLND_ERROR_INFO connection_error_info = MYSQLND_MS_ERROR_INFO(connection);
+									char error_buf[256];
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: '%s'", connection_error_info.error);
+									error_buf[sizeof(error_buf) - 1] = '\0';
+									SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 								}
 								smart_str_free(&sql);
+							} else {
+								char error_buf[256];
+								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Failed parse SQL for checking GTID. Cannot find #GTID placeholder");
+								error_buf[sizeof(error_buf) - 1] = '\0';
+								SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 							}
 						}
 					}

@@ -1,5 +1,5 @@
 --TEST--
-mysqlnd_ms_set_qos(), GTID SQL parsing
+mysqlnd_ms_set_qos(), GTID SQL error
 --SKIPIF--
 <?php
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
@@ -49,19 +49,19 @@ $settings = array(
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> $sql['update'],
 			'fetch_last_gtid'			=> $sql['fetch_last_gtid'],
-			'check_for_gtid'			=> $sql['check_for_gtid'] . "\n'#GTID'",
+			'check_for_gtid'			=> "Be my #GTID",
 			'report_error'				=> true,
 		),
 
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_set_qos_gtid_sql_parsing.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_set_qos_gtid_sql_error2.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_parsing.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error2.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -94,8 +94,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_parsing.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_set_qos_gtid_sql_parsing.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_set_qos_gtid_sql_parsing.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_set_qos_gtid_sql_error2.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_set_qos_gtid_sql_error2.ini'.\n");
 
 	require_once("connect.inc");
 	require_once("util.inc");
@@ -106,12 +106,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_parsing.ini
 		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
-array(1) {
-  [0]=>
-  array(1) {
-    [0]=>
-    string(1) "1"
-  }
-}
-[007] [0] ''
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: '%s' in %s on line %d
+
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: '%s' in %s on line %d
+[006] [2000] (mysqlnd_ms) SQL error while checking slave for GTID: '%s'
+[007] [2000] '(mysqlnd_ms) SQL error while checking slave for GTID: '%s''
 done!
