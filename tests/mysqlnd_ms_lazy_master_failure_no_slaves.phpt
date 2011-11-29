@@ -30,7 +30,7 @@ mysqlnd_ms.collect_statistics=1
 	if (!($link = mst_mysqli_connect("myapp", "invalid_user", "invalid_pw", $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH, true, true);
+	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH, true, false);
 	$connections[$link->thread_id] = array('master');
 
 	foreach ($connections as $thread_id => $details) {
@@ -47,7 +47,6 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_master_failure_no_slaves.ini'.\n");
 ?>
 --EXPECTF--
-[002] Cannot find the expected connect warning, got ''
 [002] [1045] %s
 Connection %d -
 ... master
