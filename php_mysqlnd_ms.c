@@ -384,8 +384,8 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 		conn = (*conn_data)->stgy.last_used_conn;
 		MS_LOAD_CONN_DATA(conn_data, conn);
 
-		/* TODO: bail, should never happen, I think */
 		if (!conn_data || !(*conn_data)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to fetch plugin data. Please report a bug");
 			RETURN_FALSE;
 		}
 
@@ -394,7 +394,6 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 			RETURN_FALSE;
 		}
 
-		/* TODO: error handling: copy error, if any, to proxy conn to fordward to user */
 		(*conn_data)->skip_ms_calls = TRUE;
 		if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, (*conn_data)->global_trx.fetch_last_gtid, (*conn_data)->global_trx.fetch_last_gtid_len TSRMLS_CC)) {
 			goto getlastidfailure;
@@ -424,6 +423,9 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 			zval_ptr_dtor(&row);
 			res->m.free_result(res, FALSE TSRMLS_CC);
 			RETURN_STRING(gtid_str, 1);
+		} else {
+			/* no error code set on line, we need to bail explicitly */
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to read GTID from result set. Please report a bug");
 		}
 	}
 
