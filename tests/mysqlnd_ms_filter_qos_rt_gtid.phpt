@@ -59,7 +59,7 @@ msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port
 ?>
 --INI--
 mysqlnd_ms.enable=1
-  mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_rt_gtid.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_rt_gtid.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -81,7 +81,7 @@ mysqlnd_ms.enable=1
 		var_dump($res->fetch_all());
 	}
 
-	if (false == ($gtid = mysqlnd_ms_get_last_gtid($link)))
+	if (false === ($gtid = mysqlnd_ms_get_last_gtid($link)))
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
 
 	printf("GTID '%s'\n", $gtid);
