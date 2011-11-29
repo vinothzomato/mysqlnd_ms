@@ -57,6 +57,9 @@ static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
+	if (res) {
+		res->m.free_result(res, FALSE TSRMLS_CC);
+	}
 
 	DBG_RETURN(ret);
 }
@@ -105,7 +108,11 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 					if (element->conn) {
 						connection = element->conn;
 						MS_LOAD_CONN_DATA(conn_data, connection);
-						if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid) {
+						if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid &&
+							(CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
+							((CONN_GET_STATE(connection) > CONN_ALLOCED) ||	(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))))
+							{
+
 							smart_str sql = {0};
 							char * pos;
 							char buf[32];
@@ -114,6 +121,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
 							/* FIXME */
+							/* TODO: bubble up error, if any, to user's connection */
 							pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
 							if (pos) {
 								smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
@@ -125,7 +133,6 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 								}
 								smart_str_free(&sql);
 							}
-
 						}
 					}
 					i++;
