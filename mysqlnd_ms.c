@@ -93,7 +93,7 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 
 #define CONN_DATA_NOT_SET(conn_data) (!(conn_data) || !*(conn_data) || !(*(conn_data))->initialized || (*(conn_data))->skip_ms_calls)
 #define CONN_DATA_TRX_SET(conn_data) ((conn_data) && (*(conn_data)) && (!(*(conn_data))->skip_ms_calls))
-#define CONN_DATA_TRY_TRX_INJECTION(conn_data) (((*(conn_data))->connection_opened) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && (TRUE == (*(conn_data))->global_trx.is_master))
+#define CONN_DATA_TRY_TRX_INJECTION(conn_data, conn) ((CONN_GET_STATE(conn) > CONN_ALLOCED) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && (TRUE == (*(conn_data))->global_trx.is_master))
 
 #define MS_TRX_INJECT(ret, connection, conn_data) \
 	if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)((connection), ((*(conn_data))->global_trx.on_commit), ((*(conn_data))->global_trx.on_commit_len) TSRMLS_CC))) \
@@ -217,7 +217,6 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 		/* TODO: without this the global trx id injection logic will fail on recently opened lazy connections */
 		if (conn_data && *conn_data) {
 			(*conn_data)->initialized = TRUE;
-			(*conn_data)->connection_opened = TRUE;
 		}
 #endif
 #ifdef BUFFERED_COMMANDS
@@ -367,7 +366,6 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 							(llist_dtor_func_t) mysqlnd_ms_commands_list_dtor, conn->persistent);
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 			mysqlnd_ms_init_connection_global_trx(&(*conn_data)->global_trx, global_trx, is_master, conn->persistent TSRMLS_CC);
-			(*conn_data)->connection_opened = (lazy_connections) ? FALSE : TRUE;
 #endif
 		}
 	}
@@ -734,7 +732,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		(*conn_data)->cred.mysql_flags = mysql_flags;
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		mysqlnd_ms_init_trx_to_null(&(*conn_data)->global_trx TSRMLS_CC);
-		(*conn_data)->connection_opened = FALSE;
 #endif
 		(*conn_data)->initialized = TRUE;
 
@@ -926,7 +923,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_LOAD_CONN_DATA(conn_data, connection);
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
-	if (CONN_DATA_TRX_SET(conn_data) && CONN_DATA_TRY_TRX_INJECTION(conn_data))
+	if (CONN_DATA_TRX_SET(conn_data) && CONN_DATA_TRY_TRX_INJECTION(conn_data, connection))
 	{
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
@@ -1689,7 +1686,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		if (((TRUE == (*conn_data)->stgy.in_transaction) && mode) &&
-			CONN_DATA_TRY_TRX_INJECTION(conn_data))
+			CONN_DATA_TRY_TRX_INJECTION(conn_data, proxy_conn))
 		{
 			/*
 			Implicit commit when autocommit(false) ..query().. autocommit(true).
@@ -1766,7 +1763,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 	if ((conn_data && *conn_data && TRUE == commit) &&
 		((TRUE == (*conn_data)->stgy.in_transaction)) &&
-		CONN_DATA_TRY_TRX_INJECTION(conn_data))
+		CONN_DATA_TRY_TRX_INJECTION(conn_data, conn))
 	{
 		MS_TRX_INJECT(ret, conn, conn_data);
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_COMMIT_SUCCESS : MS_STAT_GTID_COMMIT_FAILURE);
@@ -1990,7 +1987,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	connection = s->data->conn;
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, connection->thread_id);
 
-	if (CONN_DATA_TRY_TRX_INJECTION(conn_data) &&
+	if (CONN_DATA_TRY_TRX_INJECTION(conn_data, connection) &&
 		(FALSE == (*conn_data)->stgy.in_transaction))
 	{
 		/* autocommit mode */
