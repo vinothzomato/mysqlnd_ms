@@ -253,6 +253,7 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 {
 	DBG_ENTER("mysqlnd_ms_init_connection_global_trx");
 	if (new_global_trx == orig_global_trx) {
+		orig_global_trx->is_master = is_master;
 		DBG_VOID_RETURN;
 	}
 
