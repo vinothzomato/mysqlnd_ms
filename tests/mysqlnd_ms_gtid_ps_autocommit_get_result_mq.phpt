@@ -5,6 +5,9 @@ PS, autocommit, GTID, stmt.get_result, mq
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
+	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
+
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
