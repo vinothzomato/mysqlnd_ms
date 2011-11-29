@@ -450,7 +450,7 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 {
 	zval * handle;
 	double option;
-	zval * option_value;
+	zval * option_value = NULL;
 	long gtid_or_age = 0;
 	double service_level;
 	MYSQLND * proxy_conn;
@@ -466,26 +466,28 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 			case QOS_OPTION_GTID:
 				if (service_level != CONSISTENCY_SESSION) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID option value must be used with MYSQLND_MS_QOS_CONSISTENCY_SESSION only");
-					return;
+					RETURN_FALSE;
 				}
 				if (!option_value) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option value required");
-					return;
+					RETURN_FALSE;
 				}
+
 				/* TODO: For 32bit systems, do we need to store a GTID BIGINT in char* ?
 				Maybe char* is better anyway for GTIDs? */
+
 				convert_to_long(option_value);
 				gtid_or_age = Z_LVAL_P(option_value);
 				if (gtid_or_age < 0L) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID must have a positive value");
-					return;
+					RETURN_FALSE;
 				}
 				break;
 
 			case QOS_OPTION_AGE:
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid option");
-				return;
+				RETURN_FALSE;
 				break;
 		  }
 	} else {
@@ -494,6 +496,15 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 
 	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
 		RETURN_FALSE;
+	}
+
+	{
+		MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+		conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+		if (!conn_data || !(*conn_data)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+			RETURN_FALSE;
+		}
 	}
 
 	switch ((int)service_level)

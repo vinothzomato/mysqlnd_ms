@@ -81,7 +81,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_runtime.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_runtime.ini'.\n");
 ?>
 --EXPECTF--
-bool(true)
+Warning: mysqlnd_ms_set_qos(): (mysqlnd_ms) No mysqlnd_ms connection in %s on line %d
+bool(false)
 bool(true)
 array(1) {
   ["@myrole"]=>
