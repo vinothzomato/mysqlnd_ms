@@ -58,7 +58,6 @@ static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 		res->m.free_result(res, FALSE TSRMLS_CC);
 	}
 
-	DBG_INF_FMT("ret = %d", ret);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -114,11 +113,8 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 							char * pos;
 							char buf[32];
 
-							/* TODO: Do we need this check, can we have conns without data ?! */
 							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-							/* FIXME */
-							/* TODO: bubble up error, if any, to user's connection */
 							pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
 							if (pos) {
 								smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
