@@ -106,6 +106,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_parsing2.ini
 		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: 1064/'%s' in %s on line %d
+
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: 1064/'%s' in %s on line %d
 array(1) {
   [0]=>
   array(1) {

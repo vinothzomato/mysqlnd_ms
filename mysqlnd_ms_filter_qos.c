@@ -41,12 +41,21 @@
 
 /* {{{ mysqlnd_ms_qos_get_gtid */
 static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
-		MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len TSRMLS_DC) {
+		MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len, MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC) {
 	MYSQLND_RES * res = NULL;
 	enum_func_status ret = FAIL;
+	/* TODO Andrey */
+#if MYSQLND_VERSION_ID >= 50010
+	MYSQLND_ERROR_INFO * org_error_info = NULL;
+#endif
 
 	DBG_ENTER("mysqlnd_ms_qos_server_has_gtid");
 
+#if MYSQLND_VERSION_ID >= 50010
+	/* hide errors from user */
+	org_error_info = conn->error_info;
+	conn->error_info = tmp_error_info;
+#endif
 	(*conn_data)->skip_ms_calls = TRUE;
 	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
 		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
@@ -54,6 +63,10 @@ static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
+#if MYSQLND_VERSION_ID >= 50010
+	conn->error_info = org_error_info;
+#endif
+
 	if (res) {
 		res->m.free_result(res, FALSE TSRMLS_CC);
 	}
@@ -100,49 +113,58 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
 				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+				MYSQLND_ERROR_INFO *tmp_error_info = mnd_ecalloc(1,sizeof(MYSQLND_ERROR_INFO));
+				smart_str sql = {0};
+				zend_bool exit_loop = FALSE;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list);
-					if (element->conn) {
+					if (element->conn && !exit_loop) {
 						connection = element->conn;
 						MS_LOAD_CONN_DATA(conn_data, connection);
 						if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid &&
 							(CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
 							((CONN_GET_STATE(connection) > CONN_ALLOCED) ||	(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))))
 							{
-							smart_str sql = {0};
-							char * pos;
-							char buf[32];
 
-							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+							 DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
-							pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
-							if (pos) {
-								smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
-								snprintf(buf, sizeof(buf), "%ld", filter_data->option_value);
-								smart_str_appends(&sql, buf);
-								smart_str_appendc(&sql, '\0');
-								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1 TSRMLS_CC)) {
-									zend_llist_add_element(selected_slaves, &element);
+							if (!sql.c) {
+								char * pos;
+								char buf[32];
+								pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
+								if (pos) {
+								  	smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
+									snprintf(buf, sizeof(buf), "%ld", filter_data->option_value);
+									smart_str_appends(&sql, buf);
+									smart_str_appendc(&sql, '\0');
 								} else {
-									MYSQLND_ERROR_INFO connection_error_info = MYSQLND_MS_ERROR_INFO(connection);
 									char error_buf[256];
-									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: '%s'", connection_error_info.error);
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Failed parse SQL for checking GTID. Cannot find #GTID placeholder");
 									error_buf[sizeof(error_buf) - 1] = '\0';
-									SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+									exit_loop = TRUE;
+								}
+							}
+							if (sql.c) {
+								tmp_error_info->error_no = 0;
+								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, tmp_error_info TSRMLS_CC)) {
+									zend_llist_add_element(selected_slaves, &element);
+								} else if (tmp_error_info->error_no) {
+									char error_buf[256];
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'", tmp_error_info->error_no, tmp_error_info->error);
+									error_buf[sizeof(error_buf) - 1] = '\0';
 									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 								}
-								smart_str_free(&sql);
-							} else {
-								char error_buf[256];
-								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Failed parse SQL for checking GTID. Cannot find #GTID placeholder");
-								error_buf[sizeof(error_buf) - 1] = '\0';
-								SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 							}
 						}
 					}
 					i++;
 				END_ITERATE_OVER_SERVER_LIST;
+
+				if (sql.c)
+					smart_str_free(&sql);
+
+				mnd_efree(tmp_error_info);
 
 				zend_llist_copy(selected_masters, master_list);
 				break;
@@ -170,8 +192,11 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				We may inject mysqlnd_qc per-query TTL SQL hints here to
 				replace a slave access with a call access.
 			*/
+			if (QOS_OPTION_AGE == filter_data->option) {
+			} else {
+				zend_llist_copy(selected_slaves, slave_list);
+			}
 			zend_llist_copy(selected_masters, master_list);
-			zend_llist_copy(selected_slaves, slave_list);
 			break;
 
 		default:

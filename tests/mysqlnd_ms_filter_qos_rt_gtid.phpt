@@ -17,9 +17,16 @@ _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_so
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 include_once("util.inc");
+$ret = mst_is_slave_of($slave_host_only, $slave_port, $slave_socket, $master_host_only, $master_port, $master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
 $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
+
+if ($error = mst_mysqli_drop_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+	die(sprintf("SKIP Failed to drop GTID table on slave %s\n", $error));
 
 
 $settings = array(
@@ -120,7 +127,9 @@ array(1) {
     string(1) "1"
   }
 }
-GTID '%d'
+GTID '5'
+
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: 1146/'%s' in %s on line %d
 array(1) {
   [0]=>
   array(1) {
@@ -128,5 +137,7 @@ array(1) {
     string(1) "1"
   }
 }
-[009] Run on %s
+
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: 1146/'%s' in %s on line %d
+[009] Run on master1-%s
 done!

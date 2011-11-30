@@ -131,7 +131,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_lost_connection.ini
 	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
 		printf("[clean] %s\n", $error));
 ?>
---XFAIL--
-Some warning, which one depends on upcoming implementation from Andrey
 --EXPECTF--
+[006] [%d] %s
+[007] [%d] %s
 done!

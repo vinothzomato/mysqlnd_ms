@@ -107,8 +107,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error.ini
 ?>
 --EXPECTF--
 Warning: mysqli::query(): (mysqlnd_ms) Failed parse SQL for checking GTID. Cannot find #GTID placeholder in %s on line %d
-
-Warning: mysqli::query(): (mysqlnd_ms) Failed parse SQL for checking GTID. Cannot find #GTID placeholder in %s on line %d
-[006] [2000] (mysqlnd_ms) Failed parse SQL for checking GTID. Cannot find #GTID placeholder
-[007] [2000] '(mysqlnd_ms) Failed parse SQL for checking GTID. Cannot find #GTID placeholder'
+array(1) {
+  [0]=>
+  array(1) {
+    [0]=>
+    string(1) "1"
+  }
+}
+[007] [0] ''
 done!

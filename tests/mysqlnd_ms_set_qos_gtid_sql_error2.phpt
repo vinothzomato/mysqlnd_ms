@@ -17,6 +17,11 @@ _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_so
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 include_once("util.inc");
+$ret = mst_is_slave_of($slave_host_only, $slave_port, $slave_socket, $master_host_only, $master_port, $master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+include_once("util.inc");
 $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
@@ -106,9 +111,15 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error2.ini
 		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
-Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: '%s' in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: 1064/'%s' at line 1' in %s on line %d
 
-Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: '%s' in %s on line %d
-[006] [2000] (mysqlnd_ms) SQL error while checking slave for GTID: '%s'
-[007] [2000] '(mysqlnd_ms) SQL error while checking slave for GTID: '%s''
+Warning: mysqli::query(): (mysqlnd_ms) SQL error while checking slave for GTID: 1064/'%s' at line 1' in %s on line %d
+array(1) {
+  [0]=>
+  array(1) {
+    [0]=>
+    string(1) "1"
+  }
+}
+[007] [0] ''
 done!
