@@ -7,27 +7,35 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 
 require_once('skipif.inc');
 require_once("connect.inc");
-if (($master_host == $slave_host)) {
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
+
+include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+if (true == $ret)
+	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
+
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
 		'trx_stickiness' => 'master',
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_trx_stickiness_master_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -41,9 +49,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
-	$master_thread = mst_mysqli_get_emulated_id(3, $link);
+	$emulated_master_thread = mst_mysqli_get_emulated_id(3, $link);
 	mst_mysqli_query(4, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
-	$slave_thread = mst_mysqli_get_emulated_id(5, $link);
+	$emulated_slave_thread = mst_mysqli_get_emulated_id(5, $link);
 
 	/* DDL, implicit commit */
 	mst_mysqli_query(6, $link, "DROP TABLE IF EXISTS test");
@@ -63,7 +71,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 
 	$res = mst_mysqli_query(9, $link, "SELECT 1 AS id FROM DUAL");
 	$server_id = mst_mysqli_get_emulated_id(10, $link);
-	if ($server_id != $slave_thread) {
+	if ($server_id != $emulated_slave_thread) {
 		printf("[011] SELECT in autocommit mode should have been run on the slave\n");
 	}
 	$row = $res->fetch_assoc();
@@ -75,7 +83,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 	$link->autocommit(TRUE);
 	$res = mst_mysqli_query(13, $link, "SELECT 1 AS id FROM DUAL");
 	$server_id = mst_mysqli_get_emulated_id(14, $link);
-	if ($server_id != $slave_thread) {
+	if ($server_id != $emulated_slave_thread) {
 		printf("[015] SELECT in autocommit mode should have been run on the slave\n");
 	}
 	$row = $res->fetch_assoc();
@@ -88,7 +96,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 	/* this can be the start of a transaction, thus it shall be run on the master */
 	$res = mst_mysqli_query(17, $link, "SELECT 1 AS id FROM DUAL");
 	$server_id = mst_mysqli_get_emulated_id(18, $link);
-	if ($server_id != $master_thread) {
+	if ($server_id != $emulated_master_thread) {
 		printf("[019] SELECT not run in autocommit mode should have been run on the master\n");
 	}
 	$row = $res->fetch_assoc();
@@ -102,7 +110,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 	/* autocommit is still off, thus it shall be run on the master */
 	$res = mst_mysqli_query(22, $link, "SELECT id FROM test WHERE id = 1");
 	$server_id = mst_mysqli_get_emulated_id(23, $link);
-	if ($server_id != $master_thread) {
+	if ($server_id != $emulated_master_thread) {
 		printf("[024] SELECT not run in autocommit mode should have been run on the master\n");
 	}
 	$row = $res->fetch_assoc();
@@ -115,7 +123,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 
 	$res = mst_mysqli_query(26, $link, "SELECT 1 AS id FROM DUAL");
 	$server_id = mst_mysqli_get_emulated_id(27, $link);
-	if ($server_id != $slave_thread) {
+	if ($server_id != $emulated_slave_thread) {
 		printf("[028] SELECT in autocommit mode should have been run on the slave\n");
 	}
 	$row = $res->fetch_assoc();
@@ -131,7 +139,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 
 	$res = mst_mysqli_query(31, $link, "SELECT id FROM test WHERE id = 100");
 	$server_id = mst_mysqli_get_emulated_id(32, $link);
-	if ($server_id != $master_thread) {
+	if ($server_id != $emulated_master_thread) {
 		printf("[033] SELECT not run in autocommit mode should have been run on the master\n");
 	}
 	$row = $res->fetch_assoc();
@@ -145,7 +153,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 
 	$res = mst_mysqli_query(37, $link, "SELECT id FROM test WHERE id = 100");
 	$server_id = mst_mysqli_get_emulated_id(38, $link);
-	if ($server_id != $master_thread) {
+	if ($server_id != $emulated_master_thread) {
 		printf("[039] SELECT not run in autocommit mode should have been run on the master\n");
 	}
 	$row = $res->fetch_assoc();
@@ -156,7 +164,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 	/* SQL hint wins: use slave although autocommit is off */
 	$res = mst_mysqli_query(41, $link, "SELECT 1 AS id FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
 	$server_id = mst_mysqli_get_emulated_id(42, $link);
-	if ($server_id != $slave_thread) {
+	if ($server_id != $emulated_slave_thread) {
 		printf("[043] SELECT in autocommit mode should have been run on the slave\n");
 	}
 	$row = $res->fetch_assoc();
@@ -166,7 +174,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 
 	$res = mst_mysqli_query(45, $link, "SELECT 1 AS id FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
 	$server_id = mst_mysqli_get_emulated_id(46, $link);
-	if ($server_id != $slave_thread) {
+	if ($server_id != $emulated_slave_thread) {
 		printf("[047] SELECT in autocommit mode should have been run on the slave\n");
 	}
 	$row = $res->fetch_assoc();

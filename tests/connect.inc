@@ -50,6 +50,34 @@
 		$slave_host_only = substr($slave_host, 0, $pos);
 	}
 
+	$emulated_master_host = $emulated_master_host_only = getenv("MYSQL_TEST_EMULATED_MASTER_HOST") ? getenv("MYSQL_TEST_EMULATED_MASTER_HOST") : $host;
+	$emulated_master_socket = $socket;
+	$emulated_master_port = $port;
+	if (false !== ($pos = strpos($emulated_master_host, ':'))) {
+		if ('/' == substr($emulated_master_host, $pos + 1, 1)) {
+			$emulated_master_socket = substr($emulated_master_host, $pos + 1);
+			$emulated_master_port = NULL;
+		} else {
+			$emulated_master_socket = NULL;
+			$emulated_master_port = substr($emulated_master_host, $pos + 1);
+		}
+		$emulated_master_host_only = substr($emulated_master_host, 0, $pos);
+	}
+
+	$emulated_slave_host = $emulated_slave_host_only = getenv("MYSQL_TEST_EMULATED_SLAVE_HOST") ? getenv("MYSQL_TEST_EMULATED_SLAVE_HOST") : $host;
+	$emulated_slave_socket = $socket;
+	$emulated_slave_port = $port;
+	if (false !== ($pos = strpos($emulated_slave_host, ':'))) {
+		if ('/' == substr($emulated_slave_host, $pos + 1, 1)) {
+			$emulated_slave_socket = substr($emulated_slave_host, $pos + 1);
+			$emulated_slave_port = NULL;
+		} else {
+			$emulated_slave_socket = NULL;
+			$emulated_slave_port = substr($emulated_slave_host, $pos + 1);
+		}
+		$emulated_slave_host_only = substr($emulated_slave_host, 0, $pos);
+	}
+
 	/* Development setting: test experimal features and/or feature requests that never worked before? */
 	$TEST_EXPERIMENTAL = (in_array(getenv("MYSQL_TEST_EXPERIMENTAL"), array(0, 1))) ?
 				((1 == getenv("MYSQL_TEST_EXPERIMENTAL")) ? true : false) :

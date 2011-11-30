@@ -53,7 +53,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser26.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-	
+
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {

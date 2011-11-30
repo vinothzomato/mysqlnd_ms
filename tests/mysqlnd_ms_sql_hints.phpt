@@ -5,30 +5,37 @@ SQL hints to control query redirection
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if (($master_host == $slave_host)) {
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
-if ($master_host == $slave_host) {
+if ($emulated_master_host == $emulated_slave_host) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
+include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+if (true == $ret)
+	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
+
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_sql_hints.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 
-include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -66,11 +73,11 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_hints.ini
 
 	$expected = array();
 	my_mysqli_query(10, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_MASTER_SWITCH), $expected);
-	$master_thread_id = $link->thread_id;
-	$master = mst_mysqli_get_emulated_id(11, $link);
+	$emulated_master_thread_id = $link->thread_id;
+	$emulated_master = mst_mysqli_get_emulated_id(11, $link);
 	my_mysqli_query(20, $link, sprintf("/*%s*/DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH), $expected);
-	$slave_thread_id = $link->thread_id;
-	$slave = mst_mysqli_get_emulated_id(21, $link);
+	$emulated_slave_thread_id = $link->thread_id;
+	$emulated_slave = mst_mysqli_get_emulated_id(21, $link);
 	my_mysqli_query(30, $link, sprintf("/*%s*/CREATE TABLE test(id INT)", MYSQLND_MS_MASTER_SWITCH), $expected);
 	my_mysqli_query(40, $link, sprintf("/*%s*/CREATE TABLE test(id INT)", MYSQLND_MS_SLAVE_SWITCH), $expected);
 	my_mysqli_query(50, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (CONNECTION_ID())", MYSQLND_MS_SLAVE_SWITCH), $expected);
@@ -82,55 +89,55 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_hints.ini
 	$expected = array('_role' => 'slave');
 	my_mysqli_query(90, $link, "SELECT @myrole AS _role", $expected);
 	$server_id = mst_mysqli_get_emulated_id(91, $link);
-	if ($server_id != $slave)
+	if ($server_id != $emulated_slave)
 		printf("[092] Query should have been run on the slave\n");
 
 	/* master, no hint */
 	$expected = array();
 	my_mysqli_query(100, $link, "INSERT INTO test(id) VALUES (-2)", $expected);
 	$server_id = mst_mysqli_get_emulated_id(101, $link);
-	if ($server_id != $master)
+	if ($server_id != $emulated_master)
 		printf("[102] Query should have been run on the master\n");
 
 	/* ... boring: slave */
-	$expected = array("id" => $slave_thread_id);
+	$expected = array("id" => $emulated_slave_thread_id);
 	my_mysqli_query(110, $link, sprintf("/*%s*/SELECT id FROM test", MYSQLND_MS_SLAVE_SWITCH), $expected);
 	$server_id = mst_mysqli_get_emulated_id(111, $link);
-	if ($server_id != $slave)
+	if ($server_id != $emulated_slave)
 		printf("[112] Query should have been run on the slave\n");
 
 	/* master, no hint */
 	$expected = array();
 	my_mysqli_query(120, $link, "DELETE FROM test WHERE id = -2", $expected);
 	$server_id = mst_mysqli_get_emulated_id(121, $link);
-	if ($server_id != $master)
+	if ($server_id != $emulated_master)
 		printf("[122] Query should have been run on the master\n");
 
 	/* master, forced */
-	$expected = array("id" => $master_thread_id);
+	$expected = array("id" => $emulated_master_thread_id);
 	my_mysqli_query(130, $link, sprintf("/*%s*/SELECT id FROM test", MYSQLND_MS_MASTER_SWITCH), $expected);
 	$server_id = mst_mysqli_get_emulated_id(131, $link);
-	if ($server_id != $master)
+	if ($server_id != $emulated_master)
 		printf("[132] Query should have been run on the master\n");
 
 	/* master, forced */
 	$expected = array("_role" => 'master');
 	my_mysqli_query(140, $link, sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH), $expected);
 	$server_id = mst_mysqli_get_emulated_id(141, $link);
-	if ($server_id != $master)
+	if ($server_id != $emulated_master)
 		printf("[142] Query should have been run on the master\n");
 
 	/* slave, forced */
 	$expected = array();
 	my_mysqli_query(150, $link, sprintf("/*%s*/INSERT INTO test(id) VALUES (0)", MYSQLND_MS_SLAVE_SWITCH), $expected);
 	$server_id = mst_mysqli_get_emulated_id(151, $link);
-	if ($server_id != $slave)
+	if ($server_id != $emulated_slave)
 		printf("[152] Query should have been run on the slave\n");
 
 	$expected = array('_role' => 'slave');
 	my_mysqli_query(160, $link, sprintf("/*%s*/SELECT @myrole AS _role", MYSQLND_MS_LAST_USED_SWITCH), $expected);
 	$server_id = mst_mysqli_get_emulated_id(161, $link);
-	if ($server_id != $slave)
+	if ($server_id != $emulated_slave)
 		printf("[162] Query should have been run on the slave\n");
 
 	$expected = array();

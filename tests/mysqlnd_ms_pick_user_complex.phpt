@@ -5,25 +5,29 @@ Config settings: pick = user
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if (($master_host == $slave_host)) {
+if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
+	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
+
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
-if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
-	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
+include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
 
-if (($master_host == $slave_host)) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
+if (true == $ret)
+	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
 		'pick' 	=> array('user' => array('callback' => 'pick_server')),
 		'lazy_connections' => 0,
 	),
@@ -31,9 +35,8 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_pick_user_complex.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -47,7 +50,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 	* Select/pick a server for running the query on.
 	*
 	*/
-	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
+	function pick_server($connected_host, $query, $emulated_master, $emulated_slaves, $last_used_connection, $in_transaction) {
 		global $queries, $host, $autocommit;
 		static $pick_server_last_used = "";
 		flush();
@@ -80,22 +83,22 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 				unset($queries[$query]);
 		}
 
-		if (!is_array($master)) {
+		if (!is_array($emulated_master)) {
 			printf("[007] No list of master servers given.");
 		} else {
 			/* we can't do much better because we get string representations of the master/slave connections */
-			if (1 != ($tmp = count($master))) {
+			if (1 != ($tmp = count($emulated_master))) {
 				printf("[008] Expecting one entry in the list of masters, found %d. Dumping list.\n", $tmp);
-				var_dump($master);
+				var_dump($emulated_master);
 			}
 		}
 
-		if (!is_array($slaves)) {
+		if (!is_array($emulated_slaves)) {
 			printf("[009] No list of slave servers given.");
 		} else {
-			if (1 != ($tmp = count($slaves))) {
+			if (1 != ($tmp = count($emulated_slaves))) {
 				printf("[010] Expecting one entry in the list of slaves, found %d. Dumping list.\n", $tmp);
-				var_dump($slaves);
+				var_dump($emulated_slaves);
 			}
 		}
 
@@ -112,16 +115,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_complex.ini
 			  $server = 'last used';
 			  break;
 			case MYSQLND_MS_QUERY_USE_MASTER:
-			  $ret = $master[0];
+			  $ret = $emulated_master[0];
 			  $server = 'master';
 			  break;
 			case MYSQLND_MS_QUERY_USE_SLAVE:
- 			  $ret = $slaves[0];
+ 			  $ret = $emulated_slaves[0];
 			  $server = 'slave';
 			  break;
 			default:
 			  printf("[012] Unknown return value from mysqlnd_ms_query_is_select, where = %s .\n", $where);
-			  $ret = $master[0];
+			  $ret = $emulated_master[0];
 			  $server = 'unknown';
 			  break;
 		}

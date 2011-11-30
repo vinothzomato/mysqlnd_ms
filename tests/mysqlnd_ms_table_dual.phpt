@@ -4,22 +4,30 @@ table filter: SELECT * FROM DUAL (no db)
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
-if (($master_host == $slave_host)) {
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_check_feature(array("table_filter"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
+
+include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+if (true == $ret)
+	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
 
 $settings = array(
 	"myapp" => array(
 		'master' => array(
 			"master1" => array(
-				'host' 		=> $master_host_only,
-				'port' 		=> (int)$master_port,
-				'socket' 	=> $master_socket,
+				'host' 		=> $emulated_master_host_only,
+				'port' 		=> (int)$emulated_master_port,
+				'socket' 	=> $emulated_master_socket,
 			),
 			"master2" => array(
 				"host" => "unknown_master_i_hope",
@@ -28,9 +36,9 @@ $settings = array(
 
 		'slave' => array(
 			"slave1" => array(
-				'host' 	=> $slave_host_only,
-				'port' 	=> (int)$slave_port,
-				'socket' => $slave_socket,
+				'host' 	=> $emulated_slave_host_only,
+				'port' 	=> (int)$emulated_slave_port,
+				'socket' => $emulated_slave_socket,
 			),
 			"slave2" => array(
 				"host" => "unknown_slave_i_hope",
@@ -56,9 +64,8 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_table_dual.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1]");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master[1]");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1]");
+msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master[1]");
 ?>
 --INI--
 mysqlnd_ms.enable=1

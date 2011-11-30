@@ -9,31 +9,38 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+if (true == $ret)
+	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
+
 $sql = mst_get_gtid_sql($db);
-if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+if ($error = mst_mysqli_setup_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 
 $settings = array(
 	"myapp" => array(
 		'master' => array(
 			"master1" => array(
-				'host' 		=> $master_host_only,
-				'port' 		=> (int)$master_port,
-				'socket' 	=> $master_socket,
+				'host' 		=> $emulated_master_host_only,
+				'port' 		=> (int)$emulated_master_port,
+				'socket' 	=> $emulated_master_socket,
 			),
 		),
 		'slave' => array(
 			"slave1" => array(
-				'host' 	=> $slave_host_only,
-				'port' 	=> (int)$slave_port,
-				'socket' => $slave_socket,
+				'host' 	=> $emulated_slave_host_only,
+				'port' 	=> (int)$emulated_slave_port,
+				'socket' => $emulated_slave_socket,
 			),
 		),
 
@@ -81,7 +88,7 @@ mysqlnd_ms.collect_statistics=1
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 	/* we need an extra non-MS link for checking GTID. If we use MS link, the check itself will change GTID */
-	$master_link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+	$emulated_master_link = mst_mysqli_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 	if (mysqli_connect_errno()) {
 		printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -98,11 +105,11 @@ mysqlnd_ms.collect_statistics=1
 	compare_stats(4, $stats, $expected);
 
 	/* auto commit on (default) */
-	$gtid = mst_mysqli_fetch_gtid(5, $master_link, $db);
+	$gtid = mst_mysqli_fetch_gtid(5, $emulated_master_link, $db);
 	if (mst_mysqli_query(6, $link, "SET @myrole = 'Master'"))
 		$expected['gtid_autocommit_injections_success']++;
 
-	$new_gtid = mst_mysqli_fetch_gtid(8, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(8, $emulated_master_link, $db);
 	if ($new_gtid <= $gtid) {
 		printf("[009] GTID has not been incremented on master in auto commit mode\n");
 	}
@@ -112,7 +119,7 @@ mysqlnd_ms.collect_statistics=1
 
 	/* commit shall be ignored */
 	$link->commit();
-	$new_gtid = mst_mysqli_fetch_gtid(11, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(11, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[013] GTID has not been incremented on master in auto commit mode\n");
 	}
@@ -122,7 +129,7 @@ mysqlnd_ms.collect_statistics=1
 
 	/* commit shall be ignored */
 	$link->commit();
-	$new_gtid = mst_mysqli_fetch_gtid(15, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(15, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[016] GTID has been incremented on master in auto commit mode\n");
 	}
@@ -136,7 +143,7 @@ mysqlnd_ms.collect_statistics=1
 	else
 		printf("[020] %d %s\n", $link->errno, $link->error);
 
-	$new_gtid = mst_mysqli_fetch_gtid(21, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(21, $emulated_master_link, $db);
 	if ($new_gtid <= $gtid) {
 		printf("[023] GTID has not been incremented on master in auto commit mode\n");
 	}
@@ -153,7 +160,7 @@ mysqlnd_ms.collect_statistics=1
 
 	$row = $res->fetch_assoc();
 	printf("Let me be your #%d\n", $row['_one']);
-	$new_gtid = mst_mysqli_fetch_gtid(28, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(28, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[029] GTID has been incremented on master in auto commit mode after slave query\n");
 	}
@@ -163,7 +170,7 @@ mysqlnd_ms.collect_statistics=1
 
 	/* commit shall be ignored - also on the slave (last used) */
 	$link->commit();
-	$new_gtid = mst_mysqli_fetch_gtid(31, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(31, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[032]  GTID has been incremented on master in auto commit mode after slave commit\n");
 	}
@@ -177,7 +184,7 @@ mysqlnd_ms.collect_statistics=1
 	if (!($res = mst_mysqli_query(34, $link, "SELECT @myrole AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH)))
 		printf("[020] %d %s\n", $link->errno, $link->error);
 
-	$new_gtid = mst_mysqli_fetch_gtid(36, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(36, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[037] GTID must not change in transaction mode prior to commit\n");
 	}
@@ -189,7 +196,7 @@ mysqlnd_ms.collect_statistics=1
 	if (!$link->autocommit(TRUE))
 		printf("[039] [%d] %s\n", $link->errno, $link->error);
 
-	$new_gtid = mst_mysqli_fetch_gtid(40, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(40, $emulated_master_link, $db);
 	if ($new_gtid <= $gtid) {
 		printf("[041] GTID not incremented\n");
 	}
@@ -208,7 +215,7 @@ le AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 		var_dump($res->fetch_assoc());
 	}
 
-	$new_gtid = mst_mysqli_fetch_gtid(46, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(46, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[047] GTID incremented.\n");
 	}
@@ -222,7 +229,7 @@ le AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 		printf("[045] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 	/* we need an extra non-MS link for checking GTID. If we use MS link, the check itself will change GTID */
-	$master_link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+	$emulated_master_link = mst_mysqli_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 	if (mysqli_connect_errno()) {
 		printf("[046] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
@@ -232,10 +239,10 @@ le AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 
 	$link->autocommit(false);
 
-	$gtid = mst_mysqli_fetch_gtid(48, $master_link, $db);
+	$gtid = mst_mysqli_fetch_gtid(48, $emulated_master_link, $db);
 	mst_mysqli_query(49, $link, "SET @myrole = 'Master'");
 
-	$new_gtid = mst_mysqli_fetch_gtid(51, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(51, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[052] GTID should not have been incremented\n");
 	}
@@ -248,7 +255,7 @@ le AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 	if (!$link->autocommit(true))
 		printf("[054] [%d] %s\n", $link->errno, $link->error);
 
-	$new_gtid = mst_mysqli_fetch_gtid(51, $master_link, $db);
+	$new_gtid = mst_mysqli_fetch_gtid(51, $emulated_master_link, $db);
 	if ($new_gtid != $gtid) {
 		printf("[052] GTID should not have been incremented\n");
 	}
@@ -266,7 +273,7 @@ le AS _role FROM DUAL", MYSQLND_MS_MASTER_SWITCH))) {
 
 	require_once("connect.inc");
 	require_once("util.inc");
-	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+	if ($error = mst_mysqli_drop_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
 		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--

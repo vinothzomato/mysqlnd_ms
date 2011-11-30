@@ -252,6 +252,20 @@
 		return true;
 	}
 
+	function mst_mysqli_drop_emulated_id($host, $user, $passwd, $db, $port, $socket) {
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%03d] [%d] %s\n", $offset, mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if (!$link->query("DROP TABLE IF EXISTS _mysqlnd_ms_roles")) {
+			return sprintf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
+		}
+
+		return true;
+	}
+
+
 	function mst_mysqli_get_emulated_id($offset, $link) {
 
 		$thread_id = $link->thread_id;

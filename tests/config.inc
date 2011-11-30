@@ -17,7 +17,31 @@
 	putenv("MYSQL_TEST_CONNECT_FLAGS=0");
 	putenv("MYSQL_TEST_EXPERIMENTAL=0");
 
-	putenv("MYSQL_TEST_MASTER_HOST=". getenv("MYSQL_TEST_HOST"));
-	putenv("MYSQL_TEST_SLAVE_HOST=". getenv("MYSQL_TEST_HOST"));
+	/*
+	Tests will automatically detect server roles and will be skipped if required.
 
+	For running all tests you need all four different servers. For running
+	most tests you just need the two emulated once. Some tests require only one
+	server, this emulated defaults to MYSQL_TEST_HOST. If that's not enough, the
+	test is skipped automatically.
+	*/
+
+	/* emulated master - standalone MySQL, not part of a replication cluster */
+	putenv("MYSQL_TEST_EMULATED_MASTER_HOST=". getenv("MYSQL_TEST_HOST"));
+	/* emulated slave - standalone MySQL, not part of a replication cluster */
+	putenv("MYSQL_TEST_EMULATED_SLAVE_HOST=". getenv("MYSQL_TEST_HOST"));
+
+	/*
+	Some tests require real replication cluster.
+	Tests will check if the condfigured servers are part of a cluster.
+	They default to MYSQL_TEST_EMULATED*, because some old tests may
+	still use them, although they only need the emulated ones and should use them.
+
+	Yeah, I shall fix that...
+	*/
+
+	/* master - master of a replication cluster */
+	putenv("MYSQL_TEST_MASTER_HOST=". getenv("MYSQL_TEST_EMULATED_MASTER_HOST"));
+	/* slave - slave of the replication cluster using the above master */
+	putenv("MYSQL_TEST_SLAVE_HOST=". getenv("MYSQL_TEST_EMULATED_SLAVE_HOST"));
 ?>
