@@ -15,6 +15,48 @@
 		2005 => true,
 	);
 
+	function mst_is_slave_of($slave_host, $slave_port, $slave_socket, $master_host, $master_port, $master_socket, $user, $passwd, $db) {
+		/* Used for skipping tests if master and slave are part of a replication setup
+			and replication could cause false-positives */
+
+		$slave_link = mst_mysqli_connect($slave_host, $user, $passwd, $db, $slave_port, $slave_socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if (!($res = $slave_link->query("SHOW SLAVE STATUS"))) {
+			return sprintf("[%d] %s", $slave_link->errno, $slave_link->error);
+		}
+
+		if (0 == $res->num_rows) {
+			return false;
+		}
+
+		if (!($row = $res->fetch_assoc())) {
+			return  sprintf("[%d] %s", $slave_link->errno, $slave_link->error);
+		}
+
+		if ("localhost" == $master_host || '' == $master_host) {
+			/* not sure what port master runs on, better assume servers are related */
+			if ($row['Master_Host'] == '127.0.0.1')
+				return true;
+		}
+
+		if (('127.0.0.1' != $master_host) && ($master_host == $slave_host)) {
+			/*
+			  Remote connection to two servers running on the same box.
+			  If so, the slave likely replicates from 127.0.0.1 but not
+			  from the hosts remote address, e.g. 192.168.2.21.
+			  We can't be 100% sure they are not real master/slave, thus we better
+			  assume they are.
+			*/
+			if (($row['Master_Host'] == '127.0.0.1') && ($row['Master_Port'] == $master_port))
+				return true;
+		}
+
+		return (($row['Master_Host'] == $master_host) && ($row['Master_Port'] == $master_port));
+	}
+
 	function mst_mysqli_verbose_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false) {
 		printf("[%03d + 01] Query '%s'\n", $offset, $query);
 			$ret = mst_mysqli_query($offset, $link, $query, $switch = NULL, $quiet = false, $expect_connect_warning = false, $ignore_error = false);
