@@ -487,6 +487,21 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 				break;
 
 			case QOS_OPTION_AGE:
+				if (service_level != CONSISTENCY_EVENTUAL) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Maximum age option value must be used with MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL only");
+					RETURN_FALSE;
+				}
+				if (!option_value) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option value required");
+					RETURN_FALSE;
+				}
+				convert_to_long(option_value);
+				gtid_or_age = Z_LVAL_P(option_value);
+				if (gtid_or_age < 0L) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Maximum age must have a positive value");
+					RETURN_FALSE;
+				}
+				break;
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid option");
 				RETURN_FALSE;
