@@ -180,6 +180,8 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_QOS_STRONG				"strong_consistency"
 #define SECT_QOS_SESSION			"session_consistency"
 #define SECT_QOS_EVENTUAL			"eventual_consistency"
+#define SECT_QOS_AGE				"age"
+#define SECT_QOS_CACHE_TTL			"cache_ttl"
 #define SECT_G_TRX_NAME				"global_transaction_id_injection"
 #define SECT_G_TRX_ON_COMMIT		"on_commit"
 #define SECT_G_TRX_REPORT_ERROR 	"report_error"
@@ -357,15 +359,22 @@ enum mysqlnd_ms_filter_qos_option
 	QOS_OPTION_NONE,
 	QOS_OPTION_GTID,
 	QOS_OPTION_AGE,
+	QOS_OPTION_CACHE_TTL,
 	QOS_OPTION_LAST_ENUM_ENTRY
 };
+
+typedef struct st_mysqlnd_ms_filter_qos_option_data
+{
+  long age_or_gtid;
+  unsigned int cache_ttl;
+} MYSQLND_MS_FILTER_QOS_OPTION_DATA;
 
 typedef struct st_mysqlnd_ms_filter_qos_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
 	enum mysqlnd_ms_filter_qos_consistency consistency;
 	enum mysqlnd_ms_filter_qos_option option;
-	long option_value;
+	MYSQLND_MS_FILTER_QOS_OPTION_DATA option_data;
 } MYSQLND_MS_FILTER_QOS_DATA;
 
 

@@ -180,10 +180,6 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 		case CONSISTENCY_SESSION:
 			/*
 			For now...
-				... fall-through
-			For later...
-				... consider use of selected slaves
-
 				 We may be able to use selected slaves which have replicated
 				 the last write on the line, e.g. using global transaction ID.
 
@@ -192,7 +188,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				 definition of session consistency and require only consistent
 				 reads from one table. In that case, we may use master and
 				 all slaves which have replicated the latest updates on the
-				 table in question. Not sure if that makes sense.
+				 table in question.
 			*/
 			if (QOS_OPTION_GTID == filter_data->option) {
 				unsigned int i = 0;
@@ -220,7 +216,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 								pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
 								if (pos) {
 								  	smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
-									snprintf(buf, sizeof(buf), "%ld", filter_data->option_value);
+									snprintf(buf, sizeof(buf), "%ld", filter_data->option_data.age_or_gtid);
 									smart_str_appends(&sql, buf);
 									smart_str_appendc(&sql, '\0');
 								} else {
@@ -298,10 +294,9 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 						{
 
 								DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
-
 								tmp_error_info->error_no = 0;
 								lag = mysqlnd_ms_qos_server_get_lag(connection, conn_data, tmp_error_info TSRMLS_CC);
-								if ((lag > 0) && (lag <= filter_data->option_value)) {
+								if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
 									zend_llist_add_element(selected_slaves, &element);
 								} else if (tmp_error_info->error_no) {
 									char error_buf[512];
