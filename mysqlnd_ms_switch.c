@@ -549,23 +549,53 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		zend_llist * filters = stgy->filters;
 		MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
-		MYSQLND_MS_FILTER_QOS_DATA * new_qos_filter = NULL;
+		MYSQLND_MS_FILTER_QOS_DATA * new_qos_filter = NULL, * old_qos_filter = NULL;
+		MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;
+		zend_llist_position	pos;
 
-		/* remove all existing QOS filters */
-		zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
+		/* search for old filter - assumptions: there no more than one QOS filter at any time */
+		for (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_first_ex(filters, &pos);
+			 filter_pp && (filter = *filter_pp) && (!old_qos_filter);
+			  (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos)))
+		{
+			if (filter->pick_type == SERVER_PICK_QOS) {
+				old_qos_filter = (MYSQLND_MS_FILTER_QOS_DATA *) filter;
+			}
+		}
 
-		/* new QOS filter comes first */
+		/* new QOS filter */
 		new_qos_filter = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
 		new_qos_filter->parent.specific_dtor = qos_specific_dtor;
 		new_qos_filter->consistency = consistency;
 		new_qos_filter->option = option;
-		new_qos_filter->option_data = (*option_data);
+
+		/* preserve settings from current filter */
+		if (old_qos_filter)
+			new_qos_filter->option_data = old_qos_filter->option_data;
+
+		if (QOS_OPTION_AGE == option && CONSISTENCY_EVENTUAL == consistency) {
+ 			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+		}
+		if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
+ 			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+		}
+		if (QOS_OPTION_CACHE_TTL == option &&
+			((CONSISTENCY_EVENTUAL == consistency) || (CONSISTENCY_SESSION)))
+		{
+			new_qos_filter->option_data.cache_ttl = option_data->cache_ttl;
+		}
+
 		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
 		new_filter_entry->persistent = persistent;
 		new_filter_entry->name = mnd_pestrndup(PICK_QOS, sizeof(PICK_QOS) -1, persistent);
 		new_filter_entry->name_len = sizeof(PICK_QOS) -1;
 		new_filter_entry->pick_type = (enum mysqlnd_ms_server_pick_strategy)SERVER_PICK_QOS;
 		new_filter_entry->multi_filter = TRUE;
+
+		/* remove all existing QOS filters */
+		zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
+
+		/* prepend with new filter */
 		zend_llist_prepend_element(filters, &new_filter_entry);
 	}
 
