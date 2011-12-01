@@ -99,25 +99,49 @@ long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
 
-		/* TODO - This is not good enough, need to add checks for
-		    Slave_IO_Running: Yes
-            Slave_SQL_Running: Yes
-		*/
-
-		zval * row;
+	  zval * row;
 		zval ** seconds_behind_master;
+		zval ** io_running;
+		zval ** sql_running;
 
 		MAKE_STD_ZVAL(row);
 		mysqlnd_fetch_into(res, MYSQLND_FETCH_ASSOC, row, MYSQLND_MYSQL);
 		if (Z_TYPE_P(row) == IS_ARRAY) {
-			if (SUCCESS == zend_hash_find(Z_ARRVAL_P(row), "Seconds_Behind_Master", (uint)sizeof("Seconds_Behind_Master"), (void**)&seconds_behind_master)) {
-				lag = Z_LVAL_PP(seconds_behind_master);
-			} else {
-				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Seconds_Behind_Master");
+			/* TODO: make test incasesensitive */
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_IO_Running", (uint)sizeof("Slave_IO_Running"), (void**)&io_running)) {
+				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Slave_IO_Running");
+				goto getlagsqlerror;
 			}
+
+			if ((Z_TYPE_PP(io_running) != IS_STRING) ||
+				(0 != strncmp(Z_STRVAL_PP(io_running), "Yes", Z_STRLEN_PP(io_running)))) {
+				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Slave_IO_Running is not 'Yes'");
+				goto getlagsqlerror;
+			}
+
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_SQL_Running", (uint)sizeof("Slave_SQL_Running"), (void**)&sql_running)) {
+				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Slave_SQL_Running");
+				goto getlagsqlerror;
+			}
+
+			if ((Z_TYPE_PP(io_running) != IS_STRING) ||
+				(0 != strncmp(Z_STRVAL_PP(sql_running), "Yes", Z_STRLEN_PP(sql_running)))) {
+				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Slave_SQL_Running is not 'Yes'");
+				goto getlagsqlerror;
+			}
+
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Seconds_Behind_Master", (uint)sizeof("Seconds_Behind_Master"), (void**)&seconds_behind_master)) {
+				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Seconds_Behind_Master");
+				goto getlagsqlerror;
+			}
+
+			lag = Z_LVAL_PP(seconds_behind_master);
 		}
+
+getlagsqlerror:
 		zval_ptr_dtor(&row);
 	}
+
 
 	(*conn_data)->skip_ms_calls = FALSE;
 #if MYSQLND_VERSION_ID >= 50010

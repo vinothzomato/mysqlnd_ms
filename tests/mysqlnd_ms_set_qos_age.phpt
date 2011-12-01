@@ -59,6 +59,7 @@ mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error.ini
 --FILE--
 <?php
+	/* Caution: any test setting on replication is prone to false positive. Replication may be down! */
 	require_once("connect.inc");
 	require_once("util.inc");
 
@@ -98,7 +99,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error.ini
 		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
-Warning: mysqli::query(): (mysqlnd_ms) Failed parse SQL for checking GTID. Cannot find #GTID placeholder in %s on line %d
 array(1) {
   [0]=>
   array(1) {
