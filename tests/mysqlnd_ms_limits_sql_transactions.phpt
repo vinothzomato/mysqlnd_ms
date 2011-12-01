@@ -5,18 +5,28 @@ Limits: SQL transactions
 require_once('skipif.inc');
 require_once("connect.inc");
 
-_skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-
-if ($master_host == $slave_host) {
+if ($emulated_master_host == $emulated_slave_host) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
+_skipif_check_extensions(array("mysqli"));
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
+
+
+include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+if (true == $ret)
+	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
+
+
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_sql_transactions.ini", $settings))
@@ -80,7 +90,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_sql_transactions.ini
 
 	/*
 	  No hint. Goes to the master. Open transaction, no autocommit. Slave will not see it.
-	  For test running we do not require $master_host and $slave_host to
+	  For test running we do not require $emulated_master_host and $emulated_slave_host to
 	  identify an actual master and slave in a MySQL replication setup.
 	  However, you get the point when looking at the test...
 	*/
