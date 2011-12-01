@@ -36,8 +36,9 @@
 
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
-
 #include "mysqlnd_ms_enum_n_def.h"
+#include "mysqlnd_ms_switch.h"
+
 
 /* {{{ mysqlnd_ms_qos_get_gtid */
 static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
@@ -77,7 +78,7 @@ static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 
 
 /* {{{ mysqlnd_ms_qos_get_lag */
-long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
+static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 		MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC) {
 	MYSQLND_RES * res = NULL;
 	long lag = -1L;
@@ -161,6 +162,58 @@ getlagsqlerror:
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_qos_which_server */
+static enum enum_which_server
+mysqlnd_ms_qos_which_server(const char * query, size_t query_len, struct mysqlnd_ms_lb_strategies * stgy TSRMLS_DC)
+{
+	zend_bool forced;
+	enum enum_which_server which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
+	DBG_ENTER("mysqlnd_ms_qos_which_server");
+
+	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
+		DBG_INF("Enforcing use of master while in transaction");
+		which_server = USE_MASTER;
+	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
+		if (which_server != USE_MASTER) {
+			if (stgy->master_used && !forced) {
+				switch (which_server) {
+					case USE_MASTER:
+					case USE_LAST_USED:
+						break;
+					case USE_SLAVE:
+					default:
+						DBG_INF("Enforcing use of master after write");
+						which_server = USE_MASTER;
+						break;
+				}
+			}
+		} else {
+			DBG_INF("Use of master detected");
+			stgy->master_used = TRUE;
+		}
+	}
+
+	switch (which_server) {
+		case USE_SLAVE:
+		case USE_MASTER:
+			break;
+		case USE_LAST_USED:
+			DBG_INF("Using last used connection");
+			if (stgy->last_used_conn) {
+				/*	TODO: move is_master flag from global trx struct to CONN_DATA */
+			} else {
+				/* TODO: handle error at this level? */
+			}
+			break;
+		case USE_ALL:
+		default:
+			break;
+	}
+
+	return which_server;
+}
+/* }}} */
+
 
 /* {{{ mysqlnd_ms_qos_pick_server */
 enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
@@ -190,7 +243,9 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				 all slaves which have replicated the latest updates on the
 				 table in question.
 			*/
-			if (QOS_OPTION_GTID == filter_data->option) {
+			if ((QOS_OPTION_GTID == filter_data->option) &&
+				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
+			{
 				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
@@ -275,7 +330,9 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				We may inject mysqlnd_qc per-query TTL SQL hints here to
 				replace a slave access with a call access.
 			*/
-			if (QOS_OPTION_AGE == filter_data->option) {
+			if ((QOS_OPTION_AGE == filter_data->option) &&
+				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
+			{
 				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
