@@ -81,7 +81,7 @@ long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 		MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC) {
 	MYSQLND_RES * res = NULL;
 	long lag = -1L;
-	/* TODO Andrey */
+	/* TODO ANDREY - fix PHP 5.3 */
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info = NULL;
 #endif
@@ -114,23 +114,27 @@ long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 			}
 
 			if ((Z_TYPE_PP(io_running) != IS_STRING) ||
-				(0 != strncmp(Z_STRVAL_PP(io_running), "Yes", Z_STRLEN_PP(io_running)))) {
+				(0 != strncmp(Z_STRVAL_PP(io_running), "Yes", Z_STRLEN_PP(io_running))))
+			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Slave_IO_Running is not 'Yes'");
 				goto getlagsqlerror;
 			}
 
-			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_SQL_Running", (uint)sizeof("Slave_SQL_Running"), (void**)&sql_running)) {
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_SQL_Running", (uint)sizeof("Slave_SQL_Running"), (void**)&sql_running))
+			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Slave_SQL_Running");
 				goto getlagsqlerror;
 			}
 
 			if ((Z_TYPE_PP(io_running) != IS_STRING) ||
-				(0 != strncmp(Z_STRVAL_PP(sql_running), "Yes", Z_STRLEN_PP(sql_running)))) {
+				(0 != strncmp(Z_STRVAL_PP(sql_running), "Yes", Z_STRLEN_PP(sql_running))))
+			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Slave_SQL_Running is not 'Yes'");
 				goto getlagsqlerror;
 			}
 
-			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Seconds_Behind_Master", (uint)sizeof("Seconds_Behind_Master"), (void**)&seconds_behind_master)) {
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Seconds_Behind_Master", (uint)sizeof("Seconds_Behind_Master"), (void**)&seconds_behind_master))
+			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Seconds_Behind_Master");
 				goto getlagsqlerror;
 			}
@@ -267,9 +271,10 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 		case CONSISTENCY_EVENTUAL:
 			/*
 			For now...
-				... allow all masters and all slaves.
+				Either all masters and slaves or
+				slaves filtered by SHOW SLAVE STATUS replication lag
+
 			For later...
-				... optional filtering of slaves based on e.g. replication lag
 
 				We may inject mysqlnd_qc per-query TTL SQL hints here to
 				replace a slave access with a call access.
