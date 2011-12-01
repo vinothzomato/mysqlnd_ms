@@ -453,9 +453,9 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 	zval * handle;
 	double option;
 	zval * option_value = NULL;
-	long gtid_or_age = 0;
 	double service_level;
 	MYSQLND * proxy_conn;
+	MYSQLND_MS_FILTER_QOS_OPTION_DATA option_data;
 
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd|dz!",
@@ -474,13 +474,11 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option value required");
 					RETURN_FALSE;
 				}
-
 				/* TODO: For 32bit systems, do we need to store a GTID BIGINT in char* ?
 				Maybe char* is better anyway for GTIDs? */
-
 				convert_to_long(option_value);
-				gtid_or_age = Z_LVAL_P(option_value);
-				if (gtid_or_age < 0L) {
+				option_data.age_or_gtid = Z_LVAL_P(option_value);
+				if (option_data.age_or_gtid < 0L) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID must have a positive value");
 					RETURN_FALSE;
 				}
@@ -496,8 +494,8 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 					RETURN_FALSE;
 				}
 				convert_to_long(option_value);
-				gtid_or_age = Z_LVAL_P(option_value);
-				if (gtid_or_age < 0L) {
+				option_data.age_or_gtid = Z_LVAL_P(option_value);
+				if (option_data.age_or_gtid < 0L) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Maximum age must have a positive value");
 					RETURN_FALSE;
 				}
@@ -529,21 +527,21 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 		case CONSISTENCY_STRONG:
 			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
 					(enum mysqlnd_ms_filter_qos_consistency)service_level,
-					(enum mysqlnd_ms_filter_qos_option)option, gtid_or_age TSRMLS_CC))
+					(enum mysqlnd_ms_filter_qos_option)option, &option_data TSRMLS_CC))
 				RETURN_TRUE;
 			break;
 
 		case CONSISTENCY_EVENTUAL:
 			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
 					(enum mysqlnd_ms_filter_qos_consistency)service_level,
-					(enum mysqlnd_ms_filter_qos_option)option, gtid_or_age TSRMLS_CC))
+					(enum mysqlnd_ms_filter_qos_option)option, &option_data TSRMLS_CC))
 				RETURN_TRUE;
 			break;
 
 		case CONSISTENCY_SESSION:
 			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
 					(enum mysqlnd_ms_filter_qos_consistency)service_level,
-					(enum mysqlnd_ms_filter_qos_option)option, gtid_or_age TSRMLS_CC))
+					(enum mysqlnd_ms_filter_qos_option)option, &option_data TSRMLS_CC))
 				RETURN_TRUE;
 			break;
 
