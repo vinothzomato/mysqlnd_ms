@@ -60,6 +60,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error.ini
 --FILE--
 <?php
 	/* Caution: any test setting on replication is prone to false positive. Replication may be down! */
+
 	require_once("connect.inc");
 	require_once("util.inc");
 
@@ -78,7 +79,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error.ini
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
 	}
 
-	if ($res = mst_mysqli_query(6, $link, "SELECT id FROM test"))
+	/* Ignore repl errors such as slave not running. Result must be the same whatever server is used */
+	if ($res = @mst_mysqli_query(6, $link, "SELECT id FROM test"))
 		var_dump($res->fetch_all());
 
 	printf("[007] [%d] '%s'\n", $link->errno, $link->error);
