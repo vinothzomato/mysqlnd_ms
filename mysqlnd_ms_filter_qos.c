@@ -12,8 +12,8 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author: Andrey Hristov <andrey@php.net>                              |
-  |         Ulf Wendel <uw@php.net>                                      |
+  | Author: Ulf Wendel <uw@php.net>                                      |
+  |         Andrey Hristov <andrey@php.net>                              |
   +----------------------------------------------------------------------+
 */
 
@@ -41,8 +41,10 @@
 
 
 /* {{{ mysqlnd_ms_qos_get_gtid */
-static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
-		MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len, MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC) {
+static enum_func_status
+mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len,
+							   MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
+{
 	MYSQLND_RES * res = NULL;
 	enum_func_status ret = FAIL;
 	/* TODO Andrey */
@@ -60,7 +62,8 @@ static enum_func_status mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn,
 	(*conn_data)->skip_ms_calls = TRUE;
 	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
 		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
-		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
+		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+	{
 		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
@@ -98,9 +101,9 @@ static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 
 	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, "SHOW SLAVE STATUS", sizeof("SHOW SLAVE STATUS") - 1 TSRMLS_CC)) &&
 		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
-		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
-
-	  zval * row;
+		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+	{
+		zval * row;
 		zval ** seconds_behind_master;
 		zval ** io_running;
 		zval ** sql_running;
@@ -146,7 +149,6 @@ static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 getlagsqlerror:
 		zval_ptr_dtor(&row);
 	}
-
 
 	(*conn_data)->skip_ms_calls = FALSE;
 #if MYSQLND_VERSION_ID >= 50010
@@ -216,11 +218,11 @@ mysqlnd_ms_qos_which_server(const char * query, size_t query_len, struct mysqlnd
 
 
 /* {{{ mysqlnd_ms_qos_pick_server */
-enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
-									 zend_llist * master_list, zend_llist * slave_list,
-									 zend_llist * selected_masters, zend_llist * selected_slaves,
-									 struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info
-									 TSRMLS_DC)
+enum_func_status
+mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
+						   zend_llist * master_list, zend_llist * slave_list,
+						   zend_llist * selected_masters, zend_llist * selected_slaves,
+						   struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	MYSQLND_MS_FILTER_QOS_DATA * filter_data = (MYSQLND_MS_FILTER_QOS_DATA *) f_data;
@@ -228,8 +230,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 	DBG_ENTER("mysqlnd_ms_qos_pick_server");
 	DBG_INF_FMT("query(50bytes)=%*s", MIN(50, query_len), query);
 
-	switch (filter_data->consistency)
-	{
+	switch (filter_data->consistency) {
 		case CONSISTENCY_SESSION:
 			/*
 			For now...
@@ -306,7 +307,6 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				zend_llist_copy(selected_masters, master_list);
 				break;
 			}
-
 		case CONSISTENCY_STRONG:
 			/*
 			For now and forever...
@@ -318,7 +318,6 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 			DBG_INF("using masters only for strong consistency");
 			zend_llist_copy(selected_masters, master_list);
 			break;
-
 		case CONSISTENCY_EVENTUAL:
 			/*
 			For now...
@@ -337,7 +336,7 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
 				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
-				MYSQLND_ERROR_INFO *tmp_error_info = mnd_ecalloc(1,sizeof(MYSQLND_ERROR_INFO));
+				MYSQLND_ERROR_INFO * tmp_error_info = mnd_ecalloc(1,sizeof(MYSQLND_ERROR_INFO));
 				zend_bool exit_loop = FALSE;
 				long lag;
 
@@ -347,7 +346,10 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 						MS_LOAD_CONN_DATA(conn_data, connection);
 						if (conn_data && (*conn_data) &&
 							(CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
-							((CONN_GET_STATE(connection) > CONN_ALLOCED) ||	(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))))
+							(
+								(CONN_GET_STATE(connection) > CONN_ALLOCED) ||
+								(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
+							))
 						{
 
 								DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
@@ -373,7 +375,6 @@ enum_func_status mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_
 			}
 			zend_llist_copy(selected_masters, master_list);
 			break;
-
 		default:
 			DBG_ERR("Invalid filter data, we should never get here");
 			ret = FAIL;
