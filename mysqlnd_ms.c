@@ -628,12 +628,11 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_COMMIT, sizeof(SECT_G_TRX_ON_COMMIT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			if (entry_is_list) {
-				/* TODO: Do we want to use E_ERROR ? */
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_ON_COMMIT, SECT_G_TRX_NAME);
 				error_buf[sizeof(error_buf) - 1] = '\0';
 				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			} else {
 				json_value_len = strlen(json_value);
 				trx->on_commit = mnd_pestrndup(json_value, json_value_len, persistent);
@@ -645,12 +644,11 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_FETCH_LAST_GTID, sizeof(SECT_G_TRX_FETCH_LAST_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			if (entry_is_list) {
-				/* TODO: Do we want to use E_ERROR ? */
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_FETCH_LAST_GTID, SECT_G_TRX_NAME);
 				error_buf[sizeof(error_buf) - 1] = '\0';
 				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			} else {
 				json_value_len = strlen(json_value);
 				trx->fetch_last_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
@@ -662,12 +660,11 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_CHECK_FOR_GTID, sizeof(SECT_G_TRX_CHECK_FOR_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			if (entry_is_list) {
-				/* TODO: Do we want to use E_ERROR ? */
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_CHECK_FOR_GTID, SECT_G_TRX_NAME);
 				error_buf[sizeof(error_buf) - 1] = '\0';
 				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			} else {
 				json_value_len = strlen(json_value);
 				trx->check_for_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
