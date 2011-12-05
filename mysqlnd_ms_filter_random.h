@@ -27,6 +27,9 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 									zend_llist * master_connections, zend_llist * slave_connections,
 									enum enum_which_server * which_server TSRMLS_DC);
 
+MYSQLND_MS_FILTER_DATA * mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
+													   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
+
 #endif	/* MYSQLND_MS_FILTER_RANDOM_H */
 
 

@@ -302,7 +302,7 @@ typedef struct st_mysqlnd_ms_list_data
 
 typedef struct st_mysqlnd_ms_filter_data
 {
-	void (*specific_dtor)(struct st_mysqlnd_ms_filter_data * TSRMLS_DC);
+	void (*filter_dtor)(struct st_mysqlnd_ms_filter_data * TSRMLS_DC);
 	char * name;
 	size_t name_len;
 	enum mysqlnd_ms_server_pick_strategy pick_type;

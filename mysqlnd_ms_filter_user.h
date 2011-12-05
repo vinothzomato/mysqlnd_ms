@@ -20,7 +20,7 @@
 /* $Id: mysqlnd_ms.h 311510 2011-05-27 19:36:39Z andrey $ */
 #ifndef MYSQLND_MS_FILTER_USER_H
 #define MYSQLND_MS_FILTER_USER_H
-struct mysqlnd_ms_lb_strategies;
+struct st_mysqlnd_ms_config_json_entry;
 
 MYSQLND_CONN_DATA * mysqlnd_ms_user_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
 									  zend_llist * master_list, zend_llist * slave_list,
@@ -32,6 +32,9 @@ enum_func_status mysqlnd_ms_user_pick_multiple_server(void * f_data,
 									 zend_llist * selected_masters, zend_llist * selected_slaves,
 									 struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info
 									 TSRMLS_DC);
+
+MYSQLND_MS_FILTER_DATA * mysqlnd_ms_user_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
+													 MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_FILTER_USER_H */
 

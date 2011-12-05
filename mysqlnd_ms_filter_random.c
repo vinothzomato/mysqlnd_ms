@@ -32,8 +32,61 @@
 #endif
 #include "mysqlnd_ms.h"
 #include "ext/standard/php_rand.h"
-#include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_enum_n_def.h"
+#include "mysqlnd_ms_switch.h"
+#include "mysqlnd_ms_config_json.h"
+
+/* {{{ random_filter_dtor */
+static void
+random_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RANDOM_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_DATA *) pDest;
+	DBG_ENTER("random_filter_dtor");
+
+	zend_hash_destroy(&filter->sticky.master_context);
+	zend_hash_destroy(&filter->sticky.slave_context);
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_random_filter_ctor */
+MYSQLND_MS_FILTER_DATA *
+mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RANDOM_DATA * ret;
+	DBG_ENTER("mysqlnd_ms_random_filter_ctor");
+	DBG_INF_FMT("section=%p", section);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_DATA), persistent);
+	if (ret) {
+		ret->parent.filter_dtor = random_filter_dtor;
+
+		/* section could be NULL! */
+		if (section) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			char * once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
+																		   &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists && once_value) {
+				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
+				mnd_efree(once_value);
+			}
+		} else {
+			 /*
+			   Stickiness by default when no filters section in the config
+			   Implies NULL passed to this ctor.
+			 */
+			ret->sticky.once = TRUE;
+		}
+		DBG_INF_FMT("sticky=%d", ret->sticky.once);
+		/* XXX: this could be initialized only in case of ONCE */
+		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
 
 
 /* {{{ mysqlnd_ms_choose_connection_random */

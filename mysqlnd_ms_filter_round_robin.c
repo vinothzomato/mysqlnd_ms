@@ -35,6 +35,41 @@
 #include "mysqlnd_ms_enum_n_def.h"
 
 
+/* {{{ rr_filter_dtor */
+static void
+rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RR_DATA * filter = (MYSQLND_MS_FILTER_RR_DATA *) pDest;
+	DBG_ENTER("rr_filter_dtor");
+
+	zend_hash_destroy(&filter->master_context);
+	zend_hash_destroy(&filter->slave_context);
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_rr_filter_ctor */
+MYSQLND_MS_FILTER_DATA *
+mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RR_DATA * ret;
+	DBG_ENTER("mysqlnd_ms_rr_filter_ctor");
+	DBG_INF_FMT("section=%p", section);
+	/* section could be NULL! */
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_DATA), persistent);
+	if (ret) {
+		ret->parent.filter_dtor = rr_filter_dtor;
+		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_choose_connection_rr */
 MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const size_t query_len,

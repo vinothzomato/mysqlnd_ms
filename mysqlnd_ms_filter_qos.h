@@ -26,6 +26,9 @@ enum_func_status mysqlnd_ms_choose_connection_qos(void * f_data, const char * co
 		zend_llist * master_list, zend_llist * slave_list,
 		zend_llist * selected_masters, zend_llist * selected_slaves,
 		struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC);
+
+MYSQLND_MS_FILTER_DATA * mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
+													MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 	
 #endif	/* MYSQLND_MS_FILTER_QOS_H */
 

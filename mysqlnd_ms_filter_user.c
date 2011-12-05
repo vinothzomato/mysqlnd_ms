@@ -57,6 +57,66 @@
 	array_init((a));	\
 }
 
+
+/* {{{ user_filter_dtor */
+static void
+user_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_USER_DATA * filter = (MYSQLND_MS_FILTER_USER_DATA *) pDest;
+	DBG_ENTER("user_filter_dtor");
+
+	if (filter->user_callback) {
+		zval_ptr_dtor(&filter->user_callback);
+	}
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_user_filter_ctor */
+MYSQLND_MS_FILTER_DATA *
+mysqlnd_ms_user_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_USER_DATA * ret;
+	DBG_ENTER("mysqlnd_ms_user_filter_ctor");
+	DBG_INF_FMT("section=%p", section);
+	if (section) {
+		ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_USER_DATA), persistent);
+
+		if (ret) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			char * callback;
+
+			ret->parent.filter_dtor = user_filter_dtor;
+
+			callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1, 0,
+																  &value_exists, &is_list_value TSRMLS_CC);
+
+			if (value_exists) {
+				zval * zv;
+				char * c_name;
+
+				MAKE_STD_ZVAL(zv);
+				ZVAL_STRING(zv, callback, 1);
+				mnd_efree(callback);
+				ret->user_callback = zv;
+				ret->callback_valid = zend_is_callable(zv, 0, &c_name TSRMLS_CC);
+				DBG_INF_FMT("name=%s valid=%d", c_name, ret->callback_valid);
+				efree(c_name);
+			} else {
+				mnd_pefree(ret, persistent);
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter 'user', can't find section '%s' . Stopping.", SECT_USER_CALLBACK);
+			}
+		}
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_call_handler */
 static zval *
 mysqlnd_ms_call_handler(zval *func, int argc, zval **argv, zend_bool destroy_args, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)

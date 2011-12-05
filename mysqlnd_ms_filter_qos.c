@@ -40,6 +40,129 @@
 #include "mysqlnd_ms_switch.h"
 
 
+/* {{{ qos_filter_dtor */
+static void
+qos_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_QOS_DATA * filter = (MYSQLND_MS_FILTER_QOS_DATA *) pDest;
+	DBG_ENTER("qos_filter_dtor");
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_qos_filter_ctor */
+MYSQLND_MS_FILTER_DATA *
+mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_QOS_DATA * ret;
+	DBG_ENTER("mysqlnd_ms_qos_filter_ctor");
+	DBG_INF_FMT("section=%p", section);
+	if (section) {
+		ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
+
+		if (ret) {
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			char * service;
+
+			ret->parent.filter_dtor = qos_filter_dtor;
+			ret->consistency = CONSISTENCY_LAST_ENUM_ENTRY;
+
+			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_STRONG, sizeof(SECT_QOS_STRONG) - 1, 0,
+																  &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+				DBG_INF("strong consistency");
+				mnd_efree(service);
+				ret->consistency = CONSISTENCY_STRONG;
+			}
+
+			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_SESSION, sizeof(SECT_QOS_SESSION) - 1, 0,
+																  &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+				DBG_INF("session consistency");
+				mnd_efree(service);
+				if (ret->consistency != CONSISTENCY_LAST_ENUM_ENTRY) {
+					mnd_pefree(ret, persistent);
+					php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_SESSION);
+				} else {
+					ret->consistency = CONSISTENCY_SESSION;
+
+					if (TRUE == is_list_value) {
+						zend_bool section_exists;
+						struct st_mysqlnd_ms_config_json_entry * session_section =
+							mysqlnd_ms_config_json_sub_section(section, SECT_QOS_SESSION, sizeof(SECT_QOS_SESSION) - 1, &section_exists TSRMLS_CC);
+
+						if (section_exists && session_section) {
+							char * json_value = mysqlnd_ms_config_json_string_from_section(session_section, SECT_QOS_CACHE_TTL, sizeof(SECT_QOS_CACHE_TTL) - 1, 0,
+																					  &value_exists, &is_list_value TSRMLS_CC);
+							if (value_exists && json_value) {
+								ret->option_data.cache_ttl = atol(json_value);
+								mnd_efree(json_value);
+							}
+						}
+					}
+				}
+			}
+
+			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_EVENTUAL, sizeof(SECT_QOS_EVENTUAL) - 1, 0,
+															  &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+				DBG_INF("eventual consistency");
+				mnd_efree(service);
+				if (ret->consistency != CONSISTENCY_LAST_ENUM_ENTRY) {
+					mnd_pefree(ret, persistent);
+					php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_EVENTUAL);
+				} else {
+					ret->consistency = CONSISTENCY_EVENTUAL;
+
+					if (TRUE == is_list_value) {
+						zend_bool section_exists;
+						struct st_mysqlnd_ms_config_json_entry * eventual_section =
+							mysqlnd_ms_config_json_sub_section(section, SECT_QOS_EVENTUAL, sizeof(SECT_QOS_EVENTUAL) - 1, &section_exists TSRMLS_CC);
+
+						if (section_exists && eventual_section) {
+							char * json_value;
+
+							json_value = mysqlnd_ms_config_json_string_from_section(eventual_section, SECT_QOS_AGE, sizeof(SECT_QOS_AGE) - 1, 0,
+																				  &value_exists, &is_list_value TSRMLS_CC);
+							if (value_exists && json_value) {
+								ret->option = QOS_OPTION_AGE;
+								ret->option_data.age_or_gtid = atol(json_value);
+								mnd_efree(json_value);
+
+								json_value = mysqlnd_ms_config_json_string_from_section(eventual_section, SECT_QOS_CACHE_TTL, sizeof(SECT_QOS_CACHE_TTL) - 1, 0,
+																					  &value_exists, &is_list_value TSRMLS_CC);
+								if (value_exists && json_value) {
+									ret->option_data.cache_ttl = atol(json_value);
+									mnd_efree(json_value);
+								}
+							}
+						}
+					}
+				}
+			}
+
+			if ((ret->consistency != CONSISTENCY_STRONG) &&
+				(ret->consistency != CONSISTENCY_SESSION) &&
+				(ret->consistency != CONSISTENCY_EVENTUAL))
+				{
+				mnd_pefree(ret, persistent);
+				php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping.", PICK_QOS, SECT_QOS_STRONG, SECT_QOS_SESSION, SECT_QOS_EVENTUAL);
+			}
+
+		}
+	}
+
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_qos_get_gtid */
 static enum_func_status
 mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len,

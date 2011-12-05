@@ -36,6 +36,48 @@
 #include "mysqlnd_ms_config_json.h"
 #include "mysqlnd_qp.h"
 
+
+/* {{{ table_specific_dtor */
+static void
+table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_TABLE_DATA * filter = (MYSQLND_MS_FILTER_TABLE_DATA *) pDest;
+	DBG_ENTER("table_specific_dtor");
+
+	zend_hash_destroy(&filter->master_rules);
+	zend_hash_destroy(&filter->slave_rules);
+	mnd_pefree(filter, filter->parent.persistent);
+
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_table_filter_ctor */
+MYSQLND_MS_FILTER_DATA *
+mysqlnd_ms_table_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_TABLE_DATA * ret;
+	DBG_ENTER("mysqlnd_ms_table_filter_ctor");
+	DBG_INF_FMT("section=%p", section);
+	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
+	if (ret) {
+		do {
+			ret->parent.specific_dtor = table_specific_dtor;
+			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
+			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
+			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, error_info, persistent TSRMLS_CC)) {
+				table_specific_dtor((MYSQLND_MS_FILTER_DATA *)ret TSRMLS_CC);
+				ret = NULL;
+				break;
+			}
+		} while (0);
+	}
+	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_filter_dtor */
 static void
 mysqlnd_ms_filter_dtor(void * data)
