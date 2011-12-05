@@ -44,6 +44,7 @@
 #include "mysqlnd_qp.h"
 
 #include "mysqlnd_ms_enum_n_def.h"
+#include "mysqlnd_ms_config_json.h"
 #include "mysqlnd_ms_filter_user.h"
 #include "mysqlnd_ms_filter_random.h"
 #include "mysqlnd_ms_filter_round_robin.h"
@@ -543,28 +544,12 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 	{
 		zend_llist_position	pos;
 		MYSQLND_MS_LIST_DATA * el, ** el_pp;
-		if (zend_llist_count(master_list)) {
-			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_list, &pos); el_pp && (el = *el_pp) && el->conn;
-					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_list, &pos))
-			{
-				/*
-				  This will copy the whole structure, not the pointer.
-				  This is wanted!!
-				*/
-				zend_llist_add_element(selected_masters, &el);
-			}
-		}
-		if (zend_llist_count(slave_list)) {
-			for (el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_list, &pos); el_pp && (el = *el_pp) && el->conn;
-					el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_list, &pos))
-			{
-				/*
-				  This will copy the whole structure, not the pointer.
-				  This is wanted!!
-				*/
-				zend_llist_add_element(selected_slaves, &el);
-			}
-		}
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, master_list);
+			zend_llist_add_element(selected_masters, &el);			
+		END_ITERATE_OVER_SERVER_LIST;
+		BEGIN_ITERATE_OVER_SERVER_LIST(el, slave_list);
+			zend_llist_add_element(selected_slaves, &el);			
+		END_ITERATE_OVER_SERVER_LIST;
 	}
 	DBG_RETURN(ret);
 }
