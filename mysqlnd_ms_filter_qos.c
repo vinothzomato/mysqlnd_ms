@@ -94,14 +94,18 @@ static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 	/* TODO ANDREY - fix PHP 5.3 */
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info = NULL;
+#else
+	MYSQLND_ERROR_INFO org_error_info;
 #endif
 
 	DBG_ENTER("mysqlnd_ms_qos_server_get_lag");
 
-#if MYSQLND_VERSION_ID >= 50010
 	/* hide errors from user */
 	org_error_info = conn->error_info;
+#if MYSQLND_VERSION_ID >= 50010
 	conn->error_info = tmp_error_info;
+#else
+	SET_EMPTY_ERROR(conn->error_info);
 #endif
 	(*conn_data)->skip_ms_calls = TRUE;
 
@@ -157,9 +161,11 @@ getlagsqlerror:
 	}
 
 	(*conn_data)->skip_ms_calls = FALSE;
+
 #if MYSQLND_VERSION_ID >= 50010
-	conn->error_info = org_error_info;
+	*tmp_error_info = conn->error_info;
 #endif
+	conn->error_info = org_error_info;
 
 	if (res) {
 		res->m.free_result(res, FALSE TSRMLS_CC);
