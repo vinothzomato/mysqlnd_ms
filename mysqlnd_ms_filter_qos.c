@@ -212,21 +212,20 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 
 #define SHOW_SS_QUERY "SHOW SLAVE STATUS"
 
-/* {{{ mysqlnd_ms_qos_get_lag */
-static long
-mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data,
-							  MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
+
+/* {{{ mysqlnd_ms_qos_server_get_lag_stage1 */
+enum_func_status
+mysqlnd_ms_qos_server_get_lag_stage1(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data,
+									 MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
 {
-	MYSQLND_RES * res = NULL;
-	long lag = -1L;
-	/* TODO ANDREY - fix PHP 5.3 */
+	enum_func_status ret;
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info;
 #else
 	MYSQLND_ERROR_INFO org_error_info;
 #endif
 
-	DBG_ENTER("mysqlnd_ms_qos_server_get_lag");
+	DBG_ENTER("mysqlnd_ms_qos_server_get_lag_stage1");
 
 	/* hide errors from user */
 	org_error_info = conn->error_info;
@@ -237,8 +236,45 @@ mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** 
 #endif
 	(*conn_data)->skip_ms_calls = TRUE;
 
-	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, SHOW_SS_QUERY , sizeof(SHOW_SS_QUERY) - 1 TSRMLS_CC)) &&
-		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
+	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, SHOW_SS_QUERY , sizeof(SHOW_SS_QUERY) - 1 TSRMLS_CC);
+
+	(*conn_data)->skip_ms_calls = FALSE;
+
+#if MYSQLND_VERSION_ID < 50010
+	*tmp_error_info = conn->error_info;
+#endif
+	conn->error_info = org_error_info;
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_qos_get_lag_stage2 */
+static long
+mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data,
+									 MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
+{
+	MYSQLND_RES * res = NULL;
+	long lag = -1L;
+#if MYSQLND_VERSION_ID >= 50010
+	MYSQLND_ERROR_INFO * org_error_info;
+#else
+	MYSQLND_ERROR_INFO org_error_info;
+#endif
+
+	DBG_ENTER("mysqlnd_ms_qos_server_get_lag_stage2");
+
+	/* hide errors from user */
+	org_error_info = conn->error_info;
+#if MYSQLND_VERSION_ID >= 50010
+	conn->error_info = tmp_error_info;
+#else
+	SET_EMPTY_ERROR(conn->error_info);
+#endif
+	(*conn_data)->skip_ms_calls = TRUE;
+
+	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
 	{
 		zval * row;
@@ -366,6 +402,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 {
 	enum_func_status ret = PASS;
 	MYSQLND_MS_FILTER_QOS_DATA * filter_data = (MYSQLND_MS_FILTER_QOS_DATA *) f_data;
+	MYSQLND_MS_LIST_DATA * element;
 
 	DBG_ENTER("mysqlnd_ms_choose_connection_qos");
 	DBG_INF_FMT("query(50bytes)=%*s", MIN(50, query_len), query);
@@ -386,16 +423,17 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 			*/
 			if ((QOS_OPTION_GTID == filter_data->option) && (USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
 			{
-				MYSQLND_MS_LIST_DATA * element = NULL;
 				smart_str sql = {0, 0, 0};
 				zend_bool exit_loop = FALSE;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
 					MYSQLND_CONN_DATA * connection = element->conn;
 					MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
+					if (!conn_data || !*conn_data) {
+						continue;
+					}
 
-					if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid &&
-						(CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
+					if ((*conn_data)->global_trx.check_for_gtid && (CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
 						(
 							(CONN_GET_STATE(connection) > CONN_ALLOCED) ||
 							(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)
@@ -456,11 +494,11 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				don't need to take care in the future.
 			*/
 			DBG_INF("using masters only for strong consistency");
-			zend_llist_copy(selected_masters, master_list);
+			BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
+				zend_llist_add_element(selected_masters, &element);			
+			END_ITERATE_OVER_SERVER_LIST;
 			break;
 		case CONSISTENCY_EVENTUAL:
-		{
-			MYSQLND_MS_LIST_DATA * element;
 			/*
 			  For now...
 				Either all masters and slaves or
@@ -473,14 +511,18 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 			if ((QOS_OPTION_AGE == filter_data->option) &&
 				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
 			{
-				zend_bool exit_loop = FALSE;
-				long lag;
+				zend_llist stage1_slaves;
+				zend_llist_init(&stage1_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, 0);
 
+				/* Stage 1 - just fire the queries and forget them for a moment */
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
 					MYSQLND_CONN_DATA * connection = element->conn;
 					MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
+					if (!conn_data || !*conn_data) {
+						continue;
+					}
 
-					if (conn_data && (*conn_data) && (CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
+					if ((CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
 						(
 							(CONN_GET_STATE(connection) > CONN_ALLOCED) ||
 							(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
@@ -490,9 +532,9 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 
 						DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 						tmp_error_info.error_no = 0;
-						lag = mysqlnd_ms_qos_server_get_lag(connection, conn_data, &tmp_error_info TSRMLS_CC);
-						if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
-							zend_llist_add_element(selected_slaves, &element);
+
+						if (PASS == mysqlnd_ms_qos_server_get_lag_stage1(connection, conn_data, &tmp_error_info TSRMLS_CC)) {
+							zend_llist_add_element(&stage1_slaves, &element);
 						} else if (tmp_error_info.error_no) {
 							char error_buf[512];
 							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
@@ -501,10 +543,29 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 						}
 					}
-					if (exit_loop) {
-						break;
-					}
 				END_ITERATE_OVER_SERVER_LIST;
+				/* Stage 2 - Now, after all servers have something to do, try to fetch the result, in the same order */
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, &stage1_slaves)
+					long lag;
+					MYSQLND_ERROR_INFO tmp_error_info;
+					MYSQLND_CONN_DATA * connection = element->conn;
+					MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
+
+					tmp_error_info.error_no = 0;
+
+					lag = mysqlnd_ms_qos_server_get_lag_stage2(connection, conn_data, &tmp_error_info TSRMLS_CC);
+
+					if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
+						zend_llist_add_element(selected_slaves, &element);
+					} else if (tmp_error_info.error_no) {
+						char error_buf[512];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
+								tmp_error_info.error_no, tmp_error_info.error);
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+					}				
+				END_ITERATE_OVER_SERVER_LIST;
+				zend_llist_clean(&stage1_slaves);
 			} else {
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
 					zend_llist_add_element(selected_slaves, &element);			
@@ -514,7 +575,6 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				zend_llist_add_element(selected_masters, &element);			
 			END_ITERATE_OVER_SERVER_LIST;
 			break;
-		}
 		default:
 			DBG_ERR("Invalid filter data, we should never get here");
 			ret = FAIL;
@@ -525,6 +585,94 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 }
 /* }}} */
 
+
+
+#if PHP_VERSION_ID > 50399
+/* {{{ mysqlnd_ms_remove_qos_filter */
+static int
+mysqlnd_ms_remove_qos_filter(void * element, void * data) {
+	MYSQLND_MS_FILTER_DATA * filter = *(MYSQLND_MS_FILTER_DATA **)element;
+	return (filter->pick_type == SERVER_PICK_QOS) ? 1 : 0;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_section_filters_prepend_qos */
+enum_func_status
+mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
+										enum mysqlnd_ms_filter_qos_consistency consistency,
+										enum mysqlnd_ms_filter_qos_option option,
+										MYSQLND_MS_FILTER_QOS_OPTION_DATA * option_data TSRMLS_DC)
+{
+  	MYSQLND_MS_CONN_DATA ** conn_data;
+	enum_func_status ret = FAIL;
+	/* not sure... */
+	zend_bool persistent = proxy_conn->persistent;
+
+	DBG_ENTER("mysqlnd_ms_section_filters_prepend_qos");
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
+
+	if (conn_data && *conn_data) {
+		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
+		zend_llist * filters = stgy->filters;
+		MYSQLND_MS_FILTER_DATA * new_filter_entry = NULL;
+		MYSQLND_MS_FILTER_QOS_DATA * new_qos_filter = NULL, * old_qos_filter = NULL;
+		MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;
+		zend_llist_position	pos;
+
+		/* search for old filter - assumptions: there no more than one QOS filter at any time */
+		for (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_first_ex(filters, &pos);
+			 filter_pp && (filter = *filter_pp) && (!old_qos_filter);
+			  (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos)))
+		{
+			if (filter->pick_type == SERVER_PICK_QOS) {
+				old_qos_filter = (MYSQLND_MS_FILTER_QOS_DATA *) filter;
+			}
+		}
+
+		/* new QOS filter */
+		new_qos_filter = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
+		new_qos_filter->parent.filter_dtor = qos_filter_dtor;
+		new_qos_filter->consistency = consistency;
+		new_qos_filter->option = option;
+
+		/* preserve settings from current filter */
+		if (old_qos_filter)
+			new_qos_filter->option_data = old_qos_filter->option_data;
+
+		if (QOS_OPTION_AGE == option && CONSISTENCY_EVENTUAL == consistency) {
+ 			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+		}
+		if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
+ 			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+		}
+		if (QOS_OPTION_CACHE_TTL == option &&
+			((CONSISTENCY_EVENTUAL == consistency) || (CONSISTENCY_SESSION)))
+		{
+			new_qos_filter->option_data.cache_ttl = option_data->cache_ttl;
+		}
+
+		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
+		new_filter_entry->persistent = persistent;
+		new_filter_entry->name = mnd_pestrndup(PICK_QOS, sizeof(PICK_QOS) -1, persistent);
+		new_filter_entry->name_len = sizeof(PICK_QOS) -1;
+		new_filter_entry->pick_type = (enum mysqlnd_ms_server_pick_strategy)SERVER_PICK_QOS;
+		new_filter_entry->multi_filter = TRUE;
+
+		/* remove all existing QOS filters */
+		zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
+
+		/* prepend with new filter */
+		zend_llist_prepend_element(filters, &new_filter_entry);
+	}
+
+	ret = PASS;
+	DBG_RETURN(ret);
+}
+/* }}} */
+#endif
 
 /*
  * Local variables:

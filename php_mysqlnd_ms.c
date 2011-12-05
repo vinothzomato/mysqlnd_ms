@@ -34,7 +34,7 @@
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 #include "ext/standard/php_rand.h"
-#include "mysqlnd_ms_switch.h"
+#include "mysqlnd_ms_filter_qos.h"
 
 #define STR_W_LEN(str)  str, (sizeof(str) - 1)
 const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
@@ -458,8 +458,7 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 	MYSQLND_MS_FILTER_QOS_OPTION_DATA option_data;
 
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd|dz!",
-		&handle, &service_level, &option, &option_value) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd|dz!", &handle, &service_level, &option, &option_value) == FAILURE) {
 		return;
 	}
 
