@@ -6,23 +6,23 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 $settings = array(
 	"myapp" => array(
 		'master' => array(
 			"master1" => array(
-				'host' 		=> $master_host_only,
-				'port' 		=> (int)$master_port,
-				'socket' 	=> $master_socket,
+				'host' 		=> $emulated_master_host_only,
+				'port' 		=> (int)$emulated_master_port,
+				'socket' 	=> $emulated_master_socket,
 			),
 		),
 		'slave' => array(
 			"slave1" => array(
-				'host' 	=> $slave_host_only,
-				'port' 	=> (int)$slave_port,
-				'socket' => $slave_socket,
+				'host' 	=> $emulated_slave_host_only,
+				'port' 	=> (int)$emulated_slave_port,
+				'socket' => $emulated_slave_socket,
 			),
 		 ),
 
@@ -63,6 +63,28 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_strong_consistency.ini
 	$res = mst_mysqli_query(6, $link, "SELECT @myrole FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
 	var_dump($res->fetch_assoc());
 
+	/* master - ignore SQL hint */
+	$res = mst_mysqli_query(8, $link, "SELECT @myrole FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+
+	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)))
+		printf("[010] [%d] %s\n", $link->errno, $link->error);
+
+	/* this is an interesting case, should be master */
+	$res = mst_mysqli_query(12, $link, "SELECT @myrole FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+
+	/* slave */
+	$res = mst_mysqli_query(14, $link, "SELECT @myrole FROM DUAL");
+	var_dump($res->fetch_assoc());
+
+	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_STRONG)))
+		printf("[016] [%d] %s\n", $link->errno, $link->error);
+
+	/* master */
+	$res = mst_mysqli_query(18, $link, "SELECT @myrole FROM DUAL");
+	var_dump($res->fetch_assoc());
+
 	print "done!";
 ?>
 --CLEAN--
@@ -74,6 +96,22 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_strong_consistency.ini
 array(1) {
   ["@myrole"]=>
   string(6) "master"
+}
+array(1) {
+  ["@myrole"]=>
+  string(6) "master"
+}
+array(1) {
+  ["@myrole"]=>
+  string(6) "master"
+}
+array(1) {
+  ["@myrole"]=>
+  string(6) "master"
+}
+array(1) {
+  ["@myrole"]=>
+  NULL
 }
 array(1) {
   ["@myrole"]=>
