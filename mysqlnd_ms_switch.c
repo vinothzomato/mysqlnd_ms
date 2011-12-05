@@ -986,10 +986,10 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 				case SERVER_PICK_QOS:
 					/* TODO: MS must not bail if slave or master list is empty */
 					multi_filter = TRUE;
-					mysqlnd_ms_qos_pick_server(filter, (*conn_data)->connect_host, query, query_len,
-														 selected_masters, selected_slaves,
-														 output_masters, output_slaves, stgy,
-														 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+					mysqlnd_ms_choose_connection_qos(filter, (*conn_data)->connect_host, query, query_len,
+													 selected_masters, selected_slaves,
+													 output_masters, output_slaves, stgy,
+													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 				default:
 				{

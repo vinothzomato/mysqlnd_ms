@@ -72,7 +72,7 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
 
-#if MYSQLND_VERSION_ID >= 50010
+#if MYSQLND_VERSION_ID < 50010
 	*tmp_error_info = conn->error_info;
 #endif
 	conn->error_info = org_error_info;
@@ -162,7 +162,7 @@ getlagsqlerror:
 
 	(*conn_data)->skip_ms_calls = FALSE;
 
-#if MYSQLND_VERSION_ID >= 50010
+#if MYSQLND_VERSION_ID < 50010
 	*tmp_error_info = conn->error_info;
 #endif
 	conn->error_info = org_error_info;
@@ -229,23 +229,23 @@ mysqlnd_ms_qos_which_server(const char * query, size_t query_len, struct mysqlnd
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_qos_pick_server */
+/* {{{ mysqlnd_ms_choose_connection_qos */
 enum_func_status
-mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char * query, size_t query_len,
-						   zend_llist * master_list, zend_llist * slave_list,
-						   zend_llist * selected_masters, zend_llist * selected_slaves,
-						   struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
+mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const char * query, size_t query_len,
+								 zend_llist * master_list, zend_llist * slave_list,
+								 zend_llist * selected_masters, zend_llist * selected_slaves,
+								 struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	MYSQLND_MS_FILTER_QOS_DATA * filter_data = (MYSQLND_MS_FILTER_QOS_DATA *) f_data;
 
-	DBG_ENTER("mysqlnd_ms_qos_pick_server");
+	DBG_ENTER("mysqlnd_ms_choose_connection_qos");
 	DBG_INF_FMT("query(50bytes)=%*s", MIN(50, query_len), query);
 
 	switch (filter_data->consistency) {
 		case CONSISTENCY_SESSION:
 			/*
-			For now...
+			  For now...
 				 We may be able to use selected slaves which have replicated
 				 the last write on the line, e.g. using global transaction ID.
 
@@ -256,15 +256,13 @@ mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char 
 				 all slaves which have replicated the latest updates on the
 				 table in question.
 			*/
-			if ((QOS_OPTION_GTID == filter_data->option) &&
-				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
+			if ((QOS_OPTION_GTID == filter_data->option) && (USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
 			{
-				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
 				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
-				MYSQLND_ERROR_INFO *tmp_error_info = mnd_ecalloc(1,sizeof(MYSQLND_ERROR_INFO));
-				smart_str sql = {0};
+				MYSQLND_ERROR_INFO * tmp_error_info = mnd_ecalloc(1, sizeof(MYSQLND_ERROR_INFO));
+				smart_str sql = {0, 0, 0};
 				zend_bool exit_loop = FALSE;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list);
@@ -273,17 +271,20 @@ mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char 
 						MS_LOAD_CONN_DATA(conn_data, connection);
 						if (conn_data && (*conn_data) && (*conn_data)->global_trx.check_for_gtid &&
 							(CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
-							((CONN_GET_STATE(connection) > CONN_ALLOCED) ||	(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))))
+							(
+								(CONN_GET_STATE(connection) > CONN_ALLOCED) ||
+								(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)
+							)))
 						{
-
-							 DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
 							if (!sql.c) {
 								char * pos;
 								char buf[32];
 								pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
 								if (pos) {
-								  	smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid, pos - ((*conn_data)->global_trx.check_for_gtid));
+								  	smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid,
+													  pos - ((*conn_data)->global_trx.check_for_gtid));
 									snprintf(buf, sizeof(buf), "%ld", filter_data->option_data.age_or_gtid);
 									smart_str_appends(&sql, buf);
 									smart_str_appendc(&sql, '\0');
@@ -308,12 +309,9 @@ mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char 
 							}
 						}
 					}
-					i++;
 				END_ITERATE_OVER_SERVER_LIST;
 
-				if (sql.c) {
-					smart_str_free(&sql);
-				}
+				smart_str_free(&sql);
 				mnd_efree(tmp_error_info);
 
 				zend_llist_copy(selected_masters, master_list);
@@ -332,19 +330,17 @@ mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char 
 			break;
 		case CONSISTENCY_EVENTUAL:
 			/*
-			For now...
+			  For now...
 				Either all masters and slaves or
 				slaves filtered by SHOW SLAVE STATUS replication lag
 
-			For later...
-
+			  For later...
 				We may inject mysqlnd_qc per-query TTL SQL hints here to
 				replace a slave access with a call access.
 			*/
 			if ((QOS_OPTION_AGE == filter_data->option) &&
 				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
 			{
-				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
 				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
@@ -377,7 +373,6 @@ mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char 
 								}
 						}
 					}
-					i++;
 				END_ITERATE_OVER_SERVER_LIST;
 
 				mnd_efree(tmp_error_info);
@@ -391,7 +386,6 @@ mysqlnd_ms_qos_pick_server(void * f_data, const char * connect_host, const char 
 			DBG_ERR("Invalid filter data, we should never get here");
 			ret = FAIL;
 			break;
-
 	}
 
 	DBG_RETURN(ret);
