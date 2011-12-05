@@ -91,6 +91,39 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_session_consistency.ini
 		printf("[009] Expecting master use, found %s used\n", $server_id);
 	}
 
+	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)))
+		printf("[010] [%d] %s\n", $link->errno, $link->error);
+
+	/* eventual consistency --- slave may be used */
+	mst_mysqli_query(12, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+	$server_id = mst_mysqli_get_emulated_id(15, $link);
+	if ($server_id == $emulated_master_id) {
+		printf("[016] Expecting slave use, found %s used\n", $server_id);
+	}
+
+	/* slave */
+	if ($res = mst_mysqli_query(17, $link, "SELECT @myrole AS _msg")) {
+		$row = $res->fetch_assoc();
+		printf("Greetings from '%s'\n", $row['_msg']);
+	} else {
+		printf("[%d] %s\n", $link->errno, $link->error);
+	}
+
+	/* master */
+	mst_mysqli_query(19, $link, "SET @myrole='master'");
+
+	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION)))
+		printf("[021] [%d] %s\n", $link->errno, $link->error);
+
+	/* slave */
+	if ($res = mst_mysqli_query(22, $link, "SELECT @myrole AS _msg")) {
+		$row = $res->fetch_assoc();
+		printf("Greetings from '%s'\n", $row['_msg']);
+	} else {
+		printf("[%d] %s\n", $link->errno, $link->error);
+	}
+
+
 	print "done!";
 ?>
 --CLEAN--
@@ -100,4 +133,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_session_consistency.ini
 ?>
 --EXPECTF--
 Greetings from 'slave'
+Greetings from 'slave'
+Greetings from 'master'
 done!
