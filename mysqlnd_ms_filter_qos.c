@@ -442,7 +442,9 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 
 				smart_str_free(&sql);
 
-				zend_llist_copy(selected_masters, master_list);
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
+					zend_llist_add_element(selected_masters, &element);			
+				END_ITERATE_OVER_SERVER_LIST;
 				break;
 			}
 		case CONSISTENCY_STRONG:
@@ -457,6 +459,8 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 			zend_llist_copy(selected_masters, master_list);
 			break;
 		case CONSISTENCY_EVENTUAL:
+		{
+			MYSQLND_MS_LIST_DATA * element;
 			/*
 			  For now...
 				Either all masters and slaves or
@@ -469,7 +473,6 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 			if ((QOS_OPTION_AGE == filter_data->option) &&
 				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
 			{
-				MYSQLND_MS_LIST_DATA * element = NULL;
 				zend_bool exit_loop = FALSE;
 				long lag;
 
@@ -503,10 +506,15 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 					}
 				END_ITERATE_OVER_SERVER_LIST;
 			} else {
-				zend_llist_copy(selected_slaves, slave_list);
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
+					zend_llist_add_element(selected_slaves, &element);			
+				END_ITERATE_OVER_SERVER_LIST;
 			}
-			zend_llist_copy(selected_masters, master_list);
+			BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
+				zend_llist_add_element(selected_masters, &element);			
+			END_ITERATE_OVER_SERVER_LIST;
 			break;
+		}
 		default:
 			DBG_ERR("Invalid filter data, we should never get here");
 			ret = FAIL;
