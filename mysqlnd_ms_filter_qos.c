@@ -50,14 +50,18 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 	/* TODO Andrey */
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info = NULL;
+#else
+	MYSQLND_ERROR_INFO org_error_info;
 #endif
 
 	DBG_ENTER("mysqlnd_ms_qos_server_has_gtid");
 
-#if MYSQLND_VERSION_ID >= 50010
 	/* hide errors from user */
 	org_error_info = conn->error_info;
+#if MYSQLND_VERSION_ID >= 50010
 	conn->error_info = tmp_error_info;
+#else
+	SET_EMPTY_ERROR(conn->error_info);
 #endif
 	(*conn_data)->skip_ms_calls = TRUE;
 	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
@@ -67,9 +71,11 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
+
 #if MYSQLND_VERSION_ID >= 50010
-	conn->error_info = org_error_info;
+	*tmp_error_info = conn->error_info;
 #endif
+	conn->error_info = org_error_info;
 
 	if (res) {
 		res->m.free_result(res, FALSE TSRMLS_CC);
