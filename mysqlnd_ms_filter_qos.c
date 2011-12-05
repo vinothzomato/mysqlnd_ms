@@ -174,7 +174,7 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 	enum_func_status ret = FAIL;
 	/* TODO Andrey */
 #if MYSQLND_VERSION_ID >= 50010
-	MYSQLND_ERROR_INFO * org_error_info = NULL;
+	MYSQLND_ERROR_INFO * org_error_info;
 #else
 	MYSQLND_ERROR_INFO org_error_info;
 #endif
@@ -210,15 +210,18 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 }
 /* }}} */
 
+#define SHOW_SS_QUERY "SHOW SLAVE STATUS"
 
 /* {{{ mysqlnd_ms_qos_get_lag */
-static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
-		MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC) {
+static long
+mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data,
+							  MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
+{
 	MYSQLND_RES * res = NULL;
 	long lag = -1L;
 	/* TODO ANDREY - fix PHP 5.3 */
 #if MYSQLND_VERSION_ID >= 50010
-	MYSQLND_ERROR_INFO * org_error_info = NULL;
+	MYSQLND_ERROR_INFO * org_error_info;
 #else
 	MYSQLND_ERROR_INFO org_error_info;
 #endif
@@ -234,7 +237,7 @@ static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 #endif
 	(*conn_data)->skip_ms_calls = TRUE;
 
-	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, "SHOW SLAVE STATUS", sizeof("SHOW SLAVE STATUS") - 1 TSRMLS_CC)) &&
+	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, SHOW_SS_QUERY , sizeof(SHOW_SS_QUERY) - 1 TSRMLS_CC)) &&
 		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
 	{
@@ -253,7 +256,7 @@ static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 			}
 
 			if ((Z_TYPE_PP(io_running) != IS_STRING) ||
-				(0 != strncmp(Z_STRVAL_PP(io_running), "Yes", Z_STRLEN_PP(io_running))))
+				(0 != strncasecmp(Z_STRVAL_PP(io_running), "Yes", Z_STRLEN_PP(io_running))))
 			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Slave_IO_Running is not 'Yes'");
 				goto getlagsqlerror;
@@ -266,7 +269,7 @@ static long mysqlnd_ms_qos_server_get_lag(MYSQLND_CONN_DATA * conn,
 			}
 
 			if ((Z_TYPE_PP(io_running) != IS_STRING) ||
-				(0 != strncmp(Z_STRVAL_PP(sql_running), "Yes", Z_STRLEN_PP(sql_running))))
+				(0 != strncasecmp(Z_STRVAL_PP(sql_running), "Yes", Z_STRLEN_PP(sql_running))))
 			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Slave_SQL_Running is not 'Yes'");
 				goto getlagsqlerror;
