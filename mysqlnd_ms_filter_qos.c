@@ -145,16 +145,18 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 					}
 				}
 			}
-
-			if ((ret->consistency != CONSISTENCY_STRONG) &&
-				(ret->consistency != CONSISTENCY_SESSION) &&
-				(ret->consistency != CONSISTENCY_EVENTUAL))
-				{
-				mnd_pefree(ret, persistent);
-				php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping.", PICK_QOS, SECT_QOS_STRONG, SECT_QOS_SESSION, SECT_QOS_EVENTUAL);
+			switch (ret->consistency) {
+				case CONSISTENCY_STRONG:
+				case CONSISTENCY_SESSION:
+				case CONSISTENCY_EVENTUAL:
+					break;
+				default:
+					mnd_pefree(ret, persistent);
+					ret = NULL;
+					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX
+						" Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping.",
+						PICK_QOS, SECT_QOS_STRONG, SECT_QOS_SESSION, SECT_QOS_EVENTUAL);
 			}
-
 		}
 	}
 
