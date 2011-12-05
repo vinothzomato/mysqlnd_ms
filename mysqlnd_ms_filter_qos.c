@@ -389,7 +389,6 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
 				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
-				MYSQLND_ERROR_INFO * tmp_error_info = mnd_ecalloc(1, sizeof(MYSQLND_ERROR_INFO));
 				smart_str sql = {0, 0, 0};
 				zend_bool exit_loop = FALSE;
 
@@ -425,12 +424,14 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 								}
 							}
 							if (sql.c) {
-								tmp_error_info->error_no = 0;
-								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, tmp_error_info TSRMLS_CC)) {
+								MYSQLND_ERROR_INFO tmp_error_info;
+								tmp_error_info.error_no = 0;
+								if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, &tmp_error_info TSRMLS_CC)) {
 									zend_llist_add_element(selected_slaves, &element);
-								} else if (tmp_error_info->error_no) {
+								} else if (tmp_error_info.error_no) {
 									char error_buf[512];
-									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'", tmp_error_info->error_no, tmp_error_info->error);
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
+											 tmp_error_info.error_no, tmp_error_info.error);
 									error_buf[sizeof(error_buf) - 1] = '\0';
 									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 								}
@@ -440,7 +441,6 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				END_ITERATE_OVER_SERVER_LIST;
 
 				smart_str_free(&sql);
-				mnd_efree(tmp_error_info);
 
 				zend_llist_copy(selected_masters, master_list);
 				break;
@@ -472,7 +472,6 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
 				MYSQLND_MS_CONN_DATA ** conn_data = NULL;
-				MYSQLND_ERROR_INFO * tmp_error_info = mnd_ecalloc(1,sizeof(MYSQLND_ERROR_INFO));
 				zend_bool exit_loop = FALSE;
 				long lag;
 
@@ -487,24 +486,23 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 								(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
 							))
 						{
+							MYSQLND_ERROR_INFO tmp_error_info;
 
-								DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
-								tmp_error_info->error_no = 0;
-								lag = mysqlnd_ms_qos_server_get_lag(connection, conn_data, tmp_error_info TSRMLS_CC);
-								if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
-									zend_llist_add_element(selected_slaves, &element);
-								} else if (tmp_error_info->error_no) {
-									char error_buf[512];
-									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'", tmp_error_info->error_no, tmp_error_info->error);
-									error_buf[sizeof(error_buf) - 1] = '\0';
-									php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-								}
+							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+							tmp_error_info.error_no = 0;
+							lag = mysqlnd_ms_qos_server_get_lag(connection, conn_data, &tmp_error_info TSRMLS_CC);
+							if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
+								zend_llist_add_element(selected_slaves, &element);
+							} else if (tmp_error_info.error_no) {
+								char error_buf[512];
+								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
+										tmp_error_info.error_no, tmp_error_info.error);
+								error_buf[sizeof(error_buf) - 1] = '\0';
+								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+							}
 						}
 					}
 				END_ITERATE_OVER_SERVER_LIST;
-
-				mnd_efree(tmp_error_info);
-
 			} else {
 				zend_llist_copy(selected_slaves, slave_list);
 			}
