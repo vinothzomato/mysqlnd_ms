@@ -38,6 +38,8 @@ mysqlnd_ms.enable=1
 		array('tablename', 't_blename', true),
 		array('tablename', 't___ename', true),
 		/* escaping */
+		array('\\', '\\', false),
+		array('\\a', '\\b', false),
 		array('tabl_name', 'tabl\_nam_', true),
 		array('tabl_name', 'tabl\_name', true),
 		array('tabl%name', 'tabl\%na%', true),
