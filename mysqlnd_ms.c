@@ -521,11 +521,6 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 				enum_func_status status =
 					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, is_master, host, conn_list, &cred,
 												   master_global_trx, lazy_connections, persistent TSRMLS_CC);
-#if MYSQLND_VERSION_ID >= 50010
-				if (tmp_conn_handle) {
-					tmp_conn_handle->m->dtor(tmp_conn_handle TSRMLS_CC);
-				}
-#endif
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
 					(*error_info) = MYSQLND_MS_ERROR_INFO(tmp_conn);
@@ -544,6 +539,12 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 						MYSQLND_MS_INC_STATISTIC(success_stat);
 					}
 				}
+#if MYSQLND_VERSION_ID >= 50010
+				if (tmp_conn_handle) {
+					tmp_conn_handle->m->dtor(tmp_conn_handle TSRMLS_CC);
+				}
+#endif
+				
 			} else {
 				failures++;
 				/* Handle OOM!! */
