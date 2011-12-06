@@ -35,6 +35,7 @@
 #include "mysqlnd_ms_config_json.h"
 #include "ext/standard/php_rand.h"
 #include "mysqlnd_ms_filter_qos.h"
+#include "mysqlnd_ms_switch.h"
 
 #define STR_W_LEN(str)  str, (sizeof(str) - 1)
 const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
