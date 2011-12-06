@@ -16,6 +16,8 @@ mysqlnd_ms.enable=1
 	  printf("[002] Expecting NULL got %s\n", var_export($ret, true));
 
 	$pattern = array(
+		array('', '', true),
+		array('\0', '\0', false),
 		array('_', '_', true),
 		array('%', '%', true),
 		array('', '', true),
