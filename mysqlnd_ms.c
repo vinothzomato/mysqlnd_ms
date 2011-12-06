@@ -291,9 +291,6 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 
 	new_global_trx->is_master = is_master;
 	new_global_trx->report_error = orig_global_trx->report_error;
-	new_global_trx->use_multi_statement = orig_global_trx->use_multi_statement;
-	new_global_trx->multi_statement_user_enabled = orig_global_trx->multi_statement_user_enabled;
-	new_global_trx->multi_statement_gtx_enabled = orig_global_trx->multi_statement_gtx_enabled;
 
 	DBG_VOID_RETURN;
 }
@@ -598,9 +595,6 @@ mysqlnd_ms_init_trx_to_null(struct st_mysqlnd_ms_global_trx_injection * trx TSRM
 	trx->check_for_gtid_len = (size_t)0;
 	trx->is_master = FALSE;
 	trx->report_error = TRUE;
-	trx->use_multi_statement = FALSE;
-	trx->multi_statement_user_enabled = FALSE;
-	trx->multi_statement_gtx_enabled = FALSE;
 
 	DBG_VOID_RETURN;
 }
@@ -676,12 +670,6 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_REPORT_ERROR, sizeof(SECT_G_TRX_REPORT_ERROR) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			trx->report_error = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
-			mnd_efree(json_value);
-		}
-
-		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_MULTI_STMT, sizeof(SECT_G_TRX_MULTI_STMT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
-		if (entry_exists && json_value) {
-			trx->use_multi_statement = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
 			mnd_efree(json_value);
 		}
 	}
@@ -892,7 +880,6 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection;
 	enum_func_status ret = FAIL;
-	smart_str multi_query = {0};
 #ifdef ALL_SERVER_DISPATCH
 	zend_bool use_all = 0;
 #endif
@@ -940,67 +927,15 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	{
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
+			MS_TRX_INJECT(ret, connection, conn_data);
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
+				MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
-			if (TRUE == (*conn_data)->global_trx.use_multi_statement) {
-				smart_str_appendl(&multi_query, (*conn_data)->global_trx.on_commit, (*conn_data)->global_trx.on_commit_len);
-				smart_str_appendc(&multi_query, ';');
-				smart_str_appendl(&multi_query, query, query_len);
-				smart_str_appendc(&multi_query, '\0');
-				query = multi_query.c;
-				query_len = multi_query.len - 1;
-
-				if (TRUE == (*conn_data)->global_trx.multi_statement_user_enabled) {
-					/* user has activated multi statement already */
-					(*conn_data)->global_trx.multi_statement_gtx_enabled = FALSE;
-					ret = PASS;
-				} else {
-					/* we need to send server option */
-					(*conn_data)->global_trx.multi_statement_gtx_enabled = TRUE;
-					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_ON TSRMLS_CC);
+			if (FAIL == ret) {
+				if (TRUE == (*conn_data)->global_trx.report_error) {
+					DBG_RETURN(ret);
 				}
-
-				if (FAIL == ret) {
-					if (TRUE == (*conn_data)->global_trx.report_error) {
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_GTID_AUTOCOMMIT_FAILURE);
-						if (multi_query.c)
-							smart_str_free(&multi_query);
-						DBG_RETURN(ret);
-					}
-
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				}
-
-			} else {
-
-				MS_TRX_INJECT(ret, connection, conn_data);
-				MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
-					MS_STAT_GTID_AUTOCOMMIT_FAILURE);
-
-				if (FAIL == ret) {
-					if (TRUE == (*conn_data)->global_trx.report_error) {
-						DBG_RETURN(ret);
-					}
-
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				}
-			}
-		} else {
-			/* autocommit off */
-
-			if ((TRUE == (*conn_data)->global_trx.multi_statement_gtx_enabled) &&
-				(FALSE == (*conn_data)->global_trx.multi_statement_user_enabled))
-			{
-				/* no, the user has not requested multi statement, forbid it... */
-				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(connection, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
-
-				if (FAIL == ret) {
-					if (TRUE == (*conn_data)->global_trx.report_error) {
-						MYSQLND_MS_INC_STATISTIC(MS_STAT_GTID_AUTOCOMMIT_FAILURE);
-						DBG_RETURN(ret);
-					}
-
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				}
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 			}
 		}
 	}
@@ -1012,28 +947,6 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
 		}
 	}
-
-#ifndef MYSQLND_HAS_INJECTION_FEATURE
-	/* TODO: I don't think error forwarding to user will work. we probably need to add checks! */
-	if (multi_query.c) {
-		if (PASS == ret) {
-			/* user query has not failed */
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(more_results)(connection TSRMLS_CC);
-			if (PASS == ret)
-				ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(next_result)(connection TSRMLS_CC);
-
-			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS :
-				MS_STAT_GTID_AUTOCOMMIT_FAILURE);
-
-			if ((FAIL == ret) &&  (FALSE == (*conn_data)->global_trx.report_error))
-			{
-				ret = PASS;
-				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-			}
-		}
-		smart_str_free(&multi_query);
-	}
-#endif
 
 	DBG_RETURN(ret);
 }
@@ -1064,16 +977,7 @@ MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND_CONN_DATA * const proxy_conn TS
 	MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::store_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, conn->thread_id);
-
 	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC);
-	if (conn_data && *conn_data && (*conn_data)->global_trx.use_multi_statement &&
-		(FALSE == (*conn_data)->global_trx.multi_statement_user_enabled))
-	{
-		/* TODO: What shall happen in case of an error: how to inform the user? */
-		enum_func_status ret = FAIL;
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(conn, MYSQL_OPTION_MULTI_STATEMENTS_OFF TSRMLS_CC);
-	}
-
 	DBG_RETURN(result);
 }
 /* }}} */
@@ -1482,17 +1386,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
-#ifndef MYSQLND_HAS_INJECTION_FEATURE
-					/* If enabled, we don't need to enable if global trx injection is using multi statement */
-					switch (option) {
-						case MYSQL_OPTION_MULTI_STATEMENTS_ON:
-							(*el_conn_data)->global_trx.multi_statement_user_enabled = TRUE;
-							break;
-						case MYSQL_OPTION_MULTI_STATEMENTS_OFF:
-							(*el_conn_data)->global_trx.multi_statement_user_enabled = FALSE;
-							break;
-					}
-#endif
 				}
 			}
 		}
