@@ -460,7 +460,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 							}
 						}
 						if (sql.c) {
-							MYSQLND_ERROR_INFO tmp_error_info;
+							MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
 							tmp_error_info.error_no = 0;
 							if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, &tmp_error_info TSRMLS_CC)) {
 								zend_llist_add_element(selected_slaves, &element);
@@ -528,7 +528,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 							(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
 						))
 					{
-						MYSQLND_ERROR_INFO tmp_error_info;
+						MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
 
 						DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 						tmp_error_info.error_no = 0;
@@ -547,7 +547,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				/* Stage 2 - Now, after all servers have something to do, try to fetch the result, in the same order */
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, &stage1_slaves)
 					long lag;
-					MYSQLND_ERROR_INFO tmp_error_info;
+					MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
 					MYSQLND_CONN_DATA * connection = element->conn;
 					MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
 
