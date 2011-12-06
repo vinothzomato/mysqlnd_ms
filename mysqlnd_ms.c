@@ -256,12 +256,6 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 		DBG_VOID_RETURN;
 	}
 
-	if (new_global_trx->on_commit) {
-		mnd_pefree(new_global_trx->on_commit, persistent);
-		new_global_trx->on_commit = NULL;
-		new_global_trx->on_commit_len = 0;
-	}
-
 	if (TRUE == is_master) {
 		new_global_trx->on_commit_len = orig_global_trx->on_commit_len;
 		new_global_trx->on_commit = (orig_global_trx->on_commit) ?
@@ -271,20 +265,10 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 		new_global_trx->on_commit = NULL;
 	}
 
-	if (new_global_trx->fetch_last_gtid) {
-		mnd_pefree(new_global_trx->fetch_last_gtid, persistent);
-		new_global_trx->fetch_last_gtid = NULL;
-		new_global_trx->fetch_last_gtid_len = 0;
-	}
 	new_global_trx->fetch_last_gtid_len = orig_global_trx->fetch_last_gtid_len;
 	new_global_trx->fetch_last_gtid = (orig_global_trx->fetch_last_gtid) ?
 		mnd_pestrndup(orig_global_trx->fetch_last_gtid, orig_global_trx->fetch_last_gtid_len, persistent) : NULL;
 
-	if (new_global_trx->check_for_gtid) {
-		mnd_pefree(new_global_trx->check_for_gtid, persistent);
-		new_global_trx->check_for_gtid = NULL;
-		new_global_trx->check_for_gtid_len = 0;
-	}
 	new_global_trx->check_for_gtid_len = orig_global_trx->check_for_gtid_len;
 	new_global_trx->check_for_gtid = (orig_global_trx->check_for_gtid) ?
 		mnd_pestrndup(orig_global_trx->check_for_gtid, orig_global_trx->check_for_gtid_len, persistent) : NULL;
