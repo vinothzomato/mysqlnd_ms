@@ -171,6 +171,11 @@ mysqlnd_ms.enable=1
 		printf("[014] Expecting false got %s\n", var_export($ret, true));
 	}
 
+	/* Age */
+	if (false !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_AGE, -1))) {
+		printf("[015] Expecting false got %s\n", var_export($ret, true));
+	}
+
 	print "done!";
 ?>
 --CLEAN--
@@ -194,4 +199,6 @@ Warning: mysqlnd_ms_set_qos(): Invalid service level in %s on line %d
 Warning: mysqlnd_ms_set_qos(): Option value required in %s on line %d
 
 Warning: mysqlnd_ms_set_qos(): GTID must have a positive value in %s on line %d
+
+Warning: mysqlnd_ms_set_qos(): Maximum age must have a positive value in %s on line %d
 done!
