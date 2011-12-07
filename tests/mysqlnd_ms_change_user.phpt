@@ -64,33 +64,37 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user.ini
 
 	} while (($master_thread == $slave_thread) && ($attempts < 5));
 
-	$link->change_user($user, $passwd, 'mysql');
+	if ($attempts >= 5)
+		die("False-positive, please rerun");
 
-	$res = mst_mysqli_query(5, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_SLAVE_SWITCH);
+	if (!$link->change_user($user, $passwd, 'mysql'))
+	  printf("[005] Failed to change user, [%d] %s\n", $link->errno, $link->error);
+
+	$res = mst_mysqli_query(6, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_SLAVE_SWITCH);
 	if (!$row = $res->fetch_assoc())
-		printf("[006] [%d] %s\n", $link->errno, $link->error);
+		printf("[007] [%d] %s\n", $link->errno, $link->error);
 
 	if ($row['_database'] != 'mysql')
-		printf("[007] Expecting database 'mysql' got '%s'\n", $row['_database']);
+		printf("[008] Expecting database 'mysql' got '%s'\n", $row['_database']);
 
 	if ($row['_role'] != '')
-		printf("[008] Expecting role '' got '%s'\n", $row['_role']);
+		printf("[009] Expecting role '' got '%s'\n", $row['_role']);
 
 	if ($link->thread_id != $slave_thread)
-		printf("[009] Expecting slave connection thread id %d got %d\n", $slave_thread, $link->thread_id);
+		printf("[010] Expecting slave connection thread id %d got %d\n", $slave_thread, $link->thread_id);
 
-	$res = mst_mysqli_query(10, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(11, $link, "SELECT @myrole AS _role, DATABASE() as _database", MYSQLND_MS_MASTER_SWITCH);
 	if (!$row = $res->fetch_assoc())
-		printf("[011] [%d] %s\n", $link->errno, $link->error);
+		printf("[012] [%d] %s\n", $link->errno, $link->error);
 
 	if ($row['_database'] != 'mysql')
-		printf("[012] Expecting database 'mysql' got '%s'\n", $row['_database']);
+		printf("[013] Expecting database 'mysql' got '%s'\n", $row['_database']);
 
 	if ($row['_role'] != '')
-		printf("[013] Expecting role '' got '%s'\n", $row['_role']);
+		printf("[014] Expecting role '' got '%s'\n", $row['_role']);
 
 	if ($link->thread_id != $master_thread)
-		printf("[009] Expecting master connection thread id %d got %d\n", $master_thread, $link->thread_id);
+		printf("[015] Expecting master connection thread id %d got %d\n", $master_thread, $link->thread_id);
 
 	print "done!";
 ?>
