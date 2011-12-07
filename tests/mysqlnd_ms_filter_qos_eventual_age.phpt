@@ -59,6 +59,23 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+	if (!$link->query("DROP TABLE IF EXISTS test") ||
+		!$link->query("CREATE TABLE test(id INT)") ||
+		!$link->query("INSERT INTO test(id) VALUES (1)"))
+		printf("[002] [%d] %s\n", $link->errno, $link->error);
+
+	/* GTID */
+	if (true !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_AGE, 4))) {
+		printf("[004] [%d] %s\n", $link->errno, $link->error);
+	}
+
+	/* Ignore repl errors such as slave not running. Result must be the same whatever server is used */
+	if ($res = @mst_mysqli_query(6, $link, "SELECT id FROM test"))
+		var_dump($res->fetch_all());
+
+	printf("[007] [%d] '%s'\n", $link->errno, $link->error);
+	printf("Got reply from '%s'\n", mst_mysqli_get_emulated_id(8, $link));
+
 	print "done!";
 ?>
 --CLEAN--
@@ -67,4 +84,13 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_age.ini'.\n");
 ?>
 --EXPECTF--
+array(1) {
+  [0]=>
+  array(1) {
+    [0]=>
+    string(1) "1"
+  }
+}
+[007] [0] ''
+Got reply from '%s'
 done!
