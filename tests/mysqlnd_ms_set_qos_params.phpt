@@ -108,7 +108,7 @@ mysqlnd_ms.enable=1
 
 	$valid_options = array(
 		MYSQLND_MS_QOS_OPTION_GTID => MYSQLND_MS_QOS_CONSISTENCY_SESSION,
-		MYSQLND_MS_QOS_OPTION_AGE => NULL,
+		MYSQLND_MS_QOS_OPTION_AGE => MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL,
 	);
 	do {
 		$invalid_option = mt_rand(10, 100);
@@ -133,18 +133,42 @@ mysqlnd_ms.enable=1
 				var_export($ret, true), $invalid_option, $service_level);
 	}
 
+	foreach ($valid_options as $option => $service_level) {
+		$invalid_service_levels = array();
+		foreach ($valid_service_levels	as $level => $v) {
+			if ($service_level != $level)
+				$invalid_service_levels[$level] = $level;
+		}
+
+		foreach ($invalid_service_levels as $service_level) {
+			ob_start();
+			$ret = mysqlnd_ms_set_qos($link, $service_level, $option, 1);
+			$tmp = ob_get_contents();
+			ob_end_clean();
+
+			if (!stristr($tmp, "Warning")) {
+				printf("[010] Can't find warning about invalid option %d for service level %d\n",
+					$invalid_option, $service_level);
+			}
+
+			if (false !== $ret)
+				printf("[011] Expecting false got %s with invalid option %d for service level %d\n",
+					var_export($ret, true), $invalid_option, $service_level);
+			}
+	}
+
 	/* GTID */
 	if (false !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID))) {
-		printf("[010] Expecting false got %s\n", var_export($ret, true));
+		printf("[012] Expecting false got %s\n", var_export($ret, true));
 	}
 
 	/* casted to 0 */
 	if (true !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID, array()))) {
-		printf("[011] Expecting true got %s\n", var_export($ret, true));
+		printf("[013] Expecting true got %s\n", var_export($ret, true));
 	}
 
 	if (false !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID, (-1 * PHP_INT_MAX) + 1))) {
-		printf("[012] Expecting false got %s\n", var_export($ret, true));
+		printf("[014] Expecting false got %s\n", var_export($ret, true));
 	}
 
 	print "done!";
