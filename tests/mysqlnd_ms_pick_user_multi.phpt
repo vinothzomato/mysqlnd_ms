@@ -1,5 +1,5 @@
 --TEST--
-Load Balancing: random_once (slaves)
+User mutli filter
 --SKIPIF--
 <?php
 require_once('skipif.inc');
