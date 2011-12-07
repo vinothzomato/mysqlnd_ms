@@ -91,7 +91,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_invalid_cont.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_host_credentials_invalid_cont.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value for port '%	d' . Stopping in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value for port '%d' . Stopping in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value for connect_flags '-1' . Stopping in %s on line %d
 [E_WARNING] mysqli_real_connect(): (mysqlnd_ms) Cannot connect to %s in %s on line %d
 [E_WARNING] mysqli_real_connect(): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
