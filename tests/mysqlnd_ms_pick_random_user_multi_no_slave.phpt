@@ -25,7 +25,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_pick_random_user_multi_no_slave.
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
