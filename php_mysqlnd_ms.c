@@ -88,7 +88,6 @@ php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 	mysqlnd_ms_globals->enable = FALSE;
 	mysqlnd_ms_globals->force_config_usage = FALSE;
 	mysqlnd_ms_globals->ini_file = NULL;
-	mysqlnd_ms_globals->user_pick_server = NULL;
 	mysqlnd_ms_globals->collect_statistics = FALSE;
 	mysqlnd_ms_globals->multi_master = FALSE;
 	mysqlnd_ms_globals->disable_rw_split = FALSE;
@@ -114,18 +113,6 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 			mysqlns_ms_global_config_loaded = TRUE;
 		}
 		MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
-	}
-	return SUCCESS;
-}
-/* }}} */
-
-
-/* {{{ PHP_RSHUTDOWN_FUNCTION */
-PHP_RSHUTDOWN_FUNCTION(mysqlnd_ms)
-{
-	if (MYSQLND_MS_G(user_pick_server)) {
-		zval_ptr_dtor(&MYSQLND_MS_G(user_pick_server));
-		MYSQLND_MS_G(user_pick_server) = NULL;
 	}
 	return SUCCESS;
 }
@@ -237,55 +224,6 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 	DISPLAY_INI_ENTRIES();
 }
 /* }}} */
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_user_pick_server, 0, 0, 1)
-	ZEND_ARG_INFO(0, pick_server_cb)
-ZEND_END_ARG_INFO()
-
-
-#ifdef REINTRODUCE_LATER
-/* {{{ mysqlnd_ms_set_user_pick_server */
-static void
-mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAMETERS)
-{
-	zval * arg = NULL;
-	char * name;
-
-	DBG_ENTER("mysqlnd_ms_set_user_pick_server_aux");
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &arg) == FAILURE) {
-		DBG_VOID_RETURN;
-	}
-
-	if (!zend_is_callable(arg, 0, &name TSRMLS_CC)) {
-		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "Argument is not a valid callback");
-		efree(name);
-		RETVAL_FALSE;
-		DBG_VOID_RETURN;
-	}
-	DBG_INF_FMT("name=%s", name);
-	efree(name);
-
-	if (MYSQLND_MS_G(user_pick_server) != NULL) {
-		zval_ptr_dtor(&MYSQLND_MS_G(user_pick_server));
-	}
-	MYSQLND_MS_G(user_pick_server) = arg;
-	Z_ADDREF_P(arg);
-
-	RETVAL_TRUE;
-	DBG_VOID_RETURN;
-}
-/* }}} */
-
-
-/* {{{ proto bool mysqlnd_ms_set_user_pick_server(string is_select)
-   Sets use_pick function callback */
-static PHP_FUNCTION(mysqlnd_ms_set_user_pick_server)
-{
-	mysqlnd_ms_set_user_pick_server_aux(INTERNAL_FUNCTION_PARAM_PASSTHRU);
-}
-/* }}} */
-#endif
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_match_wild, 0, 0, 2)
   ZEND_ARG_INFO(0, haystack)
@@ -615,9 +553,6 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 
 /* {{{ mysqlnd_ms_functions */
 static const zend_function_entry mysqlnd_ms_functions[] = {
-#ifdef REINTRODUCE_LATER
-	PHP_FE(mysqlnd_ms_set_user_pick_server,	arginfo_mysqlnd_ms_set_user_pick_server)
-#endif
 	PHP_FE(mysqlnd_ms_match_wild,	arginfo_mysqlnd_ms_match_wild)
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
@@ -641,7 +576,7 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	PHP_MINIT(mysqlnd_ms),
 	PHP_MSHUTDOWN(mysqlnd_ms),
 	PHP_RINIT(mysqlnd_ms),
-	PHP_RSHUTDOWN(mysqlnd_ms),
+	NULL,
 	PHP_MINFO(mysqlnd_ms),
 	MYSQLND_MS_VERSION,
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
