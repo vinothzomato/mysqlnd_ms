@@ -1,5 +1,5 @@
 --TEST--
-Random, user multi, slave list error
+User multi, return bogus list offset
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -14,17 +14,17 @@ $settings = array(
 			'user_multi' => array('callback' => 'pick_servers'),
 			"random" => array()
 		),
-		'master' 	=> array($master_host),
+		'master' 	=> array('mymaster' => $master_host),
 		'slave' 	=> array($slave_host),
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_pick_random_user_multi_no_slave.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -34,27 +34,27 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave.ini
 	function pick_servers($connected_host, $query, $masters, $slaves, $last_used_connection, $in_transaction) {
 		printf("pick_server('%s', '%s, '%s')\n", $connected_host, $query, $last_used_connection);
 		/* array(master_array(master_idx, master_idx), slave_array(slave_idx, slave_idx)) */
-		return array(array(0), NULL);
+		return array(array(PHP_INT_MAX * 2), array("foo"));
 	}
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[001] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
 			$host, $user, $db, $port, $socket);
 
-	$res = mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL");
-	var_dump($res->fetch_assoc());
+	if ($res = mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL"))
+		var_dump($res->fetch_assoc());
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_random_user_multi_no_slave.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_user_multi_no_slave.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini'.\n");
 ?>
 --EXPECTF--
 pick_server('myapp', '/*2*/SELECT 1 FROM DUAL, '')
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. The callback must return an array in %s on line %d
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
-[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
-
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. Server id is invalid in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[002] [2000] (mysqlnd_ms) No connection selected by the last filter
+done!
