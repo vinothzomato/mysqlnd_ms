@@ -89,21 +89,6 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_SESSION);
 				} else {
 					ret->consistency = CONSISTENCY_SESSION;
-
-					if (TRUE == is_list_value) {
-						zend_bool section_exists;
-						struct st_mysqlnd_ms_config_json_entry * session_section =
-							mysqlnd_ms_config_json_sub_section(section, SECT_QOS_SESSION, sizeof(SECT_QOS_SESSION) - 1, &section_exists TSRMLS_CC);
-
-						if (section_exists && session_section) {
-							char * json_value = mysqlnd_ms_config_json_string_from_section(session_section, SECT_QOS_CACHE_TTL, sizeof(SECT_QOS_CACHE_TTL) - 1, 0,
-																					  &value_exists, &is_list_value TSRMLS_CC);
-							if (value_exists && json_value) {
-								ret->option_data.cache_ttl = atol(json_value);
-								mnd_efree(json_value);
-							}
-						}
-					}
 				}
 			}
 
@@ -133,13 +118,6 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 								ret->option = QOS_OPTION_AGE;
 								ret->option_data.age_or_gtid = atol(json_value);
 								mnd_efree(json_value);
-
-								json_value = mysqlnd_ms_config_json_string_from_section(eventual_section, SECT_QOS_CACHE_TTL, sizeof(SECT_QOS_CACHE_TTL) - 1, 0,
-																					  &value_exists, &is_list_value TSRMLS_CC);
-								if (value_exists && json_value) {
-									ret->option_data.cache_ttl = atol(json_value);
-									mnd_efree(json_value);
-								}
 							}
 						}
 					}
@@ -481,7 +459,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				smart_str_free(&sql);
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
-					zend_llist_add_element(selected_masters, &element);			
+					zend_llist_add_element(selected_masters, &element);
 				END_ITERATE_OVER_SERVER_LIST;
 				break;
 			}
@@ -495,16 +473,16 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 			*/
 			DBG_INF("using masters only for strong consistency");
 			BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
-				zend_llist_add_element(selected_masters, &element);			
+				zend_llist_add_element(selected_masters, &element);
 			END_ITERATE_OVER_SERVER_LIST;
 			break;
 		case CONSISTENCY_EVENTUAL:
 			/*
-			  For now...
+			For now...
 				Either all masters and slaves or
 				slaves filtered by SHOW SLAVE STATUS replication lag
 
-			  For later...
+			For later...
 				We may inject mysqlnd_qc per-query TTL SQL hints here to
 				replace a slave access with a call access.
 			*/
@@ -563,16 +541,16 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 								tmp_error_info.error_no, tmp_error_info.error);
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-					}				
+					}
 				END_ITERATE_OVER_SERVER_LIST;
 				zend_llist_clean(&stage1_slaves);
 			} else {
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
-					zend_llist_add_element(selected_slaves, &element);			
+					zend_llist_add_element(selected_slaves, &element);
 				END_ITERATE_OVER_SERVER_LIST;
 			}
 			BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
-				zend_llist_add_element(selected_masters, &element);			
+				zend_llist_add_element(selected_masters, &element);
 			END_ITERATE_OVER_SERVER_LIST;
 			break;
 		default:
@@ -647,11 +625,6 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 		}
 		if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
  			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
-		}
-		if (QOS_OPTION_CACHE_TTL == option &&
-			((CONSISTENCY_EVENTUAL == consistency) || (CONSISTENCY_SESSION)))
-		{
-			new_qos_filter->option_data.cache_ttl = option_data->cache_ttl;
 		}
 
 		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
