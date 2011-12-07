@@ -41,7 +41,7 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_strong_consistency_rr.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_consistency_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
@@ -50,7 +50,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_strong_consistency_rr.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_eventual_consistency_rr.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -143,8 +143,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_strong_consistency_rr.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_qos_strong_consistency_rr.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_strong_consistency_rr.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_filter_qos_eventual_consistency_rr.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_consistency_rr.ini'.\n");
 ?>
 --EXPECTF--
 slave 1 (%s) has run 2 queries
