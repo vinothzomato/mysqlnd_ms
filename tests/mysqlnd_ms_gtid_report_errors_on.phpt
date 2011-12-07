@@ -6,7 +6,7 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 require_once('skipif.inc');
-  require_once("connect.inc");
+require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -15,7 +15,7 @@ _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socke
 include_once("util.inc");
 $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
-  die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
+	die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
 
 $link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
@@ -204,6 +204,8 @@ mysqlnd_ms.collect_statistics=1
 	if (!unlink("test_mysqlnd_ms_gtid_report_errors_on.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on.ini'.\n");
 
+	require_once("connect.inc");
+	require_once("util.inc");
 	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
 		printf("[clean] %s\n", $error));
 ?>

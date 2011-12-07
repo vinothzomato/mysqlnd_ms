@@ -14,6 +14,9 @@ _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socke
 
 include_once("util.inc");
 $sql = mst_get_gtid_sql($db);
+if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+	die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
+
 
 $link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 if (mysqli_connect_errno())
@@ -165,6 +168,11 @@ mysqlnd_ms.collect_statistics=1
 <?php
 	if (!unlink("test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini"))
 		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_report_errors_on_non_lazy.ini'.\n");
+
+	require_once("connect.inc");
+	require_once("util.inc");
+	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
 [005] [1146] %s
