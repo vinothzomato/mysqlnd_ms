@@ -25,6 +25,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_pick_random_user_multi_no_slave.
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave.ini
+mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -33,7 +34,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave.ini
 	function pick_servers($connected_host, $query, $masters, $slaves, $last_used_connection, $in_transaction) {
 		printf("pick_server('%s', '%s, '%s')\n", $connected_host, $query, $last_used_connection);
 		/* array(master_array(master_idx, master_idx), slave_array(slave_idx, slave_idx)) */
-		return array(array(0), NULL);
+		return array(array(0), array());
 	}
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
@@ -53,7 +54,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave.ini
 --EXPECTF--
 pick_server('myapp', '/*2*/SELECT 1 FROM DUAL, '')
 
-Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. Something is wrong in %s on line %d
-[002] [2000] (mysqlnd_ms) Couldn't find the appropriate slave connection. Something is wrong
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[002] [2000] (mysqlnd_ms) No connection selected by the last filter
+
+Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line 16
