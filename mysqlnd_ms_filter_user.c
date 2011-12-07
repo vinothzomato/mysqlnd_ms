@@ -457,6 +457,12 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 		if (retval) {
 			if (Z_TYPE_P(retval) != IS_ARRAY) {
 				DBG_ERR("The user returned no array");
+				char error_buf[256];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has not returned a list of servers to use. The callback must return an array");
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				DBG_ERR_FMT("%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 			} else {
 				do {
 					HashPosition hash_pos;
@@ -556,7 +562,16 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 				} while (0);
 			}
 			zval_ptr_dtor(&retval);
+		} else {
+			char error_buf[256];
+			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has not returned a list of servers to use. The callback must return an array");
+			error_buf[sizeof(error_buf) - 1] = '\0';
+			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+			DBG_ERR_FMT("%s", error_buf);
+			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 		}
+
+
 		/* destroy the params */
 		{
 			unsigned int i;
