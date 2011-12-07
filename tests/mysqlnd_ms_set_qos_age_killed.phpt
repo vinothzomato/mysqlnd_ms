@@ -53,10 +53,6 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_set_qos_age_killed.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
-
-include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -76,7 +72,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_age.ini
 	if (!$link->query("SELECT 1 FROM DUAL"))
 		printf("[002] [%d] %s\n", $link->errno, $link->error);
 
-	$slave = mst_mysqli_get_emulated_id(3, $link);
+	$slave_thread = $link->thread_id;
 
 	/* kill slave connection */
 	$link->kill($link->thread_id);
@@ -85,6 +81,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_age.ini
 		!$link->query("CREATE TABLE test(id INT)") ||
 		!$link->query("INSERT INTO test(id) VALUES (1)"))
 		printf("[004] [%d] %s\n", $link->errno, $link->error);
+
+	$master_thread = $link->thread_id;
 
 	if (true !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_AGE, 4))) {
 		printf("[005] [%d] %s\n", $link->errno, $link->error);
@@ -95,7 +93,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_age.ini
 		var_dump($res->fetch_all());
 
 	printf("[007] [%d] '%s'\n", $link->errno, $link->error);
-	printf("Reply comes from %s, slave is %s\n", mst_mysqli_get_emulated_id(8, $link), $slave);
+	printf("Reply comes from %d, slave is %d, %d\n", $link->thread_id, $slave_thread, ($master_thread == $slave_thread) ? 1 : ($link->thread_id == $master_thread));
 
 	print "done!";
 ?>
@@ -121,5 +119,5 @@ array(1) {
   }
 }
 [007] [0] ''
-Reply comes from master-%d, slave is slave-%d
+Reply comes from %d, slave is %d, 1
 done!
