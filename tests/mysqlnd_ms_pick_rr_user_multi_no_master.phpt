@@ -1,5 +1,5 @@
 --TEST--
-Roundrobin, user multi, no master
+RR, user multi, no master
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -16,6 +16,7 @@ $settings = array(
 		),
 		'master' 	=> array('mymaster' => $master_host),
 		'slave' 	=> array($slave_host),
+		'lazy_connections' => 1,
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_rr_user_multi_no_master.ini", $settings))
@@ -29,11 +30,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_rr_user_multi_no_master.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
+	set_error_handler('mst_error_handler');
 
 	function pick_servers($connected_host, $query, $masters, $slaves, $last_used_connection, $in_transaction) {
 		printf("pick_server('%s', '%s, '%s')\n", $connected_host, $query, $last_used_connection);
 		/* array(master_array(master_idx, master_idx), slave_array(slave_idx, slave_idx)) */
-		return array(array(), array(0));
+		return array(NULL, array(0));
 	}
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
@@ -53,7 +55,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_rr_user_multi_no_master.ini
 --EXPECTF--
 pick_server('myapp', '/*ms=master*//*2*/SELECT 1 FROM DUAL, '')
 
-Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
-[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. 0 masters to choose from. Something is wrong in %s on line %d
 
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line %d
+Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[002] [2000] (mysqlnd_ms) No connection selected by the last filter
+
+Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line 16
