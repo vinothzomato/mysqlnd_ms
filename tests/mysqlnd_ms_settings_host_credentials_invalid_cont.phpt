@@ -25,7 +25,7 @@ $settings = array(
 	"myapp" => array(
 		'master' => array(
 			  array(
-				'host' 		=> $emulated_master_host,
+				'host' 		=> $emulated_master_host_only,
 				'port' 		=> PHP_INT_MAX,
 				'socket' 	=> false,
 				'db'		=> array("db"),
@@ -36,7 +36,7 @@ $settings = array(
 		),
 		'slave' => array(
 			array(
-			  'host' 	=> $emulated_slave_host,
+			  'host' 	=> $emulated_slave_host_only,
 			  'port' 	=> -1,
 			  'socket' 	=> array(),
 			  'db'		=> NULL,
