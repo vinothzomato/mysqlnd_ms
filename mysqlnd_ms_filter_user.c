@@ -456,8 +456,8 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 		retval = mysqlnd_ms_call_handler(filter_data->user_callback, param + 1, args, FALSE /*we destroy later*/, error_info TSRMLS_CC);
 		if (retval) {
 			if (Z_TYPE_P(retval) != IS_ARRAY) {
-				DBG_ERR("The user returned no array");
 				char error_buf[256];
+				DBG_ERR("The user returned no array");
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has not returned a list of servers to use. The callback must return an array");
 				error_buf[sizeof(error_buf) - 1] = '\0';
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
