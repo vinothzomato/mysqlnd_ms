@@ -138,5 +138,5 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --EXPECTF--
 [010] [1146] %s
-[011] [0%A
+[011] [1146] %s
 done!

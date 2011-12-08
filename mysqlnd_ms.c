@@ -528,7 +528,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 					tmp_conn_handle->m->dtor(tmp_conn_handle TSRMLS_CC);
 				}
 #endif
-				
+
 			} else {
 				failures++;
 				/* Handle OOM!! */
@@ -1864,10 +1864,12 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 	enum_func_status ret = PASS;
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
+	MYSQLND_STMT_DATA * stmt = s? s->data:NULL;
 
 	DBG_ENTER("mysqlnd_ms_stmt::execute");
 
-	if (!s || !s->data || !s->data->conn ||
+	if (!stmt ||
+		!s || !s->data || !s->data->conn ||
 		!(MS_LOAD_CONN_DATA(conn_data, s->data->conn)) ||
 		!conn_data || !*conn_data || (*conn_data)->skip_ms_calls)
 	{
@@ -1886,12 +1888,14 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 		MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_AUTOCOMMIT_SUCCESS : MS_STAT_GTID_AUTOCOMMIT_FAILURE);
 
 		if (FAIL == ret) {
-			/* TODO: copy to stmt error? */
 			if (TRUE == (*conn_data)->global_trx.report_error) {
+				/* user stmt returns false and shall have error set */
+				SET_STMT_ERROR(stmt,
+					(MYSQLND_MS_ERROR_INFO(connection)).error_no,
+					(MYSQLND_MS_ERROR_INFO(connection)).sqlstate,
+					(MYSQLND_MS_ERROR_INFO(connection)).error);
 				DBG_RETURN(ret);
 			}
-
-			/* TODO: clear stmt error? */
 			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 		}
 	}
