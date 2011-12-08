@@ -69,9 +69,9 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_enable_rw_random.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_enable_rw_random.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 [E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 [E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
 Role: master1
   %d
