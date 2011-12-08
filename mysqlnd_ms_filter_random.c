@@ -155,7 +155,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						DBG_ERR(error_buf);
 						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					} else {
 						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
@@ -233,7 +233,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						DBG_ERR(error_buf);
 						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 						DBG_RETURN(NULL);
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);

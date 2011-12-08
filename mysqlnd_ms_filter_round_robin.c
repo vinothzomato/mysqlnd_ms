@@ -155,7 +155,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					error_buf[sizeof(error_buf) - 1] = '\0';
 					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					DBG_ERR_FMT("%s", error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					break;
 				}
 				/* time to increment the position */
@@ -229,7 +229,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					error_buf[sizeof(error_buf) - 1] = '\0';
 					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					DBG_ERR_FMT("%s", error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 					break;
 				}
 				/* time to increment the position */
