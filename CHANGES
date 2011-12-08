@@ -3,7 +3,7 @@
   Motto/theme:TBD
   Release date: 12/2011
 
-  * Introduced quality-of-service (qos) filter
+  * Introduced quality-of-service (QoS) filter
   * Added mysqlnd_ms_set_qos() function to set required connection quality at runtime
   * New constants related to mysqlnd_ms_set_qos()
     - MYSQLND_MS_QOS_CONSISTENCY_STRONG
@@ -11,6 +11,10 @@
     - MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL
     - MYSQLND_MS_QOS_OPTION_GTID
     - MYSQLND_MS_QOS_OPTION_AGE
+  * Service levels provided by QoS filter
+    * eventual consistency, optional option slave lag
+    * session consistency, optional option GTID
+    * string consistency
 
   * Added gloabl transaction ID injection (GTID)
   * Added mysqlnd_ms_get_last_gtid() to fetch last transaction id
