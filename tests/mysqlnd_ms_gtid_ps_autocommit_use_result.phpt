@@ -183,7 +183,7 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 Rows 0
 Rows 1
-[020] [0%A
+[020] [2014] %s
 [022] Clean line...
 Rows 2
 [025] [1146] %s
