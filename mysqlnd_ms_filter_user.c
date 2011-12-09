@@ -553,10 +553,10 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 									DBG_INF_FMT("i=%ld server_id=%ld llist_count=%d", i, server_id, zend_llist_count(in_list));
 									if (server_id >= zend_llist_count(in_list)) {
 										char error_buf[256];
-										DBG_ERR("server_id too big, skipping and breaking");
-										snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has returned an invalid list of servers to use. Server id is invalid");
+										snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has returned an invalid list of servers to use. Server id is too big");
 										error_buf[sizeof(error_buf) - 1] = '\0';
 										SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+										DBG_ERR("server_id too big, skipping and breaking");
 										DBG_ERR_FMT("%s", error_buf);
 										php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 										break; /* skip impossible indices */
@@ -574,6 +574,16 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 										*/
 										zend_llist_add_element(out_list, &el);
 									}
+								} else {
+									/* either negative offset from user or LVAL casting gets us here */
+									char error_buf[256];
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has returned an invalid list of servers to use. Server id is negative");
+									error_buf[sizeof(error_buf) - 1] = '\0';
+									SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+									DBG_ERR("server_id is negative, skipping and breaking");
+									DBG_ERR_FMT("%s", error_buf);
+									php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+									break;
 								}
 								zend_hash_move_forward_ex(conn_hash, &hash_pos);
 							}
@@ -587,6 +597,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 			}
 			zval_ptr_dtor(&retval);
 		} else {
+			/* We should never get here */
 			char error_buf[256];
 			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has not returned a list of servers to use. The callback must return an array");
 			error_buf[sizeof(error_buf) - 1] = '\0';

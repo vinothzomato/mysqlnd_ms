@@ -1,5 +1,5 @@
 --TEST--
-User multi, return bogus list offset
+User multi, return negative id
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -18,13 +18,13 @@ $settings = array(
 		'slave' 	=> array($slave_host),
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_user_multi_return_negative_id.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_negative_id.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -34,7 +34,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini
 	function pick_servers($connected_host, $query, $masters, $slaves, $last_used_connection, $in_transaction) {
 		printf("pick_server('%s', '%s, '%s')\n", $connected_host, $query, $last_used_connection);
 		/* array(master_array(master_idx, master_idx), slave_array(slave_idx, slave_idx)) */
-		return array(array(PHP_INT_MAX * 2), array("foo"));
+		return array(array(0), array(-1));
 	}
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
@@ -48,12 +48,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_multi_return_bogus_offset.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_user_multi_return_negative_id.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_user_multi_return_negative_id.ini'.\n");
 ?>
 --EXPECTF--
 pick_server('myapp', '/*2*/SELECT 1 FROM DUAL, '')
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. Server id is invalid in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. Server id is negative in %s on line %d
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 [E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
 [002] [2000] (mysqlnd_ms) No connection selected by the last filter
