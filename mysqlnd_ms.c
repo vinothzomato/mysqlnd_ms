@@ -177,26 +177,6 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 }
 /* }}} */
 
-#ifdef BUFFERED_COMMANDS
-/* {{{ mysqlnd_ms_commands_list_dtor */
-void
-mysqlnd_ms_commands_list_dtor(void * pDest)
-{
-	MYSQLND_MS_COMMAND * element = (MYSQLND_MS_COMMAND *) pDest;
-	TSRMLS_FETCH();
-	DBG_ENTER("mysqlnd_ms_commands_list_dtor");
-	if (element) {
-		if (element->payload) {
-			mnd_pefree(element->payload, element->persistent);
-			element->payload = NULL;
-		}
-		element->payload_len = 0;
-	}
-	DBG_VOID_RETURN;
-}
-/* }}} */
-#endif
-
 
 /* {{{ mysqlnd_ms_lazy_connect */
 enum_func_status
@@ -218,22 +198,6 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 		/* TODO: without this the global trx id injection logic will fail on recently opened lazy connections */
 		if (conn_data && *conn_data) {
 			(*conn_data)->initialized = TRUE;
-		}
-#endif
-#ifdef BUFFERED_COMMANDS
-		/* let's run the buffered commands */
-		{
-			zend_llist_position	pos;
-			MYSQLND_MS_COMMAND * cmd;
-			/* search the list of easy handles hanging off the multi-handle */
-			for (cmd = (MYSQLND_MS_COMMAND *) zend_llist_get_first_ex(&(*conn_data)->delayed_commands, &pos);
-				 cmd;
-				 cmd = (MYSQLND_MS_COMMAND *) zend_llist_get_next_ex(&(*conn_data)->delayed_commands, &pos))
-			{
-				(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(simple_command)(connection, cmd->command, cmd->payload,
-																	cmd->payload_len, cmd->ok_packet, cmd->silent,
-																	cmd->ignore_upsert_status TSRMLS_CC);
-			}
 		}
 #endif
 	} else {
@@ -343,10 +307,6 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			}
 			(*conn_data)->skip_ms_calls = FALSE;
 			(*conn_data)->proxy_conn = proxy_conn;
-#ifdef BUFFERED_COMMANDS
-			zend_llist_init(&(*conn_data)->delayed_commands, sizeof(MYSQLND_MS_COMMAND),
-							(llist_dtor_func_t) mysqlnd_ms_commands_list_dtor, conn->persistent);
-#endif
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 			mysqlnd_ms_init_connection_global_trx(&(*conn_data)->global_trx, global_trx, is_master, conn->persistent TSRMLS_CC);
 #endif
@@ -1028,9 +988,6 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 		DBG_INF_FMT("cleaning the llists");
 		zend_llist_clean(&(*data_pp)->master_connections);
 		zend_llist_clean(&(*data_pp)->slave_connections);
-#ifdef BUFFERED_COMMANDS
-		zend_llist_clean(&(*data_pp)->delayed_commands);
-#endif
 
 		DBG_INF_FMT("cleaning the section filters");
 		if ((*data_pp)->stgy.filters) {
@@ -1316,11 +1273,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = TRUE;
-#ifdef BUFFERED_COMMANDS
-					if (state == CONN_ALLOCED) {
-						(*el_conn_data)->on_command = MYSQLND_MS_BCAST_BUFFER_COMMAND;
-					}
-#endif
 				}
 				if (state == CONN_ALLOCED) {
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
@@ -1329,12 +1281,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 				}
 
 				if (el_conn_data && *el_conn_data) {
-#ifdef BUFFERED_COMMANDS
-					if (state == CONN_ALLOCED) {
-						(*el_conn_data)->on_command = MYSQLND_MS_BCAST_NOP;
-						CONN_SET_STATE(el->conn, state);
-					}
-#endif
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
 			}
@@ -2008,9 +1954,6 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.charset_name			= MYSQLND_METHOD(mysqlnd_ms, charset_name);
 	my_mysqlnd_conn_methods.get_statistics			= MYSQLND_METHOD(mysqlnd_ms, get_connection_stats);
 	my_mysqlnd_conn_methods.server_dump_debug_information = MYSQLND_METHOD(mysqlnd_ms, dump_debug_info);
-#ifdef BUFFERED_COMMANDS
-	my_mysqlnd_conn_methods.simple_command 			= MYSQLND_METHOD(mysqlnd_ms, simple_command);
-#endif
 
 	MS_SET_CONN_DATA_METHODS(&my_mysqlnd_conn_methods);
 
