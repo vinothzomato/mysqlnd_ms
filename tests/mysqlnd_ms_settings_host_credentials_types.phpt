@@ -15,10 +15,10 @@ $settings = array(
 	"myapp" => array(
 		'master' => array(
 			  array(
-				'host' 		=> (string)$master_host_only,
-				'port' 		=> (int)$master_port,
+				'host' 		=> $master_host_only,
+				'port' 		=> 123,
 				'socket' 	=> PHP_INT_MAX * 2,
-				'db'		=> 1.124
+				'db'		=> 1.124,
 				'user'		=> array($user),
 				'password'	=> $obj,
 			  ),
@@ -26,8 +26,8 @@ $settings = array(
 		'slave' => array(
 			array(
 			  'host' 	=> $slave_host_only,
-			  'port' 	=> (double)$slave_port,
-			  'socket' 	=> "an"
+			  'port' 	=> 456.78,
+			  'socket' 	=> "an",
 			  'db'		=> false,
 			  'user'	=> NULL,
 			  'password'=> 123,
@@ -53,7 +53,6 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_types.ini
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	ob_end_clean();
 
-
 	print "done!";
 ?>
 --CLEAN--
@@ -62,7 +61,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_types.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_host_credentials_types.ini'.\n");
 ?>
 --EXPECTF--
-Warning: Unknown: failed to open stream: No such file or directory in Unknown on line 0
-
-Warning: Unknown: (mysqlnd_ms) Failed to parse server list ini file [test_mysqlnd_ms_settings_host_credentials_types.ini] in Unknown on line 0
 done!
