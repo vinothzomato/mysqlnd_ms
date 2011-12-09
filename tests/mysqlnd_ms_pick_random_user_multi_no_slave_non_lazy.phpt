@@ -1,5 +1,5 @@
 --TEST--
-RR, user multi, no slave
+Random, user multi, no master, non lazy
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -12,20 +12,20 @@ $settings = array(
 	"myapp" => array(
 		'filters'	=> array(
 			'user_multi' => array('callback' => 'pick_servers'),
-			"roundrobin" => array()
+			"random" => array()
 		),
 		'master' 	=> array($master_host),
 		'slave' 	=> array($slave_host),
-		'lazy_connection' => 1,
+		'lazy_connection' => 0,
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_pick_rr_user_multi_no_slave.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_random_user_multi_no_slave_non_lazy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_rr_user_multi_no_slave.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_user_multi_no_slave_non_lazy.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -48,8 +48,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_rr_user_multi_no_slave.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_rr_user_multi_no_slave.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_rr_user_multi_no_slave.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_random_user_multi_no_slave_non_lazy.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_user_multi_no_slave_non_lazy.ini'.\n");
 ?>
 --EXPECTF--
 pick_server('myapp', '/*2*/SELECT 1 FROM DUAL, '')
