@@ -16,8 +16,9 @@
     * session consistency, optional option GTID
     * string consistency
 
-  * Added gloabl transaction ID injection (GTID)
+  * Added global transaction ID injection (GTID)
   * Added mysqlnd_ms_get_last_gtid() to fetch last transaction id
+  * Enabled support for multi master with or without slaves
   * New statistics related to GTID:
     - gtid_autocommit_injections_success
     - gtid_autocommit_injections_failure
