@@ -140,6 +140,11 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			uint i = 0;
 			MYSQLND_CONN_DATA * connection = NULL;
 			MYSQLND_CONN_DATA ** context_pos;
+
+			if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
+				goto use_master;
+			}
+
 			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 
 			DBG_INF_FMT("%d slaves to choose from", zend_llist_count(l));
@@ -207,6 +212,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					}
 			}/* switch (zend_hash_find) */
 		}
+use_master:
 		DBG_INF("FAIL-OVER");
 		/* fall-through */
 		case USE_MASTER:

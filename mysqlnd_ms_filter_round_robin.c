@@ -113,8 +113,11 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		case USE_SLAVE:
 		{
 			unsigned int tmp_pos = 0;
-			zend_llist * l = slave_connections;
 			unsigned int * pos;
+			zend_llist * l = slave_connections;
+			if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
+				goto use_master;
+			}
 			/* LOCK on context ??? */
 			{
 				smart_str fprint = {0};
@@ -185,6 +188,8 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			}
 			/* UNLOCK of context ??? */
 		}
+use_master:
+		DBG_INF("FAIL-OVER");
 		/* fall-through */
 		case USE_MASTER:
 		{
