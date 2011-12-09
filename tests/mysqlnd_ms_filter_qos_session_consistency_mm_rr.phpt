@@ -47,6 +47,7 @@ $settings = array(
 		 ),
 
 		'lazy_connections' => 0,
+		'failover' => 'master',
 
 		'filters' => array(
 			"quality_of_service" => array(
