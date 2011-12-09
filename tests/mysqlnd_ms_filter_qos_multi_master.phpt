@@ -72,14 +72,26 @@ mysqlnd_ms.multi_master=1
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
+	set_error_handler('mst_error_handler');
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
+	if ($res = mst_mysqli_query(2, $link, "SELECT 1 AS _num FROM DUAL")) {
+		$row = $res->fetch_assoc();
+		printf("[003] %d - %s\n", $row['_num'], mst_mysqli_get_emulated_id(4, $link));
+	} else {
+		printf("[005] No result\n");
+	}
 
-	$link->query("SELECT 1 FROM DUAL");
+	if ($res = mst_mysqli_query(6, $link, "SELECT 2 AS _num FROM DUAL")) {
+		$row = $res->fetch_assoc();
+		printf("[007] %d - %s\n", $row['_num'], mst_mysqli_get_emulated_id(8, $link));
+	} else {
+		printf("[009] No result\n");
+	}
 
 	print "done!";
 ?>
@@ -89,17 +101,6 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_multi_master.ini'.\n");
 ?>
 --EXPECTF--
-At least two issues here.
-
-Issue 1 - round robin vs. random
-
-  Round robin and random return different types of errors
-  One gives E_WARNING, the other give E_RECOVERABLE_ERROR.
-  Filters should use the same error class for the same issue.
-
-Issue 2 - why is there an error?
-
-  Multi master is turned on. Why does it bail at all.
-  An empty slave list is not necessarily an error.
-  With multi master activated, it should be common case
-  to have no slaves.
+[003] 1 - master[1,2]-%d
+[007] 2 - master[1,2]-%d
+done!
