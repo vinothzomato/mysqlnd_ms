@@ -381,7 +381,9 @@ typedef struct st_mysqlnd_ms_conn_data
 	zend_bool skip_ms_calls;
 	MYSQLND_CONN_DATA * proxy_conn;
 	char * connect_host;
+#ifdef BUFFERED_COMMANDS
 	zend_llist delayed_commands;
+#endif
 	zend_llist master_connections;
 	zend_llist slave_connections;
 

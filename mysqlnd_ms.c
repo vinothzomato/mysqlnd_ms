@@ -177,7 +177,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 }
 /* }}} */
 
-
+#ifdef BUFFERED_COMMANDS
 /* {{{ mysqlnd_ms_commands_list_dtor */
 void
 mysqlnd_ms_commands_list_dtor(void * pDest)
@@ -195,6 +195,7 @@ mysqlnd_ms_commands_list_dtor(void * pDest)
 	DBG_VOID_RETURN;
 }
 /* }}} */
+#endif
 
 
 /* {{{ mysqlnd_ms_lazy_connect */
@@ -342,9 +343,10 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			}
 			(*conn_data)->skip_ms_calls = FALSE;
 			(*conn_data)->proxy_conn = proxy_conn;
-
+#ifdef BUFFERED_COMMANDS
 			zend_llist_init(&(*conn_data)->delayed_commands, sizeof(MYSQLND_MS_COMMAND),
 							(llist_dtor_func_t) mysqlnd_ms_commands_list_dtor, conn->persistent);
+#endif
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 			mysqlnd_ms_init_connection_global_trx(&(*conn_data)->global_trx, global_trx, is_master, conn->persistent TSRMLS_CC);
 #endif
@@ -1026,7 +1028,9 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 		DBG_INF_FMT("cleaning the llists");
 		zend_llist_clean(&(*data_pp)->master_connections);
 		zend_llist_clean(&(*data_pp)->slave_connections);
+#ifdef BUFFERED_COMMANDS
 		zend_llist_clean(&(*data_pp)->delayed_commands);
+#endif
 
 		DBG_INF_FMT("cleaning the section filters");
 		if ((*data_pp)->stgy.filters) {
