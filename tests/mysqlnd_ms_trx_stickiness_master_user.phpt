@@ -5,21 +5,21 @@ trx_stickiness=master (PHP 5.3.99+), pick = user (rr)
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP 5.3.99 or newer, using " . PHP_VERSION));
 
-if (($master_host == $slave_host)) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 require_once('skipif.inc');
 require_once("connect.inc");
 
+if (($emulated_master_host == $emulated_slave_host)) {
+	die("SKIP master and slave seem to the the same, see tests/README");
+}
+
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
 		'trx_stickiness' => 'master',
 		'pick' 	=> array('user' => array('callback' => 'pick_server')),
 	),
@@ -37,11 +37,11 @@ mysqlnd_ms.collect_statistics=1
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	function pick_server($connected_host, $query, $master, $slaves, $last_used_connection, $in_transaction) {
+	function pick_server($connected_host, $query, $emulated_master, $emulated_slaves, $last_used_connection, $in_transaction) {
 		static $pick_server_last_used = "";
 		printf("pick_server(%s)\n", $query);
 		if ($in_transaction)
-			return $master[0];
+			return $emulated_master[0];
 
 		$ret = "";
 		$where = mysqlnd_ms_query_is_select($query);
@@ -52,16 +52,16 @@ mysqlnd_ms.collect_statistics=1
 			  $server = 'last used';
 			  break;
 			case MYSQLND_MS_QUERY_USE_MASTER:
-			  $ret = $master[0];
+			  $ret = $emulated_master[0];
 			  $server = 'master';
 			  break;
 			case MYSQLND_MS_QUERY_USE_SLAVE:
- 			  $ret = $slaves[0];
+ 			  $ret = $emulated_slaves[0];
 			  $server = 'slave';
 			  break;
 			default:
 			  printf("[012] Unknown return value from mysqlnd_ms_query_is_select, where = %s .\n", $where);
-			  $ret = $master[0];
+			  $ret = $emulated_master[0];
 			  $server = 'unknown';
 			  break;
 		}
@@ -110,41 +110,34 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_trx_stickiness_master_user.ini'.\n");
 ?>
 --EXPECTF--
-pick_server(/*ms=master*/SET @myrole='master')
-pick_server(/*ms=slave*/SET @myrole='slave 1')
+pick_server(/*ms=master*//*2*/SET @myrole='master')
+pick_server(/*ms=slave*//*3*/SET @myrole='slave 1')
 Stats use_slave_sql_hint: 1
 Stats use_master_sql_hint: 1
 Stats use_slave_callback: 1
 Stats use_master_callback: 1
 Stats lazy_connections_slave_success: 1
 Stats lazy_connections_master_success: 1
-pick_server(SET AUTOCOMMIT=0)
-Stats use_master: 1
-Stats use_master_callback: 2
 Stats trx_autocommit_off: 1
-pick_server(SELECT @myrole AS _role)
+pick_server(/*4*/SELECT @myrole AS _role)
 This is 'master' speaking
-Stats use_master_callback: 3
-pick_server(SET AUTOCOMMIT=1)
-pick_server(SELECT @myrole AS _role)
+Stats use_master_callback: 2
+pick_server(/*5*/SELECT @myrole AS _role)
 This is 'slave 1' speaking
-pick_server(SELECT @myrole AS _role)
+pick_server(/*6*/SELECT @myrole AS _role)
 This is 'slave 1' speaking
-Stats use_slave: 2
+Stats use_slave_guess: 2
 Stats use_slave_callback: 3
-Stats use_master_callback: 4
 Stats trx_autocommit_on: 1
-pick_server(SET AUTOCOMMIT=0)
-pick_server(/*ms=slave*/SELECT @myrole AS _role)
+pick_server(/*ms=slave*//*7*/SELECT @myrole AS _role)
 This is 'master' speaking
-pick_server(/*ms=last_used*/SELECT @myrole AS _role)
+pick_server(/*ms=last_used*//*8*/SELECT @myrole AS _role)
 This is 'master' speaking
-pick_server(/*ms=master*/SELECT @myrole AS _role)
+pick_server(/*ms=master*//*9*/SELECT @myrole AS _role)
 This is 'master' speaking
-Stats use_master: 2
-Stats use_master_callback: 8
+Stats use_master_callback: 5
 Stats trx_autocommit_off: 2
-pick_server(SELECT @myrole AS _role)
+pick_server(/*10*/SELECT @myrole AS _role)
 This is 'master' speaking
-Stats use_master_callback: 9
+Stats use_master_callback: 6
 done!

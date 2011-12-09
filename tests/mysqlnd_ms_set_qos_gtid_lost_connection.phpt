@@ -8,15 +8,15 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if (($master_host == $slave_host)) {
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 include_once("util.inc");
-$ret = mst_is_slave_of($slave_host_only, $slave_port, $slave_socket, $master_host_only, $master_port, $master_socket, $user, $passwd, $db);
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
 if (is_string($ret))
 	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
 
@@ -24,31 +24,31 @@ if (true == $ret)
 	die("SKIP Configured master and slave could be part of a replication cluster\n");
 
 $sql = mst_get_gtid_sql($db);
-if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+if ($error = mst_mysqli_setup_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
-if ($error = mst_mysqli_setup_gtid_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
+if ($error = mst_mysqli_setup_gtid_table($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket))
   die(sprintf("SKIP Failed to setup GTID on slave, %s\n", $error));
 
 $settings = array(
 	"myapp" => array(
 		'master' => array(
 			"master1" => array(
-				'host' 		=> $master_host_only,
-				'port' 		=> (int)$master_port,
-				'socket' 	=> $master_socket,
+				'host' 		=> $emulated_master_host_only,
+				'port' 		=> (int)$emulated_master_port,
+				'socket' 	=> $emulated_master_socket,
 			),
 		),
 		'slave' => array(
 			"slave1" => array(
-				'host' 	=> $slave_host_only,
-				'port' 	=> (int)$slave_port,
-				'socket' => $slave_socket,
+				'host' 	=> $emulated_slave_host_only,
+				'port' 	=> (int)$emulated_slave_port,
+				'socket' => $emulated_slave_socket,
 			),
 			"slave2" => array(
-				'host' 	=> $slave_host_only,
-				'port' 	=> (int)$slave_port,
-				'socket' => $slave_socket,
+				'host' 	=> $emulated_slave_host_only,
+				'port' 	=> (int)$emulated_slave_port,
+				'socket' => $emulated_slave_socket,
 			),
 		 ),
 
@@ -125,10 +125,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_lost_connection.ini
 
 	require_once("connect.inc");
 	require_once("util.inc");
-	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+	if ($error = mst_mysqli_drop_test_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
 		printf("[clean] %s\n");
 
-	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+	if ($error = mst_mysqli_drop_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
 		printf("[clean] %s\n", $error));
 ?>
 --EXPECTF--
