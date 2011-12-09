@@ -186,9 +186,6 @@ mysqlnd_ms.multi_master=1
 		}
 	}
 	print "done!";
-
-
-	print "done!";
 ?>
 --CLEAN--
 <?php
@@ -196,4 +193,7 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_session_consistency_mm_rr.ini'.\n");
 ?>
 --EXPECTF--
-No complain about empty slave list
+master 1 (master[1,2]-%d) has run 3 queries
+master 2 (master[1,2]-%d) has run 4 queries
+ (slave1-%d) has run 1 queries
+done!
