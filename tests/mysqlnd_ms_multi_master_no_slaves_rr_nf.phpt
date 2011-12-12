@@ -1,5 +1,5 @@
 --TEST--
-Multi master, no slaves, RR
+Multi master, no slaves, RR, no failover
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -14,11 +14,10 @@ $settings = array(
 		 /* NOTE: second master will be ignored! */
 		'master' => array($emulated_master_host, $emulated_master_host),
 		'slave' => array(),
-		'failover' => 'master',
 		'pick' => array('roundrobin'),
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_multi_master_no_slaves_rr.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_multi_master_no_slaves_rr_nf.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
@@ -27,7 +26,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_master_no_slaves_rr.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_multi_master_no_slaves_rr_nf.ini
 mysqlnd_ms.multi_master=1
 --FILE--
 <?php
@@ -79,10 +78,17 @@ mysqlnd_ms.multi_master=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_multi_master_no_slaves_rr.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_multi_master_no_slaves_rr.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_multi_master_no_slaves_rr_nf.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_multi_master_no_slaves_rr_nf.ini'.\n");
 ?>
 --EXPECTF--
-master[1,2]-%d has run 2 queries
-master[1,2]-%d has run 2 queries
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
+
+Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+
+Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
+
+Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+master[1,2]-%d has run 1 queries
+master[1,2]-%d has run 3 queries
 done!
