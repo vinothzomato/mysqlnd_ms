@@ -14,7 +14,7 @@
   * Service levels provided by QoS filter
     * eventual consistency, optional option slave lag
     * session consistency, optional option GTID
-    * string consistency
+    * strong consistency
 
   * Added global transaction ID injection (GTID)
   * Added mysqlnd_ms_get_last_gtid() to fetch last transaction id
@@ -27,7 +27,7 @@
 	- gtid_implicit_commit_injections_success
     - gtid_implicit_commit_injections_failure
 
-1.1.2 stale / production ready
+1.1.2 stable / production ready
 
   Motto/theme : Cover replication basics with production quality
   Release date: 11/2011
