@@ -44,9 +44,4 @@
 	putenv("MYSQL_TEST_MASTER_HOST=". getenv("MYSQL_TEST_EMULATED_MASTER_HOST"));
 	/* slave - slave of the replication cluster using the above master */
 	putenv("MYSQL_TEST_SLAVE_HOST=". getenv("MYSQL_TEST_EMULATED_SLAVE_HOST"));
-
-	putenv("MYSQL_TEST_MASTER_HOST=192.168.78.137:3307");
-	putenv("MYSQL_TEST_SLAVE_HOST=192.168.78.137:3308");
-
-	putenv("MYSQL_TEST_EMULATED_SLAVE_HOST=192.168.78.137:3306");
 ?>
