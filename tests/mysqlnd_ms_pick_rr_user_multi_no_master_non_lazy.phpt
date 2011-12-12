@@ -54,10 +54,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_rr_user_multi_no_master_non_lazy.ini
 ?>
 --EXPECTF--
 pick_server('myapp', '/*ms=master*//*2*/SELECT 1 FROM DUAL, '')
+[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. The callback must return an array in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
+[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
 
-Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. 0 masters to choose from. Something is wrong in %s on line %d
-
-Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
-[002] [2000] (mysqlnd_ms) No connection selected by the last filter
-
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line 16
+Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line %d
