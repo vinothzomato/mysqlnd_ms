@@ -764,14 +764,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				break;
 			}
 			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
-#ifdef FORCE_FAILOVER_MASTER_WHEN_MULTI_MASTER_AND_NO_SLAVES
-			if (MYSQLND_MS_G(multi_master) &&
-				zend_llist_count(&(*conn_data)->master_connections) > 1 &&
-				0 == zend_llist_count(&(*conn_data)->slave_connections))
-			{
-				(*conn_data)->stgy.failover_strategy = SERVER_FAILOVER_MASTER; 
-			}
-#endif
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
 
