@@ -30,12 +30,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_rr_user_multi_no_master.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-	set_error_handler('mst_error_handler');
+
 
 	function pick_servers($connected_host, $query, $masters, $slaves, $last_used_connection, $in_transaction) {
 		printf("pick_server('%s', '%s, '%s')\n", $connected_host, $query, $last_used_connection);
 		/* array(master_array(master_idx, master_idx), slave_array(slave_idx, slave_idx)) */
-		return array(NULL, array(0));
+		return array(array(), array(0));
 	}
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
