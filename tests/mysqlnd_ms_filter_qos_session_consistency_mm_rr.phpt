@@ -152,7 +152,6 @@ mysqlnd_ms.multi_master=1
 	else
 		$servers[$server_id] = array($role => 1);
 
-
 	/* master 1 */
 	$role = fetch_role(18, $link, MYSQLND_MS_MASTER_SWITCH);
 	$server_id = mst_mysqli_get_emulated_id(19, $link);
@@ -174,7 +173,9 @@ mysqlnd_ms.multi_master=1
 
 	/* master 1 */
 	mst_mysqli_query(24, $link, "DROP TABLE IF EXISTS test");
-	$server_id = mst_mysqli_get_emulated_id(27, $link);
+	$role = fetch_role(27, $link, MYSQLND_MS_LAST_USED_SWITCH);
+
+	$server_id = mst_mysqli_get_emulated_id(28, $link);
 	if (isset($servers[$server_id][$role]))
 		$servers[$server_id][$role] = $servers[$server_id][$role] + 1;
 	else
@@ -193,7 +194,7 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_session_consistency_mm_rr.ini'.\n");
 ?>
 --EXPECTF--
-master 1 (master[1,2]-%d) has run 3 queries
+master 1 (master[1,2]-%d) has run 4 queries
 master 2 (master[1,2]-%d) has run 4 queries
  (slave1-%d) has run 1 queries
 done!
