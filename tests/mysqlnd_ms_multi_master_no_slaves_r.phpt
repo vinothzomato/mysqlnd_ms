@@ -59,7 +59,7 @@ mysqlnd_ms.multi_master=1
 	for ($i = 0; $i <= 2; $i++) {
 		/* ignore warning */
 		if ((!($res = $link->query("SELECT 1 FROM DUAL"))) && (2000 != $link->errno)) {
-			printf("[005] Wrong connection error, [%d] %s\n", $link->errno, $link->error);
+			printf("[005] Wrong connection error. User should always get same error for same issue, [%d] %s\n", $link->errno, $link->error);
 			/* breaking to keep trace short */
 			break;
 		}
