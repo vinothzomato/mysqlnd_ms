@@ -230,7 +230,7 @@ use_master:
 
 				if (!element) {
 					char error_buf[256];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
+					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
 					error_buf[sizeof(error_buf) - 1] = '\0';
 					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					DBG_ERR_FMT("%s", error_buf);
