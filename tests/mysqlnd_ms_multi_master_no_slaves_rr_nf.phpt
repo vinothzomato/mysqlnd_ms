@@ -85,10 +85,12 @@ mysqlnd_ms.multi_master=1
 Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 
 Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[006] [2000] (mysqlnd_ms) No connection selected by the last filter
 
 Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 
 Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
-master[1,2]-%d has run 1 queries
+[008] [2000] (mysqlnd_ms) No connection selected by the last filter
 master[1,2]-%d has run 3 queries
+master[1,2]-%d has run 1 queries
 done!

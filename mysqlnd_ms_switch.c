@@ -457,10 +457,10 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 	DBG_ENTER("mysqlnd_ms_select_servers_all");
 
 	BEGIN_ITERATE_OVER_SERVER_LIST(el, master_list);
-		zend_llist_add_element(selected_masters, &el);			
+		zend_llist_add_element(selected_masters, &el);
 	END_ITERATE_OVER_SERVER_LIST;
 	BEGIN_ITERATE_OVER_SERVER_LIST(el, slave_list);
-		zend_llist_add_element(selected_slaves, &el);			
+		zend_llist_add_element(selected_slaves, &el);
 	END_ITERATE_OVER_SERVER_LIST;
 
 	DBG_RETURN(PASS);
@@ -618,6 +618,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 				error_buf[sizeof(error_buf) - 1] = '\0';
 				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				stgy->last_used_conn = conn;
 				goto end;
 			}
 			if (!connection && (0 == zend_llist_count(output_masters) && 0 == zend_llist_count(output_slaves))) {
@@ -632,6 +633,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 					DBG_ERR(error_buf);
 					SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+					stgy->last_used_conn = conn;
 					goto end;
 				}
 			}

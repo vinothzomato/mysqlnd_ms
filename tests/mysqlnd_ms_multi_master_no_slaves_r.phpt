@@ -56,9 +56,9 @@ mysqlnd_ms.multi_master=1
 
 	/* slaves - reads */
 	$servers = array();
-	for ($i = 0; $i <= 2; $i++) {
+	for ($i = 0; $i <= 100; $i++) {
 		/* ignore warning */
-		if ((!($res = $link->query("SELECT 1 FROM DUAL"))) && (2000 != $link->errno)) {
+		if ((!($res = @$link->query("SELECT 1 FROM DUAL"))) && (2000 != $link->errno)) {
 			printf("[005] Wrong connection error. User should always get same error for same issue, [%d] %s\n", $link->errno, $link->error);
 			/* breaking to keep trace short */
 			break;
@@ -89,6 +89,8 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_multi_master_no_slaves_r.ini'.\n");
 ?>
 --EXPECTF--
+[007] Random has choosen the same slave for 100 subsequent reads
+
 Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 
 Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d

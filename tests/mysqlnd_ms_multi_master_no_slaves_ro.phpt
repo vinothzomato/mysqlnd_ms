@@ -57,7 +57,7 @@ mysqlnd_ms.multi_master=1
 
 	/* slaves - reads */
 	$servers = array();
-	for ($i = 0; $i <= 2; $i++) {
+	for ($i = 0; $i <= 100; $i++) {
 		/* ignore warning */
 		if ((!($res = $link->query("SELECT 1 FROM DUAL"))) && (2000 != $link->errno)) {
 			printf("[005] Wrong connection error, [%d] %s\n", $link->errno, $link->error);
@@ -74,7 +74,6 @@ mysqlnd_ms.multi_master=1
 		if (count($servers) > 1)
 			break;
 	}
-
 	if (100 <= $i) {
 		printf("[007] Random once has choosen the same server for 100 subsequent reads\n");
 	} else {

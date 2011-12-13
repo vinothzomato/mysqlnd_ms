@@ -1,5 +1,5 @@
 --TEST--
-RW-split, random, no slaves
+RW-split, random, no slaves, fail over
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -14,6 +14,7 @@ $settings = array(
 		'master' => array($master_host, $master_host),
 		'slave'  => array(),
 		'pick' => array("roundrobin"),
+		'failover' => 'master',
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_enable_rw_random.ini", $settings))
@@ -69,17 +70,10 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_enable_rw_random.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_enable_rw_random.ini'.\n");
 ?>
 --EXPECTF--
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
-[E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
-[005] [2000] (mysqlnd_ms) No connection selected by the last filter
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
-[E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
-[007] [2000] (mysqlnd_ms) No connection selected by the last filter
 Role: master1
   %d
   %d
 Role: master2
   %d
   %d
- [008]  wrong thread id!
 done!
