@@ -1,6 +1,6 @@
 1.2.0 alpha
 
-  Motto/theme:TBD
+  Motto/theme: Global Transaction ID injection and quality-of-service concept
   Release date: 12/2011
 
   * Introduced quality-of-service (QoS) filter
