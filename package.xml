@@ -22,18 +22,18 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2011-11-04</date>
+  <date>2011-12-14</date>
   <time>12:00:00</time>
   <version>
-    <release>1.1.2</release>
-    <api>1.1.0</api>
+    <release>1.2.0</release>
+    <api>1.2.0</api>
   </version>
   <stability>
-    <release>stable</release>
-    <api>stable</api>
+    <release>alpha</release>
+    <api>alpha</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Fixed the build for 5.4. Declaring the code as stable</notes>
+  <notes>Global Transaction ID injection and quality-of-service concept</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
@@ -42,6 +42,7 @@
         <file name="connect.inc" role="test"/>
         <file name="mysqlnd_ms_autocommit_kill.phpt" role="test"/>
         <file name="mysqlnd_ms_autocommit.phpt" role="test"/>
+        <file name="mysqlnd_ms_change_user_fail.phpt" role="test"/>
         <file name="mysqlnd_ms_change_user.phpt" role="test"/>
         <file name="mysqlnd_ms_charsets_fail.phpt" role="test"/>
         <file name="mysqlnd_ms_charsets_kill.phpt" role="test"/>
@@ -52,20 +53,65 @@
         <file name="mysqlnd_ms_constants.phpt" role="test"/>
         <file name="mysqlnd_ms_disable_rw_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_empty_slave_list.phpt" role="test"/>
+        <file name="mysqlnd_ms_enable_rw_rr_failover.phpt" role="test"/>
         <file name="mysqlnd_ms_enable_rw_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_error_errno_sqlstate.phpt" role="test"/>
         <file name="mysqlnd_ms_error_message.phpt" role="test"/>
         <file name="mysqlnd_ms_field_count.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_empty_lazy.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_empty_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_multi_last.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_config_conflict1.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_config_conflict2.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_config_conflict3.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_config_conflict4.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_config.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_age.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_consistency.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_consistency_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_disable_rw_split.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_trx_stickiness.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_multi_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_rt_gtid.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_runtime.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_session_consistency_mm_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_session_consistency_no_slaves.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_session_consistency.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_strong_consistency.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_ro_partitioning_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_twice.phpt" role="test"/>
         <file name="mysqlnd_ms_get_charset.phpt" role="test"/>
         <file name="mysqlnd_ms_get_connection_stats.phpt" role="test"/>
+        <file name="mysqlnd_ms_get_last_gtid_config.phpt" role="test"/>
+        <file name="mysqlnd_ms_get_last_gtid_params.phpt" role="test"/>
+        <file name="mysqlnd_ms_get_last_gtid.phpt" role="test"/>
+        <file name="mysqlnd_ms_get_last_gtid_sql_error.phpt" role="test"/>
         <file name="mysqlnd_ms_get_last_used_connection.phpt" role="test"/>
         <file name="mysqlnd_ms_get_last_used_connection_switches.phpt" role="test"/>
         <file name="mysqlnd_ms_get_stats_disabled.phpt" role="test"/>
         <file name="mysqlnd_ms_get_stats.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_autocommit_stats.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_basics.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_commit_stats.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_commit_stats_ps.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_implicit_commit_autocommit.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_invalid_check_for_gtid.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_invalid_fetch_last_gtid.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_invalid_on_commit.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_get_result_mq.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_get_result.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_no_result.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_report_error_off.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_report_error.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_store_result.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_autocommit_use_result.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_ps_report_errors_on.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_report_errors_off_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_report_errors_off.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_report_errors_on_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_report_errors_on.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_tx_non_ms.phpt" role="test"/>
         <file name="mysqlnd_ms_host_info.phpt" role="test"/>
         <file name="mysqlnd_ms_info.phpt" role="test"/>
         <file name="mysqlnd_ms_ini_settings.phpt" role="test"/>
@@ -128,6 +174,11 @@
         <file name="mysqlnd_ms_master_unreachable_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_master_unreachable_user.phpt" role="test"/>
         <file name="mysqlnd_ms_match_wild.phpt" role="test"/>
+        <file name="mysqlnd_ms_multi_master_no_slaves_ro.phpt" role="test"/>
+        <file name="mysqlnd_ms_multi_master_no_slaves_r.phpt" role="test"/>
+        <file name="mysqlnd_ms_multi_master_no_slaves_rr_nf.phpt" role="test"/>
+        <file name="mysqlnd_ms_multi_master_no_slaves_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_multi_master_on.phpt" role="test"/>
         <file name="mysqlnd_ms_multi_master.phpt" role="test"/>
         <file name="mysqlnd_ms_multi_query_no_ms.phpt" role="test"/>
         <file name="mysqlnd_ms_multi_query.phpt" role="test"/>
@@ -138,18 +189,44 @@
         <file name="mysqlnd_ms_pick_random_once2.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_random_once.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_random_user_multi_no_master_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_random_user_multi_no_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_random_user_multi_no_slave_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_random_user_multi_no_slave.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_random_user_multi_slave_err.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_round_robin.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_ro_user_multi_no_master_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_ro_user_multi_no_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_ro_user_multi_no_slave_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_ro_user_multi_no_slave.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_ro_user_multi_slave_killed.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_ro_user_multi_slave_removed.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_rr_user_multi_no_master_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_rr_user_multi_no_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_rr_user_multi_no_slave_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_rr_user_multi_no_slave.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_unknown_policy.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_complex.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_error.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_function.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_multi_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_multi_slaves.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_multi.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_return_big_id.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_return_bogus_list.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_return_negative_id.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_return_slave_twice.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_return_void.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_multi_trx_stickiness.phpt" role="test"/>
+        <file name="mysqlnd_ms_pick_user_no_callback.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_return_void.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_unknown_function.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_user_unknown_server.phpt" role="test"/>
         <file name="mysqlnd_ms_ping.phpt" role="test"/>
         <file name="mysqlnd_ms_prepared_statements.phpt" role="test"/>
+        <file name="mysqlnd_ms_prepare_switch.phpt" role="test"/>
         <file name="mysqlnd_ms_proto_info.phpt" role="test"/>
+        <file name="mysqlnd_ms_ps_commit.phpt" role="test"/>
         <file name="mysqlnd_ms_query_is_select.phpt" role="test"/>
         <file name="mysqlnd_ms_query_is_select_rw_disabled.phpt" role="test"/>
         <file name="mysqlnd_ms_random_once_unknown_parameter.phpt" role="test"/>
@@ -164,11 +241,21 @@
         <file name="mysqlnd_ms_select_db.phpt" role="test"/>
         <file name="mysqlnd_ms_server_info.phpt" role="test"/>
         <file name="mysqlnd_ms_server_version.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_age_killed.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_age.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_gtid_lost_connection.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_gtid_sql_error2.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_gtid_sql_error.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_gtid_sql_parsing2.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_gtid_sql_parsing.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_params.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_connect_flags_invalid.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_connect_flags.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_default_lazy.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_force_config.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_host_credentials_inherit.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_host_credentials_invalid_cont.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_host_credentials_invalid.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_host_credentials.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_host_credentials_types.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_ini_bool_false_aus.phpt" role="test"/>
@@ -179,6 +266,11 @@
         <file name="mysqlnd_ms_settings_ini_file_invalid.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_no_host.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_no_json.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_plugin_conf_false_aus.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_plugin_conf_false_false.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_plugin_conf_false_off.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_plugin_conf_false_zero.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_plugin_conf_true_empty.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_unknown_section_force_config.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_unknown_section.phpt" role="test"/>
         <file name="mysqlnd_ms_simple.phpt" role="test"/>
@@ -342,17 +434,18 @@
       </dir>
       <!-- //tests -->
       <file name="CHANGES" role="src"/>
-      <file name="README" role="src"/>
+      <file name="config.m4" role="src"/>
+      <file name="config.w32" role="src"/>
       <file name="CREDITS" role="src"/>
       <file name="EXPERIMENTAL" role="src"/>
       <file name="LICENSE" role="src"/>
-      <file name="config.m4" role="src"/>
-      <file name="config.w32" role="src"/>
       <file name="mf_wcomp.c" role="src"/>
       <file name="mysqlnd_ms.c" role="src"/>
       <file name="mysqlnd_ms_config_json.c" role="src"/>
       <file name="mysqlnd_ms_config_json.h" role="src"/>
       <file name="mysqlnd_ms_enum_n_def.h" role="src"/>
+      <file name="mysqlnd_ms_filter_qos.c" role="src"/>
+      <file name="mysqlnd_ms_filter_qos.h" role="src"/>
       <file name="mysqlnd_ms_filter_random.c" role="src"/>
       <file name="mysqlnd_ms_filter_random.h" role="src"/>
       <file name="mysqlnd_ms_filter_round_robin.c" role="src"/>
@@ -371,8 +464,10 @@
       <file name="mysqlnd_query_parser.c" role="src"/>
       <file name="mysqlnd_query_parser.grammar" role="src"/>
       <file name="mysqlnd_query_parser.h" role="src"/>
+      <file name="package.xml" role="src"/>
       <file name="php_mysqlnd_ms.c" role="src"/>
       <file name="php_mysqlnd_ms.h" role="src"/>
+      <file name="README" role="src"/>
     </dir>
     <!-- / -->
   </contents>
@@ -392,6 +487,19 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.2.0</release>
+        <api>1.2.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2011-12-14</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>Global Transaction ID injection and quality-of-service concept</notes>
+    </release>
     <release>
       <version>
         <release>1.1.2</release>
