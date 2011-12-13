@@ -9,7 +9,7 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_masterport, $emulated_master_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 
 $settings = array(
 	"myapp" => array(
@@ -40,7 +40,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_trx_stickiness.ini
 	set_error_handler('mst_error_handler');
 
 	function pick_servers($connected_host, $query, $masters, $slaves, $last_used_connection, $in_transaction) {
-		printf("pick_server('%s', '%s, %d)\n", $connected_host, $query,$in_transaction);
+		printf("pick_server('%s', '%s, %d)\n", $connected_host, $query, $in_transaction);
 		/* array(master_array(master_idx, master_idx), slave_array(slave_idx, slave_idx)) */
 		return array(array(0), array(0));
 	}
