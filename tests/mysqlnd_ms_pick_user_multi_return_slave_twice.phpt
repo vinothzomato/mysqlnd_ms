@@ -84,20 +84,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_slave_twice.ini
 --EXPECTF--
 pick_server('myapp', '/*2*/SELECT 2 FROM DUAL, '')
 pick_server('myapp', '/*ms=last_used*//*3*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, '%s')
-string(14) "slave[1]-%d"
+string(%d) "slave[1]-%d"
 pick_server('myapp', '/*4*/SELECT 4 FROM DUAL, '%s')
 pick_server('myapp', '/*ms=last_used*//*5*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, '%s')
-string(14) "slave[1]-%d"
+string(%d) "slave[1]-%d"
 [006] Server changed: no
 pick_server('myapp', '/*7*/SELECT 7 FROM DUAL, '%s')
 pick_server('myapp', '/*ms=last_used*//*8*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, '%s')
-string(12) "master-%d"
+string(%d) "master-%d"
 [009] Server changed: yes
 pick_server('myapp', '/*10*/SELECT 10 FROM DUAL, '%s')
 pick_server('myapp', '/*ms=last_used*//*11*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, '%s')
-string(14) "slave[1]-%d"
+string(%d) "slave[1]-%d"
 [012] Server changed: yes
 pick_server('myapp', '/*13*/DROP TABLE IF EXISTS test, '%s')
 pick_server('myapp', '/*ms=last_used*//*14*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, '%s')
-string(12) "master-%d"
+string(%d) "master-%d"
 done!
