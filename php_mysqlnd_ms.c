@@ -169,6 +169,7 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL", CONSISTENCY_EVENTUAL, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_OPTION_GTID", QOS_OPTION_GTID, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_OPTION_AGE", QOS_OPTION_AGE, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_QOS_OPTION_CACHE", QOS_OPTION_CACHE, CONST_CS | CONST_PERSISTENT);
 #endif
 
 	return SUCCESS;
@@ -214,6 +215,13 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 #endif
 	php_info_print_table_row(2, "Table partitioning filter supported",
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
+		"yes"
+#else
+		"no"
+#endif
+	);
+	php_info_print_table_row(2, "Query caching through mysqlnd_qc supported",
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
 		"yes"
 #else
 		"no"
@@ -438,6 +446,29 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 					RETURN_FALSE;
 				}
 				break;
+
+			case QOS_OPTION_CACHE:
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
+				if (service_level != CONSISTENCY_EVENTUAL) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cache TTL option value must be used with MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL only");
+					RETURN_FALSE;
+				}
+				if (!option_value) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option value required");
+					RETURN_FALSE;
+				}
+				convert_to_long(option_value);
+				option_data.ttl = (uint)Z_LVAL_P(option_value);
+				if (option_data.ttl < 1) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cache TTL must be at least one");
+					RETURN_FALSE;
+				}
+#else
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Cache support is not available with this build");
+				RETURN_FALSE;
+#endif
+				break;
+
 			default:
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "Invalid option");
 				RETURN_FALSE;
@@ -546,6 +577,9 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
 	ZEND_MOD_REQUIRED("standard")
 	ZEND_MOD_REQUIRED("json")
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
+	ZEND_MOD_REQUIRED("mysqlnd_qc")
+#endif
 	{NULL, NULL, NULL}
 };
 /* }}} */

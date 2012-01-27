@@ -357,6 +357,7 @@ enum mysqlnd_ms_filter_qos_option
 	QOS_OPTION_NONE,
 	QOS_OPTION_GTID,
 	QOS_OPTION_AGE,
+	QOS_OPTION_CACHE,
 	QOS_OPTION_LAST_ENUM_ENTRY
 };
 
@@ -364,6 +365,7 @@ enum mysqlnd_ms_filter_qos_option
 typedef struct st_mysqlnd_ms_filter_qos_option_data
 {
   long age_or_gtid;
+  uint ttl;
 } MYSQLND_MS_FILTER_QOS_OPTION_DATA;
 
 typedef struct st_mysqlnd_ms_filter_qos_data

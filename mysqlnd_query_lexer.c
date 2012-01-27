@@ -34,7 +34,7 @@
 #if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 
 /* C99 says to define __STDC_LIMIT_MACROS before including stdint.h,
- * if you want the limit (max/min) macros for int types. 
+ * if you want the limit (max/min) macros for int types.
  */
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS 1
@@ -51,7 +51,7 @@ typedef uint32_t flex_uint32_t;
 typedef signed char flex_int8_t;
 typedef short int flex_int16_t;
 typedef int flex_int32_t;
-typedef unsigned char flex_uint8_t; 
+typedef unsigned char flex_uint8_t;
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
 
@@ -184,7 +184,7 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 #define EOB_ACT_LAST_MATCH 2
 
     #define YY_LESS_LINENO(n)
-    
+
 /* Return all but the first "n" matched characters back to the input stream. */
 #define yyless(n) \
 	do \
@@ -246,7 +246,7 @@ struct yy_buffer_state
 
     int yy_bs_lineno; /**< The line count. */
     int yy_bs_column; /**< The column count. */
-    
+
 	/* Whether to try to fill the input buffer when we reach the
 	 * end of it.
 	 */
@@ -4938,7 +4938,7 @@ static int yy_init_globals (yyscan_t yyscanner );
     /* This must go here because YYSTYPE and YYLTYPE are included
      * from bison output in section 1.*/
     #    define yylval yyg->yylval_r
-    
+
 int mysqlnd_qp_lex_init (yyscan_t* scanner);
 
 int mysqlnd_qp_lex_init_extra (YY_EXTRA_TYPE user_defined,yyscan_t* scanner);
@@ -8343,12 +8343,12 @@ YY_RULE_SETUP
 									{
 										smart_str * ss_copy = *comment;
 										ZVAL_STRINGL(token_value, (*comment)->c, (*comment)->len, 1);
-										
+
 										smart_str_free(ss_copy);
 										mnd_efree(ss_copy);
 									}
 									DBG_INF_FMT("token_value is now:%s", Z_STRVAL_P(token_value));
-									
+
 									DBG_RETURN(QC_TOKEN_COMMENT);
 								}
 	YY_BREAK
@@ -8859,7 +8859,7 @@ static void mysqlnd_qp__load_buffer_state  (yyscan_t yyscanner)
     YY_BUFFER_STATE mysqlnd_qp__create_buffer  (FILE * file, int  size , yyscan_t yyscanner)
 {
 	YY_BUFFER_STATE b;
-    
+
 	b = (YY_BUFFER_STATE) mysqlnd_qp_alloc(sizeof( struct yy_buffer_state ) ,yyscanner );
 	if ( ! b )
 		YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp__create_buffer()" );
@@ -8903,7 +8903,7 @@ static void mysqlnd_qp__load_buffer_state  (yyscan_t yyscanner)
 #ifndef __cplusplus
 extern int isatty (int );
 #endif /* __cplusplus */
-    
+
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
  * such as during a mysqlnd_qp_restart() or at EOF.
@@ -8929,7 +8929,7 @@ extern int isatty (int );
     }
 
         b->yy_is_interactive = file ? (isatty( fileno(file) ) > 0) : 0;
-    
+
 	errno = oerrno;
 }
 
@@ -9035,9 +9035,9 @@ static void mysqlnd_qp_ensure_buffer_stack (yyscan_t yyscanner)
 								, yyscanner);
 		if ( ! yyg->yy_buffer_stack )
 			YY_FATAL_ERROR( "out of dynamic memory in mysqlnd_qp_ensure_buffer_stack()" );
-								  
+
 		memset(yyg->yy_buffer_stack, 0, num_to_alloc * sizeof(struct yy_buffer_state*));
-				
+
 		yyg->yy_buffer_stack_max = num_to_alloc;
 		yyg->yy_buffer_stack_top = 0;
 		return;
@@ -9066,12 +9066,12 @@ static void mysqlnd_qp_ensure_buffer_stack (yyscan_t yyscanner)
  * @param base the character buffer
  * @param size the size in bytes of the character buffer
  * @param yyscanner The scanner object.
- * @return the newly allocated buffer state object. 
+ * @return the newly allocated buffer state object.
  */
 YY_BUFFER_STATE mysqlnd_qp__scan_buffer  (char * base, yy_size_t  size , yyscan_t yyscanner)
 {
 	YY_BUFFER_STATE b;
-    
+
 	if ( size < 2 ||
 	     base[size-2] != YY_END_OF_BUFFER_CHAR ||
 	     base[size-1] != YY_END_OF_BUFFER_CHAR )
@@ -9107,7 +9107,7 @@ YY_BUFFER_STATE mysqlnd_qp__scan_buffer  (char * base, yy_size_t  size , yyscan_
  */
 YY_BUFFER_STATE mysqlnd_qp__scan_string (yyconst char * yystr , yyscan_t yyscanner)
 {
-    
+
 	return mysqlnd_qp__scan_bytes(yystr,strlen(yystr) ,yyscanner);
 }
 
@@ -9124,7 +9124,7 @@ YY_BUFFER_STATE mysqlnd_qp__scan_bytes  (yyconst char * yybytes, int  _yybytes_l
 	char *buf;
 	yy_size_t n;
 	int i;
-    
+
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
 	buf = (char *) mysqlnd_qp_alloc(n ,yyscanner );
@@ -9192,10 +9192,10 @@ YY_EXTRA_TYPE mysqlnd_qp_get_extra  (yyscan_t yyscanner)
 int mysqlnd_qp_get_lineno  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
-    
+
         if (! YY_CURRENT_BUFFER)
             return 0;
-    
+
     return yylineno;
 }
 
@@ -9205,10 +9205,10 @@ int mysqlnd_qp_get_lineno  (yyscan_t yyscanner)
 int mysqlnd_qp_get_column  (yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
-    
+
         if (! YY_CURRENT_BUFFER)
             return 0;
-    
+
     return yycolumn;
 }
 
@@ -9269,8 +9269,8 @@ void mysqlnd_qp_set_lineno (int  line_number , yyscan_t yyscanner)
 
         /* lineno is only valid if an input buffer exists. */
         if (! YY_CURRENT_BUFFER )
-           yy_fatal_error( "mysqlnd_qp_set_lineno called with no buffer" , yyscanner); 
-    
+           yy_fatal_error( "mysqlnd_qp_set_lineno called with no buffer" , yyscanner);
+
     yylineno = line_number;
 }
 
@@ -9284,8 +9284,8 @@ void mysqlnd_qp_set_column (int  column_no , yyscan_t yyscanner)
 
         /* column is only valid if an input buffer exists. */
         if (! YY_CURRENT_BUFFER )
-           yy_fatal_error( "mysqlnd_qp_set_column called with no buffer" , yyscanner); 
-    
+           yy_fatal_error( "mysqlnd_qp_set_column called with no buffer" , yyscanner);
+
     yycolumn = column_no;
 }
 
@@ -9380,20 +9380,20 @@ int mysqlnd_qp_lex_init_extra(YY_EXTRA_TYPE yy_user_defined,yyscan_t* ptr_yy_glo
         errno = EINVAL;
         return 1;
     }
-	
+
     *ptr_yy_globals = (yyscan_t) mysqlnd_qp_alloc ( sizeof( struct yyguts_t ), &dummy_yyguts );
-	
+
     if (*ptr_yy_globals == NULL){
         errno = ENOMEM;
         return 1;
     }
-    
+
     /* By setting to 0xAA, we expose bugs in
     yy_init_globals. Leave at 0x00 for releases. */
     memset(*ptr_yy_globals,0x00,sizeof(struct yyguts_t));
-    
+
     mysqlnd_qp_set_extra (yy_user_defined, *ptr_yy_globals);
-    
+
     return yy_init_globals ( *ptr_yy_globals );
 }
 
@@ -9562,16 +9562,16 @@ mysqlnd_qp_create_scanner(TSRMLS_D)
 
 
 /* {{{ mysqlnd_qp_get_token */
-PHPAPI struct st_qc_token_and_value
+PHPAPI struct st_ms_token_and_value
 mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 {
 	YYSTYPE lex_val;
-	struct st_qc_token_and_value ret = {0};
+	struct st_ms_token_and_value ret = {0};
 
 	DBG_ENTER("mysqlnd_qp_get_token");
 
 	memset(&lex_val, 0, sizeof(lex_val));
-	INIT_ZVAL(lex_val.zv);	
+	INIT_ZVAL(lex_val.zv);
 	/* mysqlnd_qp_lex expects `yyscan_t`, not `yyscan_t*` */
 	if ((ret.token = mysqlnd_qp_lex(&lex_val,*(yyscan_t *)scanner->scanner TSRMLS_CC))) {
 		DBG_INF_FMT("token=%d", ret.token);

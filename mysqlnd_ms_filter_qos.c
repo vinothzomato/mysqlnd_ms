@@ -34,10 +34,16 @@
 #include "ext/mysqlnd/mysqlnd_ext_plugin.h"
 #endif
 
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
+#include "mysqlnd_qc.h"
+#endif
+
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_switch.h"
+
+
 
 
 /* {{{ qos_filter_dtor */
@@ -373,7 +379,8 @@ mysqlnd_ms_qos_which_server(const char * query, size_t query_len, struct mysqlnd
 
 /* {{{ mysqlnd_ms_choose_connection_qos */
 enum_func_status
-mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const char * query, size_t query_len,
+mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const char * connect_host,
+								 char ** query, size_t * query_len, zend_bool * free_query,
 								 zend_llist * master_list, zend_llist * slave_list,
 								 zend_llist * selected_masters, zend_llist * selected_slaves,
 								 struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
@@ -383,7 +390,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 	MYSQLND_MS_LIST_DATA * element;
 
 	DBG_ENTER("mysqlnd_ms_choose_connection_qos");
-	DBG_INF_FMT("query(50bytes)=%*s", MIN(50, query_len), query);
+	DBG_INF_FMT("query(50bytes)=%*s", MIN(50, *query_len), *query);
 
 	switch (filter_data->consistency) {
 		case CONSISTENCY_SESSION:
@@ -399,7 +406,7 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 				 all slaves which have replicated the latest updates on the
 				 table in question.
 			*/
-			if ((QOS_OPTION_GTID == filter_data->option) && (USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
+			if ((QOS_OPTION_GTID == filter_data->option) && (USE_MASTER != mysqlnd_ms_qos_which_server(*query, *query_len, stgy TSRMLS_CC)))
 			{
 				smart_str sql = {0, 0, 0};
 				zend_bool exit_loop = FALSE;
@@ -481,77 +488,128 @@ mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const
 			For now...
 				Either all masters and slaves or
 				slaves filtered by SHOW SLAVE STATUS replication lag
-
-			For later...
-				We may inject mysqlnd_qc per-query TTL SQL hints here to
-				replace a slave access with a call access.
+				or slaves plus caching
 			*/
-			if ((QOS_OPTION_AGE == filter_data->option) &&
-				(USE_MASTER != mysqlnd_ms_qos_which_server(query, query_len, stgy TSRMLS_CC)))
 			{
-				zend_llist stage1_slaves;
-				zend_llist_init(&stage1_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, 0);
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
+				zend_bool search_slaves = TRUE;
+				uint ttl = 0;
 
-				/* Stage 1 - just fire the queries and forget them for a moment */
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
-					MYSQLND_CONN_DATA * connection = element->conn;
-					MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
-					if (!conn_data || !*conn_data) {
-						continue;
+				if ((QOS_OPTION_CACHE == filter_data->option) &&
+					(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC)))
+				{
+					ttl = filter_data->option_data.ttl;
+					if (FALSE == mysqlnd_qc_query_is_cached(conn, (const char *)*query, *query_len TSRMLS_CC)) {
+						DBG_INF("Query is not cached");
+						search_slaves = TRUE;
+					} else {
+						DBG_INF("Query is in the cache");
+						search_slaves = FALSE;
 					}
+				}
 
-					if ((CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
+				if (search_slaves ||
 						(
-							(CONN_GET_STATE(connection) > CONN_ALLOCED) ||
-							(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
-						))
-					{
-						MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
+							(QOS_OPTION_AGE == filter_data->option) &&
+							(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC))
+						)
+					)
+#else
+				if ((QOS_OPTION_AGE == filter_data->option) &&
+					(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC)))
+#endif
+				{
+					zend_llist stage1_slaves;
+					zend_llist_init(&stage1_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, 0);
 
-						DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+					/* Stage 1 - just fire the queries and forget them for a moment */
+					BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
+						MYSQLND_CONN_DATA * connection = element->conn;
+						MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
+						if (!conn_data || !*conn_data) {
+							continue;
+						}
+
+						if ((CONN_GET_STATE(connection) != CONN_QUIT_SENT) &&
+							(
+								(CONN_GET_STATE(connection) > CONN_ALLOCED) ||
+								(PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))
+							))
+						{
+							MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
+
+							DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+							tmp_error_info.error_no = 0;
+
+							if (PASS == mysqlnd_ms_qos_server_get_lag_stage1(connection, conn_data, &tmp_error_info TSRMLS_CC)) {
+								zend_llist_add_element(&stage1_slaves, &element);
+							} else if (tmp_error_info.error_no) {
+								char error_buf[512];
+								snprintf(error_buf, sizeof(error_buf),
+										MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag: %d/'%s'",
+										tmp_error_info.error_no, tmp_error_info.error);
+								error_buf[sizeof(error_buf) - 1] = '\0';
+								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+							}
+						}
+					END_ITERATE_OVER_SERVER_LIST;
+					/* Stage 2 - Now, after all servers have something to do, try to fetch the result, in the same order */
+					BEGIN_ITERATE_OVER_SERVER_LIST(element, &stage1_slaves)
+						long lag;
+						MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
+						MYSQLND_CONN_DATA * connection = element->conn;
+						MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
+
 						tmp_error_info.error_no = 0;
 
-						if (PASS == mysqlnd_ms_qos_server_get_lag_stage1(connection, conn_data, &tmp_error_info TSRMLS_CC)) {
-							zend_llist_add_element(&stage1_slaves, &element);
-						} else if (tmp_error_info.error_no) {
+						lag = mysqlnd_ms_qos_server_get_lag_stage2(connection, conn_data, &tmp_error_info TSRMLS_CC);
+						if (lag <= 0) {
 							char error_buf[512];
-							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
+							snprintf(error_buf, sizeof(error_buf),
+									 MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag: %d/'%s'",
 									tmp_error_info.error_no, tmp_error_info.error);
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+							continue;
 						}
-					}
-				END_ITERATE_OVER_SERVER_LIST;
-				/* Stage 2 - Now, after all servers have something to do, try to fetch the result, in the same order */
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, &stage1_slaves)
-					long lag;
-					MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
-					MYSQLND_CONN_DATA * connection = element->conn;
-					MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
 
-					tmp_error_info.error_no = 0;
-
-					lag = mysqlnd_ms_qos_server_get_lag_stage2(connection, conn_data, &tmp_error_info TSRMLS_CC);
-
-					if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
+						if (QOS_OPTION_CACHE == filter_data->option) {
+							if (lag < filter_data->option_data.ttl) {
+								if ((filter_data->option_data.ttl - lag) < ttl) {
+									ttl = (filter_data->option_data.ttl - lag);
+								}
+								zend_llist_add_element(selected_slaves, &element);
+							}
+							continue;
+						}
+#endif
+						/* Must be QOS_OPTION_AGE */
+						if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
+							zend_llist_add_element(selected_slaves, &element);
+						}
+					END_ITERATE_OVER_SERVER_LIST;
+					zend_llist_clean(&stage1_slaves);
+				} else {
+					BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
 						zend_llist_add_element(selected_slaves, &element);
-					} else if (tmp_error_info.error_no) {
-						char error_buf[512];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
-								tmp_error_info.error_no, tmp_error_info.error);
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-					}
+					END_ITERATE_OVER_SERVER_LIST;
+				}
+				BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
+					zend_llist_add_element(selected_masters, &element);
 				END_ITERATE_OVER_SERVER_LIST;
-				zend_llist_clean(&stage1_slaves);
-			} else {
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, slave_list)
-					zend_llist_add_element(selected_slaves, &element);
-				END_ITERATE_OVER_SERVER_LIST;
+
+#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
+				if (ttl > 0) {
+					char * new_query = NULL;
+					*query_len = spprintf(&new_query, 0, "/*" ENABLE_SWITCH "*//*" ENABLE_SWITCH_TTL"%lu*/%s",
+						ttl, *query);
+					*query = new_query;
+					*free_query = TRUE;
+					DBG_INF_FMT("Cache option ttl %lu, slave list ttl %lu, %s", filter_data->option_data.ttl, ttl, *query);
+				}
+#endif
 			}
-			BEGIN_ITERATE_OVER_SERVER_LIST(element, master_list)
-				zend_llist_add_element(selected_masters, &element);
-			END_ITERATE_OVER_SERVER_LIST;
 			break;
 		default:
 			DBG_ERR("Invalid filter data, we should never get here");
@@ -622,6 +680,9 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 
 		if (QOS_OPTION_AGE == option && CONSISTENCY_EVENTUAL == consistency) {
  			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+		}
+		if (QOS_OPTION_CACHE == option && CONSISTENCY_EVENTUAL == consistency) {
+			new_qos_filter->option_data.ttl = option_data->ttl;
 		}
 		if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
  			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;

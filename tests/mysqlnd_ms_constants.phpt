@@ -31,6 +31,7 @@ require_once('skipif.inc');
 		$expected["MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL"] = false;
 		$expected["MYSQLND_MS_QOS_OPTION_GTID"] = false;
 		$expected["MYSQLND_MS_QOS_OPTION_AGE"] = false;
+		$expected["MYSQLND_MS_QOS_OPTION_CACHE"] = false;
 	}
 
 	$constants = get_defined_constants(true);
@@ -59,6 +60,6 @@ MYSQLND_MS_QUERY_USE_LAST_USED = '2'
 MYSQLND_MS_QUERY_USE_MASTER = '0'
 MYSQLND_MS_QUERY_USE_SLAVE = '1'
 MYSQLND_MS_SLAVE_SWITCH = 'ms=slave'
-MYSQLND_MS_VERSION = '1.2.1-beta'
-MYSQLND_MS_VERSION_ID = '10201'
+MYSQLND_MS_VERSION = '1.3.0-alpha'
+MYSQLND_MS_VERSION_ID = '10300'
 done!

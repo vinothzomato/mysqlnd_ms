@@ -384,7 +384,7 @@ PHPAPI enum enum_which_server
 mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC)
 {
 	enum enum_which_server ret = USE_MASTER;
-	struct st_qc_token_and_value token = {0};
+	struct st_ms_token_and_value token = {0};
 	struct st_mysqlnd_query_scanner * scanner;
 	DBG_ENTER("mysqlnd_ms_query_is_select");
 	*forced = FALSE;
@@ -470,7 +470,7 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 
 /* {{{ mysqlnd_ms_pick_server_ex */
 MYSQLND_CONN_DATA *
-mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, const size_t query_len TSRMLS_DC)
+mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * query_len, zend_bool * free_query TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection = conn;
@@ -486,6 +486,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 		zend_llist * output_masters = NULL, * output_slaves = NULL;
 		MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;
 		zend_llist_position	pos;
+		*free_query = FALSE;
 
 		/* order of allocation and initialisation is important !*/
 		/* 1. */
@@ -538,13 +539,13 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
-					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, query, query_len,
+					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, (const char * const)*query, *query_len,
 															 selected_masters, selected_slaves, stgy,
 															 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 				case SERVER_PICK_USER_MULTI:
 					multi_filter = TRUE;
-					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, query, query_len,
+					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, (const char * const)*query, *query_len,
 														 selected_masters, selected_slaves,
 														 output_masters, output_slaves, stgy,
 														 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
@@ -552,7 +553,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 				case SERVER_PICK_TABLE:
 					multi_filter = TRUE;
-					mysqlnd_ms_choose_connection_table_filter(filter, query, query_len,
+					mysqlnd_ms_choose_connection_table_filter(filter, (const char * const)*query, *query_len,
 															  CONN_GET_STATE(conn) > CONN_ALLOCED?
 															  	conn->connect_or_select_db:
 															  	(*conn_data)->cred.db,
@@ -561,17 +562,18 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, const char * const query, co
 					break;
 #endif
 				case SERVER_PICK_RANDOM:
-					connection = mysqlnd_ms_choose_connection_random(filter, query, query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
+					connection = mysqlnd_ms_choose_connection_random(filter, (const char * const)*query, *query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
 																	 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
-					connection = mysqlnd_ms_choose_connection_rr(filter, query, query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
+					connection = mysqlnd_ms_choose_connection_rr(filter, (const char * const)*query, *query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
 																 selected_masters, selected_slaves, NULL TSRMLS_CC);
 					break;
 				case SERVER_PICK_QOS:
 					/* TODO: MS must not bail if slave or master list is empty */
 					multi_filter = TRUE;
-					mysqlnd_ms_choose_connection_qos(filter, (*conn_data)->connect_host, query, query_len,
+					mysqlnd_ms_choose_connection_qos(conn, filter, (*conn_data)->connect_host, query, query_len,
+													 free_query,
 													 selected_masters, selected_slaves,
 													 output_masters, output_slaves, stgy,
 													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);

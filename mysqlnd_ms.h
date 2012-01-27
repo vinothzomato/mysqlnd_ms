@@ -22,8 +22,12 @@
 #ifndef MYSQLND_MS_H
 #define MYSQLND_MS_H
 
+#ifndef SMART_STR_START_SIZE
 #define SMART_STR_START_SIZE 1024
+#endif
+#ifndef SMART_STR_PREALLOC
 #define SMART_STR_PREALLOC 256
+#endif
 #include "ext/standard/php_smart_str.h"
 
 #include "ext/mysqlnd/mysqlnd.h"
@@ -60,8 +64,8 @@ ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 #define MYSQLND_MS_G(v) (mysqlnd_ms_globals.v)
 #endif
 
-#define MYSQLND_MS_VERSION "1.2.1-beta"
-#define MYSQLND_MS_VERSION_ID 10201
+#define MYSQLND_MS_VERSION "1.3.0-alpha"
+#define MYSQLND_MS_VERSION_ID 10300
 
 #define MYSQLND_MS_ERROR_PREFIX "(mysqlnd_ms)"
 
@@ -92,7 +96,7 @@ struct st_mysqlnd_ms_list_data;
 enum_func_status mysqlnd_ms_lazy_connect(struct st_mysqlnd_ms_list_data * element, zend_bool master TSRMLS_DC);
 
 
-struct st_qc_token_and_value
+struct st_ms_token_and_value
 {
 	unsigned int token;
 	zval value;

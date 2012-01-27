@@ -24,7 +24,7 @@
 
 PHPAPI void mysqlnd_qp_free_scanner(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC);
 PHPAPI struct st_mysqlnd_query_scanner * mysqlnd_qp_create_scanner(TSRMLS_D);
-PHPAPI struct st_qc_token_and_value mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC);
+PHPAPI struct st_ms_token_and_value mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC);
 PHPAPI void mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * const s, size_t len TSRMLS_DC);
 
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION

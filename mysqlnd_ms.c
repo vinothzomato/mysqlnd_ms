@@ -827,6 +827,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection;
 	enum_func_status ret = FAIL;
+	zend_bool free_query = FALSE;
 #ifdef ALL_SERVER_DISPATCH
 	zend_bool use_all = 0;
 #endif
@@ -838,7 +839,8 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		DBG_RETURN(ret);
 	}
 
-	connection = mysqlnd_ms_pick_server_ex(conn, query, query_len TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, &query_len, &free_query TSRMLS_CC);
+	php_printf("query %s free %d\n", query, free_query);
 	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? (MYSQLND_MS_ERROR_INFO(connection).error_no) : -1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
@@ -847,6 +849,9 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	  If we skip these checks we will get 2014 from original->query.
 	*/
 	if (!connection || (MYSQLND_MS_ERROR_INFO(connection).error_no)) {
+		if (TRUE == free_query) {
+			efree((void *)query);
+		}
 		DBG_RETURN(ret);
 	}
 
@@ -880,6 +885,9 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 
 			if (FAIL == ret) {
 				if (TRUE == (*conn_data)->global_trx.report_error) {
+					if (TRUE == free_query) {
+						efree((void *)query);
+					}
 					DBG_RETURN(ret);
 				}
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
@@ -893,6 +901,10 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
 			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
 		}
+	}
+
+	if (TRUE == free_query) {
+		efree((void *)query);
 	}
 
 	DBG_RETURN(ret);
@@ -1768,6 +1780,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
 	enum_func_status ret = FAIL;
+	zend_bool free_query = FALSE;
 	DBG_ENTER("mysqlnd_ms_stmt::prepare");
 	DBG_INF_FMT("query=%s", query);
 
@@ -1780,8 +1793,8 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	}
 
 	/* this can possibly reroute us to another server */
-	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, query, query_len TSRMLS_CC);
-	DBG_INF_FMT("Connection %p", connection);
+	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)query, &query_len, &free_query TSRMLS_CC);
+	DBG_INF_FMT("Connection %p, query=%s", connection, query);
 
 	if (connection != s->data->conn) {
 		/* free what we have */
@@ -1793,6 +1806,9 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 			MYSQLND_STMT * new_handle = MS_CALL_ORIGINAL_CONN_DATA_METHOD(stmt_init)(connection TSRMLS_CC);
 			if (!new_handle || !new_handle->data) {
 				DBG_ERR("new_handle is null");
+				if (TRUE == free_query) {
+					efree((void *)query);
+				}
 				DBG_RETURN(FAIL);
 			}
 			s->data = new_handle->data;
@@ -1801,6 +1817,9 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	}
 
 	ret = ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC);
+	if (TRUE == free_query) {
+		efree((void *)query);
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */

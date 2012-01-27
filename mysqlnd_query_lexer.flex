@@ -742,12 +742,12 @@ B'[01]+'						{ ZVAL_STRINGL(token_value, yytext, yyleng, 1); DBG_INF("QC_TOKEN_
 									{
 										smart_str * ss_copy = *comment;
 										ZVAL_STRINGL(token_value, (*comment)->c, (*comment)->len, 1);
-										
+
 										smart_str_free(ss_copy);
 										mnd_efree(ss_copy);
 									}
 									DBG_INF_FMT("token_value is now:%s", Z_STRVAL_P(token_value));
-									
+
 									DBG_RETURN(QC_TOKEN_COMMENT);
 								}
 
@@ -810,16 +810,16 @@ mysqlnd_qp_create_scanner(TSRMLS_D)
 
 
 /* {{{ mysqlnd_qp_get_token */
-PHPAPI struct st_qc_token_and_value
+PHPAPI struct st_ms_token_and_value
 mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 {
 	YYSTYPE lex_val;
-	struct st_qc_token_and_value ret = {0};
+	struct st_ms_token_and_value ret = {0};
 
 	DBG_ENTER("mysqlnd_qp_get_token");
 
 	memset(&lex_val, 0, sizeof(lex_val));
-	INIT_ZVAL(lex_val.zv);	
+	INIT_ZVAL(lex_val.zv);
 	/* yylex expects `yyscan_t`, not `yyscan_t*` */
 	if ((ret.token = yylex(&lex_val, *(yyscan_t *)scanner->scanner TSRMLS_CC))) {
 		DBG_INF_FMT("token=%d", ret.token);

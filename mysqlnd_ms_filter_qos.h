@@ -22,7 +22,8 @@
 #define MYSQLND_MS_FILTER_QOS_H
 struct mysqlnd_ms_lb_strategies;
 
-enum_func_status mysqlnd_ms_choose_connection_qos(void * f_data, const char * connect_host, const char * query, size_t query_len,
+enum_func_status mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data,
+		const char * connect_host, char ** query, size_t * query_len, zend_bool * free_query,
 		zend_llist * master_list, zend_llist * slave_list,
 		zend_llist * selected_masters, zend_llist * selected_slaves,
 		struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC);
