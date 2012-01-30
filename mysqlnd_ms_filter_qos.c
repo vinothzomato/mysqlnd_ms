@@ -35,7 +35,7 @@
 #endif
 
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
-#include "mysqlnd_qc.h"
+#include "ext/mysqlnd_qc/mysqlnd_qc.h"
 #endif
 
 #include "mysqlnd_ms.h"
