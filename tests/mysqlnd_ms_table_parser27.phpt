@@ -41,6 +41,7 @@ if (_skipif_have_feature("table_filter")) {
 			),
 		),
 	);
+	$settings['myapp']['filters']['roundrobin'] = array();
 }
 
 if ($error = mst_create_config("test_mysqlnd_ms_table_parser26.ini", $settings))
