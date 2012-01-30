@@ -840,7 +840,6 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	}
 
 	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, &query_len, &free_query TSRMLS_CC);
-	php_printf("query %s free %d\n", query, free_query);
 	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? (MYSQLND_MS_ERROR_INFO(connection).error_no) : -1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
