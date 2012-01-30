@@ -543,7 +543,7 @@ extern int mysqlnd_qp_lex(YYSTYPE * yylval_param, yyscan_t yyscanner TSRMLS_DC);
 %token <kn> QC_TOKEN_STOP
 %token <kn> QC_TOKEN_STORAGE
 %token <kn> QC_TOKEN_STRAIGHT_JOIN
-%token <kn> QC_TOKEN_STRING
+%token <zv> QC_TOKEN_STRING
 %token <kn> QC_TOKEN_SUBCLASS_ORIGIN
 %token <kn> QC_TOKEN_SUBDATE
 %token <kn> QC_TOKEN_SUBJECT
@@ -825,6 +825,7 @@ select: comment QC_TOKEN_SELECT
 			;
 
 comment: QC_TOKEN_COMMENT
+		| comment QC_TOKEN_COMMENT { zval_dtor(&$2); }
 		| { ZVAL_NULL(&$$); }
 		;
 
@@ -842,6 +843,17 @@ select_field: field
 		| function_call
 		| QC_TOKEN_INTNUM
 		| QC_TOKEN_STRING
+				{
+					DBG_BLOCK_ENTER("string identifier");
+					if (PINFO.active_field_list) {
+						struct st_mysqlnd_ms_field_info finfo = {0};
+						finfo.persistent = PINFO.persistent;
+						finfo.name = mnd_pestrndup(Z_STRVAL($1), Z_STRLEN($1), finfo.persistent);
+						zend_llist_add_element(PINFO.active_field_list, &finfo);
+					}
+					zval_dtor(&$1);
+					DBG_BLOCK_LEAVE;
+				}
 		;
 
 function_call: field QC_TOKEN_BRACKET_OPEN opt_function_call_parameter_list QC_TOKEN_BRACKET_CLOSE;
@@ -974,8 +986,6 @@ opt_from_clause: QC_TOKEN_FROM query_table_list
 
 query_table_list: query_table 
 		| query_table_list QC_TOKEN_COMMA query_table
-		| query_table_list QC_TOKEN_LEFT QC_TOKEN_JOIN query_table  {YYACCEPT;}
-		| query_table_list QC_TOKEN_RIGHT QC_TOKEN_JOIN query_table {YYACCEPT;}
 		;
 
 where_clause: QC_TOKEN_WHERE where_clause_tail
@@ -1264,7 +1274,7 @@ keyword_label_in_sp: QC_TOKEN_ACTION
 		| QC_TOKEN_STARTS
 		| QC_TOKEN_STATUS
 		| QC_TOKEN_STORAGE
-		| QC_TOKEN_STRING
+		| QC_TOKEN_STRING { zval_dtor(&$1); $$ = NULL;}
 		| QC_TOKEN_SUBDATE
 		| QC_TOKEN_SUBJECT
 		| QC_TOKEN_SUBPARTITION

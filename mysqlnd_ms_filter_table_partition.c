@@ -471,6 +471,7 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 
 		}
 		if (parser) {
+#if 0
 			if (err) {
 				char error_buf[256];
 				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Please, check the SQL syntax. If correct, report a bug. Parser error %d. Failed to parse statement '%*s'",
@@ -481,7 +482,9 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 				DBG_INF_FMT("parser start error %d", err);
 			}
+#endif
 			mysqlnd_qp_free_parser(parser TSRMLS_CC);
+			ret = PASS;
 		}
 	}
 	DBG_RETURN(ret);

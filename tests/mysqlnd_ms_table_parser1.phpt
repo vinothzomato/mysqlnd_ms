@@ -35,11 +35,13 @@ $settings = array(
 if (_skipif_have_feature("table_filter")) {
 	$settings['myapp']['filters']['table'] = array(
 		"rules" => array(
-			$db . ".test" => array(
+			$db . ".%" => array(
 				"master" => array("master1"),
 				"slave" => array("slave1"),
 			),
 		),
+	);
+	$settings['myapp']['filters']['roundrobin'] = array(
 	);
 }
 
