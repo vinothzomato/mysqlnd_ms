@@ -36,10 +36,15 @@
 #include "mysqlnd_ms_config_json.h"
 #include "mysqlnd_qp.h"
 
+static void mysqlnd_ms_filter_ht_dtor(void * data);
+static enum_func_status mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
+													  struct st_mysqlnd_ms_config_json_entry * section,
+													  MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
-/* {{{ table_specific_dtor */
+
+/* {{{ table_filter_dtor */
 static void
-table_specific_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
+table_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_TABLE_DATA * filter = (MYSQLND_MS_FILTER_TABLE_DATA *) pDest;
 	DBG_ENTER("table_specific_dtor");
@@ -63,11 +68,11 @@ mysqlnd_ms_table_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, M
 	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
 	if (ret) {
 		do {
-			ret->parent.specific_dtor = table_specific_dtor;
+			ret->parent.filter_dtor = table_filter_dtor;
 			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
 			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
 			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, error_info, persistent TSRMLS_CC)) {
-				table_specific_dtor((MYSQLND_MS_FILTER_DATA *)ret TSRMLS_CC);
+				ret->parent.filter_dtor((MYSQLND_MS_FILTER_DATA *)ret TSRMLS_CC);
 				ret = NULL;
 				break;
 			}
@@ -131,8 +136,9 @@ mysqlnd_ms_filter_compare(const void * a, const void * b TSRMLS_DC)
 /* }}} */
 #endif
 
+
 /* {{{ mysqlnd_ms_filter_ht_dtor */
-void
+static void
 mysqlnd_ms_filter_ht_dtor(void * data)
 {
 	HashTable * entry = * (HashTable **) data;
@@ -265,7 +271,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 
 
 /* {{{ mysqlnd_ms_load_table_filters */
-enum_func_status
+static enum_func_status
 mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 							  struct st_mysqlnd_ms_config_json_entry * section,
 							  MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
@@ -322,6 +328,7 @@ mysqlnd_ms_load_table_filters(HashTable * master_rules, HashTable * slave_rules,
 	DBG_RETURN(ret);
 }
 /* }}} */
+
 
 /* {{{ mysqlnd_ms_table_filter_match */
 static enum_func_status
