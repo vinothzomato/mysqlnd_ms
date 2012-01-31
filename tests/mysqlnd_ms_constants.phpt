@@ -25,6 +25,10 @@ require_once('skipif.inc');
 		$expected["MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION"] = false;
 	}
 
+	if (defined("MYSQLND_MS_HAVE_CACHE_SUPPORT")) {
+		$expected["MYSQLND_MS_HAVE_CACHE_SUPPORT"] = false;
+	}
+
 	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
 		$expected["MYSQLND_MS_QOS_CONSISTENCY_STRONG"] = false;
 		$expected["MYSQLND_MS_QOS_CONSISTENCY_SESSION"] = false;

@@ -25,11 +25,31 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 		var_dump($classes);
 	}
 
+	$expected = array(
+		'json' 		=> true,
+		'standard' 	=> true,
+		'mysqlnd' 	=> true,
+	);
+	if (defined("MYSQLND_MS_HAVE_CACHE_SUPPORT")) {
+		$expected['mysqlnd_qc'] = true;
+	}
+
 	$dependencies = $r->getDependencies();
 	asort($dependencies);
 	printf("Dependencies:\n");
-	foreach ($dependencies as $what => $how)
-		printf("  %s - %s\n", $what, $how);
+	foreach ($dependencies as $what => $how) {
+		printf("  %s - %s, ", $what, $how);
+		if (isset($expected[$what])) {
+			unset($expected[$what]);
+		} else {
+			printf("Unexpected extension dependency with %s - %s\n", $what, $how);
+		}
+	}
+	if (!empty($expected)) {
+		printf("Dumping list of missing extension dependencies\n");
+		var_dump($expected);
+	}
+	printf("\n");
 
 	$ignore = array();
 	if (version_compare(PHP_VERSION, '5.3.99', ">")) {
@@ -59,9 +79,7 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 Name: mysqlnd_ms
 Version: 1.3.0-alpha
 Dependencies:
-  json - Required
-  standard - Required
-  mysqlnd - Required
+%s
 Functions:
   mysqlnd_ms_get_last_used_connection
   mysqlnd_ms_get_stats

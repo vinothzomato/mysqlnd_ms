@@ -14,6 +14,10 @@ if (($master_host == $slave_host)) {
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_check_extensions(array("mysqlnd_qc"));
+if (!defined("MYSQLND_MS_HAVE_CACHE_SUPPORT")) {
+	die("SKIP Cache support not compiled in");
+}
+
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
@@ -55,7 +59,6 @@ mysqlnd_ms.enable=1
 mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_cache.ini
 mysqlnd_qc.use_request_time=0
 mysqlnd_qc.collect_statistics=1
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	/* Caution: any test setting on replication is prone to false positive. Replication may be down! */
