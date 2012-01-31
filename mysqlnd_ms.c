@@ -1792,7 +1792,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	}
 
 	/* this can possibly reroute us to another server */
-	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)query, &query_len, &free_query TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)&query, &query_len, &free_query TSRMLS_CC);
 	DBG_INF_FMT("Connection %p, query=%s", connection, query);
 
 	if (connection != s->data->conn) {
