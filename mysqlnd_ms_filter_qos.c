@@ -492,7 +492,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 			*/
 			{
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
-				zend_bool search_slaves = TRUE;
+				zend_bool search_slaves = FALSE;
 				uint ttl = 0;
 
 				if ((QOS_OPTION_CACHE == filter_data->option) &&
@@ -508,12 +508,8 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 					}
 				}
 
-				if (search_slaves ||
-						(
-							(QOS_OPTION_AGE == filter_data->option) &&
-							(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC))
-						)
-					)
+				if ((search_slaves || (QOS_OPTION_AGE == filter_data->option)) &&
+					(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC)))
 #else
 				if ((QOS_OPTION_AGE == filter_data->option) &&
 					(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC)))
@@ -563,11 +559,11 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 						tmp_error_info.error_no = 0;
 
 						lag = mysqlnd_ms_qos_server_get_lag_stage2(connection, conn_data, &tmp_error_info TSRMLS_CC);
-						if (lag <= 0) {
+						if (tmp_error_info.error_no) {
 							char error_buf[512];
 							snprintf(error_buf, sizeof(error_buf),
-									 MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag: %d/'%s'",
-									tmp_error_info.error_no, tmp_error_info.error);
+									 MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag (%d): %d/'%s'",
+									 lag, tmp_error_info.error_no, tmp_error_info.error);
 							error_buf[sizeof(error_buf) - 1] = '\0';
 							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 							continue;
@@ -575,7 +571,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
 						if (QOS_OPTION_CACHE == filter_data->option) {
-							if (lag < filter_data->option_data.ttl) {
+							if ((lag > 0) && (lag < filter_data->option_data.ttl)) {
 								if ((filter_data->option_data.ttl - lag) < ttl) {
 									ttl = (filter_data->option_data.ttl - lag);
 								}
