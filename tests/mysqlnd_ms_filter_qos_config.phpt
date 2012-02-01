@@ -58,4 +58,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_config.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_config.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Error by creating filter 'quality_of_service', can't find section 'strong_consistency', 'session_consistency' or 'eventual_consistency' . Stopping. in %s on line %d
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) Error by creating filter 'quality_of_service', can't find section 'strong_consistency', 'session_consistency' or 'eventual_consistency' . Stopping in %s on line %d

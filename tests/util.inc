@@ -340,10 +340,43 @@
 
 		$query = sprintf("/*%d*/%s", $offset, $sql['select']);
 		if (!($res = $link->query($query))) {
-			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link_>error);
+			printf("[%03d] [%d] %s\n", $offset, $link->errno, $link->error);
 			return NULL;
 		}
 		$row = $res->fetch_row();
 		return $row[0];
+	}
+
+	function mst_mysqli_get_slave_lag($host, $user, $passwd, $db, $port, $socket) {
+
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		/* NOTE: logic should always match mysqlnd_ms_flter_qos.c logic */
+		if (!($res = $link->query("SHOW SLAVE STATUS"))) {
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
+		}
+
+		$row = $res->fetch_assoc();
+		$res->free();
+
+		if (!isset($row['Slave_IO_Running']))
+			return "Failed to extract Slave_IO_Running";
+
+		if ("Yes" != $row['Slave_IO_Running'])
+			return "Slave_IO_Running is not 'Yes'";
+
+		if (!isset($row['Slave_SQL_Running']))
+			return 'Failed to extract Slave_SQL_Running';
+
+		if ("Yes" != $row['Slave_SQL_Running'])
+			return "Slave_SQL_Running is not 'Yes'";
+
+		if (!isset($row['Seconds_Behind_Master']))
+			return 'Failed to extract Seconds_Behind_Master';
+
+		return (int)$row['Seconds_Behind_Master'];
 	}
 ?>

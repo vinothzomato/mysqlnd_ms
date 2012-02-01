@@ -59,4 +59,4 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_config_conflict3.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_config_conflict3.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Error by creating filter 'quality_of_service', 'session_consistency' clashes with previous setting. Stopping. in %s on line %d
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) Error by creating filter 'quality_of_service', 'session_consistency' clashes with previous setting. Stopping in %s on line %d

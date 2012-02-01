@@ -92,7 +92,7 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 				if (ret->consistency != CONSISTENCY_LAST_ENUM_ENTRY) {
 					mnd_pefree(ret, persistent);
 					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_SESSION);
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping", PICK_QOS, SECT_QOS_SESSION);
 				} else {
 					ret->consistency = CONSISTENCY_SESSION;
 				}
@@ -106,7 +106,7 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 				if (ret->consistency != CONSISTENCY_LAST_ENUM_ENTRY) {
 					mnd_pefree(ret, persistent);
 					php_error_docref(NULL TSRMLS_CC, E_ERROR,
-									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping.", PICK_QOS, SECT_QOS_EVENTUAL);
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' clashes with previous setting. Stopping", PICK_QOS, SECT_QOS_EVENTUAL);
 				} else {
 					ret->consistency = CONSISTENCY_EVENTUAL;
 
@@ -125,6 +125,22 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 								ret->option_data.age_or_gtid = atol(json_value);
 								mnd_efree(json_value);
 							}
+
+							json_value = mysqlnd_ms_config_json_string_from_section(eventual_section, SECT_QOS_CACHE, sizeof(SECT_QOS_CACHE) - 1, 0,
+																				  &value_exists, &is_list_value TSRMLS_CC);
+							if (value_exists && json_value) {
+								if (QOS_OPTION_AGE == ret->option) {
+									mnd_pefree(ret, persistent);
+									mnd_efree(json_value);
+									php_error_docref(NULL TSRMLS_CC, E_ERROR,
+									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter '%s', '%s' has conflicting entries for cache and age. Stopping", PICK_QOS, SECT_QOS_EVENTUAL);
+								} else {
+									ret->option = QOS_OPTION_CACHE;
+									/* TODO - Andrey, do we need range checks? */
+									ret->option_data.ttl = (uint)atol(json_value);
+									mnd_efree(json_value);
+								}
+							}
 						}
 					}
 				}
@@ -138,7 +154,7 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 					mnd_pefree(ret, persistent);
 					ret = NULL;
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX
-						" Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping.",
+						" Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping",
 						PICK_QOS, SECT_QOS_STRONG, SECT_QOS_SESSION, SECT_QOS_EVENTUAL);
 			}
 		}
