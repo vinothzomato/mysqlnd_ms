@@ -839,7 +839,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		DBG_RETURN(ret);
 	}
 
-	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, &query_len, &free_query TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, (size_t *)&query_len, &free_query TSRMLS_CC);
 	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? (MYSQLND_MS_ERROR_INFO(connection).error_no) : -1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
@@ -1792,7 +1792,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	}
 
 	/* this can possibly reroute us to another server */
-	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)&query, &query_len, &free_query TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)&query, (size_t *)&query_len, &free_query TSRMLS_CC);
 	DBG_INF_FMT("Connection %p, query=%s", connection, query);
 
 	if (connection != s->data->conn) {
