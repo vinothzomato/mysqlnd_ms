@@ -83,32 +83,43 @@ mysqlnd_qc.collect_statistics=1
 		!$link->query("INSERT INTO test(id) VALUES (1)"))
 		printf("[002] [%d] %s\n", $link->errno, $link->error);
 
-	if ($res = mst_mysqli_query(3, $link, "SELECT id FROM test")) {
+	/* Test relies on replication, try to reduce false-positives */
+	do {
+		$lag = mst_mysqli_get_slave_lag($slave_host_only, $user, $passwd, $db, (int)$slave_port, $slave_socket);
+		if (is_string($lag)) {
+			printf("[003] Caution, false positive - %s\n", $lag);
+			$lag = 0;
+		}
+	} while ($lag > 0);
+	/* slave may still be outdated, still possible to get false-positive */
+
+	if ($res = mst_mysqli_query(4, $link, "SELECT id FROM test")) {
 		var_dump($res->fetch_all());
 	}
-
+	if (!$res || ($res->num_rows == 0))
+		printf("[005] Caution, false positive possible, slave may not be up to date\n");
 
 	if (true !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_CACHE, 4))) {
-		printf("[004] [%d] %s\n", $link->errno, $link->error);
+		printf("[006] [%d] %s\n", $link->errno, $link->error);
 	}
 
 	dump_put_hit();
 
 	/* Should be served from cache */
-	if ($res = mst_mysqli_query(5, $link, "SELECT id FROM test")) {
+	if ($res = mst_mysqli_query(7, $link, "SELECT id FROM test")) {
 		var_dump($res->fetch_all());
 	}
 
 	dump_put_hit();
 
 	/* Should be served from cache - note must use "5" not "6" here */
-	if ($res = mst_mysqli_query(5, $link, "SELECT id FROM test")) {
+	if ($res = mst_mysqli_query(7, $link, "SELECT id FROM test")) {
 		var_dump($res->fetch_all());
 	}
 
 	dump_put_hit();
 
-	printf("[007] [%d] '%s'\n", $link->errno, $link->error);
+	printf("[008] [%d] '%s'\n", $link->errno, $link->error);
 
 	print "done!";
 ?>
@@ -153,5 +164,5 @@ array(1) {
 }
 cache_put 1
 cache_hit 1
-[007] [0] ''
+[008] [0] ''
 done!
