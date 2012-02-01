@@ -577,7 +577,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 								} else {
 									/* either negative offset from user or LVAL casting gets us here */
 									char error_buf[256];
-									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has returned an invalid list of servers to use. Server id is negative");
+									snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " User multi filter callback has returned an invalid list of servers to use. Server id is either negative or not a number");
 									error_buf[sizeof(error_buf) - 1] = '\0';
 									SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 									DBG_ERR("server_id is negative, skipping and breaking");
