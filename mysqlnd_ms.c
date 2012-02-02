@@ -785,9 +785,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, unsigned int query_len, zend_bool pick_server TSRMLS_DC) */
+/* {{{ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, size_t query_len, zend_bool pick_server TSRMLS_DC) */
 static enum_func_status
-mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, unsigned int query_len, zend_bool pick_server TSRMLS_DC)
+mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, size_t query_len, zend_bool pick_server TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	enum_func_status ret = PASS;
@@ -809,6 +809,7 @@ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, unsigned 
 	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, query, query_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
+/* }}} */
 
 
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, send_query) */
@@ -822,12 +823,13 @@ MYSQLND_METHOD(mysqlnd_ms, send_query)(MYSQLND_CONN_DATA * conn, const char * qu
 
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, query) */
 static enum_func_status
-MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, unsigned int query_len TSRMLS_DC)
+MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, unsigned int q_len TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection;
 	enum_func_status ret = FAIL;
 	zend_bool free_query = FALSE;
+	size_t query_len = q_len;
 #ifdef ALL_SERVER_DISPATCH
 	zend_bool use_all = 0;
 #endif
@@ -835,11 +837,11 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	DBG_INF_FMT("query=%s", query);
 
 	if (CONN_DATA_NOT_SET(conn_data)) {
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, query_len TSRMLS_CC);
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, q_len TSRMLS_CC);
 		DBG_RETURN(ret);
 	}
 
-	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, (size_t *)&query_len, &free_query TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, &query_len, &free_query TSRMLS_CC);
 	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? (MYSQLND_MS_ERROR_INFO(connection).error_no) : -1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
