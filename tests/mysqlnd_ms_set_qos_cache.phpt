@@ -60,6 +60,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_cache.ini
 apc.use_request_time=0
 mysqlnd_qc.use_request_time=0
 mysqlnd_qc.collect_statistics=1
+mysqlnd_qc.ignore_sql_comments=1
 --FILE--
 <?php
 	/* Caution: any test setting on replication is prone to false positive. Replication may be down! */
@@ -113,8 +114,8 @@ mysqlnd_qc.collect_statistics=1
 
 	dump_put_hit();
 
-	/* Should be served from cache - note must use "5" not "6" here */
-	if ($res = mst_mysqli_query(7, $link, "SELECT id FROM test")) {
+	/* Should be served from cache */
+	if ($res = mst_mysqli_query(8, $link, "SELECT id FROM test")) {
 		var_dump($res->fetch_all());
 	}
 

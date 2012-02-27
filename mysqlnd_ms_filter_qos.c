@@ -514,14 +514,22 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 				if ((QOS_OPTION_CACHE == filter_data->option) &&
 					(USE_MASTER != mysqlnd_ms_qos_which_server((const char *)*query, *query_len, stgy TSRMLS_CC)))
 				{
+					char * server_id = NULL;
+					int server_id_len;
+
+					/* TODO: If QC tokenizer would be better we should not use conn->host but conn->host_info */
+					server_id_len = spprintf(&server_id, 0, "%s|%d|%d|%s|%s", conn->host, conn->port, conn->charset->nr, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"");
+
 					ttl = filter_data->option_data.ttl;
-					if (FALSE == mysqlnd_qc_query_is_cached(conn, (const char *)*query, *query_len TSRMLS_CC)) {
+
+					if (FALSE == mysqlnd_qc_query_is_cached(conn, (const char *)*query, *query_len, server_id, server_id_len TSRMLS_CC)) {
 						DBG_INF("Query is not cached");
 						search_slaves = TRUE;
 					} else {
 						DBG_INF("Query is in the cache");
 						search_slaves = FALSE;
 					}
+					efree(server_id);
 				}
 
 				if ((search_slaves || (QOS_OPTION_AGE == filter_data->option)) &&
@@ -614,8 +622,10 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
 				if (ttl > 0) {
 					char * new_query = NULL;
-					*query_len = spprintf(&new_query, 0, "/*" ENABLE_SWITCH "*//*" ENABLE_SWITCH_TTL"%lu*/%s",
-						ttl, *query);
+					*query_len = spprintf(&new_query, 0, "/*" ENABLE_SWITCH "*//*" ENABLE_SWITCH_TTL"%lu*//*" SERVER_ID_SWITCH "%s|%d|%d|%s|%s*/%s",
+						ttl,
+						conn->host, conn->port, conn->charset->nr, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"",
+						*query);
 					*query = new_query;
 					*free_query = TRUE;
 					DBG_INF_FMT("Cache option ttl %lu, slave list ttl %lu, %s", filter_data->option_data.ttl, ttl, *query);
