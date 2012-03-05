@@ -423,12 +423,17 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Option value required");
 					RETURN_FALSE;
 				}
-				/* TODO: For 32bit systems, do we need to store a GTID BIGINT in char* ?
-				Maybe char* is better anyway for GTIDs? */
-				convert_to_long(option_value);
-				option_data.age_or_gtid = Z_LVAL_P(option_value);
-				if (option_data.age_or_gtid < 0L) {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID must have a positive value");
+
+				if ((Z_TYPE_P(option_value) != IS_STRING) &&
+						(Z_TYPE_P(option_value) != IS_LONG) && (Z_TYPE_P(option_value) != IS_DOUBLE)) {
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID must be a number or a string");
+				}
+
+				convert_to_string(option_value);
+				option_data.gtid_len = spprintf(&(option_data.gtid), 0, "%s", Z_STRVAL_P(option_value));
+				if (0 == option_data.gtid_len) {
+					efree(option_data.gtid);
+					php_error_docref(NULL TSRMLS_CC, E_WARNING, "GTID is empty");
 					RETURN_FALSE;
 				}
 				break;
@@ -443,8 +448,8 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 					RETURN_FALSE;
 				}
 				convert_to_long(option_value);
-				option_data.age_or_gtid = Z_LVAL_P(option_value);
-				if (option_data.age_or_gtid < 0L) {
+				option_data.age = Z_LVAL_P(option_value);
+				if (option_data.age < 0L) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Maximum age must have a positive value");
 					RETURN_FALSE;
 				}
@@ -504,6 +509,7 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 			break;
 
 		case CONSISTENCY_EVENTUAL:
+			/* GTID is free'd by the function called */
 			if (PASS == mysqlnd_ms_section_filters_prepend_qos(proxy_conn,
 					(enum mysqlnd_ms_filter_qos_consistency)service_level,
 					(enum mysqlnd_ms_filter_qos_option)option, &option_data TSRMLS_CC))

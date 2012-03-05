@@ -365,7 +365,9 @@ enum mysqlnd_ms_filter_qos_option
 /* using struct because we will likely add cache ttl later */
 typedef struct st_mysqlnd_ms_filter_qos_option_data
 {
-  long age_or_gtid;
+  char * gtid;
+  size_t gtid_len;
+  long age;
   uint ttl;
 } MYSQLND_MS_FILTER_QOS_OPTION_DATA;
 

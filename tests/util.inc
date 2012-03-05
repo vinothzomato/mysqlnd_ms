@@ -54,6 +54,9 @@
 				return true;
 		}
 
+		if (($row['Master_Host'] == 'localhost') && ($master_host == '127.0.0.1'))
+			$master_host = 'localhost';
+
 		return (($row['Master_Host'] == $master_host) && ($row['Master_Port'] == $master_port));
 	}
 
@@ -345,6 +348,23 @@
 		}
 		$row = $res->fetch_row();
 		return $row[0];
+	}
+
+	function mst_mysqli_server_supports_gtid($host, $user, $passwd, $db, $port, $socket) {
+
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if (!($res = $link->query("SHOW GLOBAL VARIABLES LIKE 'GTID_MODE'"))) {
+			return false;
+		}
+		$row = $res->fetch_assoc();
+		if (!$row)
+			return false;
+
+		return ('ON' == $row['Value']) ? true : false;
 	}
 
 	function mst_mysqli_get_slave_lag($host, $user, $passwd, $db, $port, $socket) {

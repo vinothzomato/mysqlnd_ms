@@ -167,13 +167,17 @@ mysqlnd_ms.enable=1
 		printf("[013] Expecting true got %s\n", var_export($ret, true));
 	}
 
-	if (false !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID, (-1 * PHP_INT_MAX) + 1))) {
-		printf("[014] Expecting false got %s\n", var_export($ret, true));
+	if (true !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID, (-1 * PHP_INT_MAX) + 1))) {
+		printf("[014] Expecting true got %s\n", var_export($ret, true));
+	}
+
+	if (false !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION, MYSQLND_MS_QOS_OPTION_GTID, ""))) {
+		printf("[015] Expecting false got %s\n", var_export($ret, true));
 	}
 
 	/* Age */
 	if (false !== ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL, MYSQLND_MS_QOS_OPTION_AGE, -1))) {
-		printf("[015] Expecting false got %s\n", var_export($ret, true));
+		printf("[016] Expecting false got %s\n", var_export($ret, true));
 	}
 
 	print "done!";
@@ -198,7 +202,11 @@ Warning: mysqlnd_ms_set_qos(): Invalid service level in %s on line %d
 
 Warning: mysqlnd_ms_set_qos(): Option value required in %s on line %d
 
-Warning: mysqlnd_ms_set_qos(): GTID must have a positive value in %s on line %d
+Warning: mysqlnd_ms_set_qos(): GTID must be a number or a string in %s on line %d
+
+Notice: Array to string conversion in %s on line %d
+
+Warning: mysqlnd_ms_set_qos(): GTID is empty in %s on line %d
 
 Warning: mysqlnd_ms_set_qos(): Maximum age must have a positive value in %s on line %d
 done!

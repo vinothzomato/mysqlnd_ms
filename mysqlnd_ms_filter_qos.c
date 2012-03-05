@@ -52,6 +52,10 @@ qos_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_QOS_DATA * filter = (MYSQLND_MS_FILTER_QOS_DATA *) pDest;
 	DBG_ENTER("qos_filter_dtor");
+
+	if (filter->option_data.gtid_len)
+		efree(filter->option_data.gtid);
+
 	mnd_pefree(filter, filter->parent.persistent);
 
 	DBG_VOID_RETURN;
@@ -122,7 +126,7 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 																				  &value_exists, &is_list_value TSRMLS_CC);
 							if (value_exists && json_value) {
 								ret->option = QOS_OPTION_AGE;
-								ret->option_data.age_or_gtid = atol(json_value);
+								ret->option_data.age = atol(json_value);
 								mnd_efree(json_value);
 							}
 
@@ -194,6 +198,7 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
 	{
 		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
+		DBG_INF_FMT("sql = %s -  ret = %d - affected_rows = %d", sql, ret, (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows));
 	}
 	(*conn_data)->skip_ms_calls = FALSE;
 
@@ -444,13 +449,12 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 
 						if (!sql.c) {
 							char * pos;
-							char buf[32];
 							pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
 							if (pos) {
 							  	smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid,
 												  pos - ((*conn_data)->global_trx.check_for_gtid));
-								snprintf(buf, sizeof(buf), "%ld", filter_data->option_data.age_or_gtid);
-								smart_str_appends(&sql, buf);
+								smart_str_appends(&sql, filter_data->option_data.gtid);
+								smart_str_appends(&sql, (*conn_data)->global_trx.check_for_gtid + (pos - ((*conn_data)->global_trx.check_for_gtid)) + sizeof("#GTID") - 1);
 								smart_str_appendc(&sql, '\0');
 							} else {
 								char error_buf[512];
@@ -605,7 +609,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 						}
 #endif
 						/* Must be QOS_OPTION_AGE */
-						if ((lag > 0) && (lag <= filter_data->option_data.age_or_gtid)) {
+						if ((lag > 0) && (lag <= filter_data->option_data.age)) {
 							zend_llist_add_element(selected_slaves, &element);
 						}
 					END_ITERATE_OVER_SERVER_LIST;
@@ -701,13 +705,15 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 			new_qos_filter->option_data = old_qos_filter->option_data;
 
 		if (QOS_OPTION_AGE == option && CONSISTENCY_EVENTUAL == consistency) {
- 			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+ 			new_qos_filter->option_data.age = option_data->age;
 		}
 		if (QOS_OPTION_CACHE == option && CONSISTENCY_EVENTUAL == consistency) {
 			new_qos_filter->option_data.ttl = option_data->ttl;
 		}
 		if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
- 			new_qos_filter->option_data.age_or_gtid = option_data->age_or_gtid;
+			new_qos_filter->option_data.gtid_len = option_data->gtid_len;
+			new_qos_filter->option_data.gtid = estrndup(option_data->gtid, option_data->gtid_len);
+			efree(option_data->gtid);
 		}
 
 		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
