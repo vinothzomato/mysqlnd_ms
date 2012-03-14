@@ -514,7 +514,7 @@ mysqlnd_ms_user_pick_multiple_server(void * f_data, const char * connect_host, c
 						}
 
 						/* convert to longs and sort */
-						zend_hash_internal_pointer_reset_ex(Z_ARRVAL_PP(users_masters), &hash_pos);
+						zend_hash_internal_pointer_reset_ex(Z_ARRVAL_PP(users_slaves), &hash_pos);
 						while (SUCCESS == zend_hash_get_current_data_ex(Z_ARRVAL_PP(users_slaves), (void **)&selected_server, &hash_pos)) {
 							convert_to_long_ex(selected_server);
 							zend_hash_move_forward_ex(Z_ARRVAL_PP(users_slaves), &hash_pos);
