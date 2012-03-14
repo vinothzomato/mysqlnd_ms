@@ -19,7 +19,8 @@ if (is_string($ret))
 	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
 
 if (true == $ret)
-	die("SKIP Configured emulated master and emulated slave could be part of a replication cluster\n");
+	die("SKIP Check config.inc notes! Configured emulated master and emulated slave could be part of a replication cluster\n");
+
 
 $settings = array(
 	"myapp" => array(

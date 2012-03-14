@@ -10,6 +10,15 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 
 _skipif_check_extensions(array("mysqli"));
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
+
+include_once("util.inc");
+$ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
+if (is_string($ret))
+	die(sprintf("SKIP Failed to check relation of configured master and slave, %s\n", $ret));
+
+if (true == $ret)
+	die("SKIP Check config.inc notes! Configured emulated master and emulated slave could be part of a replication cluster\n");
 
 $settings = array(
 	"myapp" => array(
@@ -26,7 +35,6 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_pick_user_multi_trx_stickiness.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-require_once("util.inc");
 msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1]");
 msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
