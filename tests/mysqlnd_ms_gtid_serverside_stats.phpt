@@ -1,5 +1,5 @@
 --TEST--
-Server GTID
+Server GTID and emulation stats
 --SKIPIF--
 <?php
 if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
@@ -59,12 +59,13 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_gtid_serverside_basics.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_gtid_serverside_stats.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_serverside_basics.ini
+mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_serverside_stats.ini
+mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -76,6 +77,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_serverside_basics.ini
 	}
 	/* we need an extra non-MS link for checking GTID. If we use MS link, the check itself will change GTID */
 	$master_link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+
+	$stats_before = mysqlnd_ms_get_stats();
 
 	mst_mysqli_query(4, $link, "SET @myrole = 'Master'");
 	mst_mysqli_query(5, $link, "SET @myrole = 'Slave'", MYSQLND_MS_SLAVE_SWITCH);
@@ -98,12 +101,20 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_serverside_basics.ini
 	$res = mst_mysqli_query(10, $link, "SELECT 1 AS id, @myrole AS _role FROM DUAL");
 	var_dump($res->fetch_assoc());
 
+	$stats_after = mysqlnd_ms_get_stats();
+	foreach ($stats_after as $k => $v) {
+		if ((substr($k, 0, 4) == "gtid") && ($v != $stats_before[$k])) {
+			printf("[011] GTID emulation stat '%s' has changed from '%s' to '%s'\n",
+				$k, $stats_before[$k], $v);
+		}
+	}
+
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_gtid_serverside_basics.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_serverside_basics.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_gtid_serverside_stats.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_serverside_stats.ini'.\n");
 
 	require_once("connect.inc");
 	require_once("util.inc");
