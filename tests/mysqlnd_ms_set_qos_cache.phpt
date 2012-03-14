@@ -47,7 +47,7 @@ $settings = array(
 			),
 		 ),
 
-		'lazy_connections' => 0,
+		'lazy_connections' => 1,
 	),
 
 );
@@ -95,9 +95,15 @@ mysqlnd_qc.ignore_sql_comments=1
 	} while ($lag > 0);
 	/* slave may still be outdated, still possible to get false-positive */
 
-	if ($res = mst_mysqli_query(4, $link, "SELECT id FROM test")) {
-		var_dump($res->fetch_all());
-	}
+	$attempts = 0;
+	do {
+		if ($res = mst_mysqli_query(4, $link, "SELECT id FROM test")) {
+			var_dump($res->fetch_all());
+			break;
+		}
+		usleep(200000);
+	} while ($attempts++ < 10);
+
 	if (!$res || ($res->num_rows == 0))
 		printf("[005] Caution, false positive possible, slave may not be up to date\n");
 
@@ -114,14 +120,23 @@ mysqlnd_qc.ignore_sql_comments=1
 
 	dump_put_hit();
 
+	/*
+		Note: Its not save to rely on the DELETE being executed by the slave
+		before we do the next read. We must rely on the stats. This is
+		just an extra little thingie on top which may cause a fail if stats
+		are wrong.
+     */
+	mst_mysqli_query(8, $link, "DELETE FROM test");
+	usleep(100000);
+
 	/* Should be served from cache */
-	if ($res = mst_mysqli_query(8, $link, "SELECT id FROM test")) {
+	if ($res = mst_mysqli_query(9, $link, "SELECT id FROM test")) {
 		var_dump($res->fetch_all());
 	}
 
 	dump_put_hit();
 
-	printf("[008] [%d] '%s'\n", $link->errno, $link->error);
+	printf("[010] [%d] '%s'\n", $link->errno, $link->error);
 
 	print "done!";
 ?>
@@ -166,5 +181,5 @@ array(1) {
 }
 cache_put 1
 cache_hit 1
-[008] [0] ''
+[010] [0] ''
 done!
