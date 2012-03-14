@@ -54,7 +54,8 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_user_multi_return_bid_id.ini
 --EXPECTF--
 pick_server('myapp', '/*2*/SELECT 1 FROM DUAL, '')
 [E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. Server id is too big in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli::query(): (mysqlnd_ms) User multi filter callback has returned an invalid list of servers to use. Server id is either negative or not a number in %s on line %d
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
-[002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
+array(1) {
+  [1]=>
+  string(1) "1"
+}
 done!
