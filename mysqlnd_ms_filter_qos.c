@@ -392,7 +392,7 @@ mysqlnd_ms_qos_which_server(const char * query, size_t query_len, struct mysqlnd
 			break;
 	}
 
-	return which_server;
+	DBG_RETURN(which_server);
 }
 /* }}} */
 
