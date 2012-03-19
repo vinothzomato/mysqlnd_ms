@@ -290,7 +290,7 @@ mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 		mysqlnd_fetch_into(res, MYSQLND_FETCH_ASSOC, row, MYSQLND_MYSQL);
 		if (Z_TYPE_P(row) == IS_ARRAY) {
 			/* TODO: make test incasesensitive */
-			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_IO_Running", (uint)sizeof("Slave_IO_Running"), (void**)&io_running)) {
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_IO_Running", sizeof("Slave_IO_Running"), (void**)&io_running)) {
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Slave_IO_Running");
 				goto getlagsqlerror;
 			}
@@ -302,7 +302,7 @@ mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 				goto getlagsqlerror;
 			}
 
-			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_SQL_Running", (uint)sizeof("Slave_SQL_Running"), (void**)&sql_running))
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Slave_SQL_Running", sizeof("Slave_SQL_Running"), (void**)&sql_running))
 			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Slave_SQL_Running");
 				goto getlagsqlerror;
@@ -315,7 +315,7 @@ mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 				goto getlagsqlerror;
 			}
 
-			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Seconds_Behind_Master", (uint)sizeof("Seconds_Behind_Master"), (void**)&seconds_behind_master))
+			if (FAILURE == zend_hash_find(Z_ARRVAL_P(row), "Seconds_Behind_Master", sizeof("Seconds_Behind_Master"), (void**)&seconds_behind_master))
 			{
 				SET_CLIENT_ERROR((*tmp_error_info),  CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, "Failed to extract Seconds_Behind_Master");
 				goto getlagsqlerror;
