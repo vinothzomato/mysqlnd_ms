@@ -447,8 +447,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 						DBG_INF_FMT("Checking slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
 						if (!sql.c) {
-							char * pos;
-							pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
+							char * pos = strstr((*conn_data)->global_trx.check_for_gtid, "#GTID");
 							if (pos) {
 							  	smart_str_appendl(&sql, (*conn_data)->global_trx.check_for_gtid,
 												  pos - ((*conn_data)->global_trx.check_for_gtid));
@@ -464,8 +463,8 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 							}
 						}
 						if (sql.c) {
-							MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
-							tmp_error_info.error_no = 0;
+							MYSQLND_ERROR_INFO tmp_error_info;
+							memset(&tmp_error_info, sizeof(MYSQLND_ERROR_INFO), 0);
 							if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, &tmp_error_info TSRMLS_CC)) {
 								zend_llist_add_element(selected_slaves, &element);
 							} else if (tmp_error_info.error_no) {
