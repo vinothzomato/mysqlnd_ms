@@ -176,7 +176,6 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 {
 	MYSQLND_RES * res = NULL;
 	enum_func_status ret = FAIL;
-	/* TODO Andrey */
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info;
 #else
