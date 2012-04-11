@@ -464,7 +464,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 						}
 						if (sql.c) {
 							MYSQLND_ERROR_INFO tmp_error_info;
-							memset(&tmp_error_info, sizeof(MYSQLND_ERROR_INFO), 0);
+							memset(&tmp_error_info, 0, sizeof(MYSQLND_ERROR_INFO));
 							if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, &tmp_error_info TSRMLS_CC)) {
 								zend_llist_add_element(selected_slaves, &element);
 							} else if (tmp_error_info.error_no) {
@@ -578,11 +578,11 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 					/* Stage 2 - Now, after all servers have something to do, try to fetch the result, in the same order */
 					BEGIN_ITERATE_OVER_SERVER_LIST(element, &stage1_slaves)
 						long lag;
-						MYSQLND_ERROR_INFO tmp_error_info = {{'\0'}, {'\0'}, 0};
+						MYSQLND_ERROR_INFO tmp_error_info;
 						MYSQLND_CONN_DATA * connection = element->conn;
 						MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, connection);
 
-						tmp_error_info.error_no = 0;
+						memset(&tmp_error_info, 0, sizeof(MYSQLND_ERROR_INFO));
 
 						lag = mysqlnd_ms_qos_server_get_lag_stage2(connection, conn_data, &tmp_error_info TSRMLS_CC);
 						if (tmp_error_info.error_no) {
