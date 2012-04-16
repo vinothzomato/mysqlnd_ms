@@ -430,8 +430,8 @@
 				if (isset($config['lazy_connections'])) {
 				  $json[$application]['lazy_connections'] = (string)$config['lazy_connections'];
 				}
-				if (isset($config['server_charset'])) {
-				  $json[$application]['server_charset'] = (string)$config['server_charset'];
+				if (isset($config['offline_server_charset'])) {
+				  $json[$application]['offline_server_charset'] = (string)$config['offline_server_charset'];
 				}
 				if (isset($config['failover'])) {
 				  $json[$application]['failover'] = (string)$config['failover'];
