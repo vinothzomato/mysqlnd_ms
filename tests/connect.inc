@@ -430,6 +430,9 @@
 				if (isset($config['lazy_connections'])) {
 				  $json[$application]['lazy_connections'] = (string)$config['lazy_connections'];
 				}
+				if (isset($config['server_charset'])) {
+				  $json[$application]['server_charset'] = (string)$config['server_charset'];
+				}
 				if (isset($config['failover'])) {
 				  $json[$application]['failover'] = (string)$config['failover'];
 				}
@@ -439,8 +442,9 @@
 				if (isset($config['trx_stickiness'])) {
 				  $json[$application]['trx_stickiness'] = (string)$config['trx_stickiness'];
 				}
-				if (isset($config['global_transaction_id_injection']))
+				if (isset($config['global_transaction_id_injection'])) {
 				  $json[$application]['global_transaction_id_injection'] = $config['global_transaction_id_injection'];
+				}
 			}
 
 			fwrite($fp, json_encode($json));

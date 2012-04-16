@@ -29,6 +29,7 @@
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
+#include "ext/mysqlnd/mysqlnd_charset.h"
 #if PHP_VERSION_ID >= 50400
 #include "ext/mysqlnd/mysqlnd_ext_plugin.h"
 #endif
@@ -709,6 +710,18 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				}
 			}
 			{
+				char * server_charset = mysqlnd_ms_config_json_string_from_section(the_section, SERVER_CHARSET_NAME,
+												sizeof(SERVER_CHARSET_NAME) - 1, 0,	&value_exists, NULL TSRMLS_CC);
+				if (server_charset) {
+					DBG_INF_FMT("server_charset=%s", server_charset);
+					/* lazy_connections ini entry exists, disabled? */
+					(*conn_data)->server_charset = mnd_pestrdup(server_charset, conn->persistent);
+					mnd_efree(server_charset);
+					server_charset = NULL;
+				}
+			}
+
+			{
 				const char * const sects_to_check[] = {MASTER_NAME, SLAVE_NAME};
 				unsigned int i = 0;
 				for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
@@ -957,6 +970,11 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 			(*data_pp)->connect_host = NULL;
 		}
 
+		if ((*data_pp)->server_charset) {
+			mnd_pefree((*data_pp)->server_charset, conn->persistent);
+			(*data_pp)->server_charset = NULL;
+		}
+
 		if ((*data_pp)->cred.user) {
 			mnd_pefree((*data_pp)->cred.user, conn->persistent);
 			(*data_pp)->cred.user = NULL;
@@ -1049,9 +1067,24 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND_CONN_DATA * const proxy_conn, 
 		if (conn_data && *conn_data) {
 			(*conn_data)->skip_ms_calls = FALSE;
 		}
+	} else if (CONN_GET_STATE(conn) == CONN_ALLOCED && (*conn_data)->server_charset) {
+		const MYSQLND_CHARSET * config_charset = mysqlnd_find_charset_name((*conn_data)->server_charset);
+		if (config_charset) {
+			ret = mysqlnd_cset_escape_slashes(config_charset, newstr, escapestr, escapestr_len TSRMLS_CC);
+		} else {
+		/* broken connection or no "server_charset" setting */
+			newstr[0] = '\0';
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				MYSQLND_MS_ERROR_PREFIX " Connection not opened and "SERVER_CHARSET_NAME" is not valid");
+			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
+			DBG_ERR_FMT(MYSQLND_MS_ERROR_PREFIX " Connection not opened and "SERVER_CHARSET_NAME"=[%s] is not valid", (*conn_data)->server_charset);	  
+		}
 	} else {
+		/* broken connection or no "server_charset" setting */
 		newstr[0] = '\0';
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING,
+			MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection. Possible solution is to add "
+				SERVER_CHARSET_NAME" to your configuration");
 		SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
 		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
