@@ -296,7 +296,6 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 		new_element->socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
 		new_element->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(new_element, &new_element->emulated_scheme,
 																			   persistent TSRMLS_CC);
-
 		zend_llist_add_element(conn_list, &new_element);
 
 		{
@@ -710,14 +709,24 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				}
 			}
 			{
+				const MYSQLND_CHARSET * config_charset = NULL;
 				char * server_charset = mysqlnd_ms_config_json_string_from_section(the_section, SERVER_CHARSET_NAME,
 												sizeof(SERVER_CHARSET_NAME) - 1, 0,	&value_exists, NULL TSRMLS_CC);
 				if (server_charset) {
 					DBG_INF_FMT("server_charset=%s", server_charset);
-					/* lazy_connections ini entry exists, disabled? */
-					(*conn_data)->server_charset = mnd_pestrdup(server_charset, conn->persistent);
+					config_charset = mysqlnd_find_charset_name(server_charset);
 					mnd_efree(server_charset);
 					server_charset = NULL;
+					if (!config_charset) {
+						char error_buf[128];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s]", server_charset);
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+						ret = FAIL;
+						break;
+					}
+					(*conn_data)->server_charset = config_charset;
 				}
 			}
 
@@ -970,11 +979,6 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 			(*data_pp)->connect_host = NULL;
 		}
 
-		if ((*data_pp)->server_charset) {
-			mnd_pefree((*data_pp)->server_charset, conn->persistent);
-			(*data_pp)->server_charset = NULL;
-		}
-
 		if ((*data_pp)->cred.user) {
 			mnd_pefree((*data_pp)->cred.user, conn->persistent);
 			(*data_pp)->cred.user = NULL;
@@ -1068,17 +1072,7 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND_CONN_DATA * const proxy_conn, 
 			(*conn_data)->skip_ms_calls = FALSE;
 		}
 	} else if (CONN_GET_STATE(conn) == CONN_ALLOCED && (*conn_data)->server_charset) {
-		const MYSQLND_CHARSET * config_charset = mysqlnd_find_charset_name((*conn_data)->server_charset);
-		if (config_charset) {
-			ret = mysqlnd_cset_escape_slashes(config_charset, newstr, escapestr, escapestr_len TSRMLS_CC);
-		} else {
-		/* broken connection or no "server_charset" setting */
-			newstr[0] = '\0';
-			php_error_docref(NULL TSRMLS_CC, E_WARNING,
-				MYSQLND_MS_ERROR_PREFIX " Connection not opened and "SERVER_CHARSET_NAME" is not valid");
-			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
-			DBG_ERR_FMT(MYSQLND_MS_ERROR_PREFIX " Connection not opened and "SERVER_CHARSET_NAME"=[%s] is not valid", (*conn_data)->server_charset);	  
-		}
+		ret = mysqlnd_cset_escape_slashes((*conn_data)->server_charset, newstr, escapestr, escapestr_len TSRMLS_CC);
 	} else {
 		/* broken connection or no "server_charset" setting */
 		newstr[0] = '\0';

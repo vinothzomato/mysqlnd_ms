@@ -295,8 +295,9 @@ typedef struct st_mysqlnd_ms_list_data
 	unsigned long connect_flags;
 	char * emulated_scheme;
 	size_t emulated_scheme_len;
-	zend_bool persistent;
+	const MYSQLND_CHARSET * server_charset;
 
+	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
 
 
@@ -390,7 +391,7 @@ typedef struct st_mysqlnd_ms_conn_data
 	zend_llist master_connections;
 	zend_llist slave_connections;
 
-	char * server_charset;
+	const MYSQLND_CHARSET * server_charset;
 
 	struct mysqlnd_ms_lb_strategies {
 		HashTable table_filters;
