@@ -624,7 +624,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
 				if (ttl > 0) {
 					char * new_query = NULL;
-					*query_len = spprintf(&new_query, 0, "/*" ENABLE_SWITCH "*//*" ENABLE_SWITCH_TTL"%lu*//*" SERVER_ID_SWITCH "%s|%d|%d|%s|%s*/%s",
+					*query_len = spprintf(&new_query, 0, "/*" ENABLE_SWITCH "*//*" ENABLE_SWITCH_TTL"%u*//*" SERVER_ID_SWITCH "%s|%d|%d|%s|%s*/%s",
 						ttl,
 						conn->host, conn->port, conn->charset->nr, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"",
 						*query);
