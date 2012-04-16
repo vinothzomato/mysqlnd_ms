@@ -709,13 +709,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				}
 			}
 			{
-				const char * const secs_to_check[] = {MASTER_NAME, SLAVE_NAME};
+				const char * const sects_to_check[] = {MASTER_NAME, SLAVE_NAME};
 				unsigned int i = 0;
-				for (; i < sizeof(secs_to_check) / sizeof(secs_to_check[0]); ++i) {
-					size_t sec_len = strlen(secs_to_check[i]);
-					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, secs_to_check[i], sec_len, 0 TSRMLS_CC)) {
+				for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
+					size_t sect_len = strlen(sects_to_check[i]);
+					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
 						char error_buf[128];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", secs_to_check[i], host);
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", sects_to_check[i], host);
 						error_buf[sizeof(error_buf) - 1] = '\0';
 						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
