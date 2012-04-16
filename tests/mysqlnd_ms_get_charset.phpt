@@ -82,16 +82,16 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
 		$charset = $link->get_charset();
 
 		if ($charset->charset != $expected['charset'])
-			printf("[%03d + 01] Expecting charset '%s' got '%s'\n", $offset, $charset['charset'], $charset->charset);
+			printf("[%03d + 01] Expecting charset '%s' got '%s'\n", $offset, $expected['charset'], $charset->charset);
 
 		if ($charset->collation != $expected['collation'])
-			printf("[%03d + 02] Expecting collation '%s' got '%s'\n", $offset, $charset['collation'], $charset->collation);
+			printf("[%03d + 02] Expecting collation '%s' got '%s'\n", $offset, $expected['collation'], $charset->collation);
 
 		if ($charset->max_length != $expected['max_length'])
-			printf("[%03d + 03] Expecting max length %d got %d '\n", $offset, $charset['charset'], $charset->max_length);
+			printf("[%03d + 03] Expecting max length %d got %d '\n", $offset, $expected['charset'], $charset->max_length);
 
 		if (($charset->min_length < 0) || ($charset->min_length > $expected['max_length']))
-			printf("[%03d + 04] Expecting min length 0..%d got %d\n", $offset, $charset['max_length']. $charset->min_length);
+			printf("[%03d + 04] Expecting min length 0..%d got %d\n", $offset, $expected['max_length']. $charset->min_length);
 
 	}
 
