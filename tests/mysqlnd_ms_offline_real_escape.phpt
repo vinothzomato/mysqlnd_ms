@@ -17,7 +17,7 @@ $settings = array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
 		'pick' => array("roundrobin"),
-		'server_charset' => 'utf8',
+		'offline_server_charset' => 'latin1',
 		'lazy_connections' => 1,
 	),
 );
