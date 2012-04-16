@@ -193,7 +193,40 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 												   element->db, element->db_len,
 												   element->port, element->socket, element->connect_flags TSRMLS_CC);
 	if (PASS == ret) {
+		MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, (*conn_data)->proxy_conn);
 		DBG_INF("Connected");
+
+		DBG_INF_FMT("Checking connection state[%d] and offline_server_charset[%s] and server_charset [%s]",
+					CONN_GET_STATE(connection),
+					(*proxy_conn_data) && (*proxy_conn_data)->offline_server_charset? (*proxy_conn_data)->offline_server_charset->name:"n/a",
+					connection->charset? connection->charset->name:"n/a");
+
+		if (CONN_GET_STATE(connection) > CONN_ALLOCED &&
+			(*proxy_conn_data) &&
+			(*proxy_conn_data)->offline_server_charset &&
+			connection->charset &&
+			connection->charset != (*proxy_conn_data)->offline_server_charset)
+		{
+			char error_buf[256];
+			/* report the error and close ! */
+
+			snprintf(error_buf, sizeof(error_buf),
+					 MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s] for [%s:%d:(%s)]. Differs from server charset [%s]",
+					 (*proxy_conn_data)->offline_server_charset->name,
+					 element->host, element->port, element->socket? element->socket:"",
+					 connection->charset->name);
+			error_buf[sizeof(error_buf) - 1] = '\0';
+
+			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(connection), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+
+			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(close)(connection, MYSQLND_CLOSE_IMPLICIT TSRMLS_CC);
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+			ret = FAIL;
+		}
+	}
+
+	if (PASS == ret) {
+
 		MYSQLND_MS_INC_STATISTIC(master? MS_STAT_LAZY_CONN_MASTER_SUCCESS:MS_STAT_LAZY_CONN_SLAVE_SUCCESS);
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		/* TODO: without this the global trx id injection logic will fail on recently opened lazy connections */
@@ -254,7 +287,8 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 							   const char * host, zend_llist * conn_list,
 							   struct st_mysqlnd_ms_conn_credentials * cred,
 							   struct st_mysqlnd_ms_global_trx_injection * global_trx,
-							   zend_bool lazy_connections, zend_bool persistent TSRMLS_DC)
+							   zend_bool lazy_connections,
+							   zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret;
 	DBG_ENTER("mysqlnd_ms_connect_to_host_aux");
@@ -264,7 +298,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 		ret = PASS;
 	} else {
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(connect)(conn, host, cred->user, cred->passwd, cred->passwd_len, cred->db, cred->db_len,
-													cred->port, cred->socket, cred->mysql_flags TSRMLS_CC);
+														cred->port, cred->socket, cred->mysql_flags TSRMLS_CC);
 
 		if (PASS == ret) {
 			DBG_INF_FMT("Connection "MYSQLND_LLU_SPEC" established", conn->thread_id);
@@ -272,44 +306,73 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 	}
 
 	if (ret == PASS) {
-		MYSQLND_MS_LIST_DATA * new_element = mnd_pecalloc(1, sizeof(MYSQLND_MS_LIST_DATA), persistent);
-		new_element->name_from_config = mnd_pestrdup(name_from_config? name_from_config:"", conn->persistent);
-#if MYSQLND_VERSION_ID >= 50010
-		new_element->conn = conn->m->get_reference(conn TSRMLS_CC);
-#else
-		new_element->conn = conn;
-#endif
-		new_element->host = host? mnd_pestrdup(host, persistent) : NULL;
-		new_element->persistent = persistent;
-		new_element->port = cred->port;
+		MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, proxy_conn);
+		DBG_INF_FMT("Checking connection state[%d] and offline_server_charset[%s] and server_charset [%s]",
+					CONN_GET_STATE(conn),
+					(*proxy_conn_data) && (*proxy_conn_data)->offline_server_charset? (*proxy_conn_data)->offline_server_charset->name:"n/a",
+					conn->charset? conn->charset->name:"n/a");
 
-		new_element->user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
-
-		new_element->passwd_len = cred->passwd_len;
-		new_element->passwd = cred->passwd? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
-
-		new_element->db_len = cred->db_len;
-		new_element->db = cred->db? mnd_pestrndup(cred->db, cred->db_len, conn->persistent) : NULL;
-
-		new_element->connect_flags = cred->mysql_flags;
-
-		new_element->socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
-		new_element->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(new_element, &new_element->emulated_scheme,
-																			   persistent TSRMLS_CC);
-		zend_llist_add_element(conn_list, &new_element);
-
+		if (CONN_GET_STATE(conn) > CONN_ALLOCED &&
+			(*proxy_conn_data) && (*proxy_conn_data)->offline_server_charset &&
+			conn->charset && conn->charset != (*proxy_conn_data)->offline_server_charset)
 		{
-			/* initialize for every connection, even for slaves and secondary masters */
-			MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
-			if (proxy_conn != conn) {
-				/* otherwise we will overwrite ourselves */
-				*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
-			}
-			(*conn_data)->skip_ms_calls = FALSE;
-			(*conn_data)->proxy_conn = proxy_conn;
-#ifndef MYSQLND_HAS_INJECTION_FEATURE
-			mysqlnd_ms_init_connection_global_trx(&(*conn_data)->global_trx, global_trx, is_master, conn->persistent TSRMLS_CC);
+			char error_buf[256];
+			/* report the error and close ! */
+
+			snprintf(error_buf, sizeof(error_buf),
+					 MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s] for [%s:%d:(%s)]. Differs from server charset [%s]",
+					 (*proxy_conn_data)->offline_server_charset->name,
+					 host, cred->port, cred->socket? cred->socket:"",
+					 conn->charset->name);
+			error_buf[sizeof(error_buf) - 1] = '\0';
+
+			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+
+			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(close)(conn, MYSQLND_CLOSE_IMPLICIT TSRMLS_CC);
+
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+			ret = FAIL;
+		} else {
+			MYSQLND_MS_LIST_DATA * new_element = mnd_pecalloc(1, sizeof(MYSQLND_MS_LIST_DATA), persistent);
+			new_element->name_from_config = mnd_pestrdup(name_from_config? name_from_config:"", conn->persistent);
+#if MYSQLND_VERSION_ID >= 50010
+			new_element->conn = conn->m->get_reference(conn TSRMLS_CC);
+#else
+			new_element->conn = conn;
 #endif
+			new_element->host = host? mnd_pestrdup(host, persistent) : NULL;
+			new_element->persistent = persistent;
+			new_element->port = cred->port;
+
+			new_element->user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
+
+			new_element->passwd_len = cred->passwd_len;
+			new_element->passwd = cred->passwd? mnd_pestrndup(cred->passwd, cred->passwd_len, conn->persistent) : NULL;
+
+			new_element->db_len = cred->db_len;
+			new_element->db = cred->db? mnd_pestrndup(cred->db, cred->db_len, conn->persistent) : NULL;
+
+			new_element->connect_flags = cred->mysql_flags;
+
+			new_element->socket = cred->socket? mnd_pestrdup(cred->socket, conn->persistent) : NULL;
+			new_element->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(new_element, &new_element->emulated_scheme,
+																					persistent TSRMLS_CC);
+
+			zend_llist_add_element(conn_list, &new_element);
+
+			{
+				MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+				/* initialize for every connection, even for slaves and secondary masters */
+				if (proxy_conn != conn) {
+					/* otherwise we will overwrite ourselves */
+					*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
+				}
+				(*conn_data)->skip_ms_calls = FALSE;
+				(*conn_data)->proxy_conn = proxy_conn;
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+				mysqlnd_ms_init_connection_global_trx(&(*conn_data)->global_trx, global_trx, is_master, conn->persistent TSRMLS_CC);
+#endif
+			}
 		}
 	}
 	DBG_INF_FMT("ret=%s", ret == PASS? "PASS":"FAIL");
@@ -715,8 +778,6 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				if (server_charset) {
 					DBG_INF_FMT("server_charset=%s", server_charset);
 					config_charset = mysqlnd_find_charset_name(server_charset);
-					mnd_efree(server_charset);
-					server_charset = NULL;
 					if (!config_charset) {
 						char error_buf[128];
 						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s]", server_charset);
@@ -724,9 +785,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
 						ret = FAIL;
+						mnd_efree(server_charset);
+						server_charset = NULL;
 						break;
 					}
-					(*conn_data)->server_charset = config_charset;
+					mnd_efree(server_charset);
+					server_charset = NULL;
+					(*conn_data)->offline_server_charset = config_charset;
 				}
 			}
 
@@ -1071,8 +1136,18 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND_CONN_DATA * const proxy_conn, 
 		if (conn_data && *conn_data) {
 			(*conn_data)->skip_ms_calls = FALSE;
 		}
-	} else if (CONN_GET_STATE(conn) == CONN_ALLOCED && (*conn_data)->server_charset) {
-		ret = mysqlnd_cset_escape_slashes((*conn_data)->server_charset, newstr, escapestr, escapestr_len TSRMLS_CC);
+	} else if (CONN_GET_STATE(conn) == CONN_ALLOCED && (*conn_data)->offline_server_charset) {
+		const MYSQLND_CHARSET * orig_charset = conn->charset;
+
+		conn->charset = (*conn_data)->offline_server_charset;
+		if (conn_data && *conn_data) {
+			(*conn_data)->skip_ms_calls = TRUE;
+		}
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(escape_string)(conn, newstr, escapestr, escapestr_len TSRMLS_CC);
+		if (conn_data && *conn_data) {
+			(*conn_data)->skip_ms_calls = FALSE;
+		}
+		conn->charset = orig_charset;
 	} else {
 		/* broken connection or no "server_charset" setting */
 		newstr[0] = '\0';
