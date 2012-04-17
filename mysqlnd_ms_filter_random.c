@@ -100,6 +100,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	zend_bool forced;
 	enum enum_which_server tmp_which;
 	smart_str fprint = {0};
+	zend_bool forced_tx_master = FALSE;
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
 	if (!which_server) {
@@ -109,6 +110,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
 		*which_server = USE_MASTER;
+		forced_tx_master = TRUE;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
 	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
 		if (*which_server != USE_MASTER) {
