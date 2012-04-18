@@ -1,4 +1,4 @@
-1.3.2 gamma
+1.3.2 stable
 
   Fixed problem with multi-master where although in a transaction
   the queries to the master weren't sticky and were spread all
