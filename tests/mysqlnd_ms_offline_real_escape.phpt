@@ -49,6 +49,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_offline_real_escape.ini
 	if ($no_ms !== $ms) {
 		printf("[007] Encoded strings differ for charset 'utf8', MS = '%s', no MS = '%s'\n", $ms, $no_ms);
 		printf("[008] [%d/%s] '%s'\n", $link->errno, $link->sqlstate, $link->error);
+		printf("[009] [%d/%s] '%s'\n", $link_ms->errno, $link_ms->sqlstate, $link_ms->error);
 	}
 
 	print "done!";
