@@ -42,7 +42,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_settings_host_credentials_types.
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_host_credentials_types.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_settings_host_credentials_types.ini
 --FILE--
 <?php
 	require_once("connect.inc");

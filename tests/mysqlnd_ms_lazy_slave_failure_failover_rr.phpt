@@ -26,7 +26,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_settings_lazy_slave_failure_fail
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_lazy_slave_failure_failover_rr.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_settings_lazy_slave_failure_failover_rr.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php

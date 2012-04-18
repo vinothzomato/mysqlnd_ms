@@ -41,7 +41,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_report_error_
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_gtid_ps_autocommit_report_error_off.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_gtid_ps_autocommit_report_error_off.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php

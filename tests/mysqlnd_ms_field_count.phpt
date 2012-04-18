@@ -2,7 +2,7 @@
 last query field count (without PS)
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_field_count.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_field_count.ini
 --SKIPIF--
 <?php
 require_once("skipif.inc");

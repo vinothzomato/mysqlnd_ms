@@ -67,7 +67,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_connect_flags.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_settings_connect_flags.ini
 --FILE--
 <?php
 	require_once("connect.inc");

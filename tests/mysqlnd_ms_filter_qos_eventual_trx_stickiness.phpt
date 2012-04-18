@@ -49,7 +49,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini
 --FILE--
 <?php
 	require_once("connect.inc");

@@ -41,7 +41,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_change_user_fail.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_change_user_fail.ini
 --FILE--
 <?php
 	require_once("connect.inc");

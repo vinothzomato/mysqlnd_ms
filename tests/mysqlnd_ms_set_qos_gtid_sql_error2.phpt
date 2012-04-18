@@ -68,7 +68,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_set_qos_gtid_sql_error2.ini", $s
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_gtid_sql_error2.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_gtid_sql_error2.ini
 --FILE--
 <?php
 	require_once("connect.inc");

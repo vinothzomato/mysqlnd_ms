@@ -34,7 +34,7 @@ if (!test_mysql_access($slave_host_only, $user, $passwd, $db, $port, $socket))
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_use_db.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_use_db.ini
 --FILE--
 <?php
 	require_once("connect.inc");

@@ -3,7 +3,7 @@ Simple
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config_usage=0
-mysqlnd_ms.ini_file=test_mysqlnd_ms_simple.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_simple.ini
 --SKIPIF--
 <?php
 require_once('skipif.inc');

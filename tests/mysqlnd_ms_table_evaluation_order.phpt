@@ -75,7 +75,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_evaluation_order.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_table_evaluation_order.ini
 mysqlnd_ms.multi_master=1
 --FILE--
 <?php

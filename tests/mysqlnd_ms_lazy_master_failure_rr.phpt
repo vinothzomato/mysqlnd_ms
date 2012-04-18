@@ -37,7 +37,7 @@ msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emu
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_master_failure_rr.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_master_failure_rr.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php

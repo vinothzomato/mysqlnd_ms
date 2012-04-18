@@ -50,7 +50,7 @@
 ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool enable;
 	zend_bool force_config_usage;
-	const char * ini_file;
+	const char * config_file;
 	zval * user_pick_server;
 	zend_bool collect_statistics;
 	zend_bool multi_master;

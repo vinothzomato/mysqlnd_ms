@@ -38,7 +38,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_ini_force_config.ini", $settings
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config_usage=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_force_config.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_ini_force_config.ini
 --FILE--
 <?php
 	require_once("connect.inc");

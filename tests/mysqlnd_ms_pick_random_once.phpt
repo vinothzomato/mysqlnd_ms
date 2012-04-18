@@ -29,7 +29,7 @@ msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_random_once.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_once.ini
 --FILE--
 <?php
 	require_once("connect.inc");

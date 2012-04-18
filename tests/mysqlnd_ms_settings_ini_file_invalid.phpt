@@ -2,7 +2,7 @@
 mysqlnd_ms: Invalid ini file
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=a_file_by_this_name_better_not_exists.ini
+mysqlnd_ms.config_file=a_file_by_this_name_better_not_exists.ini
 --FILE--
 <?php
 echo "DONE";

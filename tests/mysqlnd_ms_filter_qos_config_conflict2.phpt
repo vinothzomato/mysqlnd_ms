@@ -41,7 +41,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_config_conflict2.ini"
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_config_conflict2.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_config_conflict2.ini
 --FILE--
 <?php
 	require_once("connect.inc");

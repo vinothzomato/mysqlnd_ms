@@ -25,7 +25,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_pick_ro_user_multi_no_slave.ini"
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_pick_ro_user_multi_no_slave.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_pick_ro_user_multi_no_slave.ini
 --FILE--
 <?php
 	require_once("connect.inc");

@@ -53,7 +53,7 @@ msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_parser2.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_table_parser2.ini
 --FILE--
 <?php
 	require_once("connect.inc");

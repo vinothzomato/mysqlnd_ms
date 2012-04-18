@@ -19,7 +19,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_settings_unknown_section_force_c
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_unknown_section_force_config.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_settings_unknown_section_force_config.ini
 mysqlnd_ms.force_config_usage=1
 --FILE--
 <?php

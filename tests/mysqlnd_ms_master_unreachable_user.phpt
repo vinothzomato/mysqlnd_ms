@@ -24,7 +24,7 @@ if ($error = mst_create_config("est_mysqlnd_ms_master_unreachable_user.ini", $se
 --INI--
 error_reporting=E_ALL
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=est_mysqlnd_ms_master_unreachable_user.ini
+mysqlnd_ms.config_file=est_mysqlnd_ms_master_unreachable_user.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php

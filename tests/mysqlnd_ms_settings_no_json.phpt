@@ -16,7 +16,7 @@ if (FALSE === file_put_contents("test_mysqlnd_ms_settings_no_json.ini", "a\0gurk
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_settings_no_json.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_settings_no_json.ini
 mysqlnd_ms.in_regression_tests=1
 --FILE--
 <?php

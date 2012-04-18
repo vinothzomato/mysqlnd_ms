@@ -56,7 +56,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_set_qos_cache.ini", $settings))
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_set_qos_cache.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_cache.ini
 apc.use_request_time=0
 mysqlnd_qc.use_request_time=0
 mysqlnd_qc.collect_statistics=1

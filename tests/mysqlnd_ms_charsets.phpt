@@ -69,7 +69,7 @@ if ($master_charset != $slave_charset) {
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_charsets.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_charsets.ini
 --FILE--
 <?php
 	require_once("connect.inc");

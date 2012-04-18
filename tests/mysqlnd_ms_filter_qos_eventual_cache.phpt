@@ -55,7 +55,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_filter_qos_eventual_cache.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_cache.ini
 apc.use_request_time=0
 mysqlnd_qc.use_request_time=0
 mysqlnd_qc.collect_statistics=1

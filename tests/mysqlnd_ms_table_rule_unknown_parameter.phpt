@@ -47,7 +47,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_table_rule_unknown_parameter.ini
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.ini_file=test_mysqlnd_ms_table_rule_unknown_parameter.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_table_rule_unknown_parameter.ini
 --FILE--
 <?php
 	require_once("connect.inc");

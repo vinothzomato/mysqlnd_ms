@@ -20,7 +20,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_ini_bool_false_zero.ini", $setti
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.force_config_usage=0
-mysqlnd_ms.ini_file=test_mysqlnd_ms_ini_bool_false_zero.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_ini_bool_false_zero.ini
 --FILE--
 <?php
 	require_once("connect.inc");
