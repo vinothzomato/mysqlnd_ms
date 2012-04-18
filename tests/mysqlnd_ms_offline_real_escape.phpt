@@ -20,12 +20,6 @@ if (!($res = $link->query("SELECT @@character_set_connection AS charset")) ||
 	die(sprintf("SKIP Can't check for slave charset, [%d] %s\n", $link->errno, $link->error));
 }
 
-if (!($res = $link->query('SHOW CHARACTER SET LIKE "utf8"')) ||
-	(0 == $res->num_rows)) {
-	die(sprintf("SKIP We need a slave that supports utf8, [%d] %s\n", $link->errno, $link->error));
-}
-
-
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
@@ -81,8 +75,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape.ini
 ?>
 --CLEAN--
 <?php
-if (!unlink("test_mysqlnd_ms_lazy_offline_escape.ini"))
-	printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_offline_escape.ini'.\n");
+if (!unlink("test_mysqlnd_ms_offline_real_escape.ini"))
+	printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_offline_real_escape.ini'.\n");
 ?>
 --EXPECTF--
 done!

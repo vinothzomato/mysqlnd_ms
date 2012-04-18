@@ -39,13 +39,13 @@ $settings = array(
 		'lazy_connections' => 1,
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_offline_real_escape.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_offline_real_escape_change_later.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape_change_later.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -117,8 +117,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape.ini
 ?>
 --CLEAN--
 <?php
-if (!unlink("test_mysqlnd_ms_lazy_offline_escape.ini"))
-	printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_offline_escape.ini'.\n");
+if (!unlink("test_mysqlnd_ms_offline_real_escape_change_later.ini"))
+	printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_offline_real_escape_change_later.ini'.\n");
 ?>
 --EXPECTF--
 query()
