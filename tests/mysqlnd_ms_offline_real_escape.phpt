@@ -1,5 +1,5 @@
 --TEST--
-lazy + real escape
+offline_server_charset
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -9,15 +9,29 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-if (!function_exists("iconv"))
-	die("SKIP needs iconv extension\n");
+/* need slave charset to match configured and slave charsets */
+if (!($link = mst_mysqli_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))) {
+	die(sprintf("SKIP Can't test slave default charset, [%d] %s\n",
+		mysqli_connect_errno(), mysqli_connect_error()));
+}
+
+if (!($res = $link->query("SELECT @@character_set_connection AS charset")) ||
+	!($row = $res->fetch_assoc())) {
+	die(sprintf("SKIP Can't check for slave charset, [%d] %s\n", $link->errno, $link->error));
+}
+
+if (!($res = $link->query('SHOW CHARACTER SET LIKE "utf8"')) ||
+	(0 == $res->num_rows)) {
+	die(sprintf("SKIP We need a slave that supports utf8, [%d] %s\n", $link->errno, $link->error));
+}
+
 
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
 		'slave' => array($slave_host, $slave_host),
 		'pick' => array("roundrobin"),
-		'offline_server_charset' => 'latin1',
+		'offline_server_charset' => $row['charset'],
 		'lazy_connections' => 1,
 	),
 );
@@ -33,10 +47,12 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_offline_real_escape.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	if (!($link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket)))
+	if (!($link = mst_mysqli_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	$link->set_charset("utf8");
+	/* check default charset */
+	$res = mst_mysqli_query(2, $link, "SELECT @@character_set_connection AS charset");
+	$row = $res->fetch_assoc();
 
 	/* From a user perspective MS and non MS-Connection are now in the same state: connected */
 	if (!($link_ms = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
@@ -47,10 +63,18 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_offline_real_escape.ini
 	$ms = $link_ms->real_escape_string($string);
 
 	if ($no_ms !== $ms) {
-		printf("[007] Encoded strings differ for charset 'utf8', MS = '%s', no MS = '%s'\n", $ms, $no_ms);
+		printf("[007] Encoded strings differ for charset '%s', MS = '%s', no MS = '%s'\n", $row['charset'], $ms, $no_ms);
 		printf("[008] [%d/%s] '%s'\n", $link->errno, $link->sqlstate, $link->error);
 		printf("[009] [%d/%s] '%s'\n", $link_ms->errno, $link_ms->sqlstate, $link_ms->error);
 	}
+
+	$res = mst_mysqli_query(10, $link_ms, "SELECT @@character_set_connection AS charset");
+	$row_ms = $res->fetch_assoc();
+	if ($row_ms['charset'] != $row['charset']) {
+		printf("[011] MS connection should use charset '%s' but reports '%s'\n", $row['charset'], $row_ms['charset']);
+	}
+
+	$link_ms->close();
 
 	print "done!";
 
