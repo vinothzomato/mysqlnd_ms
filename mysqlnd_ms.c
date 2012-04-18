@@ -219,7 +219,7 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 
 			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(connection), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 
-			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(close)(connection, MYSQLND_CLOSE_IMPLICIT TSRMLS_CC);
+			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_close)(connection TSRMLS_CC);
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
 			ret = FAIL;
 		}
@@ -328,7 +328,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 
 			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 
-			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(close)(conn, MYSQLND_CLOSE_IMPLICIT TSRMLS_CC);
+			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_close)(conn TSRMLS_CC);
 
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
 			ret = FAIL;
