@@ -63,7 +63,7 @@ mysqlnd_ms.ini_file=test_mysqlnd_ms_lazy_escape.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_escape.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli::real_escape_string(): (mysqlnd_ms) string escaping doesn't work without established connection in %s on line %d
+Warning: mysqli::real_escape_string(): (mysqlnd_ms) string escaping doesn't work without established connection. Possible solution is to add offline_server_charset to your configuration in %s on line %d
 string(0) ""
-[003] [2014/HY000] Commands out of sync; you can't run this command now
+[003] [2014/HY000] (mysqlnd_ms) string escaping doesn't work without established connection. Possible solution is to add offline_server_charset to your configuration
 done!

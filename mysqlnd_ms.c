@@ -1154,7 +1154,9 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND_CONN_DATA * const proxy_conn, 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING,
 			MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection. Possible solution is to add "
 				SERVER_CHARSET_NAME" to your configuration");
-		SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, mysqlnd_out_of_sync);
+		SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE,
+			MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection. Possible solution is to add "
+				SERVER_CHARSET_NAME" to your configuration");
 		DBG_ERR_FMT("Command out of sync. State=%u", CONN_GET_STATE(conn));
 	}
 	DBG_RETURN(ret);
