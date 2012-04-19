@@ -460,9 +460,8 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		char * user_to_use = NULL;
 		char * pass_to_use = NULL;
 		char * db_to_use = NULL;
-		char * port_str = NULL;
-		char * flags_str = NULL;
 		char * host = NULL;
+		int port, flags;
 
 		char * current_subsection_name = NULL;
 		size_t current_subsection_name_len = 0;
@@ -475,44 +474,42 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 			break;
 		}
 
-		port_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PORT_NAME, sizeof(SECT_PORT_NAME) - 1, 0,
-															  &value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists && port_str) {
-			int tmp_port = atoi(port_str);
-			if (tmp_port < 0 || tmp_port > 65535 || (!tmp_port && flags_str[0] != '0')) {
+		flags = mysqlnd_ms_config_json_int_from_section(subsection, SECT_CONNECT_FLAGS_NAME, sizeof(SECT_CONNECT_FLAGS_NAME)-1, 0,
+														&value_exists, &is_list_value TSRMLS_CC);
+		if (value_exists) {
+			if (flags < 0) {
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf),
-							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME" '%s' . Stopping", port_str);
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME" '%i' . Stopping", flags);
 				error_buf[sizeof(error_buf) - 1] = '\0';
 
 				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				failures++;
 			} else {
-				cred.port = (unsigned int) atoi(port_str);
+				cred.mysql_flags = flags;
 			}
 		}
 
-		flags_str = mysqlnd_ms_config_json_string_from_section(subsection, SECT_CONNECT_FLAGS_NAME, sizeof(SECT_CONNECT_FLAGS_NAME)-1, 0,
-															   &value_exists, &is_list_value TSRMLS_CC);
+		port = mysqlnd_ms_config_json_int_from_section(subsection, SECT_PORT_NAME, sizeof(SECT_PORT_NAME) - 1, 0,
+													   &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
-			int tmp_flags = atoi(flags_str);
-			if (tmp_flags < 0 || (!tmp_flags && flags_str[0] != '0')) {
+			if (port < 0 || port > 65535) {
 				char error_buf[128];
 				snprintf(error_buf, sizeof(error_buf),
-							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME" '%s' . Stopping", flags_str);
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME" '%i' . Stopping", port);
 				error_buf[sizeof(error_buf) - 1] = '\0';
 
 				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
 				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
 				failures++;
 			} else {
-				cred.mysql_flags = (unsigned int) tmp_flags;
+				cred.port = port;
 			}
 		}
 
 		socket_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_SOCKET_NAME, sizeof(SECT_SOCKET_NAME) - 1, 0,
-															   &value_exists, &is_list_value TSRMLS_CC);
+																   &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			cred.socket = socket_to_use;
 		}
@@ -595,12 +592,6 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		}
 		i++; /* to pass only the first conn handle */
 
-		if (port_str) {
-			mnd_efree(port_str);
-		}
-		if (flags_str) {
-			mnd_efree(flags_str);
-		}
 		if (socket_to_use) {
 			mnd_efree(socket_to_use);
 		}

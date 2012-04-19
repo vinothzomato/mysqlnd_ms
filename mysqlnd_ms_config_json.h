@@ -61,7 +61,7 @@ PHPAPI zend_bool mysqlnd_ms_config_json_section_is_object_list(struct st_mysqlnd
 PHPAPI struct st_mysqlnd_ms_config_json_entry * mysqlnd_ms_config_json_next_sub_section(struct st_mysqlnd_ms_config_json_entry * main_section, char ** section_name, size_t * section_name_len, ulong * nkey TSRMLS_DC);
 
 PHPAPI char * mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, ulong nkey, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
-
+PHPAPI int64_t mysqlnd_ms_config_json_int_from_section(struct st_mysqlnd_ms_config_json_entry * section, const char * name, size_t name_len, ulong nkey, zend_bool * exists, zend_bool * is_list_value TSRMLS_DC);
 
 zend_bool mysqlnd_ms_config_json_string_is_bool_false(const char * value);
 
