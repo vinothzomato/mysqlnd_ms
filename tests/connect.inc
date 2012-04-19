@@ -433,6 +433,9 @@
 				if (isset($config['offline_server_charset'])) {
 				  $json[$application]['offline_server_charset'] = (string)$config['offline_server_charset'];
 				}
+				if (isset($config['force_server_charset'])) {
+				  $json[$application]['force_server_charset'] = (string)$config['force_server_charset'];
+				}
 				if (isset($config['failover'])) {
 				  $json[$application]['failover'] = (string)$config['failover'];
 				}

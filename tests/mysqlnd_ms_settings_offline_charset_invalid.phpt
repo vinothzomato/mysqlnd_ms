@@ -32,7 +32,7 @@ $settings = array(
 			"random" => array('sticky' => '1'),
 		),
 
-		'offline_server_charset' => '\0please_let_me_be_invalid',
+		'offline_server_charset' => "\0please_let_me_be_invalid",
 	),
 
 );
