@@ -9,7 +9,7 @@ require_once('skipif.inc');
 	$expected = array(
 		"mysqlnd_ms.enable" 			=> "mysqlnd_ms.enable",
 		"mysqlnd_ms.force_config_usage" => "mysqlnd_ms.force_config_usage",
-		"mysqlnd_ms.config_file" 			=> "mysqlnd_ms.config_file",
+		"mysqlnd_ms.config_file" 		=> "mysqlnd_ms.config_file",
 		"mysqlnd_ms.collect_statistics"	=> "mysqlnd_ms.collect_statistics",
 		"mysqlnd_ms.multi_master"		=> "mysqlnd_ms.multi_master",
 		"mysqlnd_ms.disable_rw_split"	=> "mysqlnd_ms.disable_rw_split",
