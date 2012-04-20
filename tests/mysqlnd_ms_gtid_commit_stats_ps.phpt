@@ -278,7 +278,7 @@ mysqlnd_ms.collect_statistics=1
 	require_once("connect.inc");
 	require_once("util.inc");
 	if ($error = mst_mysqli_drop_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
-		printf("[clean] %s\n", $error));
+		printf("[clean] %s\n", $error);
 ?>
 --EXPECTF--
 I am the Master of poor me, the Slave.
