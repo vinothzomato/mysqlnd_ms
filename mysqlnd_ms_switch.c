@@ -230,21 +230,17 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 					zend_llist_position llist_pos;
 					MYSQLND_MS_FILTER_DATA * prev = *(MYSQLND_MS_FILTER_DATA **)zend_llist_get_last_ex(filters, &llist_pos);
 					if (FALSE == prev->multi_filter) {
-						char error_buf[128];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . "
-								 "Non-multi filter '%s' already created. Stopping", filter_name, prev->name);
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, 0 TSRMLS_CC,
+													MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . "
+								 					"Non-multi filter '%s' already created. Stopping", filter_name, prev->name);
 						DBG_RETURN(NULL);
 					}
 				}
 				if (specific_ctors[i].ctor) {
 					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
 					if (!new_filter_entry) {
-						char error_buf[128];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . Stopping", filter_name);
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, 0 TSRMLS_CC,
+								 			MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . Stopping", filter_name);
 						DBG_RETURN(NULL);
 					}
 				} else {
@@ -262,10 +258,8 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 		}
 	}
 	if (!new_filter_entry) {
-		char error_buf[128];
-		snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%s' . Stopping", filter_name);
-		error_buf[sizeof(error_buf) - 1] = '\0';
-		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, 0 TSRMLS_CC,
+									  MYSQLND_MS_ERROR_PREFIX" Unknown filter '%s' . Stopping", filter_name);
 	}
 	DBG_RETURN(new_filter_entry);
 }
@@ -303,7 +297,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 						if (current_filter) {
 							char error_buf[128];
 							if (filter_name && !filter_name_len) {
-								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error loading filters. Filter with empty name found");
+								snprintf(error_buf, sizeof(error_buf), "Error loading filters. Filter with empty name found");
 							} else if (FALSE == mysqlnd_ms_config_json_section_is_list(current_filter TSRMLS_CC)) { /* filter_int_name */
 								filter_name =
 									mysqlnd_ms_config_json_string_from_section(filters_section, NULL, 0,
@@ -318,10 +312,11 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 								mnd_pefree(filter_name, 0);
 								continue;
 							} else {
-								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown filter '%d' . Stopping", filter_int_name);
+								snprintf(error_buf, sizeof(error_buf), "Unknown filter '%d' . Stopping", filter_int_name);
 							}
 							error_buf[sizeof(error_buf) - 1] = '\0';
-							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, 0 TSRMLS_CC,
+								 						  MYSQLND_MS_ERROR_PREFIX " %s", error_buf);
 							goto err;
 						}
 						DBG_INF("no next sub-section");
@@ -336,11 +331,9 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					zend_llist_position llist_pos;
 					MYSQLND_MS_FILTER_DATA * prev = *(MYSQLND_MS_FILTER_DATA **)zend_llist_get_last_ex(ret, &llist_pos);
 					if (FALSE != prev->multi_filter) {
-						char error_buf[128];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Error in configuration. "
-							"Last filter is multi filter. Needs to be non-multi one. Stopping");
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+												MYSQLND_MS_ERROR_PREFIX " Error in configuration. Last filter is multi filter. "
+												"Needs to be non-multi one. Stopping");
 						goto err;
 					}
 					break;
@@ -355,12 +348,10 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
 						DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
 						if (NULL == mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
-																		  persistent, error_info TSRMLS_CC)) {
-							char error_buf[128];
-							snprintf(error_buf, sizeof(error_buf),
-									MYSQLND_MS_ERROR_PREFIX " Can't load default filter '%d' . Stopping", specific_ctors[i].name);
-							error_buf[sizeof(error_buf) - 1] = '\0';
-							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+																		  persistent, error_info TSRMLS_CC)) 
+						{
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										MYSQLND_MS_ERROR_PREFIX " Can't load default filter '%d' . Stopping", specific_ctors[i].name);
 							goto err;
 						}
 						break;
@@ -579,13 +570,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
 					break;
 				default:
-				{
-					char error_buf[128];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
-				}
+					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+												  MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
 			}
 			DBG_INF_FMT("out_masters_count=%d  out_slaves_count=%d", zend_llist_count(output_masters), zend_llist_count(output_slaves));
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
@@ -615,11 +601,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 				}
 			}
 			if (!connection && multi_filter == FALSE) {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " No connection selected by the last filter");
-				error_buf[sizeof(error_buf) - 1] = '\0';
-				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+											  MYSQLND_MS_ERROR_PREFIX " No connection selected by the last filter");
 				stgy->last_used_conn = conn;
 				goto end;
 			}
@@ -629,12 +612,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					DBG_INF("FAILOVER");
 					connection = conn;
 				} else {
-					char error_buf[128];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					DBG_ERR(error_buf);
-					SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+									MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. Something is wrong");
 					stgy->last_used_conn = conn;
 					goto end;
 				}

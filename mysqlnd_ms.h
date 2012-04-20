@@ -95,6 +95,11 @@ PHPAPI zend_bool mysqlnd_ms_match_wild(const char * const str, const char * cons
 struct st_mysqlnd_ms_list_data;
 enum_func_status mysqlnd_ms_lazy_connect(struct st_mysqlnd_ms_list_data * element, zend_bool master TSRMLS_DC);
 
+void mysqlnd_ms_client_n_php_error(MYSQLND_ERROR_INFO * error_info,
+								   unsigned int client_error_code,
+								   const char * const client_error_state,
+								   unsigned int php_error_level TSRMLS_DC,
+								   const char * const format, ...);
 
 struct st_ms_token_and_value
 {

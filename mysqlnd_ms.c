@@ -100,6 +100,36 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 	if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)((connection), ((*(conn_data))->global_trx.on_commit), ((*(conn_data))->global_trx.on_commit_len) TSRMLS_CC))) \
 		(ret) = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)((connection) TSRMLS_CC);
 
+
+/* {{{ mysqlnd_ms_get_scheme_from_list_data */
+void
+mysqlnd_ms_client_n_php_error(MYSQLND_ERROR_INFO * error_info,
+							  unsigned int client_error_code,
+							  const char * const client_error_state,
+							  unsigned int php_error_level TSRMLS_DC,
+							  const char * const format, ...)
+{
+	char * error_buf;
+	va_list args;
+	DBG_ENTER("mysqlnd_ms_client_n_php_error");
+
+	va_start(args, format);
+	mnd_vsprintf(&error_buf, 0, format, args);
+	va_end(args);
+
+	SET_CLIENT_ERROR((*error_info), client_error_code, client_error_state, error_buf);
+	if (php_error_level) {
+		php_error_docref(NULL TSRMLS_CC, php_error_level, "%s", error_buf);
+	}
+
+	DBG_ERR_FMT("%s", error_buf);
+
+	mnd_sprintf_free(error_buf);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_get_scheme_from_list_data */
 static int
 mysqlnd_ms_get_scheme_from_list_data(MYSQLND_MS_LIST_DATA * el, char ** scheme, zend_bool persistent TSRMLS_DC)
@@ -193,15 +223,9 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 		FAIL == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(connection, MYSQL_SET_CHARSET_NAME,
 																	(*proxy_conn_data)->force_server_charset->name TSRMLS_CC)))
 	{
-		char error_buf[256];
-		/* report the error and close ! */
-
-		snprintf(error_buf, sizeof(error_buf),
-				 MYSQLND_MS_ERROR_PREFIX " Couldn't force charset to '%s'", (*proxy_conn_data)->force_server_charset->name);
-		error_buf[sizeof(error_buf) - 1] = '\0';
-
-		SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(connection), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);	
+		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(connection), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+										MYSQLND_MS_ERROR_PREFIX " Couldn't force charset to '%s'",
+										(*proxy_conn_data)->force_server_charset->name);
 	} else {
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(connect)(connection, element->host, element->user,
 													   element->passwd, element->passwd_len,
@@ -223,20 +247,13 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 			connection->charset &&
 			connection->charset != (*proxy_conn_data)->offline_server_charset)
 		{
-			char error_buf[256];
-			/* report the error and close ! */
-
-			snprintf(error_buf, sizeof(error_buf),
-					 MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s] for [%s:%d:(%s)]. Differs from server charset [%s]",
-					 (*proxy_conn_data)->offline_server_charset->name,
-					 element->host, element->port, element->socket? element->socket:"",
-					 connection->charset->name);
-			error_buf[sizeof(error_buf) - 1] = '\0';
-
-			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(connection), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-
 			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_close)(connection TSRMLS_CC);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+
+			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(connection), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+				MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s] for [%s:%d:(%s)]. Differs from server charset [%s]",
+				(*proxy_conn_data)->offline_server_charset->name,
+				element->host, element->port, element->socket? element->socket:"",
+				connection->charset->name);
 			ret = FAIL;
 		}
 	}
@@ -320,18 +337,11 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			FAIL == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(conn, MYSQL_SET_CHARSET_NAME,
 																		(*proxy_conn_data)->force_server_charset->name TSRMLS_CC)))
 		{
-			char error_buf[256];
-			/* report the error and close ! */
-
-			snprintf(error_buf, sizeof(error_buf),
-					 MYSQLND_MS_ERROR_PREFIX " Couldn't force charset to '%s'", (*proxy_conn_data)->force_server_charset->name);
-			error_buf[sizeof(error_buf) - 1] = '\0';
-
-			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);	
+			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " Couldn't force charset to '%s'", (*proxy_conn_data)->force_server_charset->name);
 		} else {
 			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(connect)(conn, host, cred->user, cred->passwd, cred->passwd_len, cred->db, cred->db_len,
-															cred->port, cred->socket, cred->mysql_flags TSRMLS_CC);
+															 cred->port, cred->socket, cred->mysql_flags TSRMLS_CC);
 		}
 
 		if (PASS == ret) {
@@ -349,21 +359,13 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			(*proxy_conn_data) && (*proxy_conn_data)->offline_server_charset &&
 			conn->charset && conn->charset != (*proxy_conn_data)->offline_server_charset)
 		{
-			char error_buf[256];
-			/* report the error and close ! */
-
-			snprintf(error_buf, sizeof(error_buf),
-					 MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s] for [%s:%d:(%s)]. Differs from server charset [%s]",
-					 (*proxy_conn_data)->offline_server_charset->name,
-					 host, cred->port, cred->socket? cred->socket:"",
-					 conn->charset->name);
-			error_buf[sizeof(error_buf) - 1] = '\0';
-
-			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-
 			(void) MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_close)(conn TSRMLS_CC);
 
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+				MYSQLND_MS_ERROR_PREFIX " Erroneous "SERVER_CHARSET_NAME" [%s] for [%s:%d:(%s)]. Differs from server charset [%s]",
+				(*proxy_conn_data)->offline_server_charset->name,
+				host, cred->port, cred->socket? cred->socket:"",
+				conn->charset->name);
 			ret = FAIL;
 		} else {
 			MYSQLND_MS_LIST_DATA * new_element = mnd_pecalloc(1, sizeof(MYSQLND_MS_LIST_DATA), persistent);
@@ -444,15 +446,8 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 					&&
 					TRUE == mysqlnd_ms_config_json_section_is_object_list(subsection TSRMLS_CC));
 	} else {
-		char error_buf[128];
-		failures++;
-		DBG_ERR_FMT("Cannot find %s section", subsection_name);
-		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, MYSQLND_MS_ERROR_PREFIX " Cannot find %s section in config", subsection_name);
-		if (conn) {
-			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Cannot find %s section in config", subsection_name);
-			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-		}
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+									  MYSQLND_MS_ERROR_PREFIX " Cannot find %s section in config", subsection_name);
 	}
 	do {
 		struct st_mysqlnd_ms_conn_credentials cred = *master_credentials;
@@ -478,13 +473,8 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 														&value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			if (flags < 0) {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf),
-							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME" '%i' . Stopping", flags);
-				error_buf[sizeof(error_buf) - 1] = '\0';
-
-				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
-				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME" '%i' . Stopping", flags);
 				failures++;
 			} else {
 				cred.mysql_flags = flags;
@@ -495,13 +485,8 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 													   &value_exists, &is_list_value TSRMLS_CC);
 		if (value_exists) {
 			if (port < 0 || port > 65535) {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf),
-							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME" '%i' . Stopping", port);
-				error_buf[sizeof(error_buf) - 1] = '\0';
-
-				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
-				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME" '%i' . Stopping", port);
 				failures++;
 			} else {
 				cred.port = port;
@@ -656,11 +641,8 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_COMMIT, sizeof(SECT_G_TRX_ON_COMMIT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			if (entry_is_list) {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_ON_COMMIT, SECT_G_TRX_NAME);
-				error_buf[sizeof(error_buf) - 1] = '\0';
-				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_ON_COMMIT, SECT_G_TRX_NAME);
 			} else {
 				json_value_len = strlen(json_value);
 				trx->on_commit = mnd_pestrndup(json_value, json_value_len, persistent);
@@ -672,11 +654,8 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_FETCH_LAST_GTID, sizeof(SECT_G_TRX_FETCH_LAST_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			if (entry_is_list) {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_FETCH_LAST_GTID, SECT_G_TRX_NAME);
-				error_buf[sizeof(error_buf) - 1] = '\0';
-				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_FETCH_LAST_GTID, SECT_G_TRX_NAME);
 			} else {
 				json_value_len = strlen(json_value);
 				trx->fetch_last_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
@@ -688,11 +667,8 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_CHECK_FOR_GTID, sizeof(SECT_G_TRX_CHECK_FOR_GTID) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
 			if (entry_is_list) {
-				char error_buf[128];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_CHECK_FOR_GTID, SECT_G_TRX_NAME);
-				error_buf[sizeof(error_buf) - 1] = '\0';
-				SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string", SECT_G_TRX_CHECK_FOR_GTID, SECT_G_TRX_NAME);
 			} else {
 				json_value_len = strlen(json_value);
 				trx->check_for_gtid = mnd_pestrndup(json_value, json_value_len, persistent);
@@ -730,11 +706,8 @@ mysqlnd_ms_connect_load_charsets_aux(struct st_mysqlnd_ms_config_json_entry * th
 		DBG_INF_FMT("%s=%s", setting_name, charset_name);
 		config_charset = mysqlnd_find_charset_name(charset_name);
 		if (!config_charset) {
-			char error_buf[128];
-			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Erroneous %s [%s]", setting_name, charset_name);
-			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX " Erroneous %s [%s]", setting_name, charset_name);
 			ret = FAIL;
 		}
 		mnd_efree(charset_name);
@@ -767,13 +740,9 @@ mysqlnd_ms_connect_load_charsets(MYSQLND_MS_CONN_DATA ** conn_data, struct st_my
 			(*conn_data)->offline_server_charset &&
 			(*conn_data)->offline_server_charset != (*conn_data)->force_server_charset)
 		{
-			char error_buf[128];
-			snprintf(error_buf, sizeof(error_buf),
-					MYSQLND_MS_ERROR_PREFIX " "SERVER_CHARSET_NAME"[%s] and "FORCE_SERVER_CHARSET_NAME"[%s] differ",
-					(*conn_data)->offline_server_charset->name, (*conn_data)->force_server_charset);
-			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " "SERVER_CHARSET_NAME"[%s] and "FORCE_SERVER_CHARSET_NAME"[%s] differ",
+								(*conn_data)->offline_server_charset->name, (*conn_data)->force_server_charset);
 			ret = FAIL;			
 		} else if ((*conn_data)->force_server_charset && !(*conn_data)->offline_server_charset) {
 			(*conn_data)->offline_server_charset = (*conn_data)->force_server_charset;
@@ -879,11 +848,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
 					size_t sect_len = strlen(sects_to_check[i]);
 					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
-						char error_buf[128];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", sects_to_check[i], host);
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", error_buf);
+						mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", sects_to_check[i], host);
 					}
 				}
 			}
@@ -962,11 +928,8 @@ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, size_t qu
 	} else if (pick_server) {
 		DBG_INF("Must be async query, blocking and failing");
 		if (conn) {
-			char error_buf[128];
-			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Asynchronous queries are not supported");
-			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR(MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR, "%s", error_buf);
+			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX " Asynchronous queries are not supported");
 			DBG_RETURN(FAIL);
 		}
 	}
