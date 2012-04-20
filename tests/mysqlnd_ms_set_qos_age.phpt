@@ -95,10 +95,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_age.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
-		printf("[clean] %s\n");
+		printf("[clean] %s\n", $error);
 
 	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
-		printf("[clean] %s\n", $error));
+		printf("[clean] %s\n", $error);
 ?>
 --EXPECTF--
 array(1) {

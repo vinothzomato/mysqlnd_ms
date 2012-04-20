@@ -126,10 +126,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_gtid_lost_connection.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 	if ($error = mst_mysqli_drop_test_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
-		printf("[clean] %s\n");
+		printf("[clean] %s\n", $error);
 
 	if ($error = mst_mysqli_drop_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
-		printf("[clean] %s\n", $error));
+		printf("[clean] %s\n", $error);
 ?>
 --EXPECTF--
 [006] [%d] %s

@@ -56,7 +56,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_set_qos_age_killed.ini", $settin
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_age.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_age_killed.ini
 --FILE--
 <?php
 	/* Caution: any test setting on replication is prone to false positive. Replication may be down! */
@@ -99,16 +99,16 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_age.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_set_qos_age.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_set_qos_age.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_set_qos_age_killed.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_set_qos_age_killed.ini'.\n");
 
 	require_once("connect.inc");
 	require_once("util.inc");
 	if ($error = mst_mysqli_drop_test_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
-		printf("[clean] %s\n");
+		printf("[clean] %s\n", $error);
 
 	if ($error = mst_mysqli_drop_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
-		printf("[clean] %s\n", $error));
+		printf("[clean] %s\n", $error);
 ?>
 --EXPECTF--
 array(1) {

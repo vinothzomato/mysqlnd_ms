@@ -58,7 +58,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_table_parser4.ini
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-	
+
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno())
@@ -66,7 +66,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_table_parser4.ini
 
 	mst_mysqli_create_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 	mst_mysqli_query(2, $link, "SELECT 1 FROM test", MYSQLND_MS_SLAVE_SWITCH);
-	$slave_id = mst_mysqli_get_emulated_id(3, $link);	
+	$slave_id = mst_mysqli_get_emulated_id(3, $link);
 
 	mst_mysqli_fetch_id(5, mst_mysqli_query(4, $link, "SELECT NULL, 1 AS _id FROM test"));
 	$server_id = mst_mysqli_get_emulated_id(6, $link);
@@ -80,7 +80,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_table_parser4.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	if (!unlink("test_mysqlnd_ms_table_parser5.ini"))
+	if (!unlink("test_mysqlnd_ms_table_parser4.ini"))
 		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_table_parser4.ini'.\n");
 
 	if ($err = mst_mysqli_drop_test_table($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
