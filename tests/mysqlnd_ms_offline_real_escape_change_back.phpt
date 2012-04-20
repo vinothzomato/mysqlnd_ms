@@ -91,7 +91,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape_change_back.ini
 	printf("query()\n");
 	$res = mst_mysqli_query(8, $link_ms, "SELECT @@character_set_connection AS charset");
 	$row_ms = $res->fetch_assoc();
-	printf("[009] %s - %s\n", $row_ms['charset'], $row['charset']);
+	if ($row_ms['charset'] != $row['charset'])
+		printf("[009] %s - %s\n", $row_ms['charset'], $row['charset']);
 
 	print "done!";
 
@@ -103,8 +104,6 @@ if (!unlink("test_mysqlnd_ms_offline_real_escape_change_back.ini"))
 ?>
 --EXPECTF--
 set_charset()
-Shouldn't we bail out here?
 set_charset()
 query()
-[009] %s - %s
 done!

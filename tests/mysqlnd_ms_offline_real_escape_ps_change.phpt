@@ -93,8 +93,9 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape_ps_change.ini
 	if (!mysqli_stmt_execute($stmt) || !mysqli_stmt_bind_result($stmt, $charset))
 		printf("[008] [%d] %s\n", mysqli_errno($link), mysqli_error($link));
 
-	while (mysqli_stmt_fetch($stmt)) {
-		var_dump($charset);
+	mysqli_stmt_fetch($stmt);
+	if ($charset != $other_charset) {
+		printf("[009] %s - %s\n", $charset, $other_charset);
 	}
 
 	print "done!";
@@ -108,5 +109,4 @@ if (!unlink("test_mysqlnd_ms_offline_real_escape_ps_change.ini"))
 --EXPECTF--
 set_charset()
 query()
-
-Fatal error: mysqli::prepare(): (mysqlnd_ms) Erroneous offline_server_charset [%s] for [%s]. Differs from server charset [%s] in %s on line %d
+done!

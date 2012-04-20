@@ -84,9 +84,11 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_offline_real_escape_change.ini
 	}
 
 	printf("query()\n");
+	/* charset should have been changed */
 	$res = mst_mysqli_query(7, $link_ms, "SELECT @@character_set_connection AS charset");
 	$row_ms = $res->fetch_assoc();
-	printf("[008] %s - %s\n", $row_ms['charset'], $row['charset']);
+	if ($row_ms['charset'] != $other_charset)
+		printf("[008] %s - %s\n", $row_ms['charset'], $row['charset']);
 
 	print "done!";
 
@@ -99,5 +101,4 @@ if (!unlink("test_mysqlnd_ms_offline_real_escape_change.ini"))
 --EXPECTF--
 set_charset()
 query()
-
-Fatal error: mysqli::query(): (mysqlnd_ms) Erroneous offline_server_charset [%s] for [%s]. Differs from server charset [%s] in %s on line %d
+done!
