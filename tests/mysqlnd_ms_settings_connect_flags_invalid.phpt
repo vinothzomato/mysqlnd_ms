@@ -1,5 +1,5 @@
 --TEST--
-Connection flags
+Invalid connect flag (negative number and array)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -13,23 +13,24 @@ $settings = array(
 	"myapp" => array(
 		'master' => array(
 			  array(
-				'host' 		=> $master_host_only,
-				'port' 		=> (int)$master_port,
-				'socket' 	=> $master_socket,
-				'db'		=> (string)$db,
-				'user'		=> $user,
-				'password'	=> $passwd,
+				'host' 			=> $master_host_only,
+				'port' 			=> (int)$master_port,
+				'socket' 		=> $master_socket,
+				'db'			=> (string)$db,
+				'user'			=> $user,
+				'password'		=> $passwd,
 				'connect_flags' => -1,
 			  ),
 		),
 		'slave' => array(
 			array(
-			  'host' 	=> $slave_host_only,
-			  'port' 	=> (double)$slave_port,
-			  'socket' 	=> $slave_socket,
-			  'db'		=> $db,
-			  'user'	=> $user,
-			  'password'=> $passwd,
+				'host' 			=> $slave_host_only,
+				'port' 			=> (double)$slave_port,
+				'socket'		=> $slave_socket,
+				'db'			=> $db,
+				'user'			=> $user,
+				'password'		=> $passwd,
+				'connect_flags' => array(-1),
 			),
 		),
 		'pick' => 'roundrobin',
