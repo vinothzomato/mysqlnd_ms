@@ -66,5 +66,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_db_invalid.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_db_invalid.ini'.\n");
 ?>
 --EXPECTF--
-
-Catchable fatal error: mysqli_connect(): (mysqlnd_ms) Invalid value for db '%s' . Stopping in %s on line %d
+%A
+Warning: mysqli_connect(): (HY000/1049): %s '-1' %s
+%A

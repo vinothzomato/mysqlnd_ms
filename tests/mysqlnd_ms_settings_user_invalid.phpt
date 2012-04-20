@@ -66,5 +66,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_user_invalid.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_user_invalid.ini'.\n");
 ?>
 --EXPECTF--
-
-Catchable fatal error: mysqli_connect(): (mysqlnd_ms) Invalid value for user '%s' . Stopping in %s on line %d
+%A
+Warning: mysqli_connect(): (mysqlnd_ms) Error while connecting to the slaves in %s on line %d
+%A
+Fatal error: Call to a member function query() on a non-object in %s on line %d
