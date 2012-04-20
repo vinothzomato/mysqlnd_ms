@@ -1377,7 +1377,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(select_db)(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
-		MYSQLND_MS_LIST_DATA * el;
+		MYSQLND_MS_LIST_DATA * el;		
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
 			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
@@ -1423,7 +1423,11 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(proxy_conn, csname TSRMLS_CC));
 	} else {
+		const MYSQLND_CHARSET * new_charset = mysqlnd_find_charset_name(csname);
 		MYSQLND_MS_LIST_DATA * el;
+		if (new_charset && (*conn_data)->offline_server_charset) {
+			(*conn_data)->offline_server_charset = new_charset; 
+		}
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
 			enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
