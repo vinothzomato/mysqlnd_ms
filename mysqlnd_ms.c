@@ -117,7 +117,9 @@ mysqlnd_ms_client_n_php_error(MYSQLND_ERROR_INFO * error_info,
 	mnd_vsprintf(&error_buf, 0, format, args);
 	va_end(args);
 
-	SET_CLIENT_ERROR((*error_info), client_error_code, client_error_state, error_buf);
+	if (error_info) {
+		SET_CLIENT_ERROR((*error_info), client_error_code, client_error_state, error_buf);
+	}
 	if (php_error_level) {
 		php_error_docref(NULL TSRMLS_CC, php_error_level, "%s", error_buf);
 	}

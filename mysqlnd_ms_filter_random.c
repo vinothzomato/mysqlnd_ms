@@ -157,12 +157,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					smart_str_free(&fprint);
 					connection = context_pos? *context_pos : NULL;
 					if (!connection) {
-						char error_buf[256];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once.");
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						DBG_ERR(error_buf);
-						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+													  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once.");
 					} else {
 						DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
 						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
@@ -185,11 +181,9 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						smart_str_free(&fprint);
 						if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 							/* TODO: connection error would be better */
-							char error_buf[256];
-							snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
-							error_buf[sizeof(error_buf) - 1] = '\0';
-							SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+											MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. "
+											"%d slaves to choose from. Something is wrong", zend_llist_count(l));
 							/* should be a very rare case to be here - connection shouldn't be NULL in first place */
 							DBG_RETURN(NULL);
 						}
@@ -236,12 +230,8 @@ use_master:
 					connection = context_pos? *context_pos : NULL;
 					smart_str_free(&fprint);
 					if (!connection) {
-						char error_buf[256];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random/once.");
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						DBG_ERR(error_buf);
-						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+													  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for master random/once.");
 						DBG_RETURN(NULL);
 					} else {
 						DBG_INF_FMT("Using already selected master connection "MYSQLND_LLU_SPEC, connection->thread_id);
@@ -271,11 +261,9 @@ use_master:
 							}
 						}
 					} else {
-						char error_buf[256];
-						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
-						error_buf[sizeof(error_buf) - 1] = '\0';
-						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+													  MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. "
+													  "%d masters to choose from. Something is wrong", zend_llist_count(l));
 					}
 					smart_str_free(&fprint);
 					DBG_RETURN(connection);

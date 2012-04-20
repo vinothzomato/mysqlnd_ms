@@ -455,10 +455,8 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 								smart_str_appends(&sql, (*conn_data)->global_trx.check_for_gtid + (pos - ((*conn_data)->global_trx.check_for_gtid)) + sizeof("#GTID") - 1);
 								smart_str_appendc(&sql, '\0');
 							} else {
-								char error_buf[512];
-								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Failed parse SQL for checking GTID. Cannot find #GTID placeholder");
-								error_buf[sizeof(error_buf) - 1] = '\0';
-								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+								mysqlnd_ms_client_n_php_error(NULL, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										MYSQLND_MS_ERROR_PREFIX " Failed parse SQL for checking GTID. Cannot find #GTID placeholder");
 								exit_loop = TRUE;
 							}
 						}
@@ -468,11 +466,9 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 							if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, &tmp_error_info TSRMLS_CC)) {
 								zend_llist_add_element(selected_slaves, &element);
 							} else if (tmp_error_info.error_no) {
-								char error_buf[512];
-								snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
-										 tmp_error_info.error_no, tmp_error_info.error);
-								error_buf[sizeof(error_buf) - 1] = '\0';
-								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+								mysqlnd_ms_client_n_php_error(NULL, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for GTID: %d/'%s'",
+										tmp_error_info.error_no, tmp_error_info.error);
 							}
 						}
 					}
@@ -566,12 +562,9 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 							if (PASS == mysqlnd_ms_qos_server_get_lag_stage1(connection, conn_data, &tmp_error_info TSRMLS_CC)) {
 								zend_llist_add_element(&stage1_slaves, &element);
 							} else if (tmp_error_info.error_no) {
-								char error_buf[512];
-								snprintf(error_buf, sizeof(error_buf),
+								mysqlnd_ms_client_n_php_error(NULL, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 										MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag: %d/'%s'",
 										tmp_error_info.error_no, tmp_error_info.error);
-								error_buf[sizeof(error_buf) - 1] = '\0';
-								php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
 							}
 						}
 					END_ITERATE_OVER_SERVER_LIST;
@@ -586,12 +579,9 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 
 						lag = mysqlnd_ms_qos_server_get_lag_stage2(connection, conn_data, &tmp_error_info TSRMLS_CC);
 						if (tmp_error_info.error_no) {
-							char error_buf[512];
-							snprintf(error_buf, sizeof(error_buf),
-									 MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag (%d): %d/'%s'",
-									 lag, tmp_error_info.error_no, tmp_error_info.error);
-							error_buf[sizeof(error_buf) - 1] = '\0';
-							php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+							mysqlnd_ms_client_n_php_error(NULL, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+												MYSQLND_MS_ERROR_PREFIX " SQL error while checking slave for lag (%d): %d/'%s'",
+												lag, tmp_error_info.error_no, tmp_error_info.error);
 							continue;
 						}
 
