@@ -167,8 +167,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define TRX_STICKINESS_NAME			"trx_stickiness"
 #define TRX_STICKINESS_MASTER		"master"
 #define TABLE_RULES					"rules"
-#define SERVER_CHARSET_NAME			"offline_server_charset"
-#define FORCE_SERVER_CHARSET_NAME	"force_server_charset"
+#define SET_SERVER_CHARSET_NAME		"server_charset"
 #define SECT_HOST_NAME				"host"
 #define SECT_PORT_NAME				"port"
 #define SECT_SOCKET_NAME			"socket"
@@ -391,8 +390,7 @@ typedef struct st_mysqlnd_ms_conn_data
 	zend_llist master_connections;
 	zend_llist slave_connections;
 
-	const MYSQLND_CHARSET * offline_server_charset;
-	const MYSQLND_CHARSET * force_server_charset;
+	const MYSQLND_CHARSET * server_charset;
 
 	struct mysqlnd_ms_lb_strategies {
 		HashTable table_filters;
