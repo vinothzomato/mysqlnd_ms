@@ -1,5 +1,5 @@
 --TEST--
-Invalid port (out of range: negative)
+Invalid port (out of range: too big)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -18,7 +18,7 @@ $settings = array(
 		'master' => array(
 			  array(
 				'host' 		=> $emulated_master_host_only,
-				'port' 		=> -1 * PHP_INT_MAX,
+				'port' 		=> 65536,
 				'socket' 	=> $emulated_master_socket,
 				'db'		=> $db,
 				'user'		=> $user,
@@ -28,7 +28,7 @@ $settings = array(
 		'slave' => array(
 			array(
 			  'host' 	=> $emulated_slave_host_only,
-			  'port' 	=> -1,
+			  'port' 	=> 65536,
 			  'socket' 	=> $emulated_slave_socket,
 			  'db'		=> $db,
 			  'user'	=> $user,
