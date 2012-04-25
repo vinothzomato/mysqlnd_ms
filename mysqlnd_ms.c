@@ -221,7 +221,7 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 	MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, (*conn_data)->proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms_lazy_connect");
-	if ((*proxy_conn_data)->server_charset && !connection->options->charset_name && 
+	if ((*proxy_conn_data)->server_charset && !connection->options->charset_name &&
 		FAIL == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(connection, MYSQL_SET_CHARSET_NAME,
 																	(*proxy_conn_data)->server_charset->name TSRMLS_CC)))
 	{
@@ -687,7 +687,7 @@ mysqlnd_ms_connect_load_charset(MYSQLND_MS_CONN_DATA ** conn_data, struct st_mys
 
 	DBG_ENTER("mysqlnd_ms_connect_load_charset");
 
-	ret = mysqlnd_ms_connect_load_charset_aux(the_section, SET_SERVER_CHARSET_NAME, sizeof(SET_SERVER_CHARSET_NAME) - 1,
+	ret = mysqlnd_ms_connect_load_charset_aux(the_section, SECT_SERVER_CHARSET_NAME, sizeof(SECT_SERVER_CHARSET_NAME) - 1,
 											  &(*conn_data)->server_charset, error_info TSRMLS_CC);
 	DBG_RETURN(ret);
 }
@@ -1139,7 +1139,7 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND_CONN_DATA * const proxy_conn, 
 		newstr[0] = '\0';
 		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_COMMANDS_OUT_OF_SYNC, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 			MYSQLND_MS_ERROR_PREFIX " string escaping doesn't work without established connection. Possible solution is to add "
-			SET_SERVER_CHARSET_NAME" to your configuration");
+			SECT_SERVER_CHARSET_NAME" to your configuration");
 	}
 	DBG_RETURN(ret);
 }
@@ -1316,7 +1316,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(select_db)(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
-		MYSQLND_MS_LIST_DATA * el;		
+		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
 			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
@@ -1381,7 +1381,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 						if (!(*el_conn_data)->server_charset) {
 							mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(el->conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 								MYSQLND_MS_ERROR_PREFIX " unknown to the connector charset '%s'. Please report to the developers",
-									el->conn->options->charset_name);						
+									el->conn->options->charset_name);
 						}
 					}
 				} else if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(el->conn, csname TSRMLS_CC)) {

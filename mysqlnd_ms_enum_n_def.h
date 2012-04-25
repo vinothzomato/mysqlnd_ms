@@ -167,7 +167,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define TRX_STICKINESS_NAME			"trx_stickiness"
 #define TRX_STICKINESS_MASTER		"master"
 #define TABLE_RULES					"rules"
-#define SET_SERVER_CHARSET_NAME		"server_charset"
+#define SECT_SERVER_CHARSET_NAME	"server_charset"
 #define SECT_HOST_NAME				"host"
 #define SECT_PORT_NAME				"port"
 #define SECT_SOCKET_NAME			"socket"
