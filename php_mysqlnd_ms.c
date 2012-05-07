@@ -77,7 +77,7 @@ ZEND_DECLARE_MODULE_GLOBALS(mysqlnd_ms)
 
 unsigned int mysqlnd_ms_plugin_id;
 
-static zend_bool mysqlns_ms_global_config_loaded = FALSE;
+static zend_bool mysqlnd_ms_global_config_loaded = FALSE;
 struct st_mysqlnd_ms_json_config * mysqlnd_ms_json_config = NULL;
 
 
@@ -108,9 +108,9 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 {
 	if (MYSQLND_MS_G(enable)) {
 		MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
-		if (FALSE == mysqlns_ms_global_config_loaded) {
+		if (FALSE == mysqlnd_ms_global_config_loaded) {
 			mysqlnd_ms_config_json_load_configuration(mysqlnd_ms_json_config TSRMLS_CC);
-			mysqlns_ms_global_config_loaded = TRUE;
+			mysqlnd_ms_global_config_loaded = TRUE;
 		}
 		MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 	}
