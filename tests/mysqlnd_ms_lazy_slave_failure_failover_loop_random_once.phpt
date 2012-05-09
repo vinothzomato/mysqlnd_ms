@@ -1,5 +1,5 @@
 --TEST--
-Lazy,loop,random
+Lazy,loop,random once
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -25,12 +25,12 @@ $settings = array(
 	"myapp" => array(
 		'master' => array($emulated_master_host),
 		'slave' => array("unreachable:6033", $emulated_slave_host),
-		'pick' 	=> array('random'),
+		'pick' 	=> array('random' => array('sticky' => '1')),
 		'lazy_connections' => 1,
 		'failover' => 'loop_before_master'
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_random.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
@@ -38,7 +38,7 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_random.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_random_once.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -96,8 +96,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_failover_loop_random.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_random.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_failover_loop_random_once.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_random_once.ini'.\n");
 ?>
 --EXPECTF--
 slave-%d 0,slave-%d 1,slave-%d 2,slave-%d 3,slave-%d 4,slave-%d 5,slave-%d 6,slave-%d 7,slave-%d 8,slave-%d 9,

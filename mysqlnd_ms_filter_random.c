@@ -253,9 +253,15 @@ use_master:
 			uint i = 0;
 			MYSQLND_CONN_DATA * connection = NULL;
 			MYSQLND_CONN_DATA ** context_pos;
-			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 
 			DBG_INF_FMT("%d masters to choose from", zend_llist_count(l));
+			if (0 == zend_llist_count(l)) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+														MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. "
+														"%d masters to choose from. Something is wrong", zend_llist_count(l));
+				DBG_RETURN(NULL);
+			}
+			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 
 			/* LOCK on context ??? */
 			switch (zend_hash_find(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context_pos)) {
@@ -274,32 +280,51 @@ use_master:
 					}
 					break;
 				case FAILURE:
-					rnd_idx = php_rand(TSRMLS_C);
-					RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
-					DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
+					while (zend_llist_count(l) > 0) {
+						rnd_idx = php_rand(TSRMLS_C);
+						RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+						DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
 
-					element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
-					while (i++ < rnd_idx) {
-						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
-					}
-					connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
-
-					if (connection) {
-						if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
-							SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-							if (TRUE == filter->sticky.once) {
-								zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
-												 sizeof(MYSQLND *), NULL);
-							}
+						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
+						while (i++ < rnd_idx) {
+							element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
 						}
-					} else {
-						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-													  MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. "
-													  "%d masters to choose from. Something is wrong", zend_llist_count(l));
+						connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
+
+						if (connection) {
+							if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+								SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+								if (TRUE == filter->sticky.once) {
+									zend_hash_update(&filter->sticky.master_context, fprint.c, fprint.len /*\0 counted*/, &connection,
+													sizeof(MYSQLND *), NULL);
+								}
+								smart_str_free(&fprint);
+								DBG_RETURN(connection);
+							}
+							smart_str_free(&fprint);
+							if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+								/* drop failed server from list, test remaining masters before giving up */
+								DBG_INF("Trying next master, if any");
+								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+								continue;
+							}
+							DBG_INF("Failover disabled");
+						} else {
+							smart_str_free(&fprint);
+							if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+								/* drop failed server from list, test remaining slaves before fall-through to master */
+								DBG_INF("Trying next master, if any");
+								zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
+								continue;
+							}
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+														MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. "
+														"%d masters to choose from. Something is wrong", zend_llist_count(l));
+							DBG_RETURN(NULL);
+						}
+						DBG_RETURN(connection);
 					}
-					smart_str_free(&fprint);
-					DBG_RETURN(connection);
 					break;
 			}/* switch (zend_hash_find) */
 			break;
