@@ -160,6 +160,9 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					/* there is no such safe guard in the random filter. Random tests for connection */
 					if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
 						DBG_INF("Trying next slave, if any");
+						/* time to increment the position */
+						*pos = ((*pos) + 1) % zend_llist_count(l);
+						DBG_INF_FMT("pos is now %u", *pos);
 						continue;
 					}
 					/* unlikely */
