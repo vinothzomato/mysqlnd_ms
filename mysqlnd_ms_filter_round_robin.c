@@ -117,6 +117,9 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			unsigned int tmp_pos = 0;
 			unsigned int * pos;
 			unsigned int retry_count = 0;
+			unsigned int i = 0;
+			MYSQLND_MS_LIST_DATA * element = NULL;
+			MYSQLND_CONN_DATA * connection = NULL;
 			zend_llist * l = slave_connections;
 			if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
 				goto use_master;
@@ -144,9 +147,6 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				DBG_INF_FMT("look under pos %u", *pos);
 			}
 			do {
-				unsigned int i = 0;
-				MYSQLND_MS_LIST_DATA * element = NULL;
-				MYSQLND_CONN_DATA * connection = NULL;
 				retry_count++;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
@@ -207,6 +207,11 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					break;
 				}
 			} while (retry_count < zend_llist_count(l));
+			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
+				/* must not fall through as we'll loose the connection error */
+				DBG_INF("No masters to continue search");
+				DBG_RETURN(connection);
+			}
 			/* UNLOCK of context ??? */
 		}
 use_master:

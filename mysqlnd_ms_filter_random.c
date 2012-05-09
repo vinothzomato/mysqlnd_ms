@@ -238,6 +238,11 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							break;
 						}
 					}
+					if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
+						DBG_INF("No masters to continue search");
+						/* must not fall through as we'll loose the connection error */
+						DBG_RETURN(connection);
+					}
 			}/* switch (zend_hash_find) */
 		}
 use_master:
