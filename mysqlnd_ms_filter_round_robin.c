@@ -116,6 +116,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		{
 			unsigned int tmp_pos = 0;
 			unsigned int * pos;
+			unsigned int retry_count = 0;
 			zend_llist * l = slave_connections;
 			if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
 				goto use_master;
@@ -142,10 +143,11 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				}
 				DBG_INF_FMT("look under pos %u", *pos);
 			}
-			{
+			do {
 				unsigned int i = 0;
 				MYSQLND_MS_LIST_DATA * element = NULL;
 				MYSQLND_CONN_DATA * connection = NULL;
+				retry_count++;
 
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
 					if (i == *pos) {
@@ -155,13 +157,21 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				END_ITERATE_OVER_SERVER_LIST;
 				DBG_INF_FMT("i=%u pos=%u", i, *pos);
 				if (!element) {
-					char error_buf[256];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-					DBG_ERR_FMT("%s", error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-					break;
+					/* there is no such safe guard in the random filter. Random tests for connection */
+					if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+						DBG_INF("Trying next slave, if any");
+						continue;
+					}
+					/* unlikely */
+					{
+						char error_buf[256];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						DBG_ERR_FMT("%s", error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+						DBG_RETURN(NULL);
+					}
 				}
 				/* time to increment the position */
 				*pos = ((*pos) + 1) % zend_llist_count(l);
@@ -179,15 +189,24 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
 						DBG_RETURN(connection);
+					} else if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+						DBG_INF("Trying next slave, if any");
+						continue;
 					}
 					DBG_INF("Falling back to the master");
+					break;
 				} else {
 					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
 						DBG_RETURN(NULL);
+					} else if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+						DBG_INF("Trying next slave, if any");
+						continue;
 					}
+					DBG_INF("Falling back to the master");
+					break;
 				}
-			}
+			} while (retry_count < zend_llist_count(l));
 			/* UNLOCK of context ??? */
 		}
 use_master:

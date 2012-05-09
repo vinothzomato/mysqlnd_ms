@@ -85,15 +85,15 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_random.ini'.\n");
 ?>
 --EXPECTF--
-no result 0 - (mysqlnd_ms) No connection selected by the last filter
-no result 1 - (mysqlnd_ms) No connection selected by the last filter
-no result 2 - (mysqlnd_ms) No connection selected by the last filter
-no result 3 - (mysqlnd_ms) No connection selected by the last filter
-no result 4 - (mysqlnd_ms) No connection selected by the last filter
-no result 5 - (mysqlnd_ms) No connection selected by the last filter
-no result 6 - (mysqlnd_ms) No connection selected by the last filter
-no result 7 - (mysqlnd_ms) No connection selected by the last filter
-no result 8 - (mysqlnd_ms) No connection selected by the last filter
-no result 9 - (mysqlnd_ms) No connection selected by the last filter
+no result 0 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 1 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 2 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 3 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 4 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 5 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 6 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 7 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 8 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+no result 9 - php_network_getaddresses: getaddrinfo failed: Name or service not known
 
 done!

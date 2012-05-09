@@ -25,6 +25,7 @@ mysqlnd_ms.enable=1
 mysqlnd_ms.multi_master=1
 mysqlnd_ms.disable_rw_split=0
 mysqlnd_ms.config_file=test_mysqlnd_ms_enable_rw_random.ini
+mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");

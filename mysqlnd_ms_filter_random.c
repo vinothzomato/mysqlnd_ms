@@ -102,7 +102,6 @@ mysqlnd_ms_random_remove_conn(void * element, void * data) {
 /* }}} */
 
 
-
 /* {{{ mysqlnd_ms_choose_connection_random */
 MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, const size_t query_len,
@@ -303,18 +302,18 @@ use_master:
 								DBG_RETURN(connection);
 							}
 							smart_str_free(&fprint);
-							if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1)) {
 								/* drop failed server from list, test remaining masters before giving up */
-								DBG_INF("Trying next master, if any");
+								DBG_INF("Trying next master");
 								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
 								continue;
 							}
 							DBG_INF("Failover disabled");
 						} else {
 							smart_str_free(&fprint);
-							if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1)) {
 								/* drop failed server from list, test remaining slaves before fall-through to master */
-								DBG_INF("Trying next master, if any");
+								DBG_INF("Trying next master");
 								zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 								continue;
 							}

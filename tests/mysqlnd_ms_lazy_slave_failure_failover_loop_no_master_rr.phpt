@@ -1,5 +1,5 @@
 --TEST--
-Lazy,loop,ro,no master
+Lazy,loop,rr,no master
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -13,17 +13,17 @@ $settings = array(
 	"myapp" => array(
 		'master' => array("unreachable:8033"),
 		'slave' => array("unreachable:6033", "unreachable:7033"),
-		'pick' 	=> array('random' => array('sticky' => '1')),
+		'pick' 	=> array('roundrobin'),
 		'lazy_connections' => 1,
 		'failover' => 'loop_before_master'
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_random_once.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_random_once.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_rr.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -57,6 +57,7 @@ mysqlnd_ms.collect_statistics=1
 		$error = $link->error;
 		$tmp = ob_get_contents();
 		ob_end_clean();
+
 		/* NOTE: it is ok to get a warning from the underlying API if connection fails */
 		if (!stristr($tmp, "warning")) {
 			/* ... we should never get here */
@@ -81,8 +82,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_random_once.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_random_once.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_rr.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_rr.ini'.\n");
 ?>
 --EXPECTF--
 no result 0 - php_network_getaddresses: getaddrinfo failed: Name or service not known
