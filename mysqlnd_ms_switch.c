@@ -162,6 +162,8 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 				strategies->failover_strategy = SERVER_FAILOVER_DISABLED;
 			} else if (!strncasecmp(FAILOVER_MASTER, failover_strategy, sizeof(FAILOVER_MASTER) - 1)) {
 				strategies->failover_strategy = SERVER_FAILOVER_MASTER;
+			} else if (!strncasecmp(FAILOVER_LOOP, failover_strategy, sizeof(FAILOVER_LOOP) - 1)) {
+				strategies->failover_strategy = SERVER_FAILOVER_LOOP;
 			}
 			mnd_efree(failover_strategy);
 		}
@@ -348,7 +350,7 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
 						DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
 						if (NULL == mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
-																		  persistent, error_info TSRMLS_CC)) 
+																		  persistent, error_info TSRMLS_CC))
 						{
 							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 										MYSQLND_MS_ERROR_PREFIX " Can't load default filter '%d' . Stopping", specific_ctors[i].name);

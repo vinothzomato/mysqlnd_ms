@@ -13,10 +13,6 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 _skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
-if ($emulated_master_host == $emulated_slave_host) {
-	die("SKIP master and slave seem to the the same, see tests/README");
-}
-
 include_once("util.inc");
 $ret = mst_is_slave_of($emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket, $emulated_master_host_only, $emulated_master_port, $emulated_master_socket, $user, $passwd, $db);
 if (is_string($ret))

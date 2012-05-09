@@ -163,6 +163,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define FAILOVER_NAME				"failover"
 #define FAILOVER_DISABLED 			"disabled"
 #define FAILOVER_MASTER				"master"
+#define FAILOVER_LOOP				"loop_before_master"
 #define MASTER_ON_WRITE_NAME		"master_on_write"
 #define TRX_STICKINESS_NAME			"trx_stickiness"
 #define TRX_STICKINESS_MASTER		"master"
@@ -230,7 +231,8 @@ enum mysqlnd_ms_server_pick_strategy
 enum mysqlnd_ms_server_failover_strategy
 {
 	SERVER_FAILOVER_DISABLED,
-	SERVER_FAILOVER_MASTER
+	SERVER_FAILOVER_MASTER,
+	SERVER_FAILOVER_LOOP
 };
 
 #define DEFAULT_FAILOVER_STRATEGY SERVER_FAILOVER_DISABLED
@@ -295,7 +297,6 @@ typedef struct st_mysqlnd_ms_list_data
 	unsigned long connect_flags;
 	char * emulated_scheme;
 	size_t emulated_scheme_len;
-
 	zend_bool persistent;
 } MYSQLND_MS_LIST_DATA;
 
