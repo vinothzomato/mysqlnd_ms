@@ -14,7 +14,7 @@ $settings = array(
 		'master' => array($master_host, $master_host),
 		'slave'  => array(),
 		'pick' => array("roundrobin"),
-		'failover' => 'master',
+		'failover' => array('strategy' => 'master'),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_enable_rw_random.ini", $settings))

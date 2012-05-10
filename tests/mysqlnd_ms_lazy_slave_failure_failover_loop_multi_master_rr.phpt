@@ -16,7 +16,7 @@ $settings = array(
 		'slave' => array("unreachable:6033", "unreachable:7033"),
 		'pick' 	=> array('roundrobin'),
 		'lazy_connections' => 1,
-		'failover' => 'loop_before_master'
+		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => 0),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_multi_master_rr.ini", $settings))
@@ -84,15 +84,15 @@ mysqlnd_ms.multi_master=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_multi_master_rr.ini'.\n");
 ?>
 --EXPECTF--
-no result 0 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+0 - ''
 1 - ''
-no result 2 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+2 - ''
 3 - ''
-no result 4 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+4 - ''
 5 - ''
-no result 6 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+6 - ''
 7 - ''
-no result 8 - php_network_getaddresses: getaddrinfo failed: Name or service not known
+8 - ''
 9 - ''
 
 done!

@@ -161,9 +161,11 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define PICK_QOS					"quality_of_service"
 #define LAZY_NAME					"lazy_connections"
 #define FAILOVER_NAME				"failover"
-#define FAILOVER_DISABLED 			"disabled"
-#define FAILOVER_MASTER				"master"
-#define FAILOVER_LOOP				"loop_before_master"
+#define FAILOVER_STRATEGY_NAME		"strategy"
+#define FAILOVER_STRATEGY_DISABLED 	"disabled"
+#define FAILOVER_STRATEGY_MASTER	"master"
+#define FAILOVER_STRATEGY_LOOP		"loop_before_master"
+#define FAILOVER_MAX_RETRIES        "max_retries"
 #define MASTER_ON_WRITE_NAME		"master_on_write"
 #define TRX_STICKINESS_NAME			"trx_stickiness"
 #define TRX_STICKINESS_MASTER		"master"
@@ -236,6 +238,7 @@ enum mysqlnd_ms_server_failover_strategy
 };
 
 #define DEFAULT_FAILOVER_STRATEGY SERVER_FAILOVER_DISABLED
+#define DEFAULT_FAILOVER_MAX_RETRIES 1
 
 enum mysqlnd_ms_trx_stickiness_strategy
 {
@@ -397,6 +400,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		HashTable table_filters;
 
 		enum mysqlnd_ms_server_failover_strategy failover_strategy;
+		uint failover_max_retries;
 
 		zend_bool mysqlnd_ms_flag_master_on_write;
 		zend_bool master_used;

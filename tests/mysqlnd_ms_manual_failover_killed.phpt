@@ -26,7 +26,7 @@ $settings = array(
 		'master' 	=> array($emulated_master_host),
 		'slave' 	=> array($emulated_slave_host, $emulated_slave_host, $emulated_slave_host),
 		'pick' 		=> array("roundrobin"),
-		'failover'	=> 'master',
+		'failover' => array('strategy' => 'master'),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_failover_killed.ini", $settings))

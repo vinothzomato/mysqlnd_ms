@@ -13,7 +13,7 @@ $settings = array(
 	"myapp" => array(
 		'master' 	=> array($master_host),
 		'slave' 	=> array($slave_host),
-		'failover' 	=> 'disabled',
+		'failover' => array('strategy' => 'disabled'),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_charsets_kill.ini", $settings))

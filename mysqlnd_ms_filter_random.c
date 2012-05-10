@@ -114,6 +114,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	enum enum_which_server tmp_which;
 	smart_str fprint = {0};
 	zend_bool forced_tx_master = FALSE;
+	uint retry_count = 0;
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
 	if (!which_server) {
@@ -184,6 +185,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					break;
 				case FAILURE:
 					while (zend_llist_count(l) > 0) {
+						retry_count++;
+
 						rnd_idx = php_rand(TSRMLS_C);
 						RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
 						DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
@@ -204,7 +207,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 												"%d slaves to choose from. Something is wrong", zend_llist_count(l));
 								/* should be a very rare case to be here - connection shouldn't be NULL in first place */
 								DBG_RETURN(NULL);
-							} else	if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+							} else	if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+									((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining slaves before fall-through to master */
 								DBG_INF("Trying next slave, if any");
 								zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
@@ -228,7 +232,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 								/* no failover */
 								DBG_INF("Failover disabled");
 								DBG_RETURN(connection);
-							} else if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+							} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy)  &&
+									((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining slaves before fall-through to master */
 								DBG_INF("Trying next slave, if any");
 								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
@@ -243,6 +248,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						/* must not fall through as we'll loose the connection error */
 						DBG_RETURN(connection);
 					}
+					/* reset for failover to master */
+					retry_count = 0;
 			}/* switch (zend_hash_find) */
 		}
 use_master:
@@ -285,6 +292,8 @@ use_master:
 					break;
 				case FAILURE:
 					while (zend_llist_count(l) > 0) {
+						retry_count++;
+
 						rnd_idx = php_rand(TSRMLS_C);
 						RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
 						DBG_INF_FMT("USE_MASTER rnd_idx=%lu", rnd_idx);
@@ -307,7 +316,8 @@ use_master:
 								DBG_RETURN(connection);
 							}
 							smart_str_free(&fprint);
-							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1)) {
+							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1) &&
+								((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining masters before giving up */
 								DBG_INF("Trying next master");
 								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
@@ -316,7 +326,8 @@ use_master:
 							DBG_INF("Failover disabled");
 						} else {
 							smart_str_free(&fprint);
-							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1)) {
+							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1) &&
+								((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining slaves before fall-through to master */
 								DBG_INF("Trying next master");
 								zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);

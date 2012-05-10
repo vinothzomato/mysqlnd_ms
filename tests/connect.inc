@@ -434,7 +434,7 @@
 				  $json[$application]['server_charset'] = (string)$config['server_charset'];
 				}
 				if (isset($config['failover'])) {
-				  $json[$application]['failover'] = (string)$config['failover'];
+				  $json[$application]['failover'] = $config['failover'];
 				}
 				if (isset($config['master_on_write'])) {
 				  $json[$application]['master_on_write'] = (string)$config['master_on_write'];
@@ -452,56 +452,6 @@
 			return '';
 		}
 
-		function mst_create_config_ini($file, $settings, $replace_file) {
-
-			if ($replace_file && file_exists($file) && !@unlink($file))
-				return sprintf("Cannot unlink existing file '%s'.", $file);
-
-			if (!$fp = @fopen($file, "w"))
-				return sprintf("Cannot open file '%s' for writing.", $file);
-
-			foreach ($settings as $application => $config) {
-				fwrite($fp, sprintf("[%s]\n", $application));
-				if (isset($config['master'])) {
-					foreach ($config['master'] as $host) {
-						if (!fwrite($fp, sprintf("master[]=%s\n", $host)))
-							return sprintf("Cannot write master settings to file.");
-					}
-				}
-				if (isset($config['slave'])) {
-					foreach ($config['slave'] as $host) {
-						if (!fwrite($fp, sprintf("slave[]=%s\n", $host)))
-							return sprintf("Cannot write slave settings to file.");
-					}
-				}
-
-				if (isset($config['pick'])) {
-					foreach ($config['pick'] as $method)
-						if (!fwrite($fp, sprintf("pick[]=%s\n", $method)))
-							return sprintf("Cannot write query redirection policy settings to file.");
-				}
-
-				if (isset($config['lazy_connections'])) {
-					if (!fwrite($fp, sprintf("lazy_connections=%s\n", $config['lazy_connections'])))
-							return sprintf("Cannot write query redirection/load balancing policy settings to file.");
-				}
-
-				if (isset($config['failover'])) {
-					if (!fwrite($fp, sprintf("failover=%s\n", $config['failover'])))
-							return sprintf("Cannot write failover policy settings to file.");
-				}
-				if (isset($config['master_on_write'])) {
-					if (!fwrite($fp, sprintf("master_on_write=%s\n", $config['master_on_write'])))
-							return sprintf("Cannot write master_on_write policy settings to file.");
-				}
-				if (isset($config['trx_stickiness'])) {
-					if (!fwrite($fp, sprintf("trx_stickiness=%s\n", $config['trx_stickiness'])))
-							return sprintf("Cannot write trx_stickiness policy settings to file.");
-				}
-			}
-			fclose($fp);
-			return '';
-		}
 	}
 
 	function mst_error_handler($errno, $error, $file, $line) {

@@ -151,21 +151,39 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
 	{
-		char * failover_strategy =
-			mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1, 0,
+		struct st_mysqlnd_ms_config_json_entry * failover_section = mysqlnd_ms_config_json_sub_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,  &value_exists);
+
+		strategies->failover_strategy 		= DEFAULT_FAILOVER_STRATEGY;
+		strategies->failover_max_retries 	= DEFAULT_FAILOVER_MAX_RETRIES;
+
+		if (value_exists) {
+			int64_t failover_max_retries;
+			char * failover_strategy =
+				mysqlnd_ms_config_json_string_from_section(failover_section, FAILOVER_STRATEGY_NAME, sizeof(FAILOVER_STRATEGY_NAME) - 1, 0,
 													   &value_exists, &is_list_value TSRMLS_CC);
 
-		strategies->failover_strategy = DEFAULT_FAILOVER_STRATEGY;
-
-		if (value_exists && failover_strategy) {
-			if (!strncasecmp(FAILOVER_DISABLED, failover_strategy, sizeof(FAILOVER_DISABLED) - 1)) {
-				strategies->failover_strategy = SERVER_FAILOVER_DISABLED;
-			} else if (!strncasecmp(FAILOVER_MASTER, failover_strategy, sizeof(FAILOVER_MASTER) - 1)) {
-				strategies->failover_strategy = SERVER_FAILOVER_MASTER;
-			} else if (!strncasecmp(FAILOVER_LOOP, failover_strategy, sizeof(FAILOVER_LOOP) - 1)) {
-				strategies->failover_strategy = SERVER_FAILOVER_LOOP;
+			if (value_exists && failover_strategy) {
+				if (!strncasecmp(FAILOVER_STRATEGY_DISABLED, failover_strategy, sizeof(FAILOVER_STRATEGY_DISABLED) - 1)) {
+					strategies->failover_strategy = SERVER_FAILOVER_DISABLED;
+				} else if (!strncasecmp(FAILOVER_STRATEGY_MASTER, failover_strategy, sizeof(FAILOVER_STRATEGY_MASTER) - 1)) {
+					strategies->failover_strategy = SERVER_FAILOVER_MASTER;
+				} else if (!strncasecmp(FAILOVER_STRATEGY_LOOP, failover_strategy, sizeof(FAILOVER_STRATEGY_LOOP) - 1)) {
+					strategies->failover_strategy = SERVER_FAILOVER_LOOP;
+				}
+				mnd_efree(failover_strategy);
 			}
-			mnd_efree(failover_strategy);
+
+			failover_max_retries =
+				mysqlnd_ms_config_json_int_from_section(failover_section, FAILOVER_MAX_RETRIES, sizeof(FAILOVER_MAX_RETRIES) - 1, 0, &value_exists, &is_list_value TSRMLS_CC);
+
+			if (value_exists) {
+				if ((failover_max_retries < 0) || (failover_max_retries > 65535)) {
+					/* 1.3 behaviour: try only one alternative */
+					strategies->failover_max_retries = 1;
+				} else {
+					strategies->failover_max_retries = (uint)failover_max_retries;
+				}
+			}
 		}
 	}
 

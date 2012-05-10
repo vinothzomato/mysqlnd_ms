@@ -18,7 +18,7 @@ $settings = array(
 		'slave' => array("unreachable:6033", "unreachable2:6033"),
 		'pick' 	=> array('random' => array('sticky' => '1')),
 		'lazy_connections' => 1,
-		'failover' => 'master'
+		'failover' => array('strategy' => 'master'),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_random_once.ini", $settings))

@@ -648,7 +648,7 @@ mysqlnd_ms_config_json_int_aux_inner(struct st_mysqlnd_ms_config_json_entry * in
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_config_json_string_from_section */
+/* {{{ mysqlnd_ms_config_json_int_from_section */
 PHPAPI int64_t
 mysqlnd_ms_config_json_int_from_section(struct st_mysqlnd_ms_config_json_entry * section,
 										   const char * name, size_t name_len, ulong nkey,
@@ -657,7 +657,7 @@ mysqlnd_ms_config_json_int_from_section(struct st_mysqlnd_ms_config_json_entry *
 	zend_bool tmp_bool;
 	int64_t ret = 0;
 
-	DBG_ENTER("mysqlnd_ms_config_json_string_from_section");
+	DBG_ENTER("mysqlnd_ms_config_json_int_from_section");
 	DBG_INF_FMT("name=%s", name);
 
 	if (exists) {

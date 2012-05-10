@@ -81,6 +81,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 	zend_bool forced;
 	MYSQLND_MS_FILTER_RR_DATA * filter = (MYSQLND_MS_FILTER_RR_DATA *) f_data;
 	zend_bool forced_tx_master = FALSE;
+	uint retry_count = 0;
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 
 	if (!which_server) {
@@ -116,7 +117,6 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		{
 			unsigned int tmp_pos = 0;
 			unsigned int * pos;
-			unsigned int retry_count = 0;
 			unsigned int i = 0;
 			MYSQLND_MS_LIST_DATA * element = NULL;
 			MYSQLND_CONN_DATA * connection = NULL;
@@ -158,7 +158,8 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				DBG_INF_FMT("i=%u pos=%u", i, *pos);
 				if (!element) {
 					/* there is no such safe guard in the random filter. Random tests for connection */
-					if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+					if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 						DBG_INF("Trying next slave, if any");
 						/* time to increment the position */
 						*pos = ((*pos) + 1) % zend_llist_count(l);
@@ -192,7 +193,8 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
 						DBG_RETURN(connection);
-					} else if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+					} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 						DBG_INF("Trying next slave, if any");
 						continue;
 					}
@@ -202,7 +204,8 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 						DBG_INF("Failover disabled");
 						DBG_RETURN(NULL);
-					} else if (SERVER_FAILOVER_LOOP == stgy->failover_strategy) {
+					} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 						DBG_INF("Trying next slave, if any");
 						continue;
 					}
@@ -215,6 +218,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 				DBG_INF("No masters to continue search");
 				DBG_RETURN(connection);
 			}
+			retry_count = 0;
 			/* UNLOCK of context ??? */
 		}
 use_master:
@@ -225,6 +229,9 @@ use_master:
 			unsigned int tmp_pos = 0;
 			zend_llist * l = master_connections;
 			unsigned int * pos;
+			unsigned int i = 0;
+			MYSQLND_MS_LIST_DATA * element = NULL;
+			MYSQLND_CONN_DATA * connection = NULL;
 			/* LOCK on context ??? */
 			{
 				smart_str fprint = {0};
@@ -245,43 +252,89 @@ use_master:
 					smart_str_free(&fprint);
 				}
 			}
-			{
-				unsigned int i = 0;
-				MYSQLND_MS_LIST_DATA * element = NULL;
-				MYSQLND_CONN_DATA * connection = NULL;
+			if (0 == zend_llist_count(l)) {
+				char error_buf[256];
+				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
+				error_buf[sizeof(error_buf) - 1] = '\0';
+				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+				DBG_ERR_FMT("%s", error_buf);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				DBG_RETURN(NULL);
+			}
+			while (retry_count < zend_llist_count(l)) {
+				retry_count++;
 
+				DBG_INF_FMT("USE_MASTER pos=%lu", *pos);
+				i = 0;
 				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
 					if (i == *pos) {
 						break;
 					}
 					i++;
 				END_ITERATE_OVER_SERVER_LIST;
+				connection = NULL;
 
 				if (!element) {
-					char error_buf[256];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-					DBG_ERR_FMT("%s", error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-					break;
-				}
-				if (FALSE == forced_tx_master) {
-					/* time to increment the position */
-					*pos = ((*pos) + 1) % zend_llist_count(l);
+					if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+						/* we must move to the next position and ignore forced_tx_master */
+						*pos = ((*pos) + 1) % zend_llist_count(l);
+						DBG_INF("Trying next master, if any");
+						continue;
+					}
+					{
+						char error_buf[256];
+						snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
+						error_buf[sizeof(error_buf) - 1] = '\0';
+						SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
+						DBG_ERR_FMT("%s", error_buf);
+						php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+						DBG_RETURN(NULL);
+					}
 				}
 				if (element->conn) {
 					connection = element->conn;
 				}
 				DBG_INF("Using master connection");
-				if (connection &&
-					(CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)))
-				{
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+				if (FALSE == forced_tx_master) {
+					/* time to increment the position */
+					*pos = ((*pos) + 1) % zend_llist_count(l);
 				}
-				DBG_RETURN(connection);
+				if (connection) {
+					if ((CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
+						MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+						SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
+						DBG_RETURN(connection);
+					} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+						DBG_INF("Failover disabled");
+						DBG_RETURN(connection);
+					} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+						if (TRUE == forced_tx_master) {
+							/* we must move to the next position and ignore forced_tx_master */
+							*pos = ((*pos) + 1) % zend_llist_count(l);
+						}
+						DBG_INF("Trying next master, if any");
+						continue;
+					}
+					DBG_RETURN(connection);
+				} else {
+					if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+						DBG_INF("Failover disabled");
+						DBG_RETURN(NULL);
+					} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+						if (TRUE == forced_tx_master) {
+							/* we must move to the next position and ignore forced_tx_master */
+							*pos = ((*pos) + 1) % zend_llist_count(l);
+						}
+						DBG_INF("Trying next master, if any");
+						continue;
+					}
+				}
+				break;
 			}
+			DBG_RETURN(connection);
 			break;
 		}
 		case USE_LAST_USED:

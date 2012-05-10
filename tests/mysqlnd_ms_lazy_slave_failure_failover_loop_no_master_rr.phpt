@@ -15,7 +15,7 @@ $settings = array(
 		'slave' => array("unreachable:6033", "unreachable:7033"),
 		'pick' 	=> array('roundrobin'),
 		'lazy_connections' => 1,
-		'failover' => 'loop_before_master'
+		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => 0),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_rr.ini", $settings))
@@ -25,6 +25,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop
 mysqlnd_ms.enable=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_no_master_rr.ini
 mysqlnd_ms.collect_statistics=1
+mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");

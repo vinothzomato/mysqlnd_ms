@@ -18,7 +18,7 @@ $settings = array(
 		'slave' => array("unreachable:6033", "unreachable2:6033"),
 		'pick' 	=> array('roundrobin'),
 		'lazy_connections' => 1,
-		'failover' => 'master'
+		'failover' => array('strategy' => 'master'),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_settings_lazy_slave_failure_failover_rr.ini", $settings))

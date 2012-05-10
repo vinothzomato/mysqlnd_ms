@@ -14,7 +14,7 @@ $settings = array(
 		 /* NOTE: second master will be ignored! */
 		'master' => array($emulated_master_host, $emulated_master_host),
 		'slave' => array(),
-		'failover' => 'master',
+		'failover' => array('strategy' => 'master'),
 		'pick' => array('roundrobin'),
 	),
 );

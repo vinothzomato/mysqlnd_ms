@@ -47,7 +47,7 @@ $settings = array(
 		 ),
 
 		'lazy_connections' => 0,
-		'failover' => 'master',
+		'failover' => array('strategy' => 'master'),
 
 		'filters' => array(
 			"quality_of_service" => array(

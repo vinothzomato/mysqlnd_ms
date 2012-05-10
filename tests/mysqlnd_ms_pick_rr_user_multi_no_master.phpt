@@ -26,6 +26,7 @@ if ($error = mst_create_config("test_mysqlnd_ms_pick_rr_user_multi_no_master.ini
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_pick_rr_user_multi_no_master.ini
+mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
