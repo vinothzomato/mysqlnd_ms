@@ -834,7 +834,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 				ret = FAIL;
 				break;
 			}
-			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
 		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
 
@@ -1076,6 +1076,10 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 			zend_llist_clean((*data_pp)->stgy.filters);
 			mnd_pefree((*data_pp)->stgy.filters, TRUE /* all filters were loaded persistently */);
 			(*data_pp)->stgy.filters = NULL;
+		}
+
+		if ((*data_pp)->stgy.failover_remember_failed) {
+			zend_hash_destroy(&((*data_pp)->stgy.failed_hosts));
 		}
 
 		mnd_pefree(*data_pp, conn->persistent);

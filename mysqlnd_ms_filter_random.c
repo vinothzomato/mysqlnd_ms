@@ -2,7 +2,7 @@
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2008 The PHP Group                                |
+  | Copyright (c) 1997-2012 The PHP Group                                |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
@@ -217,6 +217,20 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 							/* must be SERVER_FAILOVER_MASTER */
 							break;
 						} else {
+							smart_str fprint_conn = {0};
+
+							if (stgy->failover_remember_failed) {
+								zend_bool * failed;
+								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, element TSRMLS_CC);
+								if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
+									smart_str_free(&fprint);
+									smart_str_free(&fprint_conn);
+									zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+									DBG_INF("Skipping previously failed connection");
+									continue;
+								}
+							}
+
 							if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
 								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 								SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
@@ -225,19 +239,33 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 													sizeof(MYSQLND *), NULL);
 								}
 								smart_str_free(&fprint);
+								if (stgy->failover_remember_failed) {
+									smart_str_free(&fprint_conn);
+								}
 								DBG_RETURN(connection);
 							}
-							smart_str_free(&fprint);
-							if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-								/* no failover */
-								DBG_INF("Failover disabled");
-								DBG_RETURN(connection);
-							} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy)  &&
+
+							if (stgy->failover_remember_failed) {
+								zend_bool failed = TRUE;
+								if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
+									DBG_INF("Failed to remember failing connection");
+								}
+								smart_str_free(&fprint_conn);
+							}
+
+							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy)  &&
 									((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining slaves before fall-through to master */
 								DBG_INF("Trying next slave, if any");
 								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
 								continue;
+							}
+
+							smart_str_free(&fprint);
+							if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+								/* no failover */
+								DBG_INF("Failover disabled");
+								DBG_RETURN(connection);
 							}
 							/* falling-through */
 							break;
@@ -305,6 +333,19 @@ use_master:
 						connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 
 						if (connection) {
+							smart_str fprint_conn = {0};
+
+							if (stgy->failover_remember_failed) {
+								zend_bool * failed;
+								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, element TSRMLS_CC);
+								if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
+									smart_str_free(&fprint_conn);
+									zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+									DBG_INF("Skipping previously failed connection");
+									continue;
+								}
+							}
+
 							if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC)) {
 								MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 								SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
@@ -313,9 +354,20 @@ use_master:
 													sizeof(MYSQLND *), NULL);
 								}
 								smart_str_free(&fprint);
+								if (stgy->failover_remember_failed) {
+									smart_str_free(&fprint_conn);
+								}
 								DBG_RETURN(connection);
 							}
-							smart_str_free(&fprint);
+
+							if (stgy->failover_remember_failed) {
+								zend_bool failed = TRUE;
+								if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
+									DBG_INF("Failed to remember failing connection");
+								}
+								smart_str_free(&fprint_conn);
+							}
+
 							if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1) &&
 								((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining masters before giving up */
@@ -323,6 +375,7 @@ use_master:
 								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
 								continue;
 							}
+							smart_str_free(&fprint);
 							DBG_INF("Failover disabled");
 						} else {
 							smart_str_free(&fprint);

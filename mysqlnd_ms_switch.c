@@ -116,6 +116,19 @@ mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_get_fingerprint_connection */
+void
+mysqlnd_ms_get_fingerprint_connection(smart_str * context, MYSQLND_MS_LIST_DATA ** d TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_get_fingerprint_connection");
+	mysqlnd_ms_get_element_ptr((void *) d, (void *)context TSRMLS_CC);
+	smart_str_appendc(context, '\0');
+	DBG_INF_FMT("len=%d", context->len);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_filter_list_dtor */
 static void
 mysqlnd_ms_filter_list_dtor(void * pDest)
@@ -145,7 +158,7 @@ mysqlnd_ms_filter_list_dtor(void * pDest)
 void
 mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 							 struct st_mysqlnd_ms_config_json_entry * the_section,
-							 MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
+							 MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 
@@ -153,14 +166,15 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 	{
 		struct st_mysqlnd_ms_config_json_entry * failover_section = mysqlnd_ms_config_json_sub_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,  &value_exists);
 
-		strategies->failover_strategy 		= DEFAULT_FAILOVER_STRATEGY;
-		strategies->failover_max_retries 	= DEFAULT_FAILOVER_MAX_RETRIES;
+		strategies->failover_strategy 			= DEFAULT_FAILOVER_STRATEGY;
+		strategies->failover_max_retries 		= DEFAULT_FAILOVER_MAX_RETRIES;
+		strategies->failover_remember_failed 	= DEFAULT_FAILOVER_REMEMBER_FAILED;
 
 		if (value_exists) {
 			int64_t failover_max_retries;
+			char * remember_failed;
 			char * failover_strategy =
-				mysqlnd_ms_config_json_string_from_section(failover_section, FAILOVER_STRATEGY_NAME, sizeof(FAILOVER_STRATEGY_NAME) - 1, 0,
-													   &value_exists, &is_list_value TSRMLS_CC);
+				mysqlnd_ms_config_json_string_from_section(failover_section, FAILOVER_STRATEGY_NAME, sizeof(FAILOVER_STRATEGY_NAME) - 1, 0, &value_exists, &is_list_value TSRMLS_CC);
 
 			if (value_exists && failover_strategy) {
 				if (!strncasecmp(FAILOVER_STRATEGY_DISABLED, failover_strategy, sizeof(FAILOVER_STRATEGY_DISABLED) - 1)) {
@@ -183,6 +197,16 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 				} else {
 					strategies->failover_max_retries = (uint)failover_max_retries;
 				}
+			}
+
+			remember_failed = mysqlnd_ms_config_json_string_from_section(failover_section, FAILOVER_REMEMBER_FAILED, sizeof(FAILOVER_REMEMBER_FAILED) - 1, 0, &value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists) {
+				strategies->failover_remember_failed = !mysqlnd_ms_config_json_string_is_bool_false(remember_failed);
+				if (strategies->failover_remember_failed) {
+					/* should we do a lazy init? */
+					zend_hash_init(&strategies->failed_hosts, 8, NULL/*hash*/, NULL/*dtor*/, persistent);
+				}
+				mnd_efree(remember_failed);
 			}
 		}
 	}
