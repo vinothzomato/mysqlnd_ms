@@ -596,6 +596,7 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 	if (entry_exists && g_trx_section) {
 		char * json_value = NULL;
 		size_t json_value_len;
+		int64_t json_int;
 
 		json_value = mysqlnd_ms_config_json_string_from_section(g_trx_section, SECT_G_TRX_ON_COMMIT, sizeof(SECT_G_TRX_ON_COMMIT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
 		if (entry_exists && json_value) {
@@ -640,6 +641,19 @@ mysqlnd_ms_load_trx_config(struct st_mysqlnd_ms_config_json_entry * main_section
 		if (entry_exists && json_value) {
 			trx->report_error = !mysqlnd_ms_config_json_string_is_bool_false(json_value);
 			mnd_efree(json_value);
+		}
+
+		json_int = mysqlnd_ms_config_json_int_from_section(g_trx_section, SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT, sizeof(SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
+		if (entry_exists) {
+			if (json_int < 0) {
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be greater or equal than zero", SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT, SECT_G_TRX_NAME);
+			} else if (json_int > 65535) {
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be less than 65536", SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT, SECT_G_TRX_NAME);
+			} else {
+				trx->wait_for_gtid_timeout = (unsigned int)json_int;
+			}
 		}
 	}
 	DBG_VOID_RETURN;

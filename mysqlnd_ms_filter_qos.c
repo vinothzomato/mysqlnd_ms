@@ -169,13 +169,15 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYS
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_qos_get_gtid */
+/* {{{ mysqlnd_ms_qos_server_has_gtid */
 static enum_func_status
 mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA ** conn_data, char *sql, size_t sql_len,
-							   MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
+								unsigned int wait_time,
+								MYSQLND_ERROR_INFO * tmp_error_info TSRMLS_DC)
 {
 	MYSQLND_RES * res = NULL;
 	enum_func_status ret = FAIL;
+	uint64_t total_time = 0, run_time = 0;
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info;
 #else
@@ -191,14 +193,37 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 #else
 	SET_EMPTY_ERROR(conn->error_info);
 #endif
+
 	(*conn_data)->skip_ms_calls = TRUE;
-	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
-		(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
-		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
-	{
-		ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
-		DBG_INF_FMT("sql = %s -  ret = %d - affected_rows = %d", sql, ret, (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows));
-	}
+	do {
+		if (wait_time) {
+			MS_TIME_SET(run_time);
+		}
+		if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
+			(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
+			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+		{
+			ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
+			DBG_INF_FMT("sql = %s -  ret = %d - affected_rows = %d", sql, ret, (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows));
+		}
+		if (wait_time) {
+			if (FAIL == ret) {
+				MS_TIME_DIFF(run_time);
+				total_time += run_time;
+			}
+			if ((wait_time * 10) > (total_time / 100000)) {
+				/*
+				Server has not caught up yet but we are told to wait (throttle ourselves)
+				and there is wait time left. NOTE: If the user is using any kind of SQL-level waits
+				we will not notice and loop until the external
+				*/
+				DBG_INF("wait and retry");
+				sleep(1);
+				continue;
+			}
+		}
+		break;
+	} while (1);
 	(*conn_data)->skip_ms_calls = FALSE;
 
 #if MYSQLND_VERSION_ID < 50010
@@ -463,7 +488,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 						if (sql.c) {
 							MYSQLND_ERROR_INFO tmp_error_info;
 							memset(&tmp_error_info, 0, sizeof(MYSQLND_ERROR_INFO));
-							if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, &tmp_error_info TSRMLS_CC)) {
+							if (PASS == mysqlnd_ms_qos_server_has_gtid(connection, conn_data, sql.c, sql.len - 1, (*conn_data)->global_trx.wait_for_gtid_timeout,  &tmp_error_info TSRMLS_CC)) {
 								zend_llist_add_element(selected_slaves, &element);
 							} else if (tmp_error_info.error_no) {
 								mysqlnd_ms_client_n_php_error(NULL, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
