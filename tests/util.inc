@@ -298,13 +298,20 @@
 
 	function mst_get_gtid_sql($mst_gtid_db) {
 	  return array(
-		'drop' 				=> 'DROP TABLE IF EXISTS ' . $mst_gtid_db . '.trx',
-		'create'			=> 'CREATE TABLE ' . $mst_gtid_db . '.trx(trx_id INT, last_update TIMESTAMP) ENGINE=InnoDB',
-		'insert'			=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (0)',
-		'update'			=> 'UPDATE ' . $mst_gtid_db . '.trx SET trx_id = trx_id + 1',
-		'select'			=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx',
-		'fetch_last_gtid'	=> 'SELECT MAX(trx_id) FROM ' . $mst_gtid_db . '.trx',
-		'check_for_gtid'	=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx WHERE trx_id >= #GTID',
+		'drop' 					=> 'DROP TABLE IF EXISTS ' . $mst_gtid_db . '.trx',
+		'create'				=> 'CREATE TABLE ' . $mst_gtid_db . '.trx(trx_id INT, last_update TIMESTAMP) ENGINE=InnoDB',
+		'insert'				=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (0)',
+		'update'				=> 'UPDATE ' . $mst_gtid_db . '.trx SET trx_id = trx_id + 1',
+		'select'				=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx',
+		'fetch_last_gtid'		=> 'SELECT MAX(trx_id) FROM ' . $mst_gtid_db . '.trx',
+		'check_for_gtid'		=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx WHERE trx_id >= #GTID',
+		/* tests only - not needed for ms configuration */
+		'set'					=> 'INSERT INTO ' . $mst_gtid_db . '.trx(trx_id) VALUES (#GTID)',
+		/* SLEEP() cannot be used here */
+		'check_for_gtid_wait'	=> 'SELECT trx_id FROM ' . $mst_gtid_db . '.trx WHERE trx_id >= #GTID',
+		'wait_for_seconds'		=> 2,
+		'wait_for_gtid_fail'	=> 1,
+		'wait_for_gtid_succeed' => 3,
 	  );
 	}
 

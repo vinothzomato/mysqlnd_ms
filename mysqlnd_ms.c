@@ -286,6 +286,8 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 	new_global_trx->is_master = is_master;
 	new_global_trx->report_error = orig_global_trx->report_error;
 
+	new_global_trx->wait_for_gtid_timeout = orig_global_trx->wait_for_gtid_timeout;
+
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -571,6 +573,7 @@ mysqlnd_ms_init_trx_to_null(struct st_mysqlnd_ms_global_trx_injection * trx TSRM
 	trx->fetch_last_gtid_len = (size_t)0;
 	trx->check_for_gtid = NULL;
 	trx->check_for_gtid_len = (size_t)0;
+	trx->wait_for_gtid_timeout = 0;
 	trx->is_master = FALSE;
 	trx->report_error = TRUE;
 

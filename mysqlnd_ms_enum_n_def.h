@@ -156,7 +156,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define MS_TIME_DIFF(run_time) \
 	{ \
 		uint64_t __now; \
-		TIME_SET(__now); \
+		MS_TIME_SET(__now); \
 		(run_time) = __now - (run_time); \
 	} \
 

@@ -177,7 +177,7 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 {
 	MYSQLND_RES * res = NULL;
 	enum_func_status ret = FAIL;
-	uint64_t total_time = 0, run_time = 0;
+	uint64_t total_time = 0, run_time = 0, my_wait_time = wait_time * 1000000;
 #if MYSQLND_VERSION_ID >= 50010
 	MYSQLND_ERROR_INFO * org_error_info;
 #else
@@ -185,6 +185,7 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 #endif
 
 	DBG_ENTER("mysqlnd_ms_qos_server_has_gtid");
+	DBG_INF_FMT("wait_time=%d", wait_time);
 
 	/* hide errors from user */
 	org_error_info = conn->error_info;
@@ -195,10 +196,10 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 #endif
 
 	(*conn_data)->skip_ms_calls = TRUE;
+	if (wait_time) {
+		MS_TIME_SET(run_time);
+	}
 	do {
-		if (wait_time) {
-			MS_TIME_SET(run_time);
-		}
 		if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
 			(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
 			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
@@ -206,19 +207,21 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 			ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
 			DBG_INF_FMT("sql = %s -  ret = %d - affected_rows = %d", sql, ret, (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows));
 		}
-		if (wait_time) {
-			if (FAIL == ret) {
-				MS_TIME_DIFF(run_time);
-				total_time += run_time;
-			}
-			if ((wait_time * 10) > (total_time / 100000)) {
+		if (wait_time && (FAIL == ret)) {
+			MS_TIME_DIFF(run_time);
+			total_time += run_time;
+			if (my_wait_time > total_time) {
 				/*
 				Server has not caught up yet but we are told to wait (throttle ourselves)
 				and there is wait time left. NOTE: If the user is using any kind of SQL-level waits
 				we will not notice and loop until the external
 				*/
-				DBG_INF("wait and retry");
+				DBG_INF_FMT("sleep and retry, time left=" MYSQLND_LLU_SPEC, (my_wait_time - total_time));
+				MS_TIME_SET(run_time);
 				sleep(1);
+				if (res) {
+					res->m.free_result(res, FALSE TSRMLS_CC);
+				}
 				continue;
 			}
 		}
@@ -728,6 +731,7 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 			new_qos_filter->option_data.gtid = estrndup(option_data->gtid, option_data->gtid_len);
 			efree(option_data->gtid);
 		}
+
 
 		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
 		new_filter_entry->persistent = persistent;
