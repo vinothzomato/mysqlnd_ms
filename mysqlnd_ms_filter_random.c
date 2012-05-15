@@ -199,13 +199,13 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 
 						if (!connection) {
 							/* Q: how can we get here? */
-							smart_str_free(&fprint);
 							if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 								/* TODO: connection error would be better */
 								mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 												MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. "
 												"%d slaves to choose from. Something is wrong", zend_llist_count(l));
 								/* should be a very rare case to be here - connection shouldn't be NULL in first place */
+								smart_str_free(&fprint);
 								DBG_RETURN(NULL);
 							} else	if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 									((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
@@ -261,16 +261,17 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 								continue;
 							}
 
-							smart_str_free(&fprint);
 							if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 								/* no failover */
 								DBG_INF("Failover disabled");
+								smart_str_free(&fprint);
 								DBG_RETURN(connection);
 							}
 							/* falling-through */
 							break;
 						}
 					}
+					smart_str_free(&fprint);
 					if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
 						DBG_INF("No masters to continue search");
 						/* must not fall through as we'll loose the connection error */
