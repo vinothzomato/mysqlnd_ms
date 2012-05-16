@@ -60,6 +60,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_multi_last.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_multi_last.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Error in configuration. Last filter is multi filter. Needs to be non-multi one. Stopping in %s on line %d
+%AWarning: mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Error in configuration. Last filter is multi filter. Needs to be non-multi one. Stopping in %s on line %d
 [001] [2000] (mysqlnd_ms) Error in configuration. Last filter is multi filter. Needs to be non-multi one. Stopping
 done!
