@@ -652,7 +652,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 			}
 			if (!connection && (0 == zend_llist_count(output_masters) && 0 == zend_llist_count(output_slaves))) {
 				/* filtered everything out */
-				if (SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
+				if ((SERVER_FAILOVER_MASTER == stgy->failover_strategy) || (SERVER_FAILOVER_LOOP == stgy->failover_strategy)) {
 					DBG_INF("FAILOVER");
 					connection = conn;
 				} else {
