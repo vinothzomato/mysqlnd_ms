@@ -54,7 +54,8 @@
 #include "mysqlnd_ms_switch.h"
 
 typedef MYSQLND_MS_FILTER_DATA * (*func_filter_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
-													   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
+													zend_llist * master_connections, zend_llist * slave_connections,
+													MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
 
 struct st_specific_ctor_with_name
@@ -258,6 +259,7 @@ static MYSQLND_MS_FILTER_DATA *
 mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 									  struct st_mysqlnd_ms_config_json_entry * filter_config,
 									  const char * const filter_name, const size_t filter_name_len,
+									  zend_llist * master_connections, zend_llist * slave_connections,
 									  const zend_bool persistent,
 									  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
@@ -281,7 +283,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 					}
 				}
 				if (specific_ctors[i].ctor) {
-					new_filter_entry = specific_ctors[i].ctor(filter_config, error_info, persistent TSRMLS_CC);
+					new_filter_entry = specific_ctors[i].ctor(filter_config, master_connections, slave_connections, error_info, persistent TSRMLS_CC);
 					if (!new_filter_entry) {
 						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, 0 TSRMLS_CC,
 								 			MYSQLND_MS_ERROR_PREFIX " Error while creating filter '%s' . Stopping", filter_name);
@@ -313,6 +315,7 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 /* {{{ mysqlnd_ms_load_section_filters */
 zend_llist *
 mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info,
+								zend_llist * master_connections, zend_llist * slave_connections,
 								zend_bool persistent TSRMLS_DC)
 {
 	zend_llist * ret = NULL;
@@ -349,7 +352,8 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 								filter_name_len = strlen(filter_name);
 								DBG_INF_FMT("%d was found as key, the value is %s", filter_int_name, filter_name);
 								if (NULL == mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
-																				  persistent, error_info TSRMLS_CC)) {
+																				master_connections, slave_connections,
+																				persistent, error_info TSRMLS_CC)) {
 									mnd_pefree(filter_name, 0);
 									goto err;
 								}
@@ -367,7 +371,8 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 						break;
 					}
 					if (NULL == mysqlnd_ms_section_filters_add_filter(ret, current_filter, filter_name, filter_name_len,
-																	  persistent, error_info TSRMLS_CC)) {
+																	master_connections, slave_connections,
+																	persistent, error_info TSRMLS_CC)) {
 						goto err;
 					}
 				} while (1);
@@ -392,7 +397,8 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 					if (DEFAULT_PICK_STRATEGY == specific_ctors[i].pick_type) {
 						DBG_INF_FMT("Found default pick strategy : %s", specific_ctors[i].name);
 						if (NULL == mysqlnd_ms_section_filters_add_filter(ret, NULL, specific_ctors[i].name, specific_ctors[i].name_len,
-																		  persistent, error_info TSRMLS_CC))
+																		master_connections, slave_connections,
+																		persistent, error_info TSRMLS_CC))
 						{
 							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 										MYSQLND_MS_ERROR_PREFIX " Can't load default filter '%d' . Stopping", specific_ctors[i].name);

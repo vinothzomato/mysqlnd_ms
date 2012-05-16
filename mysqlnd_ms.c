@@ -846,6 +846,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			DBG_INF_FMT("master_list=%p count=%d", &(*conn_data)->master_connections, zend_llist_count(&(*conn_data)->master_connections));
 			DBG_INF_FMT("slave_list=%p count=%d", &(*conn_data)->slave_connections, zend_llist_count(&(*conn_data)->slave_connections));
 			(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
+																		 &(*conn_data)->master_connections,
+																		 &(*conn_data)->slave_connections,
 																		 TRUE /* load all config persistently */ TSRMLS_CC);
 			if (!(*conn_data)->stgy.filters) {
 				ret = FAIL;

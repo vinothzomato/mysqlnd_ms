@@ -209,6 +209,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_G_TRX_FETCH_LAST_GTID 			"fetch_last_gtid"
 #define SECT_G_TRX_CHECK_FOR_GTID 			"check_for_gtid"
 #define SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT 	"wait_for_gtid_timeout"
+#define SECT_LB_WEIGHT						"weight"
 
 typedef enum
 {
@@ -355,7 +356,16 @@ typedef struct st_mysqlnd_ms_filter_rr_data
 	MYSQLND_MS_FILTER_DATA parent;
 	HashTable master_context;
 	HashTable slave_context;
+	zend_llist lb_weight;
 } MYSQLND_MS_FILTER_RR_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_lb_weight
+{
+	MYSQLND_CONN_DATA * conn;
+	unsigned int weight;
+	zend_bool persistent;
+} MYSQLND_MS_FILTER_LB_WEIGHT;
 
 
 typedef struct st_mysqlnd_ms_filter_random_data
@@ -404,6 +414,12 @@ typedef struct st_mysqlnd_ms_filter_qos_data
 } MYSQLND_MS_FILTER_QOS_DATA;
 
 
+/*
+ NOTE: Some elements are available with every connection, some
+ are set for the global/proxy connection only. The global/proxy connection
+ is the handle provided by the user. The other connections are the "hidden"
+ ones that MS openes to the cluster nodes.
+*/
 typedef struct st_mysqlnd_ms_conn_data
 {
 	zend_bool initialized;
@@ -415,6 +431,7 @@ typedef struct st_mysqlnd_ms_conn_data
 
 	const MYSQLND_CHARSET * server_charset;
 
+	/* Global LB strategy set on proxy conn */
 	struct mysqlnd_ms_lb_strategies {
 		HashTable table_filters;
 
@@ -447,6 +464,7 @@ typedef struct st_mysqlnd_ms_conn_data
 	} cred;
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
+	/* per connection trx context set on proxy conn and all others */
 	struct st_mysqlnd_ms_global_trx_injection {
 		char * on_commit;
 		size_t on_commit_len;
@@ -455,6 +473,13 @@ typedef struct st_mysqlnd_ms_conn_data
 		char * check_for_gtid;
 		size_t check_for_gtid_len;
 		unsigned int wait_for_gtid_timeout;
+		/*
+		 TODO: This seems to be the only per-connection value.
+		 We may want to split up the structure into a global and
+		 local part. is_master needs to be local/per-connection.
+		 The rest could probably be global, like with stgy and
+		 LB weigth.
+		*/
 		zend_bool is_master;
 		zend_bool report_error;
 	} global_trx;

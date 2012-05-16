@@ -54,7 +54,7 @@ random_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_random_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
-mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_RANDOM_DATA * ret;
 	DBG_ENTER("mysqlnd_ms_random_filter_ctor");

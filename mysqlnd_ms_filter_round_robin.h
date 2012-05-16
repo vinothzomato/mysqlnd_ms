@@ -29,6 +29,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 								enum enum_which_server * which_server TSRMLS_DC);
 
 MYSQLND_MS_FILTER_DATA * mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
+												   zend_llist * master_connections, zend_llist * slave_connections,
 												   MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_FILTER_ROUND_ROBIN_H */

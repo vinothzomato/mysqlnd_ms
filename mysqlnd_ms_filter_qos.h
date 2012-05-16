@@ -29,6 +29,7 @@ enum_func_status mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void
 		struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info TSRMLS_DC);
 
 MYSQLND_MS_FILTER_DATA * mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
+													zend_llist * master_connections, zend_llist * slave_connections,
 													MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 #if PHP_VERSION_ID > 50399
 enum_func_status mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,

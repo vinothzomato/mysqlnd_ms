@@ -35,6 +35,18 @@
 #include "mysqlnd_ms_enum_n_def.h"
 
 
+/* {{{ mysqlnd_ms_filter_lb_weigth_dtor */
+void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
+{
+	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
+	TSRMLS_FETCH();
+	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
+	mnd_pefree(element, element->persistent);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /* {{{ rr_filter_dtor */
 static void
 rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
@@ -44,6 +56,7 @@ rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 
 	zend_hash_destroy(&filter->master_context);
 	zend_hash_destroy(&filter->slave_context);
+	zend_llist_destroy(&filter->lb_weight);
 	mnd_pefree(filter, filter->parent.persistent);
 
 	DBG_VOID_RETURN;
@@ -53,7 +66,7 @@ rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 
 /* {{{ mysqlnd_ms_rr_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
-mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_RR_DATA * ret;
 	DBG_ENTER("mysqlnd_ms_rr_filter_ctor");
@@ -64,6 +77,49 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, MYSQ
 		ret->parent.filter_dtor = rr_filter_dtor;
 		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_llist_init(&ret->lb_weight, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT *),
+						(llist_dtor_func_t)mysqlnd_ms_filter_lb_weigth_dtor, persistent);
+
+		/* weights - { server : weight [, server : weight [, ...]] }*/
+		if (section &&
+			(TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&
+			TRUE == mysqlnd_ms_config_json_section_is_object_list(section TSRMLS_CC)))
+		{
+			zend_bool value_exists = FALSE, is_list_value = FALSE;
+			struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
+
+			/*
+			 TODO: create hash table with server names from config to verify weight entries
+			*/
+
+			do {
+				char * current_subsection_name = NULL;
+				size_t current_subsection_name_len = 0;
+				int weight;
+
+				subsection = mysqlnd_ms_config_json_next_sub_section(section,
+																	&current_subsection_name,
+																	&current_subsection_name_len,
+																	NULL TSRMLS_CC);
+				if (!subsection) {
+					break;
+				}
+
+				weight = mysqlnd_ms_config_json_int_from_section(subsection, SECT_LB_WEIGHT,
+																 sizeof(SECT_LB_WEIGHT) - 1, 0,
+																 &value_exists, &is_list_value TSRMLS_CC);
+				if (value_exists) {
+					if ((weight < 0) || (weight > 65535)) {
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_LB_WEIGHT" '%i' . Stopping", weight);
+					} else {
+						DBG_INF_FMT("server=%s, weight=%d", current_subsection_name, weight);
+					}
+				}
+
+			} while (1);
+		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }

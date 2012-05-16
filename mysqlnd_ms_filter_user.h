@@ -34,6 +34,7 @@ enum_func_status mysqlnd_ms_user_pick_multiple_server(void * f_data,
 									 TSRMLS_DC);
 
 MYSQLND_MS_FILTER_DATA * mysqlnd_ms_user_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
+													 zend_llist * master_connections, zend_llist * slave_connections,
 													 MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_FILTER_USER_H */
