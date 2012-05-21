@@ -41,6 +41,12 @@ void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
 	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
 	TSRMLS_FETCH();
 	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
+#if MYSQLND_VERSION_ID >= 50010
+	if (element->conn) {
+		element->conn->m->free_reference(element->conn TSRMLS_CC);
+	}
+#endif
+
 	mnd_pefree(element, element->persistent);
 	DBG_VOID_RETURN;
 }
@@ -80,17 +86,52 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 		zend_llist_init(&ret->lb_weight, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT *),
 						(llist_dtor_func_t)mysqlnd_ms_filter_lb_weigth_dtor, persistent);
 
-		/* weights - { server : weight [, server : weight [, ...]] }*/
+		/* weights - { server : {weight: 1} [, server : {weight: 2} [, ...]] }*/
 		if (section &&
 			(TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&
 			TRUE == mysqlnd_ms_config_json_section_is_object_list(section TSRMLS_CC)))
 		{
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
 			struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
+			HashTable server_names;
+			MYSQLND_CONN_DATA * conn;
+			MYSQLND_MS_LIST_DATA * entry, **entry_pp;
+			zend_llist_position	pos;
 
-			/*
-			 TODO: create hash table with server names from config to verify weight entries
-			*/
+			/* Build server hash table */
+			zend_hash_init(&server_names, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+
+			for (entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_connections, &pos);
+					entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
+					entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_connections, &pos)) {
+#if MYSQLND_VERSION_ID >= 50010
+				conn = entry->conn->m->get_reference(entry->conn TSRMLS_CC);
+#else
+				conn = entry->conn;
+#endif
+				if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
+					conn, sizeof(struct MYSQLND_CONN_DATA *), NULL)) {
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Failed to setup master server list for '" PICK_RROBIN "' filter. Stopping");
+				}
+			}
+
+			for (entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_connections, &pos);
+					entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
+					entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_connections, &pos)) {
+#if MYSQLND_VERSION_ID >= 50010
+				conn = entry->conn->m->get_reference(entry->conn TSRMLS_CC);
+#else
+				conn = entry->conn;
+#endif
+				if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
+					conn, sizeof(struct MYSQLND_CONN_DATA *), NULL)) {
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Failed to setup slave server list for '" PICK_RROBIN "' filter. Stopping");
+				}
+			}
 
 			do {
 				char * current_subsection_name = NULL;
@@ -105,6 +146,12 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 					break;
 				}
 
+				if (SUCCESS != zend_hash_find(&server_names, current_subsection_name, current_subsection_name_len, (void **)&conn)) {
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Unknown server '%s' in '" PICK_RROBIN "' filter configuration. Stopping", current_subsection_name);
+				}
+
 				weight = mysqlnd_ms_config_json_int_from_section(subsection, SECT_LB_WEIGHT,
 																 sizeof(SECT_LB_WEIGHT) - 1, 0,
 																 &value_exists, &is_list_value TSRMLS_CC);
@@ -114,11 +161,20 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 							 E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_LB_WEIGHT" '%i' . Stopping", weight);
 					} else {
-						DBG_INF_FMT("server=%s, weight=%d", current_subsection_name, weight);
+						MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry =
+							mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), persistent);
+						/* ref counter has been incremented already */
+						weight_entry->conn = conn;
+						weight_entry->weight = weight;
+						weight_entry->persistent = persistent;
+						zend_llist_add_element(&ret->lb_weight, weight_entry);
 					}
 				}
 
 			} while (1);
+
+			zend_hash_destroy(&server_names);
+			DBG_INF_FMT("weights list count %u", zend_llist_count(&ret->lb_weight));
 		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
