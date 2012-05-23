@@ -35,20 +35,54 @@
 #include "mysqlnd_ms_enum_n_def.h"
 
 
+/* {{{ mysqlnd_ms_filter_rr_context_dtor */
+static void
+mysqlnd_ms_filter_rr_context_dtor(void * data)
+{
+	MYSQLND_MS_FILTER_RR_CONTEXT * context = * (MYSQLND_MS_FILTER_RR_CONTEXT **) data;
+	TSRMLS_FETCH();
+	/*
+	if (context) {
+		mnd_pefree(context, 1);
+	}
+	*/
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_filter_lb_weigth_dtor */
 void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
 {
 	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
 	TSRMLS_FETCH();
 	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
-#if MYSQLND_VERSION_ID >= 50010
-	if (element->conn) {
-		element->conn->m->free_reference(element->conn TSRMLS_CC);
+	/*
+	if (element) {
+		mnd_pefree(element, element->persistent);
 	}
-#endif
-
-	mnd_pefree(element, element->persistent);
+	*/
 	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_filter_rr_sort_weights_context */
+int mysqlnd_ms_filter_rr_sort_weights_context(const zend_llist_element ** el1, const zend_llist_element ** el2 TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w1 = (el1) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el1)->data) : NULL;
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w2 = (el2) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el2)->data) : NULL;
+	int ret = 0;
+
+	DBG_ENTER("mysqlnd_ms_filter_rr_sort_weights_context");
+
+	if ((w1) && (w1->lb_weight) && (w2) && (w2->lb_weight)) {
+		if (((MYSQLND_MS_FILTER_LB_WEIGHT *)w1->lb_weight)->current_weight < ((MYSQLND_MS_FILTER_LB_WEIGHT *)w2->lb_weight)->current_weight) {
+			ret = 1;
+		} else if (((MYSQLND_MS_FILTER_LB_WEIGHT *)w1->lb_weight)->current_weight > ((MYSQLND_MS_FILTER_LB_WEIGHT *)w2->lb_weight)->current_weight) {
+			ret = -1;
+		}
+	}
+	DBG_RETURN(ret);
 }
 /* }}} */
 
@@ -62,7 +96,7 @@ rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 
 	zend_hash_destroy(&filter->master_context);
 	zend_hash_destroy(&filter->slave_context);
-	zend_llist_destroy(&filter->lb_weight);
+	zend_hash_destroy(&filter->lb_weight);
 	mnd_pefree(filter, filter->parent.persistent);
 
 	DBG_VOID_RETURN;
@@ -81,10 +115,9 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_DATA), persistent);
 	if (ret) {
 		ret->parent.filter_dtor = rr_filter_dtor;
-		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
-		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
-		zend_llist_init(&ret->lb_weight, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT *),
-						(llist_dtor_func_t)mysqlnd_ms_filter_lb_weigth_dtor, persistent);
+		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, mysqlnd_ms_filter_rr_context_dtor, persistent);
+		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, mysqlnd_ms_filter_rr_context_dtor, persistent);
+		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, mysqlnd_ms_filter_lb_weigth_dtor, persistent);
 
 		/* weights - { server : {weight: 1} [, server : {weight: 2} [, ...]] }*/
 		if (section &&
@@ -94,9 +127,12 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
 			struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
 			HashTable server_names;
-			MYSQLND_CONN_DATA * conn;
 			MYSQLND_MS_LIST_DATA * entry, **entry_pp;
 			zend_llist_position	pos;
+			smart_str fprint_conn = {0};
+			char * fingerprint;
+			int num_servers = 0;
+			int num_weight_infos = 0;
 
 			/* Build server hash table */
 			zend_hash_init(&server_names, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
@@ -104,33 +140,29 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 			for (entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_connections, &pos);
 					entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 					entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_connections, &pos)) {
-#if MYSQLND_VERSION_ID >= 50010
-				conn = entry->conn->m->get_reference(entry->conn TSRMLS_CC);
-#else
-				conn = entry->conn;
-#endif
+				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
 				if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
-					conn, sizeof(struct MYSQLND_CONN_DATA *), NULL)) {
+					fprint_conn.c, fprint_conn.len, NULL)) {
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 							 E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Failed to setup master server list for '" PICK_RROBIN "' filter. Stopping");
 				}
+				smart_str_free(&fprint_conn);
+				num_servers++;
 			}
 
 			for (entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_connections, &pos);
 					entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 					entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_connections, &pos)) {
-#if MYSQLND_VERSION_ID >= 50010
-				conn = entry->conn->m->get_reference(entry->conn TSRMLS_CC);
-#else
-				conn = entry->conn;
-#endif
+				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
 				if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
-					conn, sizeof(struct MYSQLND_CONN_DATA *), NULL)) {
+					fprint_conn.c, fprint_conn.len, NULL)) {
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 							 E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Failed to setup slave server list for '" PICK_RROBIN "' filter. Stopping");
 				}
+				smart_str_free(&fprint_conn);
+				num_servers++;
 			}
 
 			do {
@@ -146,12 +178,11 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 					break;
 				}
 
-				if (SUCCESS != zend_hash_find(&server_names, current_subsection_name, current_subsection_name_len, (void **)&conn)) {
+				if (SUCCESS != zend_hash_find(&server_names, current_subsection_name, current_subsection_name_len, (void **)&fingerprint)) {
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 							 E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Unknown server '%s' in '" PICK_RROBIN "' filter configuration. Stopping", current_subsection_name);
 				}
-
 				weight = mysqlnd_ms_config_json_int_from_section(subsection, SECT_LB_WEIGHT,
 																 sizeof(SECT_LB_WEIGHT) - 1, 0,
 																 &value_exists, &is_list_value TSRMLS_CC);
@@ -161,20 +192,33 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 							 E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_LB_WEIGHT" '%i' . Stopping", weight);
 					} else {
-						MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry =
-							mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), persistent);
-						/* ref counter has been incremented already */
-						weight_entry->conn = conn;
-						weight_entry->weight = weight;
+						MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
+
+						/* Handle OOM */
+						weight_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), persistent);
+						weight_entry->weight = weight_entry->current_weight = weight;
 						weight_entry->persistent = persistent;
-						zend_llist_add_element(&ret->lb_weight, weight_entry);
+						if (SUCCESS != zend_hash_add(&ret->lb_weight, fingerprint, strlen(fingerprint) + 1, weight_entry, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), NULL)) {
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Failed to create internal weights lookup table. Stopping");
+						}
+						num_weight_infos++;
 					}
 				}
-
 			} while (1);
 
+
+			if ((num_weight_infos > 0) && (num_servers != num_weight_infos)) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							 E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " You must specify the load balancing weight for none or all configured servers. There is no default weight yet. Stopping");
+			}
+			DBG_INF_FMT("weights %d", zend_hash_num_elements(&ret->lb_weight));
+
+
 			zend_hash_destroy(&server_names);
-			DBG_INF_FMT("weights list count %u", zend_llist_count(&ret->lb_weight));
+
 		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
@@ -227,49 +271,114 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 	switch (*which_server) {
 		case USE_SLAVE:
 		{
-			unsigned int tmp_pos = 0;
 			unsigned int * pos;
 			unsigned int i = 0;
 			MYSQLND_MS_LIST_DATA * element = NULL;
 			MYSQLND_CONN_DATA * connection = NULL;
 			smart_str fprint = {0};
 			zend_llist * l = slave_connections;
+			MYSQLND_MS_FILTER_RR_CONTEXT * context = NULL;
+			MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 
 			if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
 				goto use_master;
 			}
 			/* LOCK on context ??? */
 			{
-
 				mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
 				DBG_INF_FMT("fingerprint=%*s", fprint.len, fprint.c);
-				if (SUCCESS != zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos)) {
+				if (SUCCESS != zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context)) {
 					int retval;
 					DBG_INF("Init the slave context");
-					retval = zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, &tmp_pos, sizeof(uint), NULL);
-					/* fetch ptr to the data inside the HT */
+					/* persistent = 1 to be on the safe side */
+					context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
+					context->pos = 0;
+					zend_llist_init(&context->weight_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
+
+					retval = zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
+
 					if (SUCCESS == retval) {
-						zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos);
+						/* fetch ptr to the data inside the HT */
+						retval = zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void**)&context);
 					}
 					smart_str_free(&fprint);
 					if (SUCCESS != retval) {
 						break;
 					}
+
+					pos = &(context->pos);
+
+					if (zend_hash_num_elements(&filter->lb_weight)) {
+						/* sort list for weighted load balancing */
+						smart_str fprint_conn = {0};
+						MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context;
+
+						DBG_INF("Building sort list");
+
+						BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
+							mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
+							retval = zend_hash_find(&filter->lb_weight, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void**) &weight_entry);
+							if (SUCCESS == retval) {
+								/* persistent needed in weight entry - could take from element/conn */
+								lb_weight_context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT), weight_entry->persistent);
+								/* TODO: are we getting a pointer to the main list ? */
+								lb_weight_context->lb_weight = weight_entry;
+								lb_weight_context->element = element;
+								zend_llist_add_element(&context->weight_list, &lb_weight_context);
+							}
+							smart_str_free(&fprint_conn);
+							if (SUCCESS != retval) {
+								DBG_INF("Failed to create sort list");
+								/* server list */
+								break;
+							}
+						END_ITERATE_OVER_SERVER_LIST;
+						if (SUCCESS != retval) {
+							/* main switch */
+							break;
+						}
+						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
+					}
+
 				} else {
 					smart_str_free(&fprint);
+					pos = &(context->pos);
 				}
 				DBG_INF_FMT("look under pos %u", *pos);
 			}
 			do {
 				retry_count++;
 
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
-					if (i == *pos) {
-						break;
+				if (zend_llist_count(&context->weight_list)) {
+					zend_llist_position	tmp_pos;
+					MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
+					DBG_INF("Sorting");
+
+					zend_llist_sort(&context->weight_list, mysqlnd_ms_filter_rr_sort_weights_context TSRMLS_CC);
+					lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
+
+					if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
+						element = lb_weight_context->element;
+						DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
+						lb_weight_context->lb_weight->current_weight--;
+						if (0 == lb_weight_context->lb_weight->current_weight) {
+							/* reset */
+							lb_weight_context->lb_weight->current_weight = lb_weight_context->lb_weight->weight;
+							DBG_INF_FMT("resetting weight counter to %d", lb_weight_context->lb_weight->current_weight);
+						}
+					} else {
+						DBG_INF("Sorting failed");
 					}
-					i++;
-				END_ITERATE_OVER_SERVER_LIST;
-				DBG_INF_FMT("i=%u pos=%u", i, *pos);
+
+				} else	{
+					BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
+						if (i == *pos) {
+							break;
+						}
+						i++;
+					END_ITERATE_OVER_SERVER_LIST;
+					DBG_INF_FMT("i=%u pos=%u", i, *pos);
+				}
 				if (!element) {
 					/* there is no such safe guard in the random filter. Random tests for connection */
 					if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
@@ -303,7 +412,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 
 					if (stgy->failover_remember_failed) {
 						zend_bool * failed;
-						mysqlnd_ms_get_fingerprint_connection(&fprint_conn, element TSRMLS_CC);
+						mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 						if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
 							smart_str_free(&fprint_conn);
 							DBG_INF("Skipping previously failed connection");
@@ -365,30 +474,39 @@ use_master:
 		/* fall-through */
 		case USE_MASTER:
 		{
-			unsigned int tmp_pos = 0;
 			zend_llist * l = master_connections;
 			unsigned int * pos;
 			unsigned int i = 0;
 			MYSQLND_MS_LIST_DATA * element = NULL;
 			MYSQLND_CONN_DATA * connection = NULL;
+			MYSQLND_MS_FILTER_RR_CONTEXT * context;
+
 			/* LOCK on context ??? */
 			{
 				smart_str fprint = {0};
 				mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
-				if (SUCCESS != zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos)) {
+				if (SUCCESS != zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context)) {
 					int retval;
 					DBG_INF("Init the master context");
-					retval = zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, &tmp_pos, sizeof(uint), NULL);
-					/* fetch ptr to the data inside the HT */
+					/* persistent = 1 to be on the safe side */
+					context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
+					context->pos = 0;
+					/* context->weight_list = NULL; */
+					retval = zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
 					if (SUCCESS == retval) {
-						zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &pos);
+						/* fetch ptr to the data inside the HT */
+						retval = zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void**)&context);
 					}
 					smart_str_free(&fprint);
 					if (SUCCESS != retval) {
 						break;
 					}
+					pos = &(context->pos);
+					/* weight list */
+
 				} else {
 					smart_str_free(&fprint);
+					pos = &(context->pos);
 				}
 			}
 			if (0 == zend_llist_count(l)) {
@@ -444,7 +562,7 @@ use_master:
 
 					if (stgy->failover_remember_failed) {
 						zend_bool * failed;
-						mysqlnd_ms_get_fingerprint_connection(&fprint_conn, element TSRMLS_CC);
+						mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 						if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
 							smart_str_free(&fprint_conn);
 							if (TRUE == forced_tx_master) {

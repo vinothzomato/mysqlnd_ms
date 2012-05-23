@@ -24,7 +24,13 @@ if (true == $ret)
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($emulated_master_host, $emulated_master_host),
+		'master' => array(
+			"master1" => array(
+				'host' 	=> $emulated_master_host_only,
+				'port'	=> (int)$emulated_master_port,
+				'socket' => $emulated_master_socket
+			),
+		),
 		'slave' => array(
 			"slave1" => array(
 				'host' 	=> $emulated_slave_host_only,
@@ -37,7 +43,7 @@ $settings = array(
 				'socket' => $emulated_slave_socket
 			),
 		),
-		'pick' => array('roundrobin' => array("slave1" => array("weight" => 1), "slave2" => array("weight" => 2))),
+		'pick' => array('roundrobin' => array("slave1" => array("weight" => 1), "slave2" => array("weight" => 3), "master1" => array("weight" => 3))),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin_weight.ini", $settings))
@@ -56,24 +62,36 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	function fetch_role($offset, $link, $switch = NULL) {
-		$query = 'SELECT @myrole AS _role';
-		if ($switch)
-			$query = sprintf("/*%s*/%s", $switch, $query);
+	function monitor_connection_id($link) {
+		static $calls = 0;
+		static $last_id = NULL;
 
-		$res = mst_mysqli_query($offset, $link, $query, $switch);
-		if (!$res) {
-			printf("[%03d +01] [%d] [%s\n", $offset, $link->errno, $link->error);
-			return NULL;
+		$row = $link->query("SELECT CONNECTION_ID() AS _id FROM DUAL")->fetch_assoc();
+		if (is_null($last_id)) {
+			$last_id = $row['_id'];
 		}
+		printf("Call %d - %d -", ++$calls, $row['_id']);
 
-		$row = $res->fetch_assoc();
-		return $row['_role'];
+		if ($row['_id'] == $last_id) {
+			print " no change\n";
+		} else {
+			print " change\n";
+		}
+		$last_id = $row['_id'];
 	}
 
 	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
+	monitor_connection_id($link);
 	print "done!";
 
 ?>
@@ -83,4 +101,13 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_round_robin_weight.ini'.\n");
 ?>
 --EXPECTF--
+Call 1 - %d - no change
+Call 2 - %d - no change
+Call 3 - %d - change
+Call 4 - %d - change
+Call 5 - %d - no change
+Call 6 - %d - no change
+Call 7 - %d - change
+Call 8 - %d - change
+Call 9 - %d - no change
 done!

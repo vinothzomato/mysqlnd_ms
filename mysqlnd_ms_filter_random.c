@@ -221,7 +221,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 
 							if (stgy->failover_remember_failed) {
 								zend_bool * failed;
-								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, element TSRMLS_CC);
+								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 								if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
 									smart_str_free(&fprint);
 									smart_str_free(&fprint_conn);
@@ -338,7 +338,7 @@ use_master:
 
 							if (stgy->failover_remember_failed) {
 								zend_bool * failed;
-								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, element TSRMLS_CC);
+								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 								if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
 									smart_str_free(&fprint_conn);
 									zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);

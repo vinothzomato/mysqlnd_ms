@@ -356,16 +356,30 @@ typedef struct st_mysqlnd_ms_filter_rr_data
 	MYSQLND_MS_FILTER_DATA parent;
 	HashTable master_context;
 	HashTable slave_context;
-	zend_llist lb_weight;
+	HashTable lb_weight;
 } MYSQLND_MS_FILTER_RR_DATA;
+
+
+typedef struct st_mysqlnd_ms_filter_rr_context
+{
+	unsigned int pos;
+	zend_llist weight_list;
+} MYSQLND_MS_FILTER_RR_CONTEXT;
 
 
 typedef struct st_mysqlnd_ms_filter_lb_weight
 {
-	MYSQLND_CONN_DATA * conn;
 	unsigned int weight;
+	unsigned int current_weight;
 	zend_bool persistent;
 } MYSQLND_MS_FILTER_LB_WEIGHT;
+
+
+typedef struct st_mysqlnd_ms_filter_lb_weight_in_context
+{
+	MYSQLND_MS_FILTER_LB_WEIGHT * lb_weight;
+	MYSQLND_MS_LIST_DATA * element;
+} MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT;
 
 
 typedef struct st_mysqlnd_ms_filter_random_data

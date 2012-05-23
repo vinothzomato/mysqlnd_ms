@@ -33,6 +33,11 @@
     was a slave loop before or not. This means that there can be update 2 * n
     connection attempts before the plugin gives up.
 
+  * Weighted load balancing. Servers can have a weight. Before picking a server, the
+    load balancing logic sorts the server list by weight and picks the one with the
+    highest weight. Then, the weight counter is decremented and the same logic is
+    applied for the next request. INSTABLE code, round robin only, don't use yet.
+
 
 1.3.2 stable
 
