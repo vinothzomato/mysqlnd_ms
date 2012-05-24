@@ -9,6 +9,7 @@ if (PHP_MYSQLND_MS != "no") {
 							"mysqlnd_ms_config_json.c mf_wcomp.c mysqlnd_query_lexer.c " +
 							"mysqlnd_ms_filter_random.c " +
 							"mysqlnd_ms_filter_round_robin.c mysqlnd_ms_filter_user.c " +
-							"mysqlnd_ms_filter_qos.c");
+							"mysqlnd_ms_filter_qos.c" +
+							"mysqlnd_ms_lb_weights.c");
 }
 

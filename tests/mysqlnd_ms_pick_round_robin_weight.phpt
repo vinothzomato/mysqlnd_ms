@@ -24,14 +24,14 @@ if (true == $ret)
 
 $settings = array(
 	"myapp" => array(
-		'master' => array(
+		'slave' => array(
 			"master1" => array(
 				'host' 	=> $emulated_master_host_only,
 				'port'	=> (int)$emulated_master_port,
 				'socket' => $emulated_master_socket
 			),
 		),
-		'slave' => array(
+		'master' => array(
 			"slave1" => array(
 				'host' 	=> $emulated_slave_host_only,
 				'port' 	=> (int)$emulated_slave_port,
@@ -56,6 +56,8 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_pick_round_robin_weight.ini
+mysqlnd_ms.multi_master=1
+mysqlnd_ms.disable_rw_split=1
 mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
