@@ -35,6 +35,7 @@
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_config_json.h"
+#include "mysqlnd_ms_lb_weights.h"
 
 /* {{{ random_filter_dtor */
 static void
@@ -62,9 +63,12 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_DATA), persistent);
 	if (ret) {
 		ret->parent.filter_dtor = random_filter_dtor;
+		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, mysqlnd_ms_filter_lb_weigth_dtor, persistent);
 
 		/* section could be NULL! */
 		if (section) {
+			/* random => array(sticky => true) */
+			struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
 			char * once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
 																		   &value_exists, &is_list_value TSRMLS_CC);
@@ -72,6 +76,26 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
 				mnd_efree(once_value);
 			}
+
+			/* random => array(weights => ...) */
+			do {
+				char * current_subsection_name = NULL;
+				size_t current_subsection_name_len = 0;
+
+				subsection = mysqlnd_ms_config_json_next_sub_section(section,
+																	&current_subsection_name,
+																	&current_subsection_name_len,
+																	NULL TSRMLS_CC);
+				if (!subsection) {
+					break;
+				}
+				if (!strcmp(current_subsection_name, SECT_LB_WEIGHTS)) {
+					mysqlnd_ms_filter_ctor_load_weights_config(&ret->lb_weight, PICK_RANDOM, subsection, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
+					break;
+				}
+			} while (1);
+
+
 		} else {
 			 /*
 			   Stickiness by default when no filters section in the config
@@ -83,6 +107,9 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 		/* XXX: this could be initialized only in case of ONCE */
 		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+
+		zend_hash_init(&ret->weight_context.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+		zend_hash_init(&ret->weight_context.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
@@ -156,6 +183,10 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			uint i = 0;
 			MYSQLND_CONN_DATA * connection = NULL;
 			MYSQLND_CONN_DATA ** context_pos;
+			MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
+			zend_bool use_lb_context = FALSE;
+			MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
+
 
 			DBG_INF_FMT("%d slaves to choose from", zend_llist_count(l));
 			if (0 == zend_llist_count(l) && (SERVER_FAILOVER_DISABLED == stgy->failover_strategy)) {
@@ -184,18 +215,68 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					}
 					break;
 				case FAILURE:
+					if (zend_hash_num_elements(&filter->lb_weight)) {
+						DBG_INF("Weighted load balancing");
+						use_lb_context = TRUE;
+						if (FAILURE == zend_hash_find(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **)&lb_context)) {
+							/* build sort list for weighted load balancing */
+
+							lb_context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), 1);
+							zend_llist_init(&lb_context->sort_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
+							lb_context->total_weight = 0;
+
+							if (SUCCESS != zend_hash_add(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, lb_context, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), NULL)) {
+								break;
+							}
+							/* fetch ptr to the data inside the HT */
+							if (SUCCESS != zend_hash_find(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, (void**)&lb_context)) {
+								break;
+							}
+							if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &lb_context->sort_list, l)) {
+								break;
+							}
+							zend_llist_sort(&lb_context->sort_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+
+							/* TODO: move total into MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT */
+							for (lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
+									(lb_weight_context_pp) && (lb_weight_context = *lb_weight_context_pp);
+									lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_next_ex(&lb_context->sort_list, &pos)) {
+								lb_context->total_weight += lb_weight_context->lb_weight->weight;
+							}
+
+						}
+						DBG_INF_FMT("Sort list has %d elements, total_weight = %d", zend_llist_count(&lb_context->sort_list), lb_context->total_weight);
+						if (0 == zend_llist_count(&lb_context->sort_list)) {
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+													  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once. The sort list is empty.");
+							break;
+						}
+
+					}
 					while (zend_llist_count(l) > 0) {
 						retry_count++;
 
 						rnd_idx = php_rand(TSRMLS_C);
-						RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
-						DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
-
-						element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
-						while (i++ < rnd_idx) {
-							element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
+						if (use_lb_context) {
+							RAND_RANGE(rnd_idx, 0, lb_context->total_weight, PHP_RAND_MAX);
+							DBG_INF_FMT("USE_SLAVE weighted, rnd_idx=%lu", rnd_idx);
+							for (i = 0, lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
+									(lb_weight_context_pp) && (lb_weight_context = *lb_weight_context_pp) && (i < rnd_idx);
+									lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_next_ex(&lb_context->sort_list, &pos)) {
+								i += lb_weight_context->lb_weight->weight;
+							}
+							connection = (lb_weight_context && (element = lb_weight_context->element) && element->conn) ? element->conn : NULL;
+						} else {
+							RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
+							DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
+							element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
+							while (i++ < rnd_idx) {
+								element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(l, &pos);
+							}
+							connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
 						}
-						connection = (element_pp && (element = *element_pp) && element->conn) ? element->conn : NULL;
+
+
 
 						if (!connection) {
 							/* Q: how can we get here? */

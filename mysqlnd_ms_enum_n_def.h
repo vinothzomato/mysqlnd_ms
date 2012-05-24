@@ -209,7 +209,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_G_TRX_FETCH_LAST_GTID 			"fetch_last_gtid"
 #define SECT_G_TRX_CHECK_FOR_GTID 			"check_for_gtid"
 #define SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT 	"wait_for_gtid_timeout"
-#define SECT_LB_WEIGHT						"weight"
+#define SECT_LB_WEIGHTS						"weights"
 
 typedef enum
 {
@@ -382,6 +382,13 @@ typedef struct st_mysqlnd_ms_filter_lb_weight_in_context
 } MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT;
 
 
+typedef struct st_mysqlnd_ms_filter_random_lb_context
+{
+	zend_llist sort_list;
+	unsigned int total_weight;
+} MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT;
+
+
 typedef struct st_mysqlnd_ms_filter_random_data
 {
 	MYSQLND_MS_FILTER_DATA parent;
@@ -390,6 +397,11 @@ typedef struct st_mysqlnd_ms_filter_random_data
 		HashTable slave_context;
 		zend_bool once;
 	} sticky;
+	HashTable lb_weight;
+	struct {
+		HashTable master_context;
+		HashTable slave_context;
+	} weight_context;
 } MYSQLND_MS_FILTER_RANDOM_DATA;
 
 

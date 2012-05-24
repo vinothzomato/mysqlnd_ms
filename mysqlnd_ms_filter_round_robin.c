@@ -50,22 +50,6 @@ mysqlnd_ms_filter_rr_context_dtor(void * data)
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_filter_lb_weigth_dtor */
-void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
-{
-	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
-	TSRMLS_FETCH();
-	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
-	/*
-	if (element) {
-		mnd_pefree(element, element->persistent);
-	}
-	*/
-	DBG_VOID_RETURN;
-}
-/* }}} */
-
-
 /* {{{ rr_filter_dtor */
 static void
 rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
@@ -98,12 +82,28 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, mysqlnd_ms_filter_rr_context_dtor, persistent);
 		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, mysqlnd_ms_filter_lb_weigth_dtor, persistent);
 
-		/* weights - { server : {weight: 1} [, server : {weight: 2} [, ...]] }*/
+		/* roundrobin => array(weights  => array(name => w, ... )) */
 		if (section &&
 			(TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&
 			TRUE == mysqlnd_ms_config_json_section_is_object_list(section TSRMLS_CC)))
 		{
-			mysqlnd_ms_filter_ctor_parse_weights_config(&ret->lb_weight, PICK_RROBIN, section, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
+			struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
+			do {
+				char * current_subsection_name = NULL;
+				size_t current_subsection_name_len = 0;
+
+				subsection = mysqlnd_ms_config_json_next_sub_section(section,
+																	&current_subsection_name,
+																	&current_subsection_name_len,
+																	NULL TSRMLS_CC);
+				if (!subsection) {
+					break;
+				}
+				if (!strcmp(current_subsection_name, SECT_LB_WEIGHTS)) {
+					mysqlnd_ms_filter_ctor_load_weights_config(&ret->lb_weight, PICK_RROBIN, subsection, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
+					break;
+				}
+			} while (1);
 		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);

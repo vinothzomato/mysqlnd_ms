@@ -35,7 +35,23 @@
 #include "mysqlnd_ms_enum_n_def.h"
 
 
-void mysqlnd_ms_filter_ctor_parse_weights_config(HashTable * lb_weights_list, const char * filter_name, struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+/* {{{ mysqlnd_ms_filter_lb_weigth_dtor */
+void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
+{
+	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
+	TSRMLS_FETCH();
+	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
+	/*
+	if (element) {
+		mnd_pefree(element, element->persistent);
+	}
+	*/
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const char * filter_name, struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 	struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
@@ -46,7 +62,7 @@ void mysqlnd_ms_filter_ctor_parse_weights_config(HashTable * lb_weights_list, co
 	char * fingerprint;
 	int num_servers = 0;
 	int num_weight_infos = 0;
-	DBG_ENTER("mysqlnd_ms_filter_ctor_parse_weights_config");
+	DBG_ENTER("mysqlnd_ms_filter_ctor_load_weights_config");
 
 	/* Build server hash table */
 	zend_hash_init(&server_names, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
@@ -99,14 +115,15 @@ void mysqlnd_ms_filter_ctor_parse_weights_config(HashTable * lb_weights_list, co
 				E_RECOVERABLE_ERROR TSRMLS_CC,
 				MYSQLND_MS_ERROR_PREFIX " Unknown server '%s' in '%s' filter configuration. Stopping", current_subsection_name, filter_name);
 		}
-		weight = mysqlnd_ms_config_json_int_from_section(subsection, SECT_LB_WEIGHT,
-														 sizeof(SECT_LB_WEIGHT) - 1, 0,
+		weight = mysqlnd_ms_config_json_int_from_section(section, current_subsection_name,
+														 current_subsection_name_len, 0,
 														 &value_exists, &is_list_value TSRMLS_CC);
+
 		if (value_exists) {
 			if ((weight < 0) || (weight > 65535)) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 					 E_RECOVERABLE_ERROR TSRMLS_CC,
-					MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_LB_WEIGHT" '%i' . Stopping", weight);
+					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for weight. Stopping", weight);
 			} else {
 				MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 
