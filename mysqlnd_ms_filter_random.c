@@ -128,6 +128,7 @@ mysqlnd_ms_random_remove_conn(void * element, void * data) {
 }
 /* }}} */
 
+
 /* {{{ mysqlnd_ms_random_sort_list_remove_conn */
 static int
 mysqlnd_ms_random_sort_list_remove_conn(void * element, void * data) {
@@ -140,6 +141,43 @@ mysqlnd_ms_random_sort_list_remove_conn(void * element, void * data) {
 }
 /* }}} */
 
+
+/* {{{ mysqlnd_ms_init_sort_context */
+static int mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, zend_llist * server_list, HashTable * lb_weight, zend_llist * sort_list, unsigned int * total_weight TSRMLS_DC) {
+	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
+	zend_llist_position	pos;
+	DBG_ENTER("mysqlnd_ms_init_sort_list");
+
+	lb_context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), 1);
+	zend_llist_init(sort_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
+	lb_context->total_weight = 0;
+
+	if (SUCCESS != zend_hash_add(context, fprint->c, fprint->len /*\0 counted*/, lb_context, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), NULL)) {
+		DBG_RETURUN(FAIL);
+	}
+	/* fetch ptr to the data inside the HT */
+	if (SUCCESS != zend_hash_find(context, fprint->c, fprint->len /*\0 counted*/, (void**)&lb_context)) {
+		DBG_RETURN(FAIL);
+	}
+	if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(lb_weight, &lb_context->sort_list, server_list)) {
+		DBG_RETURN(FAIL);
+	}
+	zend_llist_sort(&lb_context->sort_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+
+	/* TODO: Move total counter into MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT ? */
+	for (lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
+		(lb_weight_context_pp) && (lb_weight_context = *lb_weight_context_pp);
+		lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_next_ex(&lb_context->sort_list, &pos))
+	{
+		lb_context->total_weight += lb_weight_context->lb_weight->weight;
+	}
+	/* we must copy as we remove entries during retry */
+	zend_llist_copy(sort_list, &lb_context->sort_list TSRMLS_CC);
+	*total_weight = lb_context->total_weight;
+	DBG_RETURN(SUCCESS);
+}
+/* }}} */
 
 
 /* {{{ mysqlnd_ms_choose_connection_random */
@@ -197,8 +235,8 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			MYSQLND_CONN_DATA * connection = NULL;
 			MYSQLND_CONN_DATA ** context_pos;
 			MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
-			zend_bool use_lb_context = FALSE;
 			MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
+			zend_bool use_lb_context = FALSE;
 			zend_llist sort_list;
 			unsigned int total_weight;
 
@@ -240,32 +278,9 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 						use_lb_context = TRUE;
 						if (FAILURE == zend_hash_find(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **)&lb_context)) {
 							/* build sort list for weighted load balancing */
-
-							lb_context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), 1);
-							zend_llist_init(&lb_context->sort_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
-							lb_context->total_weight = 0;
-
-							if (SUCCESS != zend_hash_add(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, lb_context, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), NULL)) {
+							if (SUCCESS != mysqlnd_ms_init_sort_context(&filter->weight_context.slave_context, &fprint, l, &filter->lb_weight, &sort_list, &total_weight TSRMLS_CC)) {
 								break;
 							}
-							/* fetch ptr to the data inside the HT */
-							if (SUCCESS != zend_hash_find(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, (void**)&lb_context)) {
-								break;
-							}
-							if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &lb_context->sort_list, l)) {
-								break;
-							}
-							zend_llist_sort(&lb_context->sort_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
-
-							/* TODO: Move total counter into MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT ? */
-							for (lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
-									(lb_weight_context_pp) && (lb_weight_context = *lb_weight_context_pp);
-									lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_next_ex(&lb_context->sort_list, &pos)) {
-								lb_context->total_weight += lb_weight_context->lb_weight->weight;
-							}
-							/* we must copy as we remove entries during retry */
-							zend_llist_copy(&sort_list, &lb_context->sort_list TSRMLS_CC);
-							total_weight = lb_context->total_weight;
 						} else {
 							zend_llist_copy(&sort_list, &lb_context->sort_list TSRMLS_CC);
 							total_weight = lb_context->total_weight;
@@ -444,32 +459,10 @@ use_master:
 						use_lb_context = TRUE;
 						if (FAILURE == zend_hash_find(&filter->weight_context.master_context, fprint.c, fprint.len /*\0 counted*/, (void **)&lb_context)) {
 							/* build sort list for weighted load balancing */
-
-							lb_context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), 1);
-							zend_llist_init(&lb_context->sort_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
-							lb_context->total_weight = 0;
-
-							if (SUCCESS != zend_hash_add(&filter->weight_context.master_context, fprint.c, fprint.len /*\0 counted*/, lb_context, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), NULL)) {
+							if (SUCCESS != mysqlnd_ms_init_sort_context(&filter->weight_context.master_context, &fprint, l, &filter->lb_weight, &sort_list, &total_weight TSRMLS_CC)) {
 								break;
 							}
-							/* fetch ptr to the data inside the HT */
-							if (SUCCESS != zend_hash_find(&filter->weight_context.master_context, fprint.c, fprint.len /*\0 counted*/, (void**)&lb_context)) {
-								break;
-							}
-							if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &lb_context->sort_list, l)) {
-								break;
-							}
-							zend_llist_sort(&lb_context->sort_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
 
-							/* TODO: Move total counter into MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT ? */
-							for (lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
-									(lb_weight_context_pp) && (lb_weight_context = *lb_weight_context_pp);
-									lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_next_ex(&lb_context->sort_list, &pos)) {
-								lb_context->total_weight += lb_weight_context->lb_weight->weight;
-							}
-							/* we must copy as we remove entries during retry */
-							zend_llist_copy(&sort_list, &lb_context->sort_list TSRMLS_CC);
-							total_weight = lb_context->total_weight;
 						} else {
 							zend_llist_copy(&sort_list, &lb_context->sort_list TSRMLS_CC);
 							total_weight = lb_context->total_weight;
