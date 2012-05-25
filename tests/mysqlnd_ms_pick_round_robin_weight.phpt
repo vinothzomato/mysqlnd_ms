@@ -43,7 +43,7 @@ $settings = array(
 				'socket' => $emulated_slave_socket
 			),
 		),
-		'pick' => array('roundrobin' => array("slave1" => array("weight" => 1), "slave2" => array("weight" => 3), "master1" => array("weight" => 3))),
+		'pick' => array('roundrobin' => array("weights" => array("slave1" => 1, "slave2" => 3, "master1" => 3))),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin_weight.ini", $settings))
@@ -58,7 +58,6 @@ mysqlnd_ms.enable=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_pick_round_robin_weight.ini
 mysqlnd_ms.multi_master=1
 mysqlnd_ms.disable_rw_split=1
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -99,7 +98,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_pick_round_robin_weight.ini"))
+	if (!unlink("test_mysqlnd_ms_pick_round_robin_weight.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_round_robin_weight.ini'.\n");
 ?>
 --EXPECTF--
