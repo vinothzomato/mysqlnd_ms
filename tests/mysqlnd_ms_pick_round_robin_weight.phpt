@@ -106,9 +106,9 @@ Call 1 - %d - no change
 Call 2 - %d - no change
 Call 3 - %d - change
 Call 4 - %d - change
-Call 5 - %d - no change
-Call 6 - %d - no change
-Call 7 - %d - change
+Call 5 - %d - change
+Call 6 - %d - change
+Call 7 - %d - no change
 Call 8 - %d - change
-Call 9 - %d - no change
+Call 9 - %d - change
 done!

@@ -67,6 +67,15 @@ rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_filter_rr_reset_current_weight */
+static void mysqlnd_ms_filter_rr_reset_current_weight(void * data TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * context = *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **) data;
+	context->lb_weight->current_weight = context->lb_weight->weight;
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_rr_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
 mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
@@ -213,22 +222,60 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					zend_llist_position	tmp_pos;
 					MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 					DBG_INF("Sorting");
+					/*
+					Round 0, sort list
+					slave 1, current_weight 3 -->  pick, current_weight--
+					slave 2, current_weight 2
+					slave 3, current_weight 1
 
-					zend_llist_sort(&context->weight_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
-					lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
+					Round 1, sort list
+					slave 1, current_weight 2 --> pick, current_weight--
+					slave 2, current_weight 2
+					slave 3, current_weight 1
 
-					if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
-						element = lb_weight_context->element;
-						DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
-						lb_weight_context->lb_weight->current_weight--;
-						if (0 == lb_weight_context->lb_weight->current_weight) {
-							/* reset */
-							lb_weight_context->lb_weight->current_weight = lb_weight_context->lb_weight->weight;
-							DBG_INF_FMT("resetting weight counter to %d", lb_weight_context->lb_weight->current_weight);
+					Round 2, sort list
+					slave 2, current_weight 2 --> pick, current_weight--
+					slave 1, current_weight 1
+					slave 3, current_weight 1
+					  NOTE: slave 1, slave 3 ordering is undefined/implementation dependent!
+
+					Round 3, sort list
+					slave 2, current_weight 1 --> pick, current_weight--, reset
+					slave 1, current_weight 1
+					slave 3, current_weight 1
+
+					Round 4, sort list
+					slave 1, current_weight 1 --> pick, current_weight--
+					slave 3, current_weight 1
+					slave 2, current_weight 0
+
+					Round 5, sort list
+					slave 3, current_weight 1 --> pick, current_weight--
+					slave 2, current_weight 0
+					slave 1, current_weight 0
+
+					Round 6, sort list
+					slave 3, current_weight 0 --> RESET -> 1 --> sort again
+					slave 2, current_weight 0           -> 2
+					slave 1, current_weight 0           -> 3
+					*/
+					do {
+						zend_llist_sort(&context->weight_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+						lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
+
+						if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
+							element = lb_weight_context->element;
+							DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
+							if (0 == lb_weight_context->lb_weight->current_weight) {
+								/* RESET */
+								zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_DC);
+								continue;
+							}
+							lb_weight_context->lb_weight->current_weight--;
+						} else {
+							DBG_INF("Sorting failed");
 						}
-					} else {
-						DBG_INF("Sorting failed");
-					}
+					} while (0);
 				} else	{
 					BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
 						if (i == *pos) {
@@ -393,21 +440,24 @@ use_master:
 					MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 					DBG_INF("USE_MASTER sorting");
 
-					zend_llist_sort(&context->weight_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
-					lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
+					do {
+						zend_llist_sort(&context->weight_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+						lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
 
-					if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
-						element = lb_weight_context->element;
-						DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
-						lb_weight_context->lb_weight->current_weight--;
-						if (0 == lb_weight_context->lb_weight->current_weight) {
-							/* reset */
-							lb_weight_context->lb_weight->current_weight = lb_weight_context->lb_weight->weight;
-							DBG_INF_FMT("resetting weight counter to %d", lb_weight_context->lb_weight->current_weight);
+						if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
+							element = lb_weight_context->element;
+							DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
+							if (0 == lb_weight_context->lb_weight->current_weight) {
+								/* RESET */
+								zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_DC);
+								continue;
+							}
+							lb_weight_context->lb_weight->current_weight--;
+						} else {
+							DBG_INF("Sorting failed");
 						}
-					} else {
-						DBG_INF("Sorting failed");
-					}
+					} while (0);
+
 				} else	{
 					DBG_INF_FMT("USE_MASTER pos=%lu", *pos);
 					i = 0;
