@@ -470,7 +470,6 @@
       <file name="mysqlnd_query_parser.c" role="src"/>
       <file name="mysqlnd_query_parser.grammar" role="src"/>
       <file name="mysqlnd_query_parser.h" role="src"/>
-      <file name="package.xml" role="src"/>
       <file name="php_mysqlnd_ms.c" role="src"/>
       <file name="php_mysqlnd_ms.h" role="src"/>
       <file name="README" role="doc"/>
