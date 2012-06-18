@@ -1,5 +1,5 @@
 --TEST--
-Round robin, weights
+Round robin, weights (master list)
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -24,14 +24,14 @@ if (true == $ret)
 
 $settings = array(
 	"myapp" => array(
-		'master' => array(
+		'slave' => array(
 			"master1" => array(
 				'host' 	=> $emulated_master_host_only,
 				'port'	=> (int)$emulated_master_port,
 				'socket' => $emulated_master_socket
 			),
 		),
-		'slave' => array(
+		'master' => array(
 			"slave1" => array(
 				'host' 	=> $emulated_slave_host_only,
 				'port' 	=> (int)$emulated_slave_port,
@@ -46,7 +46,7 @@ $settings = array(
 		'pick' => array('roundrobin' => array("weights" => array("slave1" => 1, "slave2" => 4, "master1" => 3))),
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin_weight.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin_weight_master.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 
@@ -55,7 +55,9 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_pick_round_robin_weight.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_pick_round_robin_weight_master.ini
+mysqlnd_ms.disable_rw_split=1
+mysqlnd_ms.multi_master=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -100,10 +102,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_round_robin_weight.ini
 	monitor_connection_id($link);
 	monitor_connection_id($link);
 	monitor_connection_id($link);
-
-	/* can a master access fool us? */
-	mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test");
-
+	/* testing slave access is not possible - would go to master */
 	monitor_connection_id($link);
 	monitor_connection_id($link);
 	monitor_connection_id($link);
@@ -137,8 +136,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_round_robin_weight.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_pick_round_robin_weight.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_round_robin_weight.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_pick_round_robin_weight_master.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_round_robin_weight_master.ini'.\n");
 ?>
 --EXPECTF--
 Call 1 - %d - 1 -  no change
