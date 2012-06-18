@@ -190,8 +190,8 @@ int mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llis
 /* {{{ mysqlnd_ms_sort_weights_context_list */
 int mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const zend_llist_element ** el2 TSRMLS_DC)
 {
-	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w1 = (el1) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el1)->data) : NULL;
-	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w2 = (el2) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el2)->data) : NULL;
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w1 = (el1 && *el1 && (*el1)->data) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el1)->data) : NULL;
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w2 = (el2 && *el2 && (*el2)->data) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el2)->data) : NULL;
 	int ret = 0;
 
 	DBG_ENTER("mysqlnd_ms_sort_weights_context_list");
