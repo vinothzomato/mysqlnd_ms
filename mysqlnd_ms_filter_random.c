@@ -154,7 +154,7 @@ static int mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, 
 	lb_context->total_weight = 0;
 
 	if (SUCCESS != zend_hash_add(context, fprint->c, fprint->len /*\0 counted*/, lb_context, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), NULL)) {
-		DBG_RETURUN(FAIL);
+		DBG_RETURN(FAIL);
 	}
 	/* fetch ptr to the data inside the HT */
 	if (SUCCESS != zend_hash_find(context, fprint->c, fprint->len /*\0 counted*/, (void**)&lb_context)) {
