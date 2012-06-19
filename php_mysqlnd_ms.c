@@ -588,6 +588,9 @@ static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("json")
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
 	ZEND_MOD_REQUIRED("mysqlnd_qc")
+#else
+	/* ensure proper plugin load order for lazy */
+	ZEND_MOD_OPTIONAL("mysqlnd_qc")
 #endif
 	{NULL, NULL, NULL}
 };
