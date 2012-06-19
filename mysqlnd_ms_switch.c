@@ -193,8 +193,9 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 			if (value_exists) {
 				if ((failover_max_retries < 0) || (failover_max_retries > 65535)) {
-					/* 1.3 behaviour: try only one alternative */
-					strategies->failover_max_retries = 1;
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					 E_RECOVERABLE_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for max_retries. Stopping", failover_max_retries);
 				} else {
 					strategies->failover_max_retries = (uint)failover_max_retries;
 				}
