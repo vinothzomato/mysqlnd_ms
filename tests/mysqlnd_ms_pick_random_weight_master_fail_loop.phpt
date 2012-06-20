@@ -17,14 +17,14 @@ include_once("util.inc");
 
 $settings = array(
 	"myapp" => array(
-		'master' => array(
+		'slave' => array(
 			"master1" => array(
 				'host' 	=> $emulated_master_host_only,
 				'port'	=> (int)$emulated_master_port,
 				'socket' => $emulated_master_socket
 			),
 		),
-		'slave' => array(
+		'master' => array(
 			"slave1" => array(
 				'host' 	=> $emulated_slave_host_only,
 				'port' 	=> (int)$emulated_slave_port,
@@ -42,17 +42,19 @@ $settings = array(
 			),
 		),
 		'pick' => array('random' => array("weights" => array("slave1" => 8, "slave2" => 4, "slave3" => 1, "master1" => 3))),
-		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => 0),
+		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => 2, ),
 
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_pick_random_weight.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini
+mysqlnd_ms.multi_master=1
+mysqlnd_ms.disable_rw_split=1
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -63,7 +65,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight.ini
 
 	$servers = array();
 	for ($i = 0; $i < 100; $i++) {
-		$row = @$link->query("SELECT CONNECTION_ID() AS _id FROM DUAL")->fetch_assoc();
+		$row = $link->query("SELECT CONNECTION_ID() AS _id FROM DUAL")->fetch_assoc();
 		if (!isset($servers[$row['_id']])) {
 			$servers[$row['_id']] = 1;
 		} else {
@@ -87,8 +89,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight.ini
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_pick_random_weight.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_weight.ini'.\n");
+	if (0 && !unlink("test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini'.\n");
 ?>
 --EXPECTF--
 %d - %d

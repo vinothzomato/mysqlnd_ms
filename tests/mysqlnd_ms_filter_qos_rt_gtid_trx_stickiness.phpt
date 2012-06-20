@@ -28,7 +28,7 @@ $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
-if ($error = mst_mysqli_drop_gtid_table($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket))
+if ($error = mst_mysqli_setup_gtid_table($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket))
 	die(sprintf("SKIP Failed to drop GTID table on slave %s\n", $error));
 
 $settings = array(
@@ -56,6 +56,12 @@ $settings = array(
 			'check_for_gtid'			=> $sql['check_for_gtid'],
 			'report_error'				=> true,
 		),
+		'filters' => array(
+			"quality_of_service" => array(
+				"session_consistency" => 1,
+			),
+			"random" => array(),
+		),
 
 	),
 
@@ -78,10 +84,12 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_tr_gtid_trx_stickiness.ini
 	if (mysqli_connect_errno()) {
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
-
-	if ($res = mst_mysqli_query(2, $link, "SELECT 2 FROM DUAL")) {
+	if ($res = mst_mysqli_query(2, $link, "DROP TABLE IF EXISTS test")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(3, $link));
 	}
+	$gtid = mysqlnd_ms_get_last_gtid($link);
+	mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION,  MYSQLND_MS_QOS_OPTION_GTID, $gtid);
+
 	/* its only about in_transaction flag, we don't need to test all combinations */
 	if (!$link->autocommit(false)) {
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
@@ -89,6 +97,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_tr_gtid_trx_stickiness.ini
 	if (mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(5, $link));
 	}
+
 	if ($res = mst_mysqli_query(6, $link, "SELECT 6 FROM DUAL")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(7, $link));
 	}
@@ -113,9 +122,9 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_tr_gtid_trx_stickiness.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_tr_gtid_trx_stickiness.ini'.\n");
 ?>
 --EXPECTF--
-Server: slave1-%d
 Server: master1-%d
 Server: master1-%d
-Server: slave1-%d
+Server: master1-%d
+Server: master1-%d
 Server: master1-%d
 done!

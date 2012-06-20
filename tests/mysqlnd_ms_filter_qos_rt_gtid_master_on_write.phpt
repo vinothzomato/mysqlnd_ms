@@ -28,7 +28,7 @@ $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
-if ($error = mst_mysqli_drop_gtid_table($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket))
+if ($error = mst_mysqli_setup_gtid_table($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket))
 	die(sprintf("SKIP Failed to drop GTID table on slave %s\n", $error));
 
 $settings = array(
@@ -86,6 +86,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_master_on_write.ini
 	if (mst_mysqli_query(4, $link, "DROP TABLE IF EXISTS test")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(5, $link));
 	}
+
 	if ($res = mst_mysqli_query(6, $link, "SELECT 6 FROM DUAL")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(7, $link));
 	}
@@ -93,6 +94,9 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_master_on_write.ini
 	if ($res = mst_mysqli_query(7, $link, "DROP TABLE IF EXISTS test")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(8, $link));
 	}
+
+	$gtid = mysqlnd_ms_get_last_gtid($link);
+	mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION,  MYSQLND_MS_QOS_OPTION_GTID, $gtid);
 
 	if ($res = mst_mysqli_query(9, $link, "SELECT 9 FROM DUAL")) {
 		printf("Server: %s\n", mst_mysqli_get_emulated_id(10, $link));
