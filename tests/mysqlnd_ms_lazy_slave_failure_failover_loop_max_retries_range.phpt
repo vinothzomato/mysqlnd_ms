@@ -16,7 +16,7 @@ $settings = array(
 		'slave' => array("unreachable:6033", $emulated_slave_host),
 		'pick' 	=> array('random' => array('sticky' => '1')),
 		'lazy_connections' => 1,
-		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => -1),
+		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => (-1 * PHP_INT_MAX) - 1.1),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_slave_failure_failover_loop_max_retries_range.ini", $settings))
@@ -42,5 +42,5 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_max_retr
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_max_retries_range.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value '-1' for max_retries. Stopping in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value '-%d' for max_retries. Stopping in %s on line %d
 done!
