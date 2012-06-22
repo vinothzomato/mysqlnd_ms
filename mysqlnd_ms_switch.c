@@ -190,7 +190,7 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 
 	DBG_ENTER("mysqlnd_ms_lb_strategy_setup");
 	{
-		struct st_mysqlnd_ms_config_json_entry * failover_section = mysqlnd_ms_config_json_sub_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,  &value_exists);
+		struct st_mysqlnd_ms_config_json_entry * failover_section = mysqlnd_ms_config_json_sub_section(the_section, FAILOVER_NAME, sizeof(FAILOVER_NAME) - 1,  &value_exists TSRMLS_CC);
 
 		strategies->failover_strategy 			= DEFAULT_FAILOVER_STRATEGY;
 		strategies->failover_max_retries 		= DEFAULT_FAILOVER_MAX_RETRIES;
