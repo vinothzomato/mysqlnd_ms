@@ -41,11 +41,11 @@ void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
 	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
 	TSRMLS_FETCH();
 	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
-	/*
+/*
 	if (element) {
 		mnd_pefree(element, element->persistent);
 	}
-	*/
+*/
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -71,7 +71,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 		entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_connections, &pos)) {
 
-		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
+		mysqlnd_ms_get_fingerprint_element(&fprint_conn, entry_pp TSRMLS_CC);
 		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
 			fprint_conn.c, fprint_conn.len, NULL)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
@@ -86,7 +86,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 		entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_connections, &pos)) {
 
-		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
+		mysqlnd_ms_get_fingerprint_element(&fprint_conn, entry_pp TSRMLS_CC);
 		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
 			fprint_conn.c, fprint_conn.len, NULL)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
@@ -110,6 +110,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 			break;
 		}
 
+		fingerprint = NULL;
 		if (SUCCESS != zend_hash_find(&server_names, current_subsection_name, current_subsection_name_len, (void **)&fingerprint)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 				E_RECOVERABLE_ERROR TSRMLS_CC,
@@ -124,6 +125,10 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 					 E_RECOVERABLE_ERROR TSRMLS_CC,
 					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for weight. Stopping", weight);
+			} else if (NULL == fingerprint) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					 E_RECOVERABLE_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Fingerprint is empty. Please, report a bug. Stopping");
 			} else {
 				MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 
@@ -132,6 +137,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 				weight_entry->weight = weight_entry->current_weight = weight;
 				weight_entry->persistent = persistent;
 				if (SUCCESS != zend_hash_add(lb_weights_list, fingerprint, strlen(fingerprint) + 1, weight_entry, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), NULL)) {
+					DBG_INF_FMT("fingerprint=%s\n", fingerprint);
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 						E_RECOVERABLE_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Failed to create internal weights lookup table for filter '%s'. Stopping", filter_name);
@@ -166,7 +172,7 @@ int mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llis
 
 	DBG_INF("Building sort list");
 	BEGIN_ITERATE_OVER_SERVER_LIST(element, server_list);
-		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
+		mysqlnd_ms_get_fingerprint_element(&fprint_conn, &element TSRMLS_CC);
 		retval = zend_hash_find(lb_weights_list, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void**) &weight_entry);
 		if (SUCCESS == retval) {
 			/* persistent needed in weight entry - could take from element/conn */

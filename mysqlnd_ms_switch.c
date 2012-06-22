@@ -129,6 +129,31 @@ mysqlnd_ms_get_fingerprint_connection(smart_str * context, MYSQLND_MS_LIST_DATA 
 }
 /* }}} */
 
+/* {{{ mysqlnd_ms_get_fingerprint_element */
+void
+mysqlnd_ms_get_fingerprint_element(smart_str * context, MYSQLND_MS_LIST_DATA ** d TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_get_fingerprint_element");
+	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
+	char ptr_buf[SIZEOF_SIZE_T + 1];
+	if (data) {
+#if SIZEOF_SIZE_T == 8
+		int8store(ptr_buf, (size_t) data);
+#elif SIZEOF_SIZE_T == 4
+		int4store(ptr_buf, (size_t) data);
+#else
+#error Unknown platform
+#endif
+		ptr_buf[SIZEOF_SIZE_T] = '\0';
+		smart_str_appendl(context, ptr_buf, SIZEOF_SIZE_T);
+	}
+ 	smart_str_appendc(context, '\0');
+	DBG_INF_FMT("len=%d", context->len);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 
 /* {{{ mysqlnd_ms_filter_list_dtor */
 static void

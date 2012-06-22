@@ -512,6 +512,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 				END_ITERATE_OVER_SERVER_LIST;
 				break;
 			}
+			DBG_INF("fall-through from session consistency");
 		case CONSISTENCY_STRONG:
 			/*
 			For now and forever...
