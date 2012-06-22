@@ -133,9 +133,9 @@ mysqlnd_ms_get_fingerprint_connection(smart_str * context, MYSQLND_MS_LIST_DATA 
 void
 mysqlnd_ms_get_fingerprint_element(smart_str * context, MYSQLND_MS_LIST_DATA ** d TSRMLS_DC)
 {
-	DBG_ENTER("mysqlnd_ms_get_fingerprint_element");
 	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
 	char ptr_buf[SIZEOF_SIZE_T + 1];
+	DBG_ENTER("mysqlnd_ms_get_fingerprint_element");
 	if (data) {
 #if SIZEOF_SIZE_T == 8
 		int8store(ptr_buf, (size_t) data);

@@ -161,7 +161,7 @@ static int mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, 
 		DBG_RETURN(FAIL);
 	}
 
-	if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(lb_weight, &lb_context->sort_list, server_list)) {
+	if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(lb_weight, &lb_context->sort_list, server_list TSRMLS_CC)) {
 		DBG_RETURN(FAIL);
 	}
 
@@ -176,7 +176,7 @@ static int mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, 
 
 	/* we must copy as we remove entries during retry */
 	zend_llist_init(sort_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL /* dtor */, 1);
-	zend_llist_copy(sort_list, &lb_context->sort_list TSRMLS_CC);
+	zend_llist_copy(sort_list, &lb_context->sort_list);
 	*total_weight = lb_context->total_weight;
 
 	DBG_RETURN(SUCCESS);
@@ -286,7 +286,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 								break;
 							}
 						} else {
-							zend_llist_copy(&sort_list, &lb_context->sort_list TSRMLS_CC);
+							zend_llist_copy(&sort_list, &lb_context->sort_list);
 							total_weight = lb_context->total_weight;
 						}
 						DBG_INF_FMT("Sort list has %d elements, total_weight = %d", zend_llist_count(&sort_list), total_weight);
@@ -468,7 +468,7 @@ use_master:
 							}
 
 						} else {
-							zend_llist_copy(&sort_list, &lb_context->sort_list TSRMLS_CC);
+							zend_llist_copy(&sort_list, &lb_context->sort_list);
 							total_weight = lb_context->total_weight;
 						}
 						DBG_INF_FMT("Sort list has %d elements, total_weight = %d", zend_llist_count(&sort_list), total_weight);

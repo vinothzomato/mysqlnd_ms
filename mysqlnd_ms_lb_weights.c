@@ -33,6 +33,7 @@
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_enum_n_def.h"
+#include "mysqlnd_ms_config_json.h"
 
 
 /* {{{ mysqlnd_ms_filter_lb_weigth_dtor */
@@ -161,7 +162,8 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 }
 
 
-int mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * lb_sort_list, zend_llist * server_list) {
+int
+mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * lb_sort_list, zend_llist * server_list TSRMLS_DC) {
 	int retval = FAILURE;
 	MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 	smart_str fprint_conn = {0};

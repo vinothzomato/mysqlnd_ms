@@ -34,18 +34,19 @@
 #include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_lb_weights.h"
+#include "mysqlnd_ms_config_json.h"
 
 /* {{{ mysqlnd_ms_filter_rr_context_dtor */
 static void
 mysqlnd_ms_filter_rr_context_dtor(void * data)
 {
+#if U0
 	MYSQLND_MS_FILTER_RR_CONTEXT * context = * (MYSQLND_MS_FILTER_RR_CONTEXT **) data;
 	TSRMLS_FETCH();
-	/*
 	if (context) {
 		mnd_pefree(context, 1);
 	}
-	*/
+#endif
 }
 /* }}} */
 
@@ -203,7 +204,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					pos = &(context->pos);
 					if (zend_hash_num_elements(&filter->lb_weight)) {
 						/* sort list for weighted load balancing */
-						if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l)) {
+						if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
 							break;
 						}
 						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
@@ -268,7 +269,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 							DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
 							if (0 == lb_weight_context->lb_weight->current_weight) {
 								/* RESET */
-								zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_DC);
+								zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_CC);
 								continue;
 							}
 							lb_weight_context->lb_weight->current_weight--;
@@ -412,7 +413,7 @@ use_master:
 					pos = &(context->pos);
 					if (zend_hash_num_elements(&filter->lb_weight)) {
 						/* sort list for weighted load balancing */
-						if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l)) {
+						if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
 							break;
 						}
 						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
@@ -449,7 +450,7 @@ use_master:
 							DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
 							if (0 == lb_weight_context->lb_weight->current_weight) {
 								/* RESET */
-								zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_DC);
+								zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_CC);
 								continue;
 							}
 							lb_weight_context->lb_weight->current_weight--;
