@@ -66,6 +66,5 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight_list_length_error.ini
 ?>
 --EXPECTF--
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown server 'slave3' in 'random' filter configuration. Stopping in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Failed to create internal weights lookup table for filter 'random'. Stopping in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) You must specify the load balancing weight for none or all configured servers. There is no default weight yet. Stopping in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Fingerprint is empty. Did you ignore an error about an unknown server? Stopping in %s on line %d
 done!

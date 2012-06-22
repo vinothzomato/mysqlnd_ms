@@ -129,7 +129,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 			} else if (NULL == fingerprint) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 					 E_RECOVERABLE_ERROR TSRMLS_CC,
-					MYSQLND_MS_ERROR_PREFIX " Fingerprint is empty. Please, report a bug. Stopping");
+					MYSQLND_MS_ERROR_PREFIX " Fingerprint is empty. Did you ignore an error about an unknown server? Stopping");
 			} else {
 				MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 
