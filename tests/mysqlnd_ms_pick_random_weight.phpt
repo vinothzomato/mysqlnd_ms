@@ -93,5 +93,4 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight.ini
 --EXPECTF--
 %d - %d
 %d - %d
-%d - %d
 done!

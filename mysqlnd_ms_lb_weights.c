@@ -72,7 +72,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 		entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_connections, &pos)) {
 
-		mysqlnd_ms_get_fingerprint_element(&fprint_conn, entry_pp TSRMLS_CC);
+		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
 		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
 			fprint_conn.c, fprint_conn.len, NULL)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
@@ -87,7 +87,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 		entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_connections, &pos)) {
 
-		mysqlnd_ms_get_fingerprint_element(&fprint_conn, entry_pp TSRMLS_CC);
+		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
 		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
 			fprint_conn.c, fprint_conn.len, NULL)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
@@ -142,7 +142,7 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 						E_RECOVERABLE_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Failed to create internal weights lookup table for filter '%s'. Stopping", filter_name);
-					}
+				}
 				num_weight_infos++;
 			}
 		}
@@ -174,7 +174,7 @@ mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * 
 
 	DBG_INF("Building sort list");
 	BEGIN_ITERATE_OVER_SERVER_LIST(element, server_list);
-		mysqlnd_ms_get_fingerprint_element(&fprint_conn, &element TSRMLS_CC);
+		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 		retval = zend_hash_find(lb_weights_list, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void**) &weight_entry);
 		if (SUCCESS == retval) {
 			/* persistent needed in weight entry - could take from element/conn */

@@ -1,5 +1,5 @@
 --TEST--
-Round robin, weights
+Round robin, weights, master w failure
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -35,14 +35,16 @@ $settings = array(
 				'port' 	=> (int)$emulated_slave_port,
 				'socket' => $emulated_slave_socket
 			),
+
 			"slave3" =>  array(
 				'host' 	=> "lalala",
 				'port' 	=> 0,
 				'socket' => "/kein/anschluss/unter/dieser.nummer"
 			),
+
 		),
 		'pick' => array('random' => array("weights" => array("slave1" => 8, "slave2" => 4, "slave3" => 1, "master1" => 3))),
-		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => 2, ),
+		'failover' => array('strategy' => 'loop_before_master', 'max_retries' => 0, ),
 
 	),
 );
@@ -65,7 +67,8 @@ mysqlnd_ms.disable_rw_split=1
 
 	$servers = array();
 	for ($i = 0; $i < 100; $i++) {
-		$row = $link->query("SELECT CONNECTION_ID() AS _id FROM DUAL")->fetch_assoc();
+		$res = mst_mysqli_query($i + 2, $link, "SELECT CONNECTION_ID() AS _id FROM DUAL", NULL, true, false, false, true);
+		$row = $res->fetch_assoc();
 		if (!isset($servers[$row['_id']])) {
 			$servers[$row['_id']] = 1;
 		} else {
@@ -89,11 +92,10 @@ mysqlnd_ms.disable_rw_split=1
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini"))
+	if (!unlink("test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_weight_master_fail_loop.ini'.\n");
 ?>
 --EXPECTF--
-%d - %d
 %d - %d
 %d - %d
 done!

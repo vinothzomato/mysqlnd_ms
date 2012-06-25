@@ -154,14 +154,17 @@ static int mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, 
 	lb_context->total_weight = 0;
 
 	if (SUCCESS != zend_hash_add(context, fprint->c, fprint->len /*\0 counted*/, lb_context, sizeof(MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT), NULL)) {
+		DBG_INF("Failed to add context");
 		DBG_RETURN(FAIL);
 	}
 	/* fetch ptr to the data inside the HT */
 	if (SUCCESS != zend_hash_find(context, fprint->c, fprint->len /*\0 counted*/, (void**)&lb_context)) {
+		DBG_INF_FMT("Failed to get ptr to context - fingerprint='%s' len=%d", fprint->c, fprint->len);
 		DBG_RETURN(FAIL);
 	}
 
 	if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(lb_weight, &lb_context->sort_list, server_list TSRMLS_CC)) {
+		DBG_INF("Failed to populate weights sort list");
 		DBG_RETURN(FAIL);
 	}
 
@@ -354,6 +357,10 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 									smart_str_free(&fprint);
 									smart_str_free(&fprint_conn);
 									zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
+									if (use_lb_context) {
+										total_weight -= lb_weight_context->lb_weight->weight;
+										zend_llist_del_element(&sort_list, element, mysqlnd_ms_random_sort_list_remove_conn);
+									}
 									DBG_INF("Skipping previously failed connection");
 									continue;
 								}
@@ -513,6 +520,10 @@ use_master:
 									smart_str_free(&fprint_conn);
 									zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 									DBG_INF("Skipping previously failed connection");
+									if (use_lb_context) {
+										total_weight -= lb_weight_context->lb_weight->weight;
+										zend_llist_del_element(&sort_list, element, mysqlnd_ms_random_sort_list_remove_conn);
+									}
 									continue;
 								}
 							}
