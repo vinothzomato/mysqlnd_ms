@@ -30,6 +30,11 @@ if (is_string($ret))
 if (false == $ret)
 	die("SKIP Configured master and slave might not be part of a replication cluster\n");
 
+$lag = mst_mysqli_get_slave_lag($slave_host_only, $user, $passwd, $db, (int)$slave_port, $slave_socket);
+if (is_string($lag)) {
+	die(sprintf("SKIP %s\n", $lag));
+}
+
 $settings = array(
 	"myapp" => array(
 		'master' => array(
