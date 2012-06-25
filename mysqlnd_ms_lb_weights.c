@@ -186,7 +186,7 @@ mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * 
 		}
 		smart_str_free(&fprint_conn);
 		if (SUCCESS != retval) {
-			DBG_INF("Failed to create sort list");
+			DBG_INF_FMT("Failed to create sort list, fingerprint -%s- %d", fprint_conn.c, fprint_conn.len);
 			break;
 		}
 	END_ITERATE_OVER_SERVER_LIST;
