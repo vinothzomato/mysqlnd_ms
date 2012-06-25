@@ -96,14 +96,17 @@ mysqlnd_qc.ignore_sql_comments=1
 	/* slave may still be outdated, still possible to get false-positive */
 
 	$attempts = 0;
-	do {
+	while ($attempts < 10) {
 		if ($res = mst_mysqli_query(4, $link, "SELECT id FROM test")) {
-			var_dump($res->fetch_all());
+			if ($res->num_rows == 0) {
+				continue;
+			}
 			break;
 		}
-		usleep(200000);
-	} while ($attempts++ < 10);
-
+		$attempts++;
+		sleep(1);
+	}
+	var_dump($res->fetch_all());
 	if (!$res || ($res->num_rows == 0))
 		printf("[005] Caution, false positive possible, slave may not be up to date\n");
 
