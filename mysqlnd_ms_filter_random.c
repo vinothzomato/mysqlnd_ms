@@ -122,9 +122,9 @@ mysqlnd_ms_random_remove_conn(void * element, void * data) {
 	MYSQLND_MS_LIST_DATA * entry = NULL, ** entry_pp = NULL;
 	entry_pp = (MYSQLND_MS_LIST_DATA **)element;
 	if (entry_pp && (entry = *entry_pp) && (entry == data)) {
-		return 0;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 /* }}} */
 
@@ -135,9 +135,9 @@ mysqlnd_ms_random_sort_list_remove_conn(void * element, void * data) {
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * entry = NULL, ** entry_pp = NULL;
 	entry_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)element;
 	if (entry_pp && (entry = *entry_pp) && (entry->element) && (entry->element == data)) {
-		return 0;
+		return 1;
 	}
-	return 1;
+	return 0;
 }
 /* }}} */
 
@@ -511,7 +511,7 @@ use_master:
 								mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 								if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
 									smart_str_free(&fprint_conn);
-									zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+									zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 									DBG_INF("Skipping previously failed connection");
 									continue;
 								}
@@ -543,7 +543,7 @@ use_master:
 								((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining masters before giving up */
 								DBG_INF("Trying next master");
-								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+								zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 								if (use_lb_context) {
 									total_weight -= lb_weight_context->lb_weight->weight;
 									zend_llist_del_element(&sort_list, element, mysqlnd_ms_random_sort_list_remove_conn);
