@@ -55,11 +55,11 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_failover_killed.ini
 			return $link->thread_id;
 		}
 
-		if (!($row = $res->fetch_assoc())) {
+		if (!($row = @$res->fetch_assoc())) {
 			printf("[%03d + 03] [%d] %s\n", $offset, $link->errno, $link->error);
 			return 0;
 		}
-		return mst_mysqli_get_emulated_id($offset, $link);
+		return @mst_mysqli_get_emulated_id($offset, $link);
 	}
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
