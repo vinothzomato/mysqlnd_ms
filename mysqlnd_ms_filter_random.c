@@ -353,7 +353,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 								if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
 									smart_str_free(&fprint);
 									smart_str_free(&fprint_conn);
-									zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+									zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 									DBG_INF("Skipping previously failed connection");
 									continue;
 								}
@@ -385,7 +385,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 									((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 								/* drop failed server from list, test remaining slaves before fall-through to master */
 								DBG_INF("Trying next slave, if any");
-								zend_llist_del_element(l, element_pp, mysqlnd_ms_random_remove_conn);
+								zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 								if (use_lb_context) {
 									total_weight -= lb_weight_context->lb_weight->weight;
 									zend_llist_del_element(&sort_list, element, mysqlnd_ms_random_sort_list_remove_conn);
