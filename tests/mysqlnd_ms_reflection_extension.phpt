@@ -29,10 +29,8 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 		'json' 		=> true,
 		'standard' 	=> true,
 		'mysqlnd' 	=> true,
+		'mysqlnd_qc'=> true,
 	);
-	if (defined("MYSQLND_MS_HAVE_CACHE_SUPPORT")) {
-		$expected['mysqlnd_qc'] = true;
-	}
 
 	$dependencies = $r->getDependencies();
 	asort($dependencies);
