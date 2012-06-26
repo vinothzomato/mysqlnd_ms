@@ -88,6 +88,7 @@ static void mysqlnd_ms_get_element_ptr(void * d, void * arg TSRMLS_DC)
 {
 	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
 	char ptr_buf[SIZEOF_SIZE_T + 1];
+	DBG_ENTER("mysqlnd_ms_get_element_ptr");
 	smart_str * context = (smart_str *) arg;
 	if (data) {
 #if SIZEOF_SIZE_T == 8
@@ -98,8 +99,12 @@ static void mysqlnd_ms_get_element_ptr(void * d, void * arg TSRMLS_DC)
 #error Unknown platform
 #endif
 		ptr_buf[SIZEOF_SIZE_T] = '\0';
+		DBG_INF_FMT("data->conn=%p ptr_buf='%s'", data->conn, ptr_buf);
 		smart_str_appendl(context, ptr_buf, SIZEOF_SIZE_T);
+	} else {
+		DBG_INF("No data!");
 	}
+	DBG_VOID_RETURN;
 }
 /* }}} */
 
@@ -124,7 +129,7 @@ mysqlnd_ms_get_fingerprint_connection(smart_str * context, MYSQLND_MS_LIST_DATA 
 	DBG_ENTER("mysqlnd_ms_get_fingerprint_connection");
 	mysqlnd_ms_get_element_ptr((void *) d, (void *)context TSRMLS_CC);
 	smart_str_appendc(context, '\0');
-	DBG_INF_FMT("len=%d", context->len);
+	DBG_INF_FMT("context=%s len=%d", context->c, context->len);
 	DBG_VOID_RETURN;
 }
 /* }}} */
