@@ -77,24 +77,27 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 				mnd_efree(once_value);
 			}
 
-			/* random => array(weights => ...) */
-			do {
-				char * current_subsection_name = NULL;
-				size_t current_subsection_name_len = 0;
+			if ((TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&
+			TRUE == mysqlnd_ms_config_json_section_is_object_list(section TSRMLS_CC))) {
+				struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
+				/* random => array(weights => ...) */
+				do {
+					char * current_subsection_name = NULL;
+					size_t current_subsection_name_len = 0;
 
-				subsection = mysqlnd_ms_config_json_next_sub_section(section,
+					subsection = mysqlnd_ms_config_json_next_sub_section(section,
 																	&current_subsection_name,
 																	&current_subsection_name_len,
 																	NULL TSRMLS_CC);
-				if (!subsection) {
-					break;
-				}
-				if (!strcmp(current_subsection_name, SECT_LB_WEIGHTS)) {
-					mysqlnd_ms_filter_ctor_load_weights_config(&ret->lb_weight, PICK_RANDOM, subsection, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
-					break;
-				}
-			} while (1);
-
+					if (!subsection) {
+						break;
+					}
+					if (!strcmp(current_subsection_name, SECT_LB_WEIGHTS)) {
+						mysqlnd_ms_filter_ctor_load_weights_config(&ret->lb_weight, PICK_RANDOM, subsection, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
+						break;
+					}
+				} while (1);
+			}
 
 		} else {
 			 /*
