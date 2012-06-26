@@ -1,7 +1,7 @@
 1.4.0 alpha
 
   Motto/theme: Tweaking based on user feedback
-  Release date: TBD
+  Release date: TBD (possible schedule: early in august)
 
   * BC break: renamed ini setting "ini_file" to "config_file".
     Earlier versions have been configured through an ini style file
@@ -10,7 +10,7 @@
     to config_file to leave the past behing and avoid confusion with
     the PHP configuration file
 
-  * New config setting: offline_server_charset. Allows setting of charset
+  * New config setting: "server_charset". Allows setting of charset
     to be used for string encoding before connections have been opened.
     Most useful with lazy connections.
 
@@ -36,7 +36,7 @@
   * Weighted load balancing. Servers can have a weight. Before picking a server, the
     load balancing logic sorts the server list by weight and picks the one with the
     highest weight. Then, the weight counter is decremented and the same logic is
-    applied for the next request. INSTABLE code, round robin only, don't use yet.
+    applied for the next request.
 
 
 1.3.2 stable
