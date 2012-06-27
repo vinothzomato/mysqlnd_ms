@@ -62,8 +62,6 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 	HashTable server_names;
 	MYSQLND_MS_LIST_DATA * entry, **entry_pp;
 	zend_llist_position	pos;
-	smart_str fprint_conn = {0};
-	char * fingerprint;
 	int num_servers = 0;
 	int num_weight_infos = 0;
 	DBG_ENTER("mysqlnd_ms_filter_ctor_load_weights_config");
@@ -75,14 +73,11 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 		entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(master_connections, &pos)) {
 
-		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
-		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
-			fprint_conn.c, fprint_conn.len, NULL)) {
+		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config), entry_pp, sizeof(void *), NULL)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-				E_RECOVERABLE_ERROR TSRMLS_CC,
-				MYSQLND_MS_ERROR_PREFIX " Failed to setup master server list for '%s' filter. Stopping", filter_name);
+							E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Failed to setup master server list for '%s' filter. Stopping", filter_name);
 		}
-		smart_str_free(&fprint_conn);
 		num_servers++;
 	}
 
@@ -90,14 +85,11 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
 		entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex(slave_connections, &pos)) {
 
-		mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
-		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config),
-			fprint_conn.c, fprint_conn.len, NULL)) {
+		if (SUCCESS != zend_hash_add(&server_names, entry->name_from_config, strlen(entry->name_from_config), entry_pp, sizeof(void *), NULL)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-				E_RECOVERABLE_ERROR TSRMLS_CC,
-				MYSQLND_MS_ERROR_PREFIX " Failed to setup slave server list for '%s' filter. Stopping", filter_name);
+							E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Failed to setup slave server list for '%s' filter. Stopping", filter_name);
 		}
-		smart_str_free(&fprint_conn);
 		num_servers++;
 	}
 
@@ -105,6 +97,7 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 		char * current_subsection_name = NULL;
 		size_t current_subsection_name_len = 0;
 		int weight;
+		smart_str fprint_conn = {0};
 
 		subsection = mysqlnd_ms_config_json_next_sub_section(section,
 															&current_subsection_name,
@@ -114,11 +107,12 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 			break;
 		}
 
-		fingerprint = NULL;
-		if (SUCCESS != zend_hash_find(&server_names, current_subsection_name, current_subsection_name_len, (void **)&fingerprint)) {
+		if (SUCCESS != zend_hash_find(&server_names, current_subsection_name, current_subsection_name_len, (void **)&entry_pp)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-				E_RECOVERABLE_ERROR TSRMLS_CC,
-				MYSQLND_MS_ERROR_PREFIX " Unknown server '%s' in '%s' filter configuration. Stopping", current_subsection_name, filter_name);
+									E_RECOVERABLE_ERROR TSRMLS_CC,
+									MYSQLND_MS_ERROR_PREFIX " Unknown server '%s' in '%s' filter configuration. Stopping",
+									current_subsection_name, filter_name);
+			continue;
 		}
 		weight = mysqlnd_ms_config_json_int_from_section(section, current_subsection_name,
 														 current_subsection_name_len, 0,
@@ -129,23 +123,26 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 					 E_RECOVERABLE_ERROR TSRMLS_CC,
 					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for weight. Stopping", weight);
-			} else if (NULL == fingerprint) {
+			} else if (NULL == entry_pp) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 					 E_RECOVERABLE_ERROR TSRMLS_CC,
 					MYSQLND_MS_ERROR_PREFIX " Fingerprint is empty. Did you ignore an error about an unknown server? Stopping");
 			} else {
 				MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
-
 				/* Handle OOM */
 				weight_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), persistent);
 				weight_entry->weight = weight_entry->current_weight = weight;
 				weight_entry->persistent = persistent;
-				if (SUCCESS != zend_hash_add(lb_weights_list, fingerprint, strlen(fingerprint) + 1, weight_entry, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), NULL)) {
-					DBG_INF_FMT("fingerprint=%s\n", fingerprint);
+
+				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
+
+				if (SUCCESS != zend_hash_add(lb_weights_list, fprint_conn.c, fprint_conn.len, weight_entry, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), NULL)) {
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 						E_RECOVERABLE_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Failed to create internal weights lookup table for filter '%s'. Stopping", filter_name);
 				}
+
+				smart_str_free(&fprint_conn);
 				num_weight_infos++;
 			}
 		}
