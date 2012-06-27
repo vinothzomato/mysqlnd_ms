@@ -87,7 +87,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight.ini
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_pick_random_weight.ini"))
+	if (!unlink("test_mysqlnd_ms_pick_random_weight.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_pick_random_weight.ini'.\n");
 ?>
 --EXPECTF--

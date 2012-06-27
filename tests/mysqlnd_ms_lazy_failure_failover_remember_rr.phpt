@@ -91,7 +91,7 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr.ini"))
+	if (!unlink("test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr.ini'.\n");
 ?>
 --EXPECTF--

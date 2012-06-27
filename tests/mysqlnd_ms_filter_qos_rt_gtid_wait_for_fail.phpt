@@ -124,7 +124,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_rt_gtid_wait_for_fail.ini
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_filter_qos_rt_gtid_wait_for_fail.ini"))
+	if (!unlink("test_mysqlnd_ms_filter_qos_rt_gtid_wait_for_fail.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_rt_gtid_wait_for_fail.ini'.\n");
 
 	require_once("connect.inc");
