@@ -545,7 +545,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 					int server_id_len;
 
 					/* TODO: If QC tokenizer would be better we should not use conn->host but conn->host_info */
-					server_id_len = spprintf(&server_id, 0, "%s|%d|%d|%s|%s", conn->host, conn->port, conn->charset->nr, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"");
+					server_id_len = spprintf(&server_id, 0, "%s|%d|%d|%s|%s", conn->host, conn->port, (conn->charset) ? conn->charset->nr : 0, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"");
 
 					ttl = filter_data->option_data.ttl;
 
@@ -645,7 +645,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 					char * new_query = NULL;
 					*query_len = spprintf(&new_query, 0, "/*" ENABLE_SWITCH "*//*" ENABLE_SWITCH_TTL"%u*//*" SERVER_ID_SWITCH "%s|%d|%d|%s|%s*/%s",
 						ttl,
-						conn->host, conn->port, conn->charset->nr, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"",
+						conn->host, conn->port, (conn->charset) ? conn->charset->nr : 0, conn->user, conn->connect_or_select_db? conn->connect_or_select_db:"",
 						*query);
 					*query = new_query;
 					*free_query = TRUE;
