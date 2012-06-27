@@ -146,7 +146,8 @@ mysqlnd_ms_random_sort_list_remove_conn(void * element, void * data) {
 
 
 /* {{{ mysqlnd_ms_init_sort_context */
-static int mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, zend_llist * server_list, HashTable * lb_weight, zend_llist * sort_list, unsigned int * total_weight TSRMLS_DC) {
+static int
+mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, zend_llist * server_list, HashTable * lb_weight, zend_llist * sort_list, unsigned int * total_weight TSRMLS_DC) {
 	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 	zend_llist_position	pos;

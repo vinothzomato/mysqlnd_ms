@@ -209,7 +209,6 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 						}
 						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
 					}
-
 				} else {
 					smart_str_free(&fprint);
 					pos = &(context->pos);
@@ -418,7 +417,6 @@ use_master:
 						}
 						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
 					}
-
 				} else {
 					smart_str_free(&fprint);
 					pos = &(context->pos);

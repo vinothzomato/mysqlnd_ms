@@ -89,6 +89,7 @@ static void mysqlnd_ms_get_element_ptr(void * d, void * arg TSRMLS_DC)
 	MYSQLND_MS_LIST_DATA * data = d? *(MYSQLND_MS_LIST_DATA **) d : NULL ;
 	char ptr_buf[SIZEOF_SIZE_T + 1];
 	DBG_ENTER("mysqlnd_ms_get_element_ptr");
+	DBG_INF_FMT("ptr=%p", data->conn);
 	smart_str * context = (smart_str *) arg;
 	if (data) {
 #if SIZEOF_SIZE_T == 8

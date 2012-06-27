@@ -12,8 +12,8 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author: Andrey Hristov <andrey@php.net>                              |
-  |         Ulf Wendel <uw@php.net>                                      |
+  | Author: Ulf Wendel <uw@php.net>                                      |
+  |         Andrey Hristov <andrey@php.net>                              |
   |         Johannes Schlueter <johannes@php.net>                        |
   +----------------------------------------------------------------------+
 */
@@ -37,7 +37,8 @@
 
 
 /* {{{ mysqlnd_ms_filter_lb_weigth_dtor */
-void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
+void
+mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
 {
 	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
 	TSRMLS_FETCH();
@@ -52,7 +53,9 @@ void mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
 /* }}} */
 
 
-void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const char * filter_name, struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+/* {{{ mysqlnd_ms_filter_ctor_load_weights_config */
+void
+mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const char * filter_name, struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 	struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
@@ -160,8 +163,10 @@ void mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, con
 
 	DBG_VOID_RETURN;
 }
+/* }}} */
 
 
+/* {{{ mysqlnd_ms_populate_weights_sort_list */
 int
 mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * lb_sort_list, zend_llist * server_list TSRMLS_DC) {
 	int retval = FAILURE;
@@ -184,19 +189,22 @@ mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * 
 			lb_weight_context->element = element;
 			zend_llist_add_element(lb_sort_list, &lb_weight_context);
 		}
-		smart_str_free(&fprint_conn);
 		if (SUCCESS != retval) {
 			DBG_INF_FMT("Failed to create sort list, fingerprint -%s- %d", fprint_conn.c, fprint_conn.len);
+			smart_str_free(&fprint_conn);
 			break;
 		}
+		smart_str_free(&fprint_conn);
 	END_ITERATE_OVER_SERVER_LIST;
 
 	DBG_RETURN(retval);
 }
+/* }}} */
 
 
 /* {{{ mysqlnd_ms_sort_weights_context_list */
-int mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const zend_llist_element ** el2 TSRMLS_DC)
+int
+mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const zend_llist_element ** el2 TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w1 = (el1 && *el1 && (*el1)->data) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el1)->data) : NULL;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w2 = (el2 && *el2 && (*el2)->data) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el2)->data) : NULL;
@@ -214,6 +222,7 @@ int mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const 
 	DBG_RETURN(ret);
 }
 /* }}} */
+
 
 /*
  * Local variables:
