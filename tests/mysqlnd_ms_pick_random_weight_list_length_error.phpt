@@ -66,5 +66,4 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight_list_length_error.ini
 ?>
 --EXPECTF--
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown server 'slave3' in 'random' filter configuration. Stopping in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Fingerprint is empty. Did you ignore an error about an unknown server? Stopping in %s on line %d
 done!
