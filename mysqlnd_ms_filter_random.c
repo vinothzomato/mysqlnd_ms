@@ -423,7 +423,17 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					/* reset for failover to master */
 					retry_count = 0;
 			}/* switch (zend_hash_find) */
+
+			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+				/*
+				We may get here with remember_failed but no failover strategy set.
+				TODO: Is this a valid configuration at all?
+				*/
+				DBG_INF("Failover disabled");
+				DBG_RETURN(connection);
+			}
 		}
+
 use_master:
 		DBG_INF("FAIL-OVER");
 		/* fall-through */

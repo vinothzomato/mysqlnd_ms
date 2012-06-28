@@ -367,13 +367,23 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					break;
 				}
 			} while (retry_count < zend_llist_count(l));
+
 			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
 				/* must not fall through as we'll loose the connection error */
 				DBG_INF("No masters to continue search");
 				DBG_RETURN(connection);
 			}
+			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+				/*
+				We may get here with remember_failed but no failover strategy set.
+				TODO: Is this a valid configuration at all?
+				*/
+				DBG_INF("Failover disabled");
+				DBG_RETURN(connection);
+			}
 			retry_count = 0;
 			/* UNLOCK of context ??? */
+
 		}
 use_master:
 		DBG_INF("FAIL-OVER");

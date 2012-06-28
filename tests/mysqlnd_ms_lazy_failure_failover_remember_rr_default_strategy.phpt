@@ -1,5 +1,5 @@
 --TEST--
-RR, Remember failed, default strategy (= disabled)
+RR, Remember failed, default strategy
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -21,12 +21,13 @@ $settings = array(
 		'failover' => array("remember_failed" => true),
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_settings_lazy_failure_failover_remember_default_strategy.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_settings_lazy_failure_failover_remember_default_strategy.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini
+mysqlnd.debug=d:t:O,/tmp/mysqlnd2.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -35,21 +36,20 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_lazy_failure_failover_remember_d
 	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-
 	/* slave 1 - failure */
 	if ($res = @mst_mysqli_query(2, $link, "SELECT 2 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 	/* slave 2 - no failure */
-	if ($res = @mst_mysqli_query(3, $link, "SELECT 3 FROM DUAL"))
-		var_dump($res->fetch_assoc());
-
-	/* slave 1 - failure */
-	if ($res = @mst_mysqli_query(4, $link, "SELECT 4 FROM DUAL"))
+	if ($res = mst_mysqli_query(3, $link, "SELECT 3 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 	/* slave 2 - no failure */
-	if ($res = @mst_mysqli_query(5, $link, "SELECT 5 FROM DUAL"))
+	if ($res = mst_mysqli_query(4, $link, "SELECT 4 FROM DUAL"))
+		var_dump($res->fetch_assoc());
+
+	/* slave 2 - no failure */
+	if ($res = mst_mysqli_query(5, $link, "SELECT 5 FROM DUAL"))
 		var_dump($res->fetch_assoc());
 
 
@@ -62,8 +62,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_lazy_failure_failover_remember_d
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_settings_lazy_failure_failover_remember_default_strategy.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_failure_failover_remember_default_strategy.ini'.\n");
+	if (0 && !unlink("test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini'.\n");
 ?>
 --EXPECTF--
 Connect error, [002] %s
@@ -71,9 +71,12 @@ array(1) {
   [3]=>
   string(1) "3"
 }
-Connect error, [004] %s
 array(1) {
-  [3]=>
+  [4]=>
+  string(1) "4"
+}
+array(1) {
+  [5]=>
   string(1) "5"
 }
 This is '' speaking
