@@ -1,5 +1,5 @@
 --TEST--
-MS + QC - failed master
+MS + QC - failed slave, failover
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -13,10 +13,11 @@ _skipif_check_extensions(array("mysqlnd_qc"));
 if (!defined("MYSQLND_MS_HAVE_CACHE_SUPPORT")) {
 	die("SKIP Cache support not compiled in");
 }
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 
 $settings = array(
 	"myapp" => array(
-		'master' => array("unreachable:6003"),
+		'master' => array($master_host),
 		'slave' => array("unreachable:7003"),
 		'filters' => array(
 			"quality_of_service" => array(
@@ -26,10 +27,12 @@ $settings = array(
 			),
 			"roundrobin" => array(),
 		),
+		'failover' => array("strategy" => "master", "remember_failed" => 1),
 	),
 
+
 );
-if ($error = mst_create_config("test_mysqlnd_ms_qc_failed_master.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_qc_failed_slave_failover.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
@@ -38,11 +41,12 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $em
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_qc_failed_master.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_qc_failed_slave_failover.ini
 apc.use_request_time=0
 mysqlnd_qc.use_request_time=0
 mysqlnd_qc.collect_statistics=1
 mysqlnd_qc.ttl=99
+
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -55,17 +59,22 @@ mysqlnd_qc.ttl=99
 	}
 
 
-	@mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
-	@mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
+	mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL");
+	if ($res = mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL"))
+		var_dump($res->fetch_assoc());
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_qc_failed_master.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_qc_failed_master.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_qc_failed_slave_failover.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_qc_failed_slave.ini'.\n");
 ?>
+--XFAIL--
+remember_failed + QoS is experimental. To be fixed in 1.5
 --EXPECTF--
-Connect error, [002] %s
-Connect error, [003] %s
+array(1) {
+  [1]=>
+  string(1) "1"
+}
 done!
