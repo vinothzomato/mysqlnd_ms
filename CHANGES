@@ -19,6 +19,12 @@
 
   * Added "wait_for_gtid_timeout" for throttling of read-your-write SELECTs
 
+
+  * Weighted load balancing. Servers can have a weight. Before picking a server, the
+    load balancing logic sorts the server list by weight and picks the one with the
+    highest weight. Then, the weight counter is decremented and the same logic is
+    applied for the next request.
+
   * New failover strategy "loop_before_master". If connecting to a slave
     fails the plugin can either return an error to the caller
     (strategy "disabled", default), fall back to the master (stategy "master") or
@@ -31,12 +37,13 @@
     to n attempts before falling back to master. If, multiple master are configured
     and max_retries = n != 0, then n masters are tested. No matter whether there
     was a slave loop before or not. This means that there can be update 2 * n
-    connection attempts before the plugin gives up.
+    connection attempts before the plugin gives up. Experimental: stable but syntax
+    may change and QoS may not support it.
 
-  * Weighted load balancing. Servers can have a weight. Before picking a server, the
-    load balancing logic sorts the server list by weight and picks the one with the
-    highest weight. Then, the weight counter is decremented and the same logic is
-    applied for the next request.
+  * New "remember_failed" setting to remember hosts that have failed and skip
+    them for the rest of the the web request instead of attempting to connect
+    again. Experimental: stable with roundrobin and random but not supported
+    with QoS - syntax is likely to change due to refactoring.
 
 
 1.3.2 stable
