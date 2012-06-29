@@ -180,10 +180,19 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 		if (value_exists) {
 			int64_t failover_max_retries;
 			char * remember_failed;
+			/* 1.4.0 syntax failover: { strategy: ...} */
 			char * failover_strategy =
 				mysqlnd_ms_config_json_string_from_section(failover_section, FAILOVER_STRATEGY_NAME, sizeof(FAILOVER_STRATEGY_NAME) - 1, 0, &value_exists, &is_list_value TSRMLS_CC);
 
+			if (!value_exists) {
+				/* pre 1.4.0 syntax failover : { disabled|... } */
+				failover_strategy = mysqlnd_ms_config_json_string_from_section(the_section, FAILOVER_NAME,
+									sizeof(FAILOVER_NAME) - 1, 0,
+									&value_exists, &is_list_value TSRMLS_CC);
+			}
+
 			if (value_exists && failover_strategy) {
+				/* 1.4.0 syntax failover: { strategy: ...} */
 				if (!strncasecmp(FAILOVER_STRATEGY_DISABLED, failover_strategy, sizeof(FAILOVER_STRATEGY_DISABLED) - 1)) {
 					strategies->failover_strategy = SERVER_FAILOVER_DISABLED;
 				} else if (!strncasecmp(FAILOVER_STRATEGY_MASTER, failover_strategy, sizeof(FAILOVER_STRATEGY_MASTER) - 1)) {
