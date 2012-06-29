@@ -62,7 +62,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd2.trace
 ?>
 --CLEAN--
 <?php
-	if (0 && !unlink("test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini"))
+	if (!unlink("test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_lazy_failure_failover_remember_rr_default_strategy.ini'.\n");
 ?>
 --EXPECTF--
