@@ -66,7 +66,4 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_socket_invalid.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_socket_invalid.ini'.\n");
 ?>
 --EXPECTF--
-%A
-Warning: mysqli_connect(): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
-%A
-Fatal error: Call to a member function query() on a non-object in %s on line %d
+Catchable fatal error: mysqli_connect(): (mysqlnd_ms) Invalid value for socket. Cannot be a list/hash' . Stopping in %s on line %d

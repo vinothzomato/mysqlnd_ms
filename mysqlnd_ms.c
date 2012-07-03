@@ -432,7 +432,11 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 
 		flags = mysqlnd_ms_config_json_int_from_section(subsection, SECT_CONNECT_FLAGS_NAME, sizeof(SECT_CONNECT_FLAGS_NAME)-1, 0,
 														&value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (value_exists) {
 			if (flags < 0) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 								MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME" '%i' . Stopping", flags);
@@ -444,7 +448,11 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 
 		port = mysqlnd_ms_config_json_int_from_section(subsection, SECT_PORT_NAME, sizeof(SECT_PORT_NAME) - 1, 0,
 													   &value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (value_exists) {
 			if (port < 0 || port > 65535) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 								MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME" '%i' . Stopping", port);
@@ -456,31 +464,52 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 
 		socket_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_SOCKET_NAME, sizeof(SECT_SOCKET_NAME) - 1, 0,
 																   &value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_SOCKET_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (value_exists) {
 			cred.socket = socket_to_use;
 		}
+
 		user_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_USER_NAME, sizeof(SECT_USER_NAME) - 1, 0,
 																 &value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_USER_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (value_exists) {
 			cred.user = user_to_use;
 		}
 		pass_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_PASS_NAME, sizeof(SECT_PASS_NAME) - 1, 0,
 																 &value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PASS_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (value_exists) {
 			cred.passwd = pass_to_use;
 			cred.passwd_len = strlen(cred.passwd);
 		}
 
 		db_to_use = mysqlnd_ms_config_json_string_from_section(subsection, SECT_DB_NAME, sizeof(SECT_DB_NAME) - 1, 0,
 															   &value_exists, &is_list_value TSRMLS_CC);
-		if (value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_DB_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (value_exists) {
 			cred.db = db_to_use;
 			cred.db_len = strlen(cred.db);
 		}
 
 		host = mysqlnd_ms_config_json_string_from_section(subsection, SECT_HOST_NAME, sizeof(SECT_HOST_NAME) - 1, 0,
 														  &value_exists, &is_list_value TSRMLS_CC);
-		if (FALSE == value_exists) {
+		if (is_list_value) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_HOST_NAME". Cannot be a list/hash' . Stopping");
+			failures++;		
+		} else if (FALSE == value_exists) {
 			DBG_ERR_FMT("Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
 			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR,
 							 MYSQLND_MS_ERROR_PREFIX " Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
