@@ -18,6 +18,12 @@ function _skipif_connect($host, $user, $passwd, $db, $port, $socket) {
 			$host, $user, ($passwd) ? "***" : '', $db, $port, $socket, mysqli_connect_errno(), mysqli_connect_error()));
 }
 
+function _skipif_can_connect($host, $user, $passwd, $db, $port, $socket, $hint = NULL) {
+	if ($link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
+		die(sprintf("SKIP Can connect(hint: %s, h=%s,u=%s,p=%s,db=%s,P=%s,S=%s), [%d] %s\n",
+			$hint, $host, $user, ($passwd) ? "***" : '', $db, $port, $socket));
+}
+
 function _skipif_have_feature($feature) {
 	$ret = false;
 

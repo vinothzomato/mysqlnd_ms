@@ -12,6 +12,8 @@ _skipif_check_extensions(array("mysqli"));
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 _skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
+_skipif_can_connect($emulated_master_host_only, "", $passwd, $db, $emulated_master_port, $emulated_master_socket, "No anonymous user allowed");
+_skipif_can_connect($emulated_slave_host_only, "", $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "No anonymous user allowed");
 
 $settings = array(
 	"myapp" => array(
@@ -67,6 +69,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_user_invalid.ini
 ?>
 --EXPECTF--
 %A
-Warning: mysqli_connect(): (mysqlnd_ms) Error while connecting to the slaves in %s on line %d
+Warning: mysqli_connect(): (mysqlnd_ms) Error while connecting to the master(s) in %s on line %d
 %A
 Fatal error: Call to a member function query() on a non-object in %s on line %d
