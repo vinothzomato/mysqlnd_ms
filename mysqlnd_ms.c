@@ -417,7 +417,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		char * pass_to_use = NULL;
 		char * db_to_use = NULL;
 		char * host = NULL;
-		int port, flags;
+		int64_t port, flags;
 
 		char * current_subsection_name = NULL;
 		size_t current_subsection_name_len = 0;
