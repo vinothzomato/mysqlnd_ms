@@ -62,12 +62,10 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 	HashTable server_names;
 	MYSQLND_MS_LIST_DATA * entry, **entry_pp;
 	zend_llist_position	pos;
-	int num_servers = 0;
-	int num_weight_infos = 0;
 	DBG_ENTER("mysqlnd_ms_filter_ctor_load_weights_config");
 
 	/* Build server hash table */
-	zend_hash_init(&server_names, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+	zend_hash_init(&server_names, 4, NULL/*hash*/, NULL/*dtor*/, FALSE);
 
 	for (entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(master_connections, &pos);
 		entry_pp && (entry = *entry_pp) && (entry->name_from_config) && (entry->conn);
@@ -78,7 +76,6 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 							E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Failed to setup master server list for '%s' filter. Stopping", filter_name);
 		}
-		num_servers++;
 	}
 
 	for (entry_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(slave_connections, &pos);
@@ -90,7 +87,6 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 							E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Failed to setup slave server list for '%s' filter. Stopping", filter_name);
 		}
-		num_servers++;
 	}
 
 	do {
@@ -143,13 +139,14 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 				}
 
 				smart_str_free(&fprint_conn);
-				num_weight_infos++;
 			}
 		}
 	} while (1);
 
 
-	if ((num_weight_infos > 0) && (num_servers != num_weight_infos)) {
+	if (zend_hash_num_elements(lb_weights_list) &&
+		(zend_hash_num_elements(&server_names) != zend_hash_num_elements(lb_weights_list)))
+	{
 		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 			E_RECOVERABLE_ERROR TSRMLS_CC,
 			MYSQLND_MS_ERROR_PREFIX " You must specify the load balancing weight for none or all configured servers. There is no default weight yet. Stopping");
