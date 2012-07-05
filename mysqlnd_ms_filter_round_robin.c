@@ -486,9 +486,8 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 				smart_str fprint_conn = {0};
 
 				if (stgy->failover_remember_failed) {
-					zend_bool * failed;
 					mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
-					if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
+					if (zend_hash_exists(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/)) {
 						smart_str_free(&fprint_conn);
 						if (TRUE == forced_tx_master) {
 							/* we must move to the next position and ignore forced_tx_master */
