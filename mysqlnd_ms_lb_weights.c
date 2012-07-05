@@ -161,8 +161,9 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 
 
 /* {{{ mysqlnd_ms_populate_weights_sort_list */
-int
-mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * lb_sort_list, zend_llist * server_list TSRMLS_DC) {
+enum_func_status
+mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * lb_sort_list, zend_llist * server_list TSRMLS_DC)
+{
 	int retval = FAILURE;
 	MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 	smart_str fprint_conn = {0};
@@ -191,20 +192,20 @@ mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * 
 		smart_str_free(&fprint_conn);
 	END_ITERATE_OVER_SERVER_LIST;
 
-	DBG_RETURN(retval);
+	DBG_RETURN(retval == SUCCESS? PASS:FAIL);
 }
 /* }}} */
 
 
-/* {{{ mysqlnd_ms_sort_weights_context_list */
-int
-mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const zend_llist_element ** el2 TSRMLS_DC)
+/* {{{ mysqlnd_ms_weights_comparator */
+static int
+mysqlnd_ms_weights_comparator(const zend_llist_element ** el1, const zend_llist_element ** el2 TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w1 = (el1 && *el1 && (*el1)->data) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el1)->data) : NULL;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * w2 = (el2 && *el2 && (*el2)->data) ? *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)((*el2)->data) : NULL;
 	int ret = 0;
 
-	DBG_ENTER("mysqlnd_ms_sort_weights_context_list");
+	DBG_ENTER("mysqlnd_ms_weights_comparator");
 
 	if ((w1) && (w1->lb_weight) && (w2) && (w2->lb_weight)) {
 		if (((MYSQLND_MS_FILTER_LB_WEIGHT *)w1->lb_weight)->current_weight < ((MYSQLND_MS_FILTER_LB_WEIGHT *)w2->lb_weight)->current_weight) {
@@ -214,6 +215,28 @@ mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const zend
 		}
 	}
 	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_sort_weights_context_list */
+void
+mysqlnd_ms_weight_list_init(zend_llist * wl TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_weight_list_init");
+	zend_llist_init(wl, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
+/* {{{ mysqlnd_ms_weight_list_sort */
+void
+mysqlnd_ms_weight_list_sort(zend_llist * wl TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_weight_list_init");
+	zend_llist_sort(wl, mysqlnd_ms_weights_comparator TSRMLS_CC);
+	DBG_VOID_RETURN;
 }
 /* }}} */
 

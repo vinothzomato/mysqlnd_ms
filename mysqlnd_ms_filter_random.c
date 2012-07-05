@@ -167,12 +167,12 @@ mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, zend_llist 
 		DBG_RETURN(FAIL);
 	}
 
-	if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(lb_weight, &lb_context->sort_list, server_list TSRMLS_CC)) {
+	if (PASS != mysqlnd_ms_populate_weights_sort_list(lb_weight, &lb_context->sort_list, server_list TSRMLS_CC)) {
 		DBG_INF("Failed to populate weights sort list");
 		DBG_RETURN(FAIL);
 	}
 
-	zend_llist_sort(&lb_context->sort_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+	mysqlnd_ms_weight_list_sort(&lb_context->sort_list TSRMLS_CC);
 	/* TODO: Move total counter into MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT ? */
 	for (lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
 		(lb_weight_context_pp) && (lb_weight_context = *lb_weight_context_pp);
@@ -182,7 +182,7 @@ mysqlnd_ms_init_sort_context(HashTable *context, smart_str * fprint, zend_llist 
 	}
 
 	/* we must copy as we remove entries during retry */
-	zend_llist_init(sort_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL /* dtor */, 1);
+	mysqlnd_ms_weight_list_init(sort_list TSRMLS_CC);
 	zend_llist_copy(sort_list, &lb_context->sort_list);
 	*total_weight = lb_context->total_weight;
 

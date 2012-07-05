@@ -69,7 +69,8 @@ rr_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 
 
 /* {{{ mysqlnd_ms_filter_rr_reset_current_weight */
-static void mysqlnd_ms_filter_rr_reset_current_weight(void * data TSRMLS_DC)
+static void
+mysqlnd_ms_filter_rr_reset_current_weight(void * data TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * context = *(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **) data;
 	context->lb_weight->current_weight = context->lb_weight->weight;
@@ -173,7 +174,6 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			smart_str fprint = {0};
 			zend_llist * l = slave_connections;
 			MYSQLND_MS_FILTER_RR_CONTEXT * context = NULL;
-			MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
 
 			if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
 				goto use_master;
@@ -188,7 +188,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					/* persistent = 1 to be on the safe side */
 					context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
 					context->pos = 0;
-					zend_llist_init(&context->weight_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
+					mysqlnd_ms_weight_list_init(&context->weight_list TSRMLS_CC);
 
 					retval = zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
 
@@ -204,7 +204,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					pos = &(context->pos);
 					if (zend_hash_num_elements(&filter->lb_weight)) {
 						/* sort list for weighted load balancing */
-						if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
+						if (PASS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
 							break;
 						}
 						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
@@ -260,7 +260,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 					slave 1, current_weight 0           -> 3
 					*/
 					do {
-						zend_llist_sort(&context->weight_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+						mysqlnd_ms_weight_list_sort(&context->weight_list TSRMLS_CC);
 						lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
 
 						if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
@@ -407,7 +407,7 @@ use_master:
 					/* persistent = 1 to be on the safe side */
 					context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
 					context->pos = 0;
-					zend_llist_init(&context->weight_list, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT *), NULL, 1);
+					mysqlnd_ms_weight_list_init(&context->weight_list TSRMLS_CC);
 
 					retval = zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
 					if (SUCCESS == retval) {
@@ -422,7 +422,7 @@ use_master:
 					pos = &(context->pos);
 					if (zend_hash_num_elements(&filter->lb_weight)) {
 						/* sort list for weighted load balancing */
-						if (SUCCESS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
+						if (PASS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
 							break;
 						}
 						DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
@@ -450,7 +450,7 @@ use_master:
 					DBG_INF("USE_MASTER sorting");
 
 					do {
-						zend_llist_sort(&context->weight_list, mysqlnd_ms_sort_weights_context_list TSRMLS_CC);
+						mysqlnd_ms_weight_list_sort(&context->weight_list TSRMLS_CC);
 						lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
 
 						if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
