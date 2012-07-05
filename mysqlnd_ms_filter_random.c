@@ -281,10 +281,48 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					if (zend_hash_num_elements(&filter->lb_weight)) {
 						DBG_INF("Weighted load balancing");
 						/*
-							Example list, total_weight = 1, rnd_idx = 1..4
+						    Basic idea: summarize weights, compute random between 1... total_weight.
+						    Pick server that matches the rande of the random value.
+
+							Example list, total_weight = 4, rnd_idx = 1..4
 							slave 1, weight  2  -> rnx_idx = 1..2
 							slave 2, weight  1  -> rnd_idx = 3
 							slave 3, weight  1  -> rnd_idx = 4
+
+							Without failover:
+
+							Round 0 - rnd_idx = 3
+							slave 1, weight  2  -> rnx_idx = 1..2
+							slave 2, weight  1  -> rnd_idx = 3    --> try slave 2
+							slave 3, weight  1  -> rnd_idx = 4
+
+
+
+							With failover:
+
+							Round 0 - total_weight = 4, rnd range 1..4, rnd = 3
+							slave 1, weight  2  -> rnx_idx = 1..2
+							slave 2, weight  1  -> rnd_idx = 3    --> try slave 2, fails
+							slave 3, weight  1  -> rnd_idx = 4
+
+							Trim list - total_weight = 3:
+							slave 1, weight  2  -> rnx_idx = 1..2
+							slave 3, weight  1  -> rnd_idx = 3
+
+							Round 1 - total_weight = 3, rnd range 1..3, rnd = 1
+							slave 1, weight  2  -> rnx_idx = 1..2 --> try slave 1, fails
+							slave 3, weight  1  -> rnd_idx = 3
+
+							Trim list - total_weight = 1:
+							slave 3, weight  1  -> rnd_idx = 1
+
+							Round 2 - total_weight = 1, rnd range 1..1, rnd = 1
+							slave 3, weight  1  -> rnd_idx = 1 -> try slave 3, fails
+
+							Trim list
+							(empty)
+
+							Either consider masters or give up.
 						*/
 						use_lb_context = TRUE;
 						if (FAILURE == zend_hash_find(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **)&lb_context)) {
