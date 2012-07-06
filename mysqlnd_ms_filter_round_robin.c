@@ -191,11 +191,13 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			*which_server = USE_MASTER;
 			DBG_RETURN(connection);
 		}
+
 		context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->slave_context, l, &filter->lb_weight TSRMLS_CC);
 		if (context) {
 			pos = &(context->pos);
 		}
 		DBG_INF_FMT("look under pos %u", *pos);
+
 		do {
 			retry_count++;
 
@@ -277,15 +279,11 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 					continue;
 				}
 				/* unlikely */
-				{
-					char error_buf[256];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. %d slaves to choose from. Something is wrong", zend_llist_count(l));
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-					DBG_ERR_FMT("%s", error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-					DBG_RETURN(NULL);
-				}
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+											  MYSQLND_MS_ERROR_PREFIX
+											  " Couldn't find the appropriate slave connection. %d slaves to choose from. "
+											  "Something is wrong", zend_llist_count(l));
+				DBG_RETURN(NULL);
 			}
 			/* time to increment the position */
 			*pos = ((*pos) + 1) % zend_llist_count(l);
@@ -386,8 +384,16 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 	MYSQLND_MS_FILTER_RR_CONTEXT * context;
 	unsigned int retry_count = 0;
 
-	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
+	DBG_ENTER("mysqlnd_ms_choose_connection_rr_use_master");
 	do {
+		if (0 == zend_llist_count(l)) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX
+										  " Couldn't find the appropriate master connection. %d masters to choose from. "
+										  "Something is wrong", zend_llist_count(l));
+			DBG_RETURN(NULL);
+		}
+
 		context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->master_context, l, &filter->lb_weight TSRMLS_CC);
 		if (context) {
 			pos = &(context->pos);
@@ -397,15 +403,6 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 			DBG_RETURN(NULL);
 		}
 
-		if (0 == zend_llist_count(l)) {
-			char error_buf[256];
-			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
-			error_buf[sizeof(error_buf) - 1] = '\0';
-			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-			DBG_ERR_FMT("%s", error_buf);
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-			DBG_RETURN(NULL);
-		}
 		while (retry_count < zend_llist_count(l)) {
 			retry_count++;
 
