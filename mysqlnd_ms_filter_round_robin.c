@@ -186,18 +186,21 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr_use_slave");
 	*which_server = USE_SLAVE;
 
+	if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
+		*which_server = USE_MASTER;
+		DBG_RETURN(connection);
+	}
+
+	context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->slave_context, l, &filter->lb_weight TSRMLS_CC);
+	if (context) {
+		pos = &(context->pos);
+	} else {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+									  MYSQLND_MS_ERROR_PREFIX " Couldn't create or fetch context. Something is quite wrong");
+		DBG_RETURN(NULL);
+	}
+	DBG_INF_FMT("look under pos %u", *pos);
 	do {
-		if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
-			*which_server = USE_MASTER;
-			DBG_RETURN(connection);
-		}
-
-		context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->slave_context, l, &filter->lb_weight TSRMLS_CC);
-		if (context) {
-			pos = &(context->pos);
-		}
-		DBG_INF_FMT("look under pos %u", *pos);
-
 		do {
 			retry_count++;
 
@@ -385,27 +388,24 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 	unsigned int retry_count = 0;
 
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr_use_master");
+	if (0 == zend_llist_count(l)) {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+									  MYSQLND_MS_ERROR_PREFIX
+									  " Couldn't find the appropriate master connection. %d masters to choose from. "
+									  "Something is wrong", zend_llist_count(l));
+		DBG_RETURN(NULL);
+	}
+
+	context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->master_context, l, &filter->lb_weight TSRMLS_CC);
+	if (context) {
+		pos = &(context->pos);
+	} else {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+									  MYSQLND_MS_ERROR_PREFIX " Couldn't create or fetch context. Something is quite wrong");
+		DBG_RETURN(NULL);
+	}
 	do {
-		if (0 == zend_llist_count(l)) {
-			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-										  MYSQLND_MS_ERROR_PREFIX
-										  " Couldn't find the appropriate master connection. %d masters to choose from. "
-										  "Something is wrong", zend_llist_count(l));
-			DBG_RETURN(NULL);
-		}
-
-		context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->master_context, l, &filter->lb_weight TSRMLS_CC);
-		if (context) {
-			pos = &(context->pos);
-		} else {
-			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-										  MYSQLND_MS_ERROR_PREFIX " Couldn't create or fetch context. Something is quite wrong");
-			DBG_RETURN(NULL);
-		}
-
-		while (retry_count < zend_llist_count(l)) {
-			retry_count++;
-
+		while (retry_count++ < zend_llist_count(l)) {
 			if (zend_llist_count(&context->weight_list)) {
 				zend_llist_position	tmp_pos;
 				MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
