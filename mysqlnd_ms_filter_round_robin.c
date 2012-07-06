@@ -122,6 +122,50 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_choose_connection_rr_fetch_context */
+static MYSQLND_MS_FILTER_RR_CONTEXT *
+mysqlnd_ms_choose_connection_rr_fetch_context(HashTable * rr_contexts, zend_llist * connections, HashTable * lb_weights_list TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RR_CONTEXT * context = NULL;
+	smart_str fprint = {0};
+
+	DBG_ENTER("mysqlnd_ms_choose_connection_rr_fetch_context");
+
+	mysqlnd_ms_get_fingerprint(&fprint, connections TSRMLS_CC);
+	if (SUCCESS != zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void **) &context)) {
+		int retval;
+		DBG_INF("Init the master context");
+		/* persistent = 1 to be on the safe side */
+		context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
+		context->pos = 0;
+		mysqlnd_ms_weight_list_init(&context->weight_list TSRMLS_CC);
+
+		retval = zend_hash_add(rr_contexts, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
+		if (SUCCESS == retval) {
+			/* fetch ptr to the data inside the HT */
+			retval = zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void**)&context);
+		}
+		smart_str_free(&fprint);
+		if (SUCCESS != retval) {
+			DBG_RETURN(NULL);
+		}
+
+		if (zend_hash_num_elements(lb_weights_list)) {
+			/* sort list for weighted load balancing */
+			if (PASS != mysqlnd_ms_populate_weights_sort_list(lb_weights_list, &context->weight_list, connections TSRMLS_CC)) {
+				DBG_RETURN(NULL);
+			}
+			DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
+		}
+	} else {
+		smart_str_free(&fprint);
+	}
+	DBG_INF_FMT("context=%p", context);
+	DBG_RETURN(context);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_choose_connection_rr_use_slave */
 static MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
@@ -135,7 +179,6 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 	unsigned int i = 0;
 	MYSQLND_MS_LIST_DATA * element = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
-	smart_str fprint = {0};
 	zend_llist * l = slave_connections;
 	MYSQLND_MS_FILTER_RR_CONTEXT * context = NULL;
 	unsigned int retry_count = 0;
@@ -148,43 +191,11 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			*which_server = USE_MASTER;
 			DBG_RETURN(connection);
 		}
-		/* LOCK on context ??? */
-		{
-			mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
-			DBG_INF_FMT("fingerprint=%*s", fprint.len, fprint.c);
-			if (SUCCESS != zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context)) {
-				int retval;
-				DBG_INF("Init the slave context");
-				/* persistent = 1 to be on the safe side */
-				context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
-				context->pos = 0;
-				mysqlnd_ms_weight_list_init(&context->weight_list TSRMLS_CC);
-
-				retval = zend_hash_add(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
-
-				if (SUCCESS == retval) {
-					/* fetch ptr to the data inside the HT */
-					retval = zend_hash_find(&filter->slave_context, fprint.c, fprint.len /*\0 counted*/, (void**)&context);
-				}
-				smart_str_free(&fprint);
-				if (SUCCESS != retval) {
-					break;
-				}
-
-				pos = &(context->pos);
-				if (zend_hash_num_elements(&filter->lb_weight)) {
-					/* sort list for weighted load balancing */
-					if (PASS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
-						break;
-					}
-					DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
-				}
-			} else {
-				smart_str_free(&fprint);
-				pos = &(context->pos);
-			}
-			DBG_INF_FMT("look under pos %u", *pos);
+		context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->slave_context, l, &filter->lb_weight TSRMLS_CC);
+		if (context) {
+			pos = &(context->pos);
 		}
+		DBG_INF_FMT("look under pos %u", *pos);
 		do {
 			retry_count++;
 
@@ -358,6 +369,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 }
 /* }}} */
 
+
 /* {{{ mysqlnd_ms_choose_connection_rr_use_master */
 static MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
@@ -376,38 +388,15 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr");
 	do {
-		smart_str fprint = {0};
-		mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
-		if (SUCCESS != zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context)) {
-			int retval;
-			DBG_INF("Init the master context");
-			/* persistent = 1 to be on the safe side */
-			context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
-			context->pos = 0;
-			mysqlnd_ms_weight_list_init(&context->weight_list TSRMLS_CC);
-
-			retval = zend_hash_add(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
-			if (SUCCESS == retval) {
-				/* fetch ptr to the data inside the HT */
-				retval = zend_hash_find(&filter->master_context, fprint.c, fprint.len /*\0 counted*/, (void**)&context);
-			}
-			smart_str_free(&fprint);
-			if (SUCCESS != retval) {
-				break;
-			}
-
+		context = mysqlnd_ms_choose_connection_rr_fetch_context(&filter->master_context, l, &filter->lb_weight TSRMLS_CC);
+		if (context) {
 			pos = &(context->pos);
-			if (zend_hash_num_elements(&filter->lb_weight)) {
-				/* sort list for weighted load balancing */
-				if (PASS != mysqlnd_ms_populate_weights_sort_list(&filter->lb_weight, &context->weight_list, l TSRMLS_CC)) {
-					break;
-				}
-				DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
-			}
 		} else {
-			smart_str_free(&fprint);
-			pos = &(context->pos);
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX " Couldn't create or fetch context. Something is quite wrong");
+			DBG_RETURN(NULL);
 		}
+
 		if (0 == zend_llist_count(l)) {
 			char error_buf[256];
 			snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
@@ -463,15 +452,11 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 					DBG_INF("Trying next master, if any");
 					continue;
 				}
-				{
-					char error_buf[256];
-					snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate master connection. %d masters to choose from. Something is wrong", zend_llist_count(l));
-					error_buf[sizeof(error_buf) - 1] = '\0';
-					SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-					DBG_ERR_FMT("%s", error_buf);
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
-					DBG_RETURN(NULL);
-				}
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+											  MYSQLND_MS_ERROR_PREFIX
+											  " Couldn't find the appropriate master connection. %d masters to choose from. "
+											  "Something is wrong", zend_llist_count(l));
+				DBG_RETURN(NULL);
 			}
 			if (element->conn) {
 				connection = element->conn;
@@ -605,12 +590,10 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			if (!stgy->last_used_conn) {
-				char error_buf[256];
-				snprintf(error_buf, sizeof(error_buf), MYSQLND_MS_ERROR_PREFIX " Last used SQL hint cannot be used because last used connection has not been set yet. Statement will fail");
-				error_buf[sizeof(error_buf) - 1] = '\0';
-				SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, error_buf);
-				DBG_ERR_FMT("%s", error_buf);
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", error_buf);
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+											  MYSQLND_MS_ERROR_PREFIX
+											  " Last used SQL hint cannot be used because last used connection has not been set yet. "
+											  "Statement will fail");
 			} else {
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(stgy->last_used_conn));
 			}
