@@ -166,6 +166,77 @@ mysqlnd_ms_choose_connection_rr_fetch_context(HashTable * rr_contexts, zend_llis
 /* }}} */
 
 
+/*
+Round 0, sort list
+slave 1, current_weight 3 -->  pick, current_weight--
+slave 2, current_weight 2
+slave 3, current_weight 1
+
+Round 1, sort list
+slave 1, current_weight 2 --> pick, current_weight--
+slave 2, current_weight 2
+slave 3, current_weight 1
+
+Round 2, sort list
+slave 2, current_weight 2 --> pick, current_weight--
+slave 1, current_weight 1
+slave 3, current_weight 1
+  NOTE: slave 1, slave 3 ordering is undefined/implementation dependent!
+
+Round 3, sort list
+slave 2, current_weight 1 --> pick, current_weight--, reset
+slave 1, current_weight 1
+slave 3, current_weight 1
+
+Round 4, sort list
+slave 1, current_weight 1 --> pick, current_weight--
+slave 3, current_weight 1
+slave 2, current_weight 0
+
+Round 5, sort list
+slave 3, current_weight 1 --> pick, current_weight--
+slave 2, current_weight 0
+slave 1, current_weight 0
+
+Round 6, sort list
+slave 3, current_weight 0 --> RESET -> 1 --> sort again
+slave 2, current_weight 0           -> 2
+slave 1, current_weight 0           -> 3
+*/
+/* {{{ mysqlnd_ms_rr_weight_list_get_next */
+static MYSQLND_MS_LIST_DATA *
+mysqlnd_ms_rr_weight_list_get_next(zend_llist * wl TSRMLS_DC)
+{
+	MYSQLND_MS_LIST_DATA * element = NULL;
+
+	DBG_ENTER("mysqlnd_ms_rr_weight_list_get_next");
+	DBG_INF("Sorting");
+
+	do {
+		MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
+		zend_llist_position	tmp_pos;
+
+		mysqlnd_ms_weight_list_sort(wl TSRMLS_CC);
+		lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(wl, &tmp_pos);
+
+		if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
+			element = lb_weight_context->element;
+			DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
+			if (0 == lb_weight_context->lb_weight->current_weight) {
+				/* RESET */
+				zend_llist_apply(wl, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_CC);
+				continue;
+			}
+			lb_weight_context->lb_weight->current_weight--;
+		} else {
+			DBG_INF("Sorting failed");
+		}
+	} while (0);
+	DBG_RETURN(element);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_choose_connection_rr_use_slave */
 static MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
@@ -176,8 +247,6 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 										  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	unsigned int * pos;
-	unsigned int i = 0;
-	MYSQLND_MS_LIST_DATA * element = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
 	zend_llist * l = slave_connections;
 	MYSQLND_MS_FILTER_RR_CONTEXT * context = NULL;
@@ -201,170 +270,111 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 	}
 	DBG_INF_FMT("look under pos %u", *pos);
 	do {
-		do {
-			retry_count++;
+		MYSQLND_MS_LIST_DATA * element = NULL;
 
-			if (zend_llist_count(&context->weight_list)) {
-				zend_llist_position	tmp_pos;
-				MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
-				DBG_INF("Sorting");
-				/*
-				Round 0, sort list
-				slave 1, current_weight 3 -->  pick, current_weight--
-				slave 2, current_weight 2
-				slave 3, current_weight 1
+		retry_count++;
 
-				Round 1, sort list
-				slave 1, current_weight 2 --> pick, current_weight--
-				slave 2, current_weight 2
-				slave 3, current_weight 1
-
-				Round 2, sort list
-				slave 2, current_weight 2 --> pick, current_weight--
-				slave 1, current_weight 1
-				slave 3, current_weight 1
-				  NOTE: slave 1, slave 3 ordering is undefined/implementation dependent!
-
-				Round 3, sort list
-				slave 2, current_weight 1 --> pick, current_weight--, reset
-				slave 1, current_weight 1
-				slave 3, current_weight 1
-
-				Round 4, sort list
-				slave 1, current_weight 1 --> pick, current_weight--
-				slave 3, current_weight 1
-				slave 2, current_weight 0
-
-				Round 5, sort list
-				slave 3, current_weight 1 --> pick, current_weight--
-				slave 2, current_weight 0
-				slave 1, current_weight 0
-
-				Round 6, sort list
-				slave 3, current_weight 0 --> RESET -> 1 --> sort again
-				slave 2, current_weight 0           -> 2
-				slave 1, current_weight 0           -> 3
-				*/
-				do {
-					mysqlnd_ms_weight_list_sort(&context->weight_list TSRMLS_CC);
-					lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
-
-					if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
-						element = lb_weight_context->element;
-						DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
-						if (0 == lb_weight_context->lb_weight->current_weight) {
-							/* RESET */
-							zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_CC);
-							continue;
-						}
-						lb_weight_context->lb_weight->current_weight--;
-					} else {
-						DBG_INF("Sorting failed");
-					}
-				} while (0);
-			} else	{
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
-					if (i == *pos) {
-						break;
-					}
-					i++;
-				END_ITERATE_OVER_SERVER_LIST;
-				DBG_INF_FMT("i=%u pos=%u", i, *pos);
+		if (zend_llist_count(&context->weight_list)) {
+			element = mysqlnd_ms_rr_weight_list_get_next(&context->weight_list TSRMLS_CC);
+		} else	{
+			unsigned int i = 0;
+			BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
+				if (i++ == *pos) {
+					break;
+				}
+			END_ITERATE_OVER_SERVER_LIST;
+			DBG_INF_FMT("i=%u pos=%u", i, *pos);
+		}
+		if (!element) {
+			/* there is no such safe guard in the random filter. Random tests for connection */
+			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+				DBG_INF("Trying next slave, if any");
+				/* time to increment the position */
+				*pos = ((*pos) + 1) % zend_llist_count(l);
+				DBG_INF_FMT("pos is now %u", *pos);
+				continue;
 			}
-			if (!element) {
-				/* there is no such safe guard in the random filter. Random tests for connection */
-				if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-					DBG_INF("Trying next slave, if any");
-					/* time to increment the position */
-					*pos = ((*pos) + 1) % zend_llist_count(l);
-					DBG_INF_FMT("pos is now %u", *pos);
+			/* unlikely */
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX
+										  " Couldn't find the appropriate slave connection. %d slaves to choose from. "
+										  "Something is wrong", zend_llist_count(l));
+			DBG_RETURN(NULL);
+		}
+		/* time to increment the position */
+		*pos = ((*pos) + 1) % zend_llist_count(l);
+		DBG_INF_FMT("pos is now %u", *pos);
+		if (element->conn) {
+			connection = element->conn;
+		}
+		if (connection) {
+			smart_str fprint_conn = {0};
+			DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
+
+			if (stgy->failover_remember_failed) {
+				zend_bool * failed;
+				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
+				if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
+					smart_str_free(&fprint_conn);
+					DBG_INF("Skipping previously failed connection");
 					continue;
 				}
-				/* unlikely */
-				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-											  MYSQLND_MS_ERROR_PREFIX
-											  " Couldn't find the appropriate slave connection. %d slaves to choose from. "
-											  "Something is wrong", zend_llist_count(l));
-				DBG_RETURN(NULL);
 			}
-			/* time to increment the position */
-			*pos = ((*pos) + 1) % zend_llist_count(l);
-			DBG_INF_FMT("pos is now %u", *pos);
-			if (element->conn) {
-				connection = element->conn;
-			}
-			if (connection) {
-				smart_str fprint_conn = {0};
-				DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
+			if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				if (stgy->failover_remember_failed) {
-					zend_bool * failed;
-					mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
-					if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
-						smart_str_free(&fprint_conn);
-						DBG_INF("Skipping previously failed connection");
-						continue;
-					}
-				}
-
-				if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-					if (stgy->failover_remember_failed) {
-						smart_str_free(&fprint_conn);
-					}
-					DBG_RETURN(connection);
-				}
-
-				if (stgy->failover_remember_failed) {
-					zend_bool failed = TRUE;
-					if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
-						DBG_INF("Failed to remember failing connection");
-					}
 					smart_str_free(&fprint_conn);
 				}
-
-				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-					DBG_INF("Failover disabled");
-					DBG_RETURN(connection);
-				} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-					DBG_INF("Trying next slave, if any");
-					continue;
-				}
-				DBG_INF("Falling back to the master");
-				break;
-			} else {
-				/* unlikely */
-				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-					DBG_INF("Failover disabled");
-					DBG_RETURN(NULL);
-				} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-					DBG_INF("Trying next slave, if any");
-					continue;
-				}
-				DBG_INF("Falling back to the master");
-				break;
+				DBG_RETURN(connection);
 			}
-		} while (retry_count < zend_llist_count(l));
 
-		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
-			/* must not fall through as we'll loose the connection error */
-			DBG_INF("No masters to continue search");
-			DBG_RETURN(connection);
+			if (stgy->failover_remember_failed) {
+				zend_bool failed = TRUE;
+				if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
+					DBG_INF("Failed to remember failing connection");
+				}
+				smart_str_free(&fprint_conn);
+			}
+
+			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+				DBG_INF("Failover disabled");
+				DBG_RETURN(connection);
+			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+				DBG_INF("Trying next slave, if any");
+				continue;
+			}
+		} else {
+			/* unlikely */
+			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+				DBG_INF("Failover disabled");
+				DBG_RETURN(NULL);
+			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+				DBG_INF("Trying next slave, if any");
+				continue;
+			}
 		}
-		if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-			/*
-			We may get here with remember_failed but no failover strategy set.
-			TODO: Is this a valid configuration at all?
-			*/
-			DBG_INF("Failover disabled");
-			DBG_RETURN(connection);
-		}
-		retry_count = 0;
-	} while (0);
+		DBG_INF("Falling back to the master");
+		break;
+	} while (retry_count < zend_llist_count(l));
+
+	if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
+		/* must not fall through as we'll loose the connection error */
+		DBG_INF("No masters to continue search");
+		DBG_RETURN(connection);
+	}
+	if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+		/*
+		We may get here with remember_failed but no failover strategy set.
+		TODO: Is this a valid configuration at all?
+		*/
+		DBG_INF("Failover disabled");
+		DBG_RETURN(connection);
+	}
 	*which_server = USE_MASTER;
 	DBG_RETURN(NULL);
 }
@@ -381,7 +391,6 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 {
 	zend_llist * l = master_connections;
 	unsigned int * pos;
-	unsigned int i = 0;
 	MYSQLND_MS_LIST_DATA * element = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
 	MYSQLND_MS_FILTER_RR_CONTEXT * context;
@@ -404,130 +413,107 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 									  MYSQLND_MS_ERROR_PREFIX " Couldn't create or fetch context. Something is quite wrong");
 		DBG_RETURN(NULL);
 	}
-	do {
-		while (retry_count++ < zend_llist_count(l)) {
-			if (zend_llist_count(&context->weight_list)) {
-				zend_llist_position	tmp_pos;
-				MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
-				DBG_INF("USE_MASTER sorting");
 
-				do {
-					mysqlnd_ms_weight_list_sort(&context->weight_list TSRMLS_CC);
-					lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&context->weight_list, &tmp_pos);
+	while (retry_count++ < zend_llist_count(l)) {
+		if (zend_llist_count(&context->weight_list)) {
+			element = mysqlnd_ms_rr_weight_list_get_next(&context->weight_list TSRMLS_CC);
+		} else {
+			unsigned int i = 0;
+			BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
+				if (i++ == *pos) {
+					break;
+				}
+			END_ITERATE_OVER_SERVER_LIST;
+			DBG_INF_FMT("USE_MASTER pos=%lu", *pos);
+		}
 
-					if (lb_weight_context_pp && (lb_weight_context = *lb_weight_context_pp)) {
-						element = lb_weight_context->element;
-						DBG_INF_FMT("element %p current_weight %d", element, lb_weight_context->lb_weight->current_weight);
-						if (0 == lb_weight_context->lb_weight->current_weight) {
-							/* RESET */
-							zend_llist_apply(&context->weight_list, mysqlnd_ms_filter_rr_reset_current_weight TSRMLS_CC);
-							continue;
-						}
-						lb_weight_context->lb_weight->current_weight--;
-					} else {
-						DBG_INF("Sorting failed");
-					}
-				} while (0);
-			} else {
-				DBG_INF_FMT("USE_MASTER pos=%lu", *pos);
-				i = 0;
-				BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
-					if (i == *pos) {
-						break;
-					}
-					i++;
-				END_ITERATE_OVER_SERVER_LIST;
+		if (!element) {
+			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
+			{
+				/* we must move to the next position and ignore forced_tx_master */
+				*pos = ((*pos) + 1) % zend_llist_count(l);
+				DBG_INF("Trying next master, if any");
+				continue;
 			}
-			connection = NULL;
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX
+										  " Couldn't find the appropriate master connection. %d masters to choose from. "
+										  "Something is wrong", zend_llist_count(l));
+			DBG_RETURN(NULL);
+		}
+		connection = NULL;
+		if (element->conn) {
+			connection = element->conn;
+		}
+		DBG_INF("Using master connection");
+		if (FALSE == forced_tx_master) {
+			/* time to increment the position */
+			*pos = ((*pos) + 1) % zend_llist_count(l);
+		}
+		if (connection) {
+			smart_str fprint_conn = {0};
 
-			if (!element) {
-				if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
-				{
-					/* we must move to the next position and ignore forced_tx_master */
-					*pos = ((*pos) + 1) % zend_llist_count(l);
-					DBG_INF("Trying next master, if any");
+			if (stgy->failover_remember_failed) {
+				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
+				if (zend_hash_exists(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/)) {
+					smart_str_free(&fprint_conn);
+					if (TRUE == forced_tx_master) {
+						/* we must move to the next position and ignore forced_tx_master */
+						*pos = ((*pos) + 1) % zend_llist_count(l);
+					}
+					DBG_INF("Skipping previously failed connection");
 					continue;
 				}
-				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-											  MYSQLND_MS_ERROR_PREFIX
-											  " Couldn't find the appropriate master connection. %d masters to choose from. "
-											  "Something is wrong", zend_llist_count(l));
-				DBG_RETURN(NULL);
 			}
-			if (element->conn) {
-				connection = element->conn;
-			}
-			DBG_INF("Using master connection");
-			if (FALSE == forced_tx_master) {
-				/* time to increment the position */
-				*pos = ((*pos) + 1) % zend_llist_count(l);
-			}
-			if (connection) {
-				smart_str fprint_conn = {0};
 
+			if ((CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				if (stgy->failover_remember_failed) {
-					mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
-					if (zend_hash_exists(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/)) {
-						smart_str_free(&fprint_conn);
-						if (TRUE == forced_tx_master) {
-							/* we must move to the next position and ignore forced_tx_master */
-							*pos = ((*pos) + 1) % zend_llist_count(l);
-						}
-						DBG_INF("Skipping previously failed connection");
-						continue;
-					}
-				}
-
-				if ((CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
-					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-					if (stgy->failover_remember_failed) {
-						smart_str_free(&fprint_conn);
-					}
-					DBG_RETURN(connection);
-				}
-
-				if (stgy->failover_remember_failed) {
-					zend_bool failed = TRUE;
-					if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
-						DBG_INF("Failed to remember failing connection");
-					}
 					smart_str_free(&fprint_conn);
 				}
-
-				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-					DBG_INF("Failover disabled");
-					DBG_RETURN(connection);
-				} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-					if (TRUE == forced_tx_master) {
-						/* we must move to the next position and ignore forced_tx_master */
-						*pos = ((*pos) + 1) % zend_llist_count(l);
-					}
-					DBG_INF("Trying next master, if any");
-					continue;
-				}
 				DBG_RETURN(connection);
-			} else {
-				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-					DBG_INF("Failover disabled");
-					DBG_RETURN(NULL);
-				} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-					if (TRUE == forced_tx_master) {
-						/* we must move to the next position and ignore forced_tx_master */
-						*pos = ((*pos) + 1) % zend_llist_count(l);
-					}
-					DBG_INF("Trying next master, if any");
-					continue;
+			}
+
+			if (stgy->failover_remember_failed) {
+				zend_bool failed = TRUE;
+				if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
+					DBG_INF("Failed to remember failing connection");
 				}
+				smart_str_free(&fprint_conn);
+			}
+
+			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+				DBG_INF("Failover disabled");
+				DBG_RETURN(connection);
+			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+				if (TRUE == forced_tx_master) {
+					/* we must move to the next position and ignore forced_tx_master */
+					*pos = ((*pos) + 1) % zend_llist_count(l);
+				}
+				DBG_INF("Trying next master, if any");
+				continue;
+			}
+			DBG_RETURN(connection);
+		} else {
+			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+				DBG_INF("Failover disabled");
+				DBG_RETURN(NULL);
+			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+				if (TRUE == forced_tx_master) {
+					/* we must move to the next position and ignore forced_tx_master */
+					*pos = ((*pos) + 1) % zend_llist_count(l);
+				}
+				DBG_INF("Trying next master, if any");
+				continue;
 			}
 			break;
 		}
-		DBG_RETURN(connection);
-	} while (0);
-	DBG_RETURN(NULL);
+	}
+	DBG_RETURN(connection);
 }
 /* }}} */
 
