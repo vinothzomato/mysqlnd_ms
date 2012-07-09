@@ -241,6 +241,17 @@ mysqlnd_ms_weight_list_sort(zend_llist * wl TSRMLS_DC)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_weight_list_deinit */
+void
+mysqlnd_ms_weight_list_deinit(zend_llist * wl TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_weight_list_deinit");
+	zend_llist_clean(wl);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
+
 /*
  * Local variables:
  * tab-width: 4

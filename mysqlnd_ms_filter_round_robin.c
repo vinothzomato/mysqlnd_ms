@@ -40,13 +40,9 @@
 static void
 mysqlnd_ms_filter_rr_context_dtor(void * data)
 {
-#if U0
-	MYSQLND_MS_FILTER_RR_CONTEXT * context = * (MYSQLND_MS_FILTER_RR_CONTEXT **) data;
+	MYSQLND_MS_FILTER_RR_CONTEXT * context = (MYSQLND_MS_FILTER_RR_CONTEXT *) data;
 	TSRMLS_FETCH();
-	if (context) {
-		mnd_pefree(context, 1);
-	}
-#endif
+	zend_llist_clean(&context->weight_list);
 }
 /* }}} */
 
@@ -126,24 +122,25 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 static MYSQLND_MS_FILTER_RR_CONTEXT *
 mysqlnd_ms_choose_connection_rr_fetch_context(HashTable * rr_contexts, zend_llist * connections, HashTable * lb_weights_list TSRMLS_DC)
 {
-	MYSQLND_MS_FILTER_RR_CONTEXT * context = NULL;
+	MYSQLND_MS_FILTER_RR_CONTEXT * ret_context = NULL;
 	smart_str fprint = {0};
 
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr_fetch_context");
 
 	mysqlnd_ms_get_fingerprint(&fprint, connections TSRMLS_CC);
-	if (SUCCESS != zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void **) &context)) {
+	if (SUCCESS != zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void **) &ret_context)) {
+		MYSQLND_MS_FILTER_RR_CONTEXT context = {0};
 		int retval;
 		DBG_INF("Init the master context");
 		/* persistent = 1 to be on the safe side */
-		context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
-		context->pos = 0;
-		mysqlnd_ms_weight_list_init(&context->weight_list TSRMLS_CC);
+//		context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
+		context.pos = 0;
+		mysqlnd_ms_weight_list_init(&context.weight_list TSRMLS_CC);
 
-		retval = zend_hash_add(rr_contexts, fprint.c, fprint.len /*\0 counted*/, context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
+		retval = zend_hash_add(rr_contexts, fprint.c, fprint.len /*\0 counted*/, &context, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), NULL);
 		if (SUCCESS == retval) {
 			/* fetch ptr to the data inside the HT */
-			retval = zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void**)&context);
+			retval = zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void**)&ret_context);
 		}
 		smart_str_free(&fprint);
 		if (SUCCESS != retval) {
@@ -152,16 +149,16 @@ mysqlnd_ms_choose_connection_rr_fetch_context(HashTable * rr_contexts, zend_llis
 
 		if (zend_hash_num_elements(lb_weights_list)) {
 			/* sort list for weighted load balancing */
-			if (PASS != mysqlnd_ms_populate_weights_sort_list(lb_weights_list, &context->weight_list, connections TSRMLS_CC)) {
+			if (PASS != mysqlnd_ms_populate_weights_sort_list(lb_weights_list, &ret_context->weight_list, connections TSRMLS_CC)) {
 				DBG_RETURN(NULL);
 			}
-			DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&context->weight_list));
+			DBG_INF_FMT("Sort list has %d elements", zend_llist_count(&ret_context->weight_list));
 		}
 	} else {
 		smart_str_free(&fprint);
 	}
-	DBG_INF_FMT("context=%p", context);
-	DBG_RETURN(context);
+	DBG_INF_FMT("context=%p", ret_context);
+	DBG_RETURN(ret_context);
 }
 /* }}} */
 

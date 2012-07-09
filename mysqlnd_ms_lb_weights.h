@@ -29,6 +29,7 @@ int mysqlnd_ms_sort_weights_context_list(const zend_llist_element ** el1, const 
 
 void mysqlnd_ms_weight_list_init(zend_llist * wl TSRMLS_DC);
 void mysqlnd_ms_weight_list_sort(zend_llist * wl TSRMLS_DC);
+void mysqlnd_ms_weight_list_deinit(zend_llist * wl TSRMLS_DC);
 
 #endif	/* MYSQLND_MS_LB_WEIGHTS_H */
 
