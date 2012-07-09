@@ -288,10 +288,11 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 		if (!element) {
 			/* there is no such safe guard in the random filter. Random tests for connection */
 			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-				DBG_INF("Trying next slave, if any");
+				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
+			{
 				/* time to increment the position */
 				*pos = ((*pos) + 1) % zend_llist_count(l);
+				DBG_INF("Trying next slave, if any");
 				DBG_INF_FMT("pos is now %u", *pos);
 				continue;
 			}
@@ -312,6 +313,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			smart_str fprint_conn = {0};
 			DBG_INF_FMT("Using slave connection "MYSQLND_LLU_SPEC"", connection->thread_id);
 
+			/* Check if this connection has already been marked failed */
 			if (stgy->failover_remember_failed) {
 				zend_bool * failed;
 				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
@@ -325,38 +327,32 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			if (CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, FALSE TSRMLS_CC)) {
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				if (stgy->failover_remember_failed) {
-					smart_str_free(&fprint_conn);
+				if (fprint_conn.c) {
+					smart_str_free(&fprint_conn);			
 				}
+				/* Real Success !! */
 				DBG_RETURN(connection);
 			}
 
+			/* Not nice, bad connection, mark it if the user wants it */
 			if (stgy->failover_remember_failed) {
 				zend_bool failed = TRUE;
 				if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
 					DBG_INF("Failed to remember failing connection");
 				}
-				smart_str_free(&fprint_conn);
 			}
-
-			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-				DBG_INF("Failover disabled");
-				DBG_RETURN(connection);
-			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-				DBG_INF("Trying next slave, if any");
-				continue;
+			if (fprint_conn.c) {
+				smart_str_free(&fprint_conn);			
 			}
-		} else {
-			/* unlikely */
-			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-				DBG_INF("Failover disabled");
-				DBG_RETURN(NULL);
-			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-				DBG_INF("Trying next slave, if any");
-				continue;
-			}
+		}
+		/* if we are here, we had some kind of a problem, either !connection or establishment failed */
+		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+			((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+			DBG_INF("Trying next slave, if any");
+			continue;
+		} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+			DBG_INF("Failover disabled");
+			DBG_RETURN(connection);		
 		}
 		DBG_INF("Falling back to the master");
 		break;
@@ -421,7 +417,7 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 			unsigned int i = 0;
 			BEGIN_ITERATE_OVER_SERVER_LIST(element, l);
 				if (i++ == *pos) {
-					break;
+					break; /* stop iterating */
 				}
 			END_ITERATE_OVER_SERVER_LIST;
 			DBG_INF_FMT("USE_MASTER pos=%lu", *pos);
@@ -466,12 +462,11 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 					continue;
 				}
 			}
-
 			if ((CONN_GET_STATE(connection) > CONN_ALLOCED || PASS == mysqlnd_ms_lazy_connect(element, TRUE TSRMLS_CC))) {
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-				if (stgy->failover_remember_failed) {
-					smart_str_free(&fprint_conn);
+				if (fprint_conn.c) {
+					smart_str_free(&fprint_conn);			
 				}
 				DBG_RETURN(connection);
 			}
@@ -481,37 +476,23 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 				if (SUCCESS != zend_hash_add(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, &failed, sizeof(zend_bool), NULL)) {
 					DBG_INF("Failed to remember failing connection");
 				}
-				smart_str_free(&fprint_conn);
 			}
-
-			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-				DBG_INF("Failover disabled");
-				DBG_RETURN(connection);
-			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-				if (TRUE == forced_tx_master) {
-					/* we must move to the next position and ignore forced_tx_master */
-					*pos = ((*pos) + 1) % zend_llist_count(l);
-				}
-				DBG_INF("Trying next master, if any");
-				continue;
+			if (fprint_conn.c) {
+				smart_str_free(&fprint_conn);			
 			}
-			DBG_RETURN(connection);
-		} else {
-			if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
-				DBG_INF("Failover disabled");
-				DBG_RETURN(NULL);
-			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
-				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-				if (TRUE == forced_tx_master) {
-					/* we must move to the next position and ignore forced_tx_master */
-					*pos = ((*pos) + 1) % zend_llist_count(l);
-				}
-				DBG_INF("Trying next master, if any");
-				continue;
-			}
-			break;
 		}
+		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+			((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
+			if (TRUE == forced_tx_master) {
+				/* we must move to the next position and ignore forced_tx_master */
+				*pos = ((*pos) + 1) % zend_llist_count(l);
+			}
+			DBG_INF("Trying next master, if any");
+			continue;
+		} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
+			DBG_INF("Failover disabled");
+		}
+		break;
 	}
 	DBG_RETURN(connection);
 }
