@@ -241,77 +241,42 @@ mysqlnd_ms_random_sort_context_init(HashTable * context, smart_str * fprint, zen
 
 	Either consider masters or give up.
 */
-/* {{{ mysqlnd_ms_choose_connection_random_use_slave */
+/* {{{ mysqlnd_ms_choose_connection_random_use_slave_aux */
 static MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connections,
 										  zend_llist * slave_connections,
 										  MYSQLND_MS_FILTER_RANDOM_DATA * filter,
+										  smart_str * fprint,
 										  struct mysqlnd_ms_lb_strategies * stgy,
-										  enum enum_which_server * which_server,
 										  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
-}
-
-/* {{{ mysqlnd_ms_choose_connection_random_use_slave */
-static MYSQLND_CONN_DATA *
-mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
-										  zend_llist * slave_connections,
-										  MYSQLND_MS_FILTER_RANDOM_DATA * filter,
-										  struct mysqlnd_ms_lb_strategies * stgy,
-										  enum enum_which_server * which_server,
-										  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
-{
-	smart_str fprint = {0};
 	unsigned int retry_count = 0;
 	zend_llist_position	pos;
 	zend_llist * l = slave_connections;
 	MYSQLND_MS_LIST_DATA * element = NULL, ** element_pp = NULL;
 	unsigned long rnd_idx;
 	MYSQLND_CONN_DATA * connection = NULL;
-	MYSQLND_CONN_DATA ** context_pos;
 	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 	zend_bool use_lb_context = FALSE;
 	zend_llist sort_list;
 	unsigned int total_weight;
 
-	DBG_ENTER("mysqlnd_ms_choose_connection_random_use_slave");
-	DBG_INF_FMT("%d slaves to choose from", zend_llist_count(l));
-	if (0 == zend_llist_count(l) && (SERVER_FAILOVER_DISABLED == stgy->failover_strategy)) {
-		/* SERVER_FAILOVER_MASTER and SERVER_FAILOVER_LOOP will fall through to master */
-		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-									MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. "
-									"%d slaves to choose from. Something is wrong", zend_llist_count(l));
-		DBG_RETURN(NULL);
-	}
+	DBG_ENTER("mysqlnd_ms_choose_connection_random_use_slave_aux");
 
-	mysqlnd_ms_get_fingerprint(&fprint, l TSRMLS_CC);
-
-	if (SUCCESS == zend_hash_find(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context_pos)) {
-		smart_str_free(&fprint);
-		connection = context_pos? *context_pos : NULL;
-		if (connection) {
-			DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, connection->thread_id);
-			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
-			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
-			DBG_RETURN(connection);
-		}
-		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-									  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once.");
-	} else {
+	{
 		if (zend_hash_num_elements(&filter->lb_weight)) {
 			DBG_INF("Weighted load balancing");
 			/* SEE COMMENT above the function*/
 			use_lb_context = TRUE;
-			if (FAILURE == zend_hash_find(&filter->weight_context.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **)&lb_context)) {
+			if (FAILURE == zend_hash_find(&filter->weight_context.slave_context, fprint->c, fprint->len /*\0 counted*/, (void **)&lb_context)) {
 				/* build sort list for weighted load balancing */
-				if (SUCCESS != mysqlnd_ms_random_sort_context_init(&filter->weight_context.slave_context, &fprint, l,
-																   &filter->lb_weight, &sort_list, &total_weight TSRMLS_CC)) {
-					smart_str_free(&fprint);
-					goto use_master;
+				if (SUCCESS != mysqlnd_ms_random_sort_context_init(&filter->weight_context.slave_context, fprint, l,
+																   &filter->lb_weight, &sort_list, &total_weight TSRMLS_CC))
+				{
+					DBG_RETURN(NULL);
 				}
 			} else {
-				smart_str_free(&fprint);
 				zend_llist_copy(&sort_list, &lb_context->sort_list);
 				total_weight = lb_context->total_weight;
 			}
@@ -319,7 +284,7 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 			if (0 == zend_llist_count(&sort_list)) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once. The sort list is empty.");
-				goto use_master;
+				DBG_RETURN(NULL);
 			}
 		}
 		while (zend_llist_count(l) > 0) {
@@ -360,7 +325,6 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 									MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. "
 									"%d slaves to choose from. Something is wrong", zend_llist_count(l));
 					/* should be a very rare case to be here - connection shouldn't be NULL in first place */
-					smart_str_free(&fprint);
 					DBG_RETURN(NULL);
 				} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 						((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
@@ -383,7 +347,6 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 					zend_bool * failed;
 					mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 					if (SUCCESS == zend_hash_find(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/, (void **) &failed)) {
-						smart_str_free(&fprint);
 						smart_str_free(&fprint_conn);
 						zend_llist_del_element(l, element, mysqlnd_ms_random_remove_conn);
 						if (use_lb_context) {
@@ -399,10 +362,9 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 					SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 					if (TRUE == filter->sticky.once) {
-						zend_hash_update(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, &connection,
+						zend_hash_update(&filter->sticky.slave_context, fprint->c, fprint->len /*\0 counted*/, &connection,
 										 sizeof(MYSQLND *), NULL);
 					}
-					smart_str_free(&fprint);
 					if (fprint_conn.c) {
 						smart_str_free(&fprint_conn);
 					}
@@ -434,29 +396,74 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 				if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 					/* no failover */
 					DBG_INF("Failover disabled");
-					smart_str_free(&fprint);
 					DBG_RETURN(connection);
 				}
 				/* falling-through */
 				break;
 			}
 		} /* while */
-		smart_str_free(&fprint);
 		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
 			DBG_INF("No masters to continue search");
 			/* must not fall through as we'll loose the connection error */
 			DBG_RETURN(connection);
 		}
 	}
+	DBG_RETURN(NULL);
+}
+/* }}} */
 
-use_master:
+
+/* {{{ mysqlnd_ms_choose_connection_random_use_slave */
+static MYSQLND_CONN_DATA *
+mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
+										  zend_llist * slave_connections,
+										  MYSQLND_MS_FILTER_RANDOM_DATA * filter,
+										  struct mysqlnd_ms_lb_strategies * stgy,
+										  enum enum_which_server * which_server,
+										  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
+{
+	smart_str fprint = {0};
+	MYSQLND_CONN_DATA * conn = NULL;
+	MYSQLND_CONN_DATA ** context_pos;
+
+	DBG_ENTER("mysqlnd_ms_choose_connection_random_use_slave");
+	DBG_INF_FMT("%d slaves to choose from", zend_llist_count(slave_connections));
+
+	if (0 == zend_llist_count(slave_connections) && (SERVER_FAILOVER_DISABLED == stgy->failover_strategy)) {
+		/* SERVER_FAILOVER_MASTER and SERVER_FAILOVER_LOOP will fall through to master */
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+									MYSQLND_MS_ERROR_PREFIX " Couldn't find the appropriate slave connection. "
+									"%d slaves to choose from. Something is wrong", zend_llist_count(slave_connections));
+		DBG_RETURN(NULL);
+	}
+
+	mysqlnd_ms_get_fingerprint(&fprint, slave_connections TSRMLS_CC);
+
+	if (SUCCESS == zend_hash_find(&filter->sticky.slave_context, fprint.c, fprint.len /*\0 counted*/, (void **) &context_pos)) {
+		conn = context_pos? *context_pos : NULL;
+		if (conn) {
+			DBG_INF_FMT("Using already selected slave connection "MYSQLND_LLU_SPEC, conn->thread_id);
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+			smart_str_free(&fprint);
+			DBG_RETURN(conn);
+		}
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+									  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once.");
+	}
+	conn = mysqlnd_ms_choose_connection_random_use_slave_aux(master_connections, slave_connections, filter, &fprint, stgy, error_info TSRMLS_CC);
+	smart_str_free(&fprint);
+	if (conn) {
+		DBG_RETURN(conn);
+	}
+
 	if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 		/*
-		We may get here with remember_failed but no failover strategy set.
-		TODO: Is this a valid configuration at all?
+		  We may get here with remember_failed but no failover strategy set.
+		  TODO: Is this a valid configuration at all?
 		*/
 		DBG_INF("Failover disabled");
-		DBG_RETURN(connection);
+		DBG_RETURN(conn);
 	}
 	*which_server = USE_MASTER;
 	DBG_RETURN(NULL);

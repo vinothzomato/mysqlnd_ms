@@ -129,11 +129,10 @@ mysqlnd_ms_choose_connection_rr_fetch_context(HashTable * rr_contexts, zend_llis
 
 	mysqlnd_ms_get_fingerprint(&fprint, connections TSRMLS_CC);
 	if (SUCCESS != zend_hash_find(rr_contexts, fprint.c, fprint.len /*\0 counted*/, (void **) &ret_context)) {
-		MYSQLND_MS_FILTER_RR_CONTEXT context = {0};
+		MYSQLND_MS_FILTER_RR_CONTEXT context;
 		int retval;
 		DBG_INF("Init the master context");
-		/* persistent = 1 to be on the safe side */
-//		context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT), 1);
+		memset(&context, 0, sizeof(MYSQLND_MS_FILTER_RR_CONTEXT));
 		context.pos = 0;
 		mysqlnd_ms_weight_list_init(&context.weight_list TSRMLS_CC);
 
