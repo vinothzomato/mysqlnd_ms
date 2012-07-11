@@ -232,6 +232,8 @@ mysqlnd_ms_choose_connection_random_populate_sort_list(zend_llist * sort_list,
 	}
 	DBG_RETURN(PASS);
 }
+/* }}} */
+
 
 /*
     Basic idea: summarize weights, compute random between 1... total_weight.
@@ -289,9 +291,7 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connection
 	zend_llist_position	pos;
 	zend_llist * l = slave_connections;
 	MYSQLND_MS_LIST_DATA * element = NULL, ** element_pp = NULL;
-	unsigned long rnd_idx;
 	MYSQLND_CONN_DATA * connection = NULL;
-	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 	zend_bool use_lb_context = FALSE;
 	zend_llist sort_list;
 	unsigned int total_weight;
@@ -306,11 +306,14 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connection
 			use_lb_context = TRUE;
 		}
 		while (zend_llist_count(l) > 0) {
-			unsigned int i = 0;
+			MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context = NULL;
 
 			retry_count++;
-			rnd_idx = php_rand(TSRMLS_C);
 			if (use_lb_context) {
+				MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT ** lb_weight_context_pp = NULL;
+				unsigned int i = 0;
+				unsigned long rnd_idx;
+				rnd_idx = php_rand(TSRMLS_C);
 				RAND_RANGE(rnd_idx, 1, total_weight, PHP_RAND_MAX);
 				DBG_INF_FMT("USE_SLAVE weighted, rnd_idx=%lu", rnd_idx);
 				for (
@@ -324,8 +327,12 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connection
 						break;
 					}
 				}
-				connection = (lb_weight_context && (element = lb_weight_context->element) && element->conn) ? element->conn : NULL;
+				element = lb_weight_context? lb_weight_context->element:NULL;
+				connection = element? element->conn:NULL;
 			} else {
+				unsigned int i = 0;
+				unsigned long rnd_idx;
+				rnd_idx = php_rand(TSRMLS_C);
 				RAND_RANGE(rnd_idx, 0, zend_llist_count(l) - 1, PHP_RAND_MAX);
 				DBG_INF_FMT("USE_SLAVE rnd_idx=%lu", rnd_idx);
 				element_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex(l, &pos);
