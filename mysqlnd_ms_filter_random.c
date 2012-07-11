@@ -148,8 +148,8 @@ mysqlnd_ms_random_sort_list_remove_conn(void * element, void * data)
 
 /* {{{ mysqlnd_ms_random_sort_context_init */
 static int
-mysqlnd_ms_random_sort_context_init(HashTable * context, smart_str * fprint, zend_llist * server_list,
-							 HashTable * lb_weight, zend_llist * sort_list, unsigned int * total_weight TSRMLS_DC)
+mysqlnd_ms_random_sort_context_init(HashTable * context, const smart_str * const fprint, const zend_llist * const server_list,
+									HashTable * lb_weight, zend_llist * sort_list, unsigned int * total_weight TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
@@ -179,6 +179,7 @@ mysqlnd_ms_random_sort_context_init(HashTable * context, smart_str * fprint, zen
 		DBG_RETURN(FAIL);
 	}
 
+	lb_context->total_weight = 0;
 	mysqlnd_ms_weight_list_sort(&lb_context->sort_list TSRMLS_CC);
 	/* TODO: Move total counter into MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT ? */
 	for (lb_weight_context_pp = (MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT **)zend_llist_get_first_ex(&lb_context->sort_list, &pos);
@@ -197,6 +198,40 @@ mysqlnd_ms_random_sort_context_init(HashTable * context, smart_str * fprint, zen
 }
 /* }}} */
 
+
+/* {{{ mysqlnd_ms_choose_connection_random_populate_sort_list */
+static enum_func_status
+mysqlnd_ms_choose_connection_random_populate_sort_list(zend_llist * sort_list,
+													   unsigned int * total_weight,
+													   HashTable * weight_context_m_o_s_ctx,
+													   zend_llist * the_list,
+													   MYSQLND_MS_FILTER_RANDOM_DATA * filter,
+													   const smart_str * const fprint,
+													   MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
+{
+	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
+
+	DBG_ENTER("mysqlnd_ms_choose_connection_random_populate_sort_list");
+	DBG_INF("Weighted load balancing");
+	if (FAILURE == zend_hash_find(weight_context_m_o_s_ctx, fprint->c, fprint->len /*\0 counted*/, (void **)&lb_context)) {
+		/* build sort list for weighted load balancing */
+		if (SUCCESS != mysqlnd_ms_random_sort_context_init(weight_context_m_o_s_ctx, fprint, the_list,
+														   &filter->lb_weight, sort_list, total_weight TSRMLS_CC))
+		{
+			DBG_RETURN(FAIL);
+		}
+	} else {
+		zend_llist_copy(sort_list, &lb_context->sort_list);
+		*total_weight = lb_context->total_weight;
+	}
+	DBG_INF_FMT("Sort list has %u elements, total_weight = %u", zend_llist_count(sort_list), *total_weight);
+	if (0 == zend_llist_count(sort_list)) {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+								  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once. The sort list is empty.");
+		DBG_RETURN(FAIL);
+	}
+	DBG_RETURN(PASS);
+}
 
 /*
     Basic idea: summarize weights, compute random between 1... total_weight.
@@ -246,7 +281,7 @@ static MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connections,
 										  zend_llist * slave_connections,
 										  MYSQLND_MS_FILTER_RANDOM_DATA * filter,
-										  smart_str * fprint,
+										  const smart_str * const fprint,
 										  struct mysqlnd_ms_lb_strategies * stgy,
 										  MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
@@ -256,7 +291,6 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connection
 	MYSQLND_MS_LIST_DATA * element = NULL, ** element_pp = NULL;
 	unsigned long rnd_idx;
 	MYSQLND_CONN_DATA * connection = NULL;
-	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 	zend_bool use_lb_context = FALSE;
 	zend_llist sort_list;
@@ -266,9 +300,13 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connection
 
 	{
 		if (zend_hash_num_elements(&filter->lb_weight)) {
-			DBG_INF("Weighted load balancing");
-			/* SEE COMMENT above the function*/
+			/* SEE COMMENT above the function */
+			mysqlnd_ms_choose_connection_random_populate_sort_list(&sort_list, &total_weight, &filter->weight_context.slave_context,
+																   l, filter, fprint, error_info TSRMLS_CC);
 			use_lb_context = TRUE;
+#if A0
+			DBG_INF("Weighted load balancing");
+			/* SEE COMMENT above the function */
 			if (FAILURE == zend_hash_find(&filter->weight_context.slave_context, fprint->c, fprint->len /*\0 counted*/, (void **)&lb_context)) {
 				/* build sort list for weighted load balancing */
 				if (SUCCESS != mysqlnd_ms_random_sort_context_init(&filter->weight_context.slave_context, fprint, l,
@@ -286,6 +324,7 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(zend_llist * master_connection
 										  MYSQLND_MS_ERROR_PREFIX " Something is very wrong for slave random/once. The sort list is empty.");
 				DBG_RETURN(NULL);
 			}
+#endif
 		}
 		while (zend_llist_count(l) > 0) {
 			unsigned int i = 0;

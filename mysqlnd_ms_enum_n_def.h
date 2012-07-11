@@ -74,10 +74,12 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 
 #define BEGIN_ITERATE_OVER_SERVER_LISTS(el, masters, slaves) \
 { \
-	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
+	/* need to cast, as masters of slaves could be const. We use external llist_position, so this is safe */ \
+	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", \
+		(masters), zend_llist_count((zend_llist *) (masters)), (slaves), zend_llist_count((zend_llist *) (slaves))); \
 	{ \
 		MYSQLND_MS_LIST_DATA ** el_pp;\
-		zend_llist * lists[] = {NULL, (masters), (slaves), NULL}; \
+		zend_llist * lists[] = {NULL, (masters), (zend_llist *) (slaves), NULL}; \
 		zend_llist ** list = lists; \
 		while (*++list) { \
 			zend_llist_position	pos; \
@@ -96,7 +98,9 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 
 #define BEGIN_ITERATE_OVER_SERVER_LISTS_NEW(el, masters, slaves) \
 { \
-	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", (masters), zend_llist_count((masters)), (slaves), zend_llist_count((slaves))); \
+	/* need to cast, as masters of slaves could be const. We use external llist_position, so this is safe */ \
+	DBG_INF_FMT("master(%p) has %d, slave(%p) has %d", \
+				(masters), zend_llist_count((zend_llist *) (masters)), (slaves), zend_llist_count((zend_llist *) (slaves))); \
 	{ \
 		MYSQLND_MS_LIST_DATA ** el_pp; \
 		zend_llist * internal_master_list = (masters); \
@@ -129,14 +133,15 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 
 #define BEGIN_ITERATE_OVER_SERVER_LIST(el, list) \
 { \
-	DBG_INF_FMT("list(%p) has %d", (list), zend_llist_count((list))); \
+	/* need to cast, as this list could be const. We use external llist_position, so this is safe */ \
+	DBG_INF_FMT("list(%p) has %d", (list), zend_llist_count((zend_llist *) (list))); \
 	{ \
 		MYSQLND_MS_LIST_DATA ** MACRO_el_pp;\
 		zend_llist_position	MACRO_pos; \
 		/* search the list of easy handles hanging off the multi-handle */ \
-		for (((el) = NULL), MACRO_el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex((list), &MACRO_pos); \
+		for (((el) = NULL), MACRO_el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_first_ex((zend_llist *)(list), &MACRO_pos); \
 			 MACRO_el_pp && ((el) = *MACRO_el_pp) && (el)->conn; \
-			 ((el) = NULL), MACRO_el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex((list), &MACRO_pos)) \
+			 ((el) = NULL), MACRO_el_pp = (MYSQLND_MS_LIST_DATA **) zend_llist_get_next_ex((zend_llist *)(list), &MACRO_pos)) \
 		{ \
 
 #define END_ITERATE_OVER_SERVER_LIST \

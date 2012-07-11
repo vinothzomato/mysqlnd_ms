@@ -41,7 +41,6 @@ static void
 mysqlnd_ms_filter_rr_context_dtor(void * data)
 {
 	MYSQLND_MS_FILTER_RR_CONTEXT * context = (MYSQLND_MS_FILTER_RR_CONTEXT *) data;
-	TSRMLS_FETCH();
 	zend_llist_clean(&context->weight_list);
 }
 /* }}} */

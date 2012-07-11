@@ -162,7 +162,9 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 
 /* {{{ mysqlnd_ms_populate_weights_sort_list */
 enum_func_status
-mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list, zend_llist * lb_sort_list, zend_llist * server_list TSRMLS_DC)
+mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list,
+									  zend_llist * lb_sort_list,
+									  const zend_llist * const server_list TSRMLS_DC)
 {
 	int retval = FAILURE;
 	MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
