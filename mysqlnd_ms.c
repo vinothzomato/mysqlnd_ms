@@ -45,6 +45,18 @@
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_switch.h"
 
+
+#if PHP_VERSION_ID < 50400
+#define mnd_vsprintf vspprintf
+#define mnd_sprintf_free efree
+#endif
+
+#if PHP_VERSION_ID < 50400
+#define CONN_GET_OPTION(conn, option) (conn)->options.option
+#else
+#define CONN_GET_OPTION(conn, option) (conn)->options->option
+#endif
+
 #if MYSQLND_VERSION_ID >= 50010
 #define MS_LOAD_AND_COPY_CONN_HANDLE_METHODS(orig_methods, ms_methods) \
 	(orig_methods) = mysqlnd_conn_get_methods(); \
@@ -127,6 +139,7 @@ mysqlnd_ms_client_n_php_error(MYSQLND_ERROR_INFO * error_info,
 	DBG_ERR_FMT("%s", error_buf);
 
 	mnd_sprintf_free(error_buf);
+
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -221,7 +234,7 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 	MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, (*conn_data)->proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms_lazy_connect");
-	if ((*proxy_conn_data)->server_charset && !connection->options->charset_name &&
+	if ((*proxy_conn_data)->server_charset && !CONN_GET_OPTION(connection, charset_name) &&
 		FAIL == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(connection, MYSQL_SET_CHARSET_NAME,
 																	(*proxy_conn_data)->server_charset->name TSRMLS_CC)))
 	{
@@ -1169,13 +1182,13 @@ MYSQLND_METHOD(mysqlnd_ms, escape_string)(MYSQLND_CONN_DATA * const proxy_conn, 
 		if (conn_data && *conn_data) {
 			(*conn_data)->skip_ms_calls = FALSE;
 		}
-	} else if (CONN_GET_STATE(conn) == CONN_ALLOCED && ((*conn_data)->server_charset || conn->options->charset_name)) {
+	} else if (CONN_GET_STATE(conn) == CONN_ALLOCED && ((*conn_data)->server_charset || CONN_GET_OPTION(conn, charset_name))) {
 		const MYSQLND_CHARSET * orig_charset = conn->charset;
 
 		conn->charset = (*conn_data)->server_charset;
 		/* must not happen but put sentinels */
-		if (!(*conn_data)->server_charset && conn->options->charset_name) {
-			conn->charset = mysqlnd_find_charset_name(conn->options->charset_name);
+		if (!(*conn_data)->server_charset && CONN_GET_OPTION(conn, charset_name)) {
+			conn->charset = mysqlnd_find_charset_name(CONN_GET_OPTION(conn, charset_name));
 		}
 
 		if (conn_data && *conn_data) {
@@ -1429,11 +1442,11 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 				if (state == CONN_ALLOCED) {
 					ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
 					if (PASS == ret) {
-						(*el_conn_data)->server_charset = mysqlnd_find_charset_name(el->conn->options->charset_name);
+						(*el_conn_data)->server_charset = mysqlnd_find_charset_name(CONN_GET_OPTION(el->conn, charset_name));
 						if (!(*el_conn_data)->server_charset) {
 							mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(el->conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 								MYSQLND_MS_ERROR_PREFIX " unknown to the connector charset '%s'. Please report to the developers",
-									el->conn->options->charset_name);
+									CONN_GET_OPTION(el->conn, charset_name));
 						}
 					}
 				} else if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(el->conn, csname TSRMLS_CC)) {
