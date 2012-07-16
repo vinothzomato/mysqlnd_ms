@@ -483,11 +483,11 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 		conn = mysqlnd_ms_choose_connection_random_use_slave_aux(master_connections, &slaves_copy, filter, &fprint, stgy, error_info TSRMLS_CC);
 
 		zend_llist_clean(&slaves_copy);
-		smart_str_free(&fprint);
 
-		if (conn) {
-			DBG_RETURN(conn);
-		}
+	}
+	smart_str_free(&fprint);
+	if (conn) {
+		DBG_RETURN(conn);
 	}
 
 	if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {

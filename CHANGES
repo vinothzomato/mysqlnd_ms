@@ -1,7 +1,7 @@
 1.4.0 alpha
 
   Motto/theme: Tweaking based on user feedback
-  Release date: TBD (possible schedule: early in august)
+  Release date: 07/2012
 
   * BC break: renamed ini setting "ini_file" to "config_file".
     Earlier versions have been configured through an ini style file
@@ -18,7 +18,6 @@
     configuration file fails.
 
   * Added "wait_for_gtid_timeout" for throttling of read-your-write SELECTs
-
 
   * Weighted load balancing. Servers can have a weight. Before picking a server, the
     load balancing logic sorts the server list by weight and picks the one with the
@@ -55,11 +54,13 @@
    over the masters (RR). Still not sticky for Random. Random_once
    is not affected.
 
+
 1.3.1 beta
 
   Release date: 04/2012
 
   * Fixed problem with building together with QC.
+
 
 1.3.0 alpha
 
@@ -75,12 +76,14 @@
     - new constant MYSQLND_MS_QOS_OPTION_CACHE to be used with mysqlnd_ms_set_qos()
     - new constant MYSQLND_MS_HAVE_CACHE_SUPPORT set if cache support is compiled in
 
+
 1.2.1 beta
 
   Motto/theme: Global Transaction ID injection and quality-of-service concept
   Release date: 01/2012
 
   * No major changes
+
 
 1.2.0 alpha
 
@@ -111,6 +114,7 @@
 	- gtid_implicit_commit_injections_success
     - gtid_implicit_commit_injections_failure
 
+
 1.1.2 stable / production ready
 
   Motto/theme : Cover replication basics with production quality
@@ -118,6 +122,7 @@
 
   * Introduced mysqlnd_ms.disable_rw_split ini setting
   * Fixed Bug #60119 - 	host="localhost" lost in mysqlnd_ms_get_last_used_connection()
+
 
 1.1.1 beta
 
@@ -127,6 +132,7 @@
   * NOTE: 1.1.0 alpha (PECL version) has reported itself as "1.1.0-beta"
   * Fixed PECL #59982 - Unusable extension with --enable-mysqlnd-ms-table-filter
     Use of the option is NOT supported. You must not used it. Added note to m4.
+
 
 1.1.0 alpha
 
@@ -155,6 +161,7 @@
   * Fixed PECL #22724 - Server switching (mysqlnd_ms_query_is_select case sensitive)
   * Fixed PECL #22784 - Using mysql_connect and mysql_select_db() won't work
 
+
 1.0 alpha
 
   Release date: 04/2011
@@ -163,6 +170,7 @@
   * Basic automatic read-write split (read: slave, write: master)
   * SQL hints to overrule automatic R/W split
   * Load balancing of slave requests
+
 
 1.0 pre-alpha
 
