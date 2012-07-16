@@ -33,7 +33,7 @@
     <api>alpha</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Small change to fix the build in case MS is built/used together with QC</notes>
+  <notes>New exciting 1.4 release. For more info read CHANGES</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
