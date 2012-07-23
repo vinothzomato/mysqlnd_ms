@@ -44,8 +44,10 @@ if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 
 if (!$link->query("DROP PROCEDURE IF EXISTS p") ||
 	!$link->query("CREATE PROCEDURE p(IN ver_in VARCHAR(25)) BEGIN SELECT ver_in AS _ver_out; END;") ||
-	!$link->prepare("CALL p(?)"))
+	!$link->prepare("CALL p(?)")) {
+	unlink("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini");
 	die(sprintf("SKIP Not supported, [%d] %s\n", $link->errno, $link->error));
+}
 ?>
 --INI--
 mysqlnd_ms.enable=1
