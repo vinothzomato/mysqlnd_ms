@@ -42,5 +42,5 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_slave_failure_failover_loop_max_retr
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_slave_failure_failover_loop_max_retries_range.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value '%d' for max_retries. Stopping in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Invalid value '%s' for max_retries. Stopping in %s on line %d
 done!
