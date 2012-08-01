@@ -22,18 +22,18 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2012-07-16</date>
+  <date>2012-08-01</date>
   <time>12:00:00</time>
   <version>
-    <release>1.4.0</release>
+    <release>1.4.1</release>
     <api>1.4.0</api>
   </version>
   <stability>
-    <release>alpha</release>
-    <api>alpha</api>
+    <release>beta</release>
+    <api>beta</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>New exciting 1.4 release. For more info read CHANGES</notes>
+  <notes>Beta release</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
@@ -554,6 +554,19 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.4.1</release>
+        <api>1.4.0</api>
+      </version>
+      <stability>
+        <release>beta</release>
+        <api>beta</api>
+      </stability>
+      <date>2012-08-01</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>Beta release, stable API, for testing</notes>
+    </release>
     <release>
       <version>
         <release>1.4.0</release>
