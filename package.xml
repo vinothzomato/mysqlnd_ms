@@ -3,7 +3,7 @@
   <name>mysqlnd_ms</name>
   <channel>pecl.php.net</channel>
   <summary>A replication and load balancing plugin for mysqlnd</summary>
-  <description>The replication and load balancing plugin is a plugin for the mysqlnd library. It can be used with PHP MySQL extensions (ext/mysql, ext/mysqli, PDO_MySQL). if they are compiled to use mysqlnd. The plugin inspects queries to do read-write splitting. Read-only queries are send to configured MySQL replication slave servers all other queries are redirected to the MySQL replication master server. Very little, if any, application changes required, dependent on the usage scenario required. </description>
+  <description>The mysqlnd_ms replication and load balancing plugin can be used with PHP MySQL extensions (ext/mysql, ext/mysqli, ext/pdo_mysql) if they are compiled to use mysqlnd. The plugin inspects queries and does read-write splitting. Read-only queries are sent to MySQL replication slave servers while all other queries are redirected to the MySQL replication master server. Very few, if any, application changes are required, depending on the usage scenario.
   <lead>
     <name>Andrey Hristov</name>
     <user>andrey</user>
