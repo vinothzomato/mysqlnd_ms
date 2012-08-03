@@ -8,6 +8,7 @@ require_once("connect.inc");
 _skipif_check_extensions(array("mysql"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($host, $user, $passwd, $db, $port, $socket);
 
 $settings = array(
 	"myapp" => array(
@@ -41,7 +42,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_bug_60605.ini
 	require_once("util.inc");
 
 	/* without MS */
-	$link = my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
+	$link = my_mysql_connect($host, $user, $passwd, $db, $port, $socket);
 	if (!$link)
 		printf("[001] [[%d] %s\n", mysql_errno(), mysql_error());
 
