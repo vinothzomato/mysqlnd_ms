@@ -7,7 +7,7 @@
   <lead>
     <name>Andrey Hristov</name>
     <user>andrey</user>
-    <email>andrey@php.net</email>
+    <email>andrey@php_net</email>
     <active>yes</active>
   </lead>
   <lead>
@@ -22,18 +22,18 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2012-08-01</date>
+  <date>2012-08-15</date>
   <time>12:00:00</time>
   <version>
-    <release>1.4.1</release>
+    <release>1.4.2</release>
     <api>1.4.0</api>
   </version>
   <stability>
-    <release>beta</release>
-    <api>beta</api>
+    <release>stable</release>
+    <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Beta release</notes>
+  <notes>GA release</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
@@ -554,6 +554,19 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.4.2</release>
+        <api>1.4.0</api>
+      </version>
+      <stability>
+        <release>stable</release>
+        <api>stable</api>
+      </stability>
+      <date>2012-08-15</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>GA release</notes>
+    </release>
     <release>
       <version>
         <release>1.4.1</release>
