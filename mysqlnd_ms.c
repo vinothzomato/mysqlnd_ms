@@ -1843,6 +1843,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND_CONN_DATA * proxy_conn
 
 	DBG_ENTER("mysqlnd_ms::statistic");
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_statistics)(conn, message, message_len TSRMLS_CC);
 	DBG_RETURN(ret);
 }
@@ -1855,7 +1858,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_version)(const MYSQLND_CONN_DATA * const p
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_version)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1867,7 +1872,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_info)(const MYSQLND_CONN_DATA * const prox
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
-
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_information)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1880,6 +1887,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_host_info)(const MYSQLND_CONN_DATA * const proxy_
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_host_information)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1892,6 +1902,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_proto_info)(const MYSQLND_CONN_DATA * const proxy
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_protocol_information)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1904,6 +1917,9 @@ MYSQLND_METHOD(mysqlnd_ms, charset_name)(const MYSQLND_CONN_DATA * const proxy_c
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(charset_name)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -1929,6 +1945,9 @@ MYSQLND_METHOD(mysqlnd_ms, dump_debug_info)(MYSQLND_CONN_DATA * const proxy_conn
 	MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
 	DBG_ENTER("mysqlnd_ms::dump_debug_info");
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
 	DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(server_dump_debug_information)(conn TSRMLS_CC));
 }
 /* }}} */

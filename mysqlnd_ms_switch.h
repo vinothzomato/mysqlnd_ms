@@ -41,6 +41,7 @@ enum_func_status
 mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 							  zend_llist * selected_masters, zend_llist * selected_slaves TSRMLS_DC);
 
+MYSQLND_CONN_DATA * mysqlnd_ms_pick_first_master_or_slave(const MYSQLND_CONN_DATA * const conn TSRMLS_DC);
 #endif	/* MYSQLND_MS_SWITCH_H */
 
 /*

@@ -505,6 +505,38 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_pick_first_master_or_slave */
+MYSQLND_CONN_DATA *
+mysqlnd_ms_pick_first_master_or_slave(const MYSQLND_CONN_DATA * const conn TSRMLS_DC)
+{
+	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+	zend_llist * master_list = &(*conn_data)->master_connections;
+	zend_llist * slave_list = &(*conn_data)->slave_connections;
+	struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
+	MYSQLND_MS_LIST_DATA * el;
+	DBG_ENTER("mysqlnd_ms_pick_first_master_or_slave");
+
+	BEGIN_ITERATE_OVER_SERVER_LIST(el, master_list);
+		if (CONN_GET_STATE(el->conn) == CONN_ALLOCED && PASS == mysqlnd_ms_lazy_connect(el, FALSE TSRMLS_CC)) {
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(el->conn));
+			/* Real Success !! */
+			DBG_RETURN(stgy->last_used_conn = el->conn);
+		}
+	END_ITERATE_OVER_SERVER_LIST;
+	BEGIN_ITERATE_OVER_SERVER_LIST(el, slave_list);
+		if (CONN_GET_STATE(el->conn) == CONN_ALLOCED && PASS == mysqlnd_ms_lazy_connect(el, FALSE TSRMLS_CC)) {
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
+			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(el->conn));
+			/* Real Success !! */
+			DBG_RETURN(stgy->last_used_conn = el->conn);
+		}
+	END_ITERATE_OVER_SERVER_LIST;
+	DBG_RETURN(NULL);
+}
+/* }}} */
+
+
 /* {{{ mysqlnd_ms_select_servers_all */
 enum_func_status
 mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,

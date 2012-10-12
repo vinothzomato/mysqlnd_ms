@@ -96,15 +96,24 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_escape.ini
 	check_codes(23, $link, $link->options(MYSQLI_OPT_CONNECT_TIMEOUT, 10));
 	check_codes(24, $link, $link->autocommit(false));
 	check_codes(25, $link, $link->dump_debug_info());
-	check_codes(26, $link, $link->stmt_init());
-	check_codes(27, $link, $link->dump_debug_info());
-	check_codes(28, $link, $link->stmt_init());
+	check_codes(26, $link, $link->stmt_init(), 1);
 	check_codes(29, $link, $link->kill(-1));
 	check_codes(30, $link, $link->select_db($db));
 	check_codes(31, $link, $link->ssl_set('blubb_server-key.pem','blubb_server-cert.pem', 'blubb_cacert.pem', NULL, NULL));
 	check_codes(32, $link, $link->dump_debug_info());
 	check_codes(33, $link, $link->change_user($user, $passwd, $db));
-	check_codes(35, $link, $link->close());
+
+/*
+	check_codes(71, $link, mysqli_get_server_version($link));
+	check_codes(81, $link, mysqli_get_server_info($link));
+	check_codes(91, $link, mysqli_get_host_info($link));
+	check_codes(101, $link, mysqli_get_proto_info($link));
+	check_codes(102, $link, mysqli_character_set_name($link));
+	check_codes(103, $link, mysqli_stat($link));
+	check_codes(104, $link, $link->dump_debug_info());
+	check_codes(105, $link, mysqli_dump_debug_info($link));
+*/
+	check_codes(45, $link, $link->close());
 
 	if (function_exists('mysqli_set_local_infile_handler')) {
 		mysqli_set_local_infile_handler($link, "callme");
@@ -130,16 +139,16 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_escape.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_escape.ini'.\n");
 ?>
 --EXPECTF--
-[003] 0
+[003] %d
 [004] ''
 [005] '00000'
 [006] 0
-[007] 0
-[008] NULL
-[009] NULL
-[010] 0
+[007] %d
+[008] %s
+[009] %s
+[010] 10
 [011] 0
-[012] -1
+[012] 0
 [013] 0
 [014] 0
 [015] %d
@@ -147,25 +156,22 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_escape.ini
 [017] NULL
 [018] true
 [019] true
-[020] [%d/%s] %s
-[021] [%d/%s] %s
-[022] [%d/%s] %s
-[023] [%d/%s] %s
-[024] [%d/%s] %s
-[025] [%d/%s] %s
-[026] [%d/%s] %s
-[027] [%d/%s] %s
-[028] [%d/%s] %s
+[020] true
+[021] true
+[022] true
+[023] true
+[024] true
+[025] true
 
 Warning: mysqli::kill(): processid should have positive value in %s on line %d
 [029] false
 [030] true
 [031] true
-[032] [%d/%s] %s
-[033] [%d/%s] %s
+[032] true
+[033] true
 
 Warning: check_codes(): Couldn't fetch mysqli in %s on line %d
-[035] true
+[045] true
 
 Warning: mysqli::get_connection_stats(): Couldn't fetch mysqli in %s on line %d
 done!
