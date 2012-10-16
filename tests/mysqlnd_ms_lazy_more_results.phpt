@@ -54,7 +54,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_more_results.ini
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 
 	if (!$link->more_results())
-		printf("[004] [%d] %s\n", $link->errno, $link->error);
+		printf("[004] [%d] '%s'\n", $link->errno, $link->error);
 	else
 		printf("[004] More results\n");
 
@@ -75,9 +75,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_more_results.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_more_results.ini'.\n");
 ?>
 --EXPECTF--
-[003] [%d] %s
-[004] [%d] %s
-[005] [%d] %s
+[004] [%d] ''
 array(1) {
   [1]=>
   string(1) "1"

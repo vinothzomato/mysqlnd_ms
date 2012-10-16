@@ -85,7 +85,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_stmt_init.ini
 	if (is_object($stmt)) {
 		$one = "42";
 		if (!$stmt->prepare("SET @a=?") ||
-			!$stmt->bind_param("s", $one) || 
+			!$stmt->bind_param("s", $one) ||
 			!$stmt->execute())
 		{
 			printf("[012] [%d] '%s'\n", $stmt->errno, $stmt->error);
@@ -109,8 +109,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_stmt_init.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_stmt_init.ini'.\n");
 ?>
 --EXPECTF--
-[003] [2014] Commands out of sync; you can't run this command now
-[006] [2014] Commands out of sync; you can't run this command now
 [008] _one = 1
 array(1) {
   ["@a"]=>

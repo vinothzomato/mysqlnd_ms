@@ -79,9 +79,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_rollback.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_lazy_rollback.ini'.\n");
 ?>
 --EXPECTF--
-[003] [%d] %s
 [004] Rollback
-[005] [%d] %s
 array(1) {
   [1]=>
   string(1) "1"
