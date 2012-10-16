@@ -128,7 +128,7 @@ array(1) {
   [0]=>
   array(1) {
     ["_one"]=>
-    string(1) "1"
+    %s1%s
   }
 }
 array(2) {
