@@ -1,3 +1,28 @@
+1.5.0 alpha
+
+  Motto/theme: Tweaking based on user feedback
+  Release date: n/a
+
+  * Fixed #60605 PHP segmentation fault when mysqlnd_ms is enabled
+   The bug was caused by using an uninitialized handle. Implicit 
+   connect as part of lazy connections have been extended to cover
+   (hopefully) all situations in which the status of a connection
+   is read before a connection has been established, for example,
+   situations in which get_server_version() is called prior
+   to connecting to any server. The implicit connect added
+   will establish a connection to the first configured
+   master. 
+
+   The extended implicit connect also means less warnings, 
+   for example, when calling more_results() on a connection
+   handle on which no query has been run so far. 
+
+
+
+1.4.2 stable
+
+  Release date: 08/2012
+  
 1.4.1 beta
 
   Release date: 08/2012
