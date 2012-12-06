@@ -250,8 +250,13 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 	DBG_ENTER("mysqlnd_ms_choose_connection_rr_use_slave");
 	*which_server = USE_SLAVE;
 
-	if (0 == zend_llist_count(l) && SERVER_FAILOVER_MASTER == stgy->failover_strategy) {
-		*which_server = USE_MASTER;
+	if (0 == zend_llist_count(l)) {
+		DBG_INF("Slave list is empty");
+		if ((SERVER_FAILOVER_MASTER == stgy->failover_strategy) || (SERVER_FAILOVER_LOOP == stgy->failover_strategy)) {
+			*which_server = USE_MASTER;
+			DBG_RETURN(connection);
+		}
+		/* failover must be disabled */
 		DBG_RETURN(connection);
 	}
 
@@ -323,7 +328,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE);
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				if (fprint_conn.c) {
-					smart_str_free(&fprint_conn);			
+					smart_str_free(&fprint_conn);
 				}
 				/* Real Success !! */
 				DBG_RETURN(connection);
@@ -337,7 +342,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 				}
 			}
 			if (fprint_conn.c) {
-				smart_str_free(&fprint_conn);			
+				smart_str_free(&fprint_conn);
 			}
 		}
 		/* if we are here, we had some kind of a problem, either !connection or establishment failed */
@@ -347,7 +352,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			continue;
 		} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
 			DBG_INF("Failover disabled");
-			DBG_RETURN(connection);		
+			DBG_RETURN(connection);
 		}
 		DBG_INF("Falling back to the master");
 		break;
@@ -461,7 +466,7 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER);
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(connection));
 				if (fprint_conn.c) {
-					smart_str_free(&fprint_conn);			
+					smart_str_free(&fprint_conn);
 				}
 				DBG_RETURN(connection);
 			}
@@ -473,7 +478,7 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 				}
 			}
 			if (fprint_conn.c) {
-				smart_str_free(&fprint_conn);			
+				smart_str_free(&fprint_conn);
 			}
 		}
 		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
