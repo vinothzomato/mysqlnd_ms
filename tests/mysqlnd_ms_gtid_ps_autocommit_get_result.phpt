@@ -9,22 +9,22 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
-if (($master_host == $slave_host)) {
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
 include_once("util.inc");
 $sql = mst_get_gtid_sql($db);
-if ($error = mst_mysqli_setup_gtid_table($master_host_only, $user, $passwd, $db, $master_port, $master_socket))
+if ($error = mst_mysqli_setup_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
-		'slave' => array($slave_host),
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
 		'filters' => array(
 			"roundrobin" => array(),
 		),
