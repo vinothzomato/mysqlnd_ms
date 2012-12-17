@@ -257,6 +257,10 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			DBG_RETURN(connection);
 		}
 		/* failover must be disabled */
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+										  MYSQLND_MS_ERROR_PREFIX
+										  " Couldn't find the appropriate slave connection. %d slaves to choose from. "
+										  "Something is wrong", zend_llist_count(l));
 		DBG_RETURN(connection);
 	}
 
