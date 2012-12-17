@@ -5,27 +5,27 @@ Load Balancing: random_once (slaves)
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if (($master_host == $slave_host)) {
+if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 $settings = array(
 	"myapp" => array(
 		'pick'		=> array('random' => array('sticky' => '1')),
-		'master' 	=> array($master_host),
-		'slave' 	=> array($slave_host, $slave_host, $slave_host),
+		'master' 	=> array($emulated_master_host),
+		'slave' 	=> array($emulated_slave_host, $emulated_slave_host, $emulated_slave_host),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_random_once.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2,3]");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1,2,3]");
+msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
@@ -56,19 +56,19 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_once.ini
 
 	/* first master */
 	mst_mysqli_query(2, $link, "SET @myrole = 'Master 1'", MYSQLND_MS_MASTER_SWITCH);
-	$master = mst_mysqli_get_emulated_id(3, $link);
+	$emulated_master = mst_mysqli_get_emulated_id(3, $link);
 
-	$slaves = array();
+	$emulated_slaves = array();
 	$num_queries = 100;
 	for ($i = 0; $i <= $num_queries; $i++) {
 		mst_mysqli_query(4, $link, "SELECT 1");
 		$id = mst_mysqli_get_emulated_id(5, $link);
-		if (!isset($slaves[$id])) {
-			$slaves[$id] = array('role' => sprintf("Slave %d", count($slaves) + 1), 'queries' => 0);
+		if (!isset($emulated_slaves[$id])) {
+			$emulated_slaves[$id] = array('role' => sprintf("Slave %d", count($emulated_slaves) + 1), 'queries' => 0);
 		} else {
-			$slaves[$id]['queries']++;
+			$emulated_slaves[$id]['queries']++;
 		}
-		if ($id == $master)
+		if ($id == $emulated_master)
 			printf("[006] Master and slave use the same connection!\n");
 
 		if (mt_rand(0, 10) > 9) {
@@ -78,7 +78,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_once.ini
 		}
 	}
 
-	foreach ($slaves as $thread => $details) {
+	foreach ($emulated_slaves as $thread => $details) {
 		printf("%s (%s) has run %d queries.\n", $details['role'], $thread, $details['queries']);
 	}
 
