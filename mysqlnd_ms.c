@@ -448,7 +448,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_CONNECT_FLAGS_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (value_exists) {
 			if (flags < 0) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
@@ -464,7 +464,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PORT_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (value_exists) {
 			if (port < 0 || port > 65535) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
@@ -480,7 +480,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_SOCKET_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (value_exists) {
 			cred.socket = socket_to_use;
 		}
@@ -490,7 +490,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_USER_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (value_exists) {
 			cred.user = user_to_use;
 		}
@@ -499,7 +499,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_PASS_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (value_exists) {
 			cred.passwd = pass_to_use;
 			cred.passwd_len = strlen(cred.passwd);
@@ -510,7 +510,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_DB_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (value_exists) {
 			cred.db = db_to_use;
 			cred.db_len = strlen(cred.db);
@@ -521,7 +521,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 		if (is_list_value) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value for "SECT_HOST_NAME". Cannot be a list/hash' . Stopping");
-			failures++;		
+			failures++;
 		} else if (FALSE == value_exists) {
 			DBG_ERR_FMT("Cannot find ["SECT_HOST_NAME"] in [%s] section in config", subsection_name);
 			php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR,
@@ -1837,7 +1837,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND_CONN_DATA * proxy_conn, char **message, unsigned int * message_len TSRMLS_DC)
 {
-	enum_func_status ret;
+	enum_func_status ret = FAIL;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
@@ -1845,6 +1845,10 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND_CONN_DATA * proxy_conn
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+		if (!conn || (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY)) {
+			DBG_INF("No connection");
+			DBG_RETURN(ret);
+		}
 	}
 	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_statistics)(conn, message, message_len TSRMLS_CC);
 	DBG_RETURN(ret);

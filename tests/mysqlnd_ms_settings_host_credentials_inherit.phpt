@@ -45,7 +45,7 @@ $settings = array(
 			),
 
 			array(
-			  'host' 	=> $emulated_slave_host,
+			  'host' 	=> $emulated_slave_host_only,
 			),
 		),
 		'pick' => 'roundrobin',
