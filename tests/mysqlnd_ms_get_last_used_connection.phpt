@@ -30,7 +30,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	function conn_diff($offset, $conn, $members, $expected = NULL) {
+	function conn_diff($offset, $conn, $members, $expected = NULL, $ignore_list = NULL) {
 
 		if (!is_array($conn)) {
 			printf("[%03d + 01] No array, got %s\n", $offset, var_export($conn, true));
@@ -38,6 +38,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 		}
 
 		foreach ($conn as $prop => $value) {
+			if (!empty($ignore_list) && in_array($prop, $ignore_list)) {
+				unset($members[$prop]);
+				continue;
+			}
 
 			if (isset($members[$prop])) {
 				$type = gettype($value);
@@ -79,8 +83,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 				}
 				unset($members[$prop]);
 			} else {
-				printf("[%03d + 07] Unexpected %s = %s\n",
-					$offset, $prop, var_export($value, true));
+				if (empty($ignore_list) || !in_array($prop, $ignore_list)) {
+					printf("[%03d + 07] Unexpected %s = %s\n",
+						$offset, $prop, var_export($value, true));
+				}
 			}
 		}
 
@@ -144,7 +150,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
 		/* accept whatever "&/"&/"§ default socket there may be... */
 		$expected["scheme"] = $conn["scheme"];
-	conn_diff(6, $conn, $members, $expected);
+			/* this is hackish but I can't think of a better way of implementing at the C level */
+	conn_diff(6, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	/* error on non MS */
 	@$link->query("PLEASE, LET THIS BE INVALID My-S-Q-L");
@@ -152,14 +159,14 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(7, $conn, $members, $expected);
+	conn_diff(7, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	@$link->query("YEAH, HEY, OK, HEY, ..");
 	$expected["errno"] = $link->errno;
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(8, $conn, $members, $expected);
+	conn_diff(8, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	if (!$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket))
 		printf("[011] Cannot connect to the server using host=%s, user=%s, passwd=***, dbname=%s, port=%s, socket=%s\n",
@@ -176,15 +183,16 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 		"sqlstate" 			=> $link->sqlstate,
 	);
 	if ("localhost" != $master_host_only && !$master_socket) {
-		$expected["port"] == $master_port;
+		$expected["port"] = $master_port;
 		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host_only, $master_port);
 	}
+
 	$conn = mysqlnd_ms_get_last_used_connection($link);
 	if (!isset($expected["scheme"]) && isset($conn["scheme"]))
 		/* accept whatever "&/"&/"§ default socket there may be... */
 		$expected["scheme"] = $conn["scheme"];
 
-	conn_diff(12, $conn, $members, $expected);
+	conn_diff(12, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	/* should go to the master */
 	/* error on MS */
@@ -193,7 +201,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(13, $conn, $members, $expected);
+	conn_diff(13, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	/* should go to the master */
 	@$link->query("PLEASE, LET THIS BE INVALID My-S-Q-L");
@@ -201,7 +209,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(14, $conn, $members, $expected);
+	conn_diff(14, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	/* should go to the master */
 	@$link->select_db("My-S-Q-L rocks, My-S-Q-L");
@@ -209,7 +217,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(15, $conn, $members, $expected);
+	conn_diff(15, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	$link->kill($link->thread_id);
 	/* give server think time */
@@ -218,7 +226,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 	$expected["error"] = $link->error;
 	$expected["sqlstate"] = $link->sqlstate;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(16, $conn, $members, $expected);
+	conn_diff(16, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
 
 	print "done!";
 ?>

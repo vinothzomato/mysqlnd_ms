@@ -49,13 +49,18 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	require_once("connect.inc");
 	require_once("util.inc");
 
-	function conn_diff($offset, $conn, $members, $expected = NULL) {
+	function conn_diff($offset, $conn, $members, $expected = NULL, $ignore_list = NULL) {
 
 		if (!is_array($conn)) {
 			printf("[%03d + 01] No array, got %s\n", $offset, var_export($conn, true));
 			return false;
 		}
+
 		foreach ($conn as $prop => $value) {
+			if (!empty($ignore_list) && in_array($prop, $ignore_list)) {
+				unset($members[$prop]);
+				continue;
+			}
 
 			if (isset($members[$prop])) {
 				$type = gettype($value);
@@ -97,8 +102,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 				}
 				unset($members[$prop]);
 			} else {
-				printf("[%03d + 07] Unexpected %s = %s\n",
-					$offset, $prop, var_export($value, true));
+				if (empty($ignore_list) || !in_array($prop, $ignore_list)) {
+					printf("[%03d + 07] Unexpected %s = %s\n",
+						$offset, $prop, var_export($value, true));
+				}
 			}
 		}
 
@@ -111,6 +118,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 		return true;
 	}
+
 
 	$members = array(
 		"scheme" 			=> "string",
@@ -132,7 +140,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 	/* lazy and no stmt run */
 	$expected = array("sqlstate" => $link->sqlstate);
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(2, $conn, $members, $expected);
+	/* this is hackish but I can't think of a better way of implementing at the C level */
+	conn_diff(2, $conn, $members,  $expected, (isset($expected['port']) && (0 == $expected['port'])) ? array('port') : array());
 
 	/* master */
 	mst_mysqli_query(3, $link, "SET @myrole='master'");
@@ -155,7 +164,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 		/* accept whatever "&/"&/"§ default socket there may be... */
 		$expected["scheme"] = $conn["scheme"];
 
-	conn_diff(4, $conn, $members, $expected);
+	conn_diff(4, $conn, $members,  $expected, (isset($expected['port']) && (0 == $expected['port'])) ? array('port') : array());
 	$threads[mst_mysqli_get_emulated_id(5, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* slave 1 */
@@ -177,7 +186,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 		/* accept whatever "&/"&/"§ default socket there may be... */
 		$expected["scheme"] = $conn["scheme"];
 
-	conn_diff(7, $conn, $members, $expected);
+	conn_diff(7, $conn, $members,  $expected, (isset($expected['port']) && (0 == $expected['port'])) ? array('port') : array());
 
 	$threads[mst_mysqli_get_emulated_id(8, $link)] = array($link->thread_id, $conn["scheme"]);
 
@@ -186,7 +195,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection_switches.ini
 
 	$expected["thread_id"] = $link->thread_id;
 	$conn = mysqlnd_ms_get_last_used_connection($link);
-	conn_diff(10, $conn, $members, $expected);
+	conn_diff(10, $conn, $members,  $expected, (isset($expected['port']) && (0 == $expected['port'])) ? array('port') : array());
 	$threads[mst_mysqli_get_emulated_id(11, $link)] = array($link->thread_id, $conn["scheme"]);
 
 	/* rr: slave 1 */
