@@ -58,7 +58,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_gtid_tx_non_ms.ini
 		return $row['auto_commit'];
 	}
 
-	$link = mst_mysqli_connect($master_host, $user, $passwd, $db, $port, $socket);
+	$link = mst_mysqli_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 	if (mysqli_connect_errno()) {
 		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
