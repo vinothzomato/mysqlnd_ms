@@ -36,8 +36,8 @@ if (test_unknown_access($emulated_slave_host_only, $user, $passwd, $db, $emulate
 	die("skip Slave server account can access 'please_do_no_create_such_db' database");
 
 require_once("util.inc");
-msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1

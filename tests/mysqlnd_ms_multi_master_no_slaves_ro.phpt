@@ -22,8 +22,8 @@ if ($error = mst_create_config("test_mysqlnd_ms_multi_master_no_slaves_ro.ini", 
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master[1,2]");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
+msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master[1,2]");
 ?>
 --INI--
 mysqlnd_ms.enable=1

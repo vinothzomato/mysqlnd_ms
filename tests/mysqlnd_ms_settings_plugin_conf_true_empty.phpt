@@ -24,8 +24,8 @@ if ($error = mst_create_config("test_mysqlnd_ms_settings_plugin_conf_false_empty
 	die(sprintf("SKIP %s\n", $error));
 
 require_once("util.inc");
-msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1]");
-msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1]");
+msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1

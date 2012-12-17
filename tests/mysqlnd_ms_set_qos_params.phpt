@@ -59,8 +59,8 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_set_qos_params.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave1");
-msg_mysqli_init_emulated_id_skip($emulated_master_host, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master1");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave1");
+msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master1");
 ?>
 --INI--
 mysqlnd_ms.enable=1

@@ -33,7 +33,7 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_lazy_master_failure_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-msg_mysqli_init_emulated_id_skip($emulated_slave_host, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1,2,3]");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1,2,3]");
 ?>
 --INI--
 mysqlnd_ms.enable=1
