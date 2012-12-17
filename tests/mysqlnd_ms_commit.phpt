@@ -79,6 +79,9 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_commit.ini
 	if (!mst_mysqli_query(14, $link, "DROP TABLE IF EXISTS test"))
 		printf("[015] [%d] %s\n", $link->errno, $link->error);
 
+	/* give dear mysql replication time to catch up */
+	sleep(1);
+
 	/* slave */
 	if (!mst_mysqli_query(16, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_SLAVE_SWITCH) ||
 		!mst_mysqli_query(17, $link, "CREATE TABLE test(id INT) ENGINE=InnoDB", MYSQLND_MS_SLAVE_SWITCH) ||
