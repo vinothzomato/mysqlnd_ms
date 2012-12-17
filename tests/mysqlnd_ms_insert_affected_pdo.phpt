@@ -7,12 +7,12 @@ require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli", "pdo_mysql"));
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 $settings = array(
 	"myapp" => array(
 		'master' => array($master_host),
-		'slave' => array($slave_host, $slave_host),
+		'slave' => array($emulated_slave_host, $emulated_slave_host),
 		'pick' => array("roundrobin"),
 	),
 );
@@ -35,6 +35,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_insert_affected_pdo.ini
 	}
 
 	function run_insert($offset, $pdo, $num_rows, $switch = NULL) {
+		sleep(1);
 		mst_mysqli_query($offset, $pdo, "DROP TABLE IF EXISTS test", $switch);
 		mst_mysqli_query($offset + 1, $pdo, "CREATE TABLE test(id INT AUTO_INCREMENT PRIMARY KEY, label CHAR(1))", MYSQLND_MS_LAST_USED_SWITCH);
 
