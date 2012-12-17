@@ -42,7 +42,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_bug_60605.ini
 	require_once("util.inc");
 
 	/* without MS */
-	$link = my_mysql_connect($host, $user, $passwd, $db, $port, $socket);
+	$link = @my_mysql_connect($host, $user, $passwd, $db, $port, $socket);
 	if (!$link)
 		printf("[001] [[%d] %s\n", mysql_errno(), mysql_error());
 

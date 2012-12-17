@@ -46,7 +46,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_bug_pecl_22784.ini
 	require_once("util.inc");
 
 	/* without MS */
-	$link = my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
+	$link = @my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
 	if (!$link)
 		printf("[001] [[%d] %s\n", mysql_errno(), mysql_error());
 
@@ -64,7 +64,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_bug_pecl_22784.ini
 	mysql_close($link);
 
 	/* with MS */
-	$link = my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
+	$link = @my_mysql_connect($host, $user, $passwd, NULL, $port, $socket);
 	if (!$link)
 		printf("[005] [[%d] %s\n", mysql_errno(), mysql_error());
 
