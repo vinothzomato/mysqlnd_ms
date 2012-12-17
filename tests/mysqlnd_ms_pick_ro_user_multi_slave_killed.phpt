@@ -23,8 +23,8 @@ if ($error = mst_create_config("test_mysqlnd_ms_pick_ro_user_multi_slave_removed
 	die(sprintf("SKIP %s\n", $error));
 
 include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($slave_host, $user, $passwd, $db, $slave_port, $slave_socket, "slave[1,2]");
-msg_mysqli_init_emulated_id_skip($master_host, $user, $passwd, $db, $master_port, $master_socket, "master");
+msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1,2]");
+msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
