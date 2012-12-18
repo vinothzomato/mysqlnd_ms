@@ -180,6 +180,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define PICK_USER_MULTI						"user_multi"
 #define PICK_TABLE							"table"
 #define PICK_QOS							"quality_of_service"
+#define PICK_GROUPS							"node_groups"
 #define LAZY_NAME							"lazy_connections"
 #define FAILOVER_NAME						"failover"
 #define FAILOVER_STRATEGY_NAME				"strategy"
@@ -216,6 +217,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT 	"wait_for_gtid_timeout"
 #define SECT_LB_WEIGHTS						"weights"
 
+
 typedef enum
 {
 	STATEMENT_SELECT,
@@ -248,6 +250,7 @@ enum mysqlnd_ms_server_pick_strategy
 	SERVER_PICK_USER_MULTI,
 	SERVER_PICK_TABLE,
 	SERVER_PICK_QOS,
+	SERVER_PICK_GROUPS,
 	SERVER_PICK_LAST_ENUM_ENTRY
 };
 
@@ -444,6 +447,17 @@ typedef struct st_mysqlnd_ms_filter_qos_data
 	MYSQLND_MS_FILTER_QOS_OPTION_DATA option_data;
 } MYSQLND_MS_FILTER_QOS_DATA;
 
+typedef struct st_mysqlnd_ms_filter_groups_data
+{
+	MYSQLND_MS_FILTER_DATA parent;
+	HashTable groups;
+} MYSQLND_MS_FILTER_GROUPS_DATA;
+
+typedef struct st_mysqlnd_ms_filter_groups_data_group
+{
+	HashTable master_context;
+	HashTable slave_context;
+} MYSQLND_MS_FILTER_GROUPS_DATA_GROUP;
 
 /*
  NOTE: Some elements are available with every connection, some

@@ -50,6 +50,7 @@
 #include "mysqlnd_ms_filter_round_robin.h"
 #include "mysqlnd_ms_filter_table_partition.h"
 #include "mysqlnd_ms_filter_qos.h"
+#include "mysqlnd_ms_filter_groups.h"
 
 #include "mysqlnd_ms_switch.h"
 
@@ -79,6 +80,7 @@ static const struct st_specific_ctor_with_name specific_ctors[] =
 	{PICK_TABLE,		sizeof(PICK_TABLE) - 1,			mysqlnd_ms_table_filter_ctor,	SERVER_PICK_TABLE,		TRUE},
 #endif
 	{PICK_QOS,			sizeof(PICK_QOS) - 1,			mysqlnd_ms_qos_filter_ctor,		SERVER_PICK_QOS,		TRUE},
+	{PICK_GROUPS,		sizeof(PICK_GROUPS) - 1,		mysqlnd_ms_groups_filter_ctor,		SERVER_PICK_GROUPS,		TRUE},
 	{NULL,				0,								NULL, 							SERVER_PICK_LAST_ENUM_ENTRY, FALSE}
 };
 
@@ -663,6 +665,14 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					multi_filter = TRUE;
 					mysqlnd_ms_choose_connection_qos(conn, filter, (*conn_data)->connect_host, query, query_len,
 													 free_query,
+													 selected_masters, selected_slaves,
+													 output_masters, output_slaves, stgy,
+													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+					break;
+				case SERVER_PICK_GROUPS:
+					/* TODO: MS must not bail if slave or master list is empty */
+					multi_filter = TRUE;
+					mysqlnd_ms_choose_connection_groups(conn, filter, (*conn_data)->connect_host, query, query_len,
 													 selected_masters, selected_slaves,
 													 output_masters, output_slaves, stgy,
 													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);

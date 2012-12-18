@@ -4,25 +4,42 @@
   Release date: n/a
 
   * Fixed #60605 PHP segmentation fault when mysqlnd_ms is enabled
-   The bug was caused by using an uninitialized handle. Implicit 
+   The bug was caused by using an uninitialized handle. Implicit
    connect as part of lazy connections have been extended to cover
    (hopefully) all situations in which the status of a connection
    is read before a connection has been established, for example,
    situations in which get_server_version() is called prior
    to connecting to any server. The implicit connect added
    will establish a connection to the first configured
-   master. 
+   master.
 
-   The extended implicit connect also means less warnings, 
+   The extended implicit connect also means less warnings,
    for example, when calling more_results() on a connection
-   handle on which no query has been run so far. 
+   handle on which no query has been run so far.
 
+  * New filter: node_groups
+
+   The filter lets you organize servers (master and slaves)
+   in groups. Queries can be directed to a certain group of servers
+   by prefixing the query statement with a SQL hint/comment, e.g.:
+
+     /*group_name*/SELECT ...
+     /*group_name*/INSERT ...
+
+   Directing a query to a fixed and predefined subset of cluster
+   nodes may be desired for cache locality optimizations (keep
+   certain server caches hot with certain queries) or to build
+   shard/partitioning groups. In the latter case the group_name
+   can be considered a shard key. Note, however, this is only
+   the client part, which is the easiest. Do not confuse the
+   feature with the table filter (experimental) which supports
+   schema based partitioning (do-replicate-* server config).
 
 
 1.4.2 stable
 
   Release date: 08/2012
-  
+
 1.4.1 beta
 
   Release date: 08/2012
