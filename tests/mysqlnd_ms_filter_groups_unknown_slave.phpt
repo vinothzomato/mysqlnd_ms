@@ -1,5 +1,5 @@
 --TEST--
-Filter: node_groups, unknown master
+Filter: node_groups, unknown slave
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -30,8 +30,8 @@ $settings = array(
 		'filters' => array(
 			"node_groups" => array(
 				"A" => array(
-					'master' => array('master2'),
-					'slave'	 => array('slave1'),
+					'master' => array('master1'),
+					'slave'	 => array('slave2'),
 				),
 			),
 			"random" => array(),
@@ -39,13 +39,13 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_filter_groups_unknown_master.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_filter_groups_unknown_slave.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.multi_master=0
-mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_unknown_master.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_unknown_slave.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -76,25 +76,30 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_unknown_master.ini
 		var_dump($res->fetch_assoc());
 	}
 
-	$res = mst_mysqli_query(8, $link, "/*A*/SELECT @myrole AS _role", MYSQLND_MS_MASTER_SWITCH);
+	$res = mst_mysqli_query(8, $link, "/*A*/SELECT @myrole AS _role", MYSQLND_MS_SLAVE_SWITCH);
 	if (!$res) {
 		printf("[009] [%d] %s\n", $link->errno, $link->error);
 	} else {
 		var_dump($res->fetch_assoc());
 	}
 
+	$res = mst_mysqli_query(10, $link, "/*A*/SELECT @myrole AS _role");
+	if (!$res) {
+		printf("[011] [%d] %s\n", $link->errno, $link->error);
+	} else {
+		var_dump($res->fetch_assoc());
+	}
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_groups_unknown_master.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_groups_unknown_master.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_filter_groups_unknown_slave.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_groups_unknown_slave.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown master 'master2' (section 'A') in 'node_groups' filter configuration. Stopping in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) No masters configured in node group 'A' for 'node_groups' filter. Please, verify the setup in %s on line %d
-[001] [2000] (mysqlnd_ms) No masters configured in node group 'A' for 'node_groups' filter. Please, verify the setup
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown slave 'slave2' (section 'A') in 'node_groups' filter configuration. Stopping in %s on line %d
+[001] [2000] (mysqlnd_ms) Unknown slave 'slave2' (section 'A') in 'node_groups' filter configuration. Stopping
 array(1) {
   ["_role"]=>
   string(7) "master1"
@@ -103,8 +108,12 @@ array(1) {
   ["_role"]=>
   string(6) "slave1"
 }
-[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. 0 masters to choose from. Something is wrong in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
 [E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
 [008] [2000] (mysqlnd_ms) No connection selected by the last filter
 [009] [2000] (mysqlnd_ms) No connection selected by the last filter
+[E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave connection. 0 slaves to choose from. Something is wrong in %s on line %d
+[E_WARNING] mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
+[010] [2000] (mysqlnd_ms) No connection selected by the last filter
+[011] [2000] (mysqlnd_ms) No connection selected by the last filter
 done!

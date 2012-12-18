@@ -204,6 +204,19 @@ mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 						} while (section_exists && ++nkey);
 						DBG_INF_FMT("added '%d' masters", zend_hash_num_elements(&node_group->master_context));
 					}
+					if ((zend_llist_count(master_connections) > 0) && (0 ==  zend_hash_num_elements(&node_group->master_context))) {
+						/*
+							A user may not configure any slaves if using multi-master setup.
+							Unfortunately we don't know whether multi-master is on or not.
+							Thus, no check and warning in the slave section below.
+
+							However, configuring masters but not naming any in a group
+							section stinks.
+						*/
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+								E_RECOVERABLE_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " No masters configured in node group '%s' for '%s' filter. Please, verify the setup", current_group_name, PICK_GROUPS);
+					}
 
 					/* 3.1 slaves */
 					serversection = mysqlnd_ms_config_json_sub_section(subsection,

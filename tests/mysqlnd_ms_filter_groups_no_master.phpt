@@ -1,5 +1,5 @@
 --TEST--
-Filter: node_groups, unknown master
+Filter: node_groups, no master
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -30,8 +30,7 @@ $settings = array(
 		'filters' => array(
 			"node_groups" => array(
 				"A" => array(
-					'master' => array('master2'),
-					'slave'	 => array('slave1'),
+					'slave' => array('slave1'),
 				),
 			),
 			"random" => array(),
@@ -39,13 +38,13 @@ $settings = array(
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_filter_groups_unknown_master.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_filter_groups_no_master.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.multi_master=0
-mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_unknown_master.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_no_master.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -88,11 +87,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_unknown_master.ini
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_groups_unknown_master.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_groups_unknown_master.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_filter_groups_no_master.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_groups_no_master.ini'.\n");
 ?>
 --EXPECTF--
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) Unknown master 'master2' (section 'A') in 'node_groups' filter configuration. Stopping in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) No masters configured in node group 'A' for 'node_groups' filter. Please, verify the setup in %s on line %d
 [001] [2000] (mysqlnd_ms) No masters configured in node group 'A' for 'node_groups' filter. Please, verify the setup
 array(1) {
