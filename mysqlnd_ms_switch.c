@@ -616,6 +616,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 			 filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
 		{
 			zend_bool multi_filter = FALSE;
+			zend_bool multi_filter_single_conn_continue_search = TRUE;
 			if (zend_llist_count(output_masters) || zend_llist_count(output_slaves)) {
 				/* swap and clean */
 				zend_llist * tmp_sel_masters = selected_masters;
@@ -636,6 +637,11 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					break;
 				case SERVER_PICK_USER_MULTI:
 					multi_filter = TRUE;
+					/* TODO:
+					 Should we really stop filtering if a user multi filter returns only one server?
+					 User might have returned zero masters for upcoming SELECT and
+					*/
+					multi_filter_single_conn_continue_search = FALSE;
 					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, (const char * const)*query, *query_len,
 														 selected_masters, selected_slaves,
 														 output_masters, output_slaves, stgy,
@@ -644,6 +650,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 				case SERVER_PICK_TABLE:
 					multi_filter = TRUE;
+					multi_filter_single_conn_continue_search = TRUE;
 					mysqlnd_ms_choose_connection_table_filter(filter, (const char * const)*query, *query_len,
 															  CONN_GET_STATE(conn) > CONN_ALLOCED?
 															  	conn->connect_or_select_db:
@@ -663,6 +670,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 				case SERVER_PICK_QOS:
 					/* TODO: MS must not bail if slave or master list is empty */
 					multi_filter = TRUE;
+					multi_filter_single_conn_continue_search = FALSE;
 					mysqlnd_ms_choose_connection_qos(conn, filter, (*conn_data)->connect_host, query, query_len,
 													 free_query,
 													 selected_masters, selected_slaves,
@@ -672,6 +680,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 				case SERVER_PICK_GROUPS:
 					/* TODO: MS must not bail if slave or master list is empty */
 					multi_filter = TRUE;
+					multi_filter_single_conn_continue_search = TRUE;
 					mysqlnd_ms_choose_connection_groups(conn, filter, (*conn_data)->connect_host, query, query_len,
 													 selected_masters, selected_slaves,
 													 output_masters, output_slaves, stgy,
@@ -685,7 +694,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
 			if (!connection &&
 				multi_filter == TRUE &&
-				(1 == zend_llist_count(output_masters) + zend_llist_count(output_slaves)))
+				(1 == zend_llist_count(output_masters) + zend_llist_count(output_slaves)) &&
+				(FALSE == multi_filter_single_conn_continue_search))
 			{
 				MYSQLND_MS_LIST_DATA ** el_pp;
 				if (zend_llist_count(output_masters)) {
