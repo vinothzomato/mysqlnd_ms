@@ -42,7 +42,6 @@ mysqlnd_ms.multi_master=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_master_failure_failover_loop_max_retries_rr.ini
 mysqlnd_ms.collect_statistics=1
 mysqlnd_ms.disable_rw_split=1
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
