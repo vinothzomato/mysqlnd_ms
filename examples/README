@@ -74,7 +74,7 @@ Multi master with read-write splitting disabled:
   php -d mysqlnd_ms.enable=1 \
       -d mysqlnd_ms.multi_master=1 \
       -d mysqlnd_ms.disable_rw_split=1 \
-      -d mysqlnd_ms.config_file=mysqlnd_ms_single_master_config_multi_master.json \
+      -d mysqlnd_ms.config_file=mysqlnd_ms_multi_master_config.json \
       multi_master.php
 
 *Pitfall*
