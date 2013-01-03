@@ -1,6 +1,8 @@
 <?php
 /*
-Simple read/write split demo.
+Failover demo.
+
+NOTE: the warning does not mean it does not work... see documentation!
 
 See README for hints and instructions!
 */
@@ -50,13 +52,21 @@ foreach ($queries as $thread_id => $details) {
 	printf("\t\t... %s\n", $query);
 }
 
-printf("Running a SELECT, it should be send to the slaves...\n");
-run_query($conn, "SELECT 1 FROM DUAL");
+printf("\nRunning a SELECT, it should be send to the slaves...\n");
+printf("NOTE: A warning is emitted but script continues without interruption. You can suppress the warning using @. The plugin cannot control it.\n");
+$res = run_query($conn, "SELECT '\tWarning but resultset' AS _hint FROM DUAL");
+$row = $res->fetch_assoc();
+echo $row['_hint'] . "\n";
 
-printf("Dropping the test table. Statement should be send to the master...\n");
+printf("\nRunning SELECT but plugin has learned that slave1 is unavailable...\n");
+$res = run_query($conn, "SELECT '\tNo warning' AS _hint FROM DUAL");
+$row = $res->fetch_assoc();
+echo $row['_hint'] . "\n";
+
+printf("\nDropping the test table. Statement should be send to the master...\n");
 run_query($conn, "DROP TABLE IF EXISTS test");
 
-printf("Dumping list of connections. Should be two: master and slave...\n");
+printf("\nDumping list of connections. Should be two: master and slave...\n");
 foreach ($queries as $thread_id => $details) {
   printf("\t... Connection %d has run\n", $thread_id);
   foreach ($details as $query)

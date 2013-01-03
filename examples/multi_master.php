@@ -1,6 +1,6 @@
 <?php
 /*
-Simple read/write split demo.
+Multi master demo
 
 See README for hints and instructions!
 */
@@ -38,25 +38,13 @@ if (!($conn = new mysqli("myapp", DB_USER, DB_PASSWORD, DB_SCHEMA)) || mysqli_co
 
 $queries = array();
 
-printf("Creating a test table. Statements should be send to the master...\n");
-run_query($conn, "DROP TABLE IF EXISTS test");
-run_query($conn, "CREATE TABLE test(id INT)");
-run_query($conn, "INSERT INTO test(id) VALUES (1)");
+printf("Running some statements in a roundrobin fashion\n");
 
-printf("Dumping list of connections. Should be only one, the master connection...\n");
-foreach ($queries as $thread_id => $details) {
-  printf("\t... Connection %d has run\n", $thread_id);
-  foreach ($details as $query)
-	printf("\t\t... %s\n", $query);
-}
+run_query($conn, "SELECT 'Query 1, round robin: master1'");
+run_query($conn, "SELECT 'Query 2, round robin: master2'");
+run_query($conn, "SELECT 'Query 3, round robin: master1'");
 
-printf("Running a SELECT, it should be send to the slaves...\n");
-run_query($conn, "SELECT 1 FROM DUAL");
-
-printf("Dropping the test table. Statement should be send to the master...\n");
-run_query($conn, "DROP TABLE IF EXISTS test");
-
-printf("Dumping list of connections. Should be two: master and slave...\n");
+printf("Dumping list of connections. Should be two. Queries distributed in a roundrobin fashion.\n");
 foreach ($queries as $thread_id => $details) {
   printf("\t... Connection %d has run\n", $thread_id);
   foreach ($details as $query)
