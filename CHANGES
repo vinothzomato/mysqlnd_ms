@@ -35,6 +35,8 @@
    feature with the table filter (experimental) which supports
    schema based partitioning (do-replicate-* server config).
 
+ * examples/ contents clearned up
+
 
 1.4.2 stable
 

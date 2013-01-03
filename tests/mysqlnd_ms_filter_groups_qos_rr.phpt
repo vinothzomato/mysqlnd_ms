@@ -119,7 +119,7 @@ mysqlnd.debug=d:t:x:O,/tmp/mysqlnd.trace
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_groups_qos.in"))
+	if (!unlink("test_mysqlnd_ms_filter_groups_qos.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_groups_qos_rr.ini'.\n");
 ?>
 --EXPECTF--
