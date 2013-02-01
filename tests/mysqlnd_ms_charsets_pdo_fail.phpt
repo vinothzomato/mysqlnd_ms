@@ -75,8 +75,9 @@ var_dump($pdo->quote("a"));
 	if (!unlink("test_mysqlnd_ms_charsets_pdo_fail.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_charsets_pdo_fail.ini'.\n");
 ?>
---XFAIL--
-Bug 63886 is the root cause, ms crash is a follow-up, waiting for mysqlnd fix
 --EXPECTF--
-connect error
-done!
+Fatal error: Uncaught exception 'PDOException' with message 'SQLSTATE[HY000] [2019] Unknown character set' in %s:%d
+Stack trace:
+#0 %s(%d): PDO->__construct('mysql:host=%s', '%s', '%s')
+#1 {main}
+  thrown in %s on line 5
