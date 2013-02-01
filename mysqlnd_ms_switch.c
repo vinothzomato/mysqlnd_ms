@@ -446,7 +446,7 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 	struct st_ms_token_and_value token = {0};
 	struct st_mysqlnd_query_scanner * scanner;
 	DBG_ENTER("mysqlnd_ms_query_is_select");
-	char *ptr_begin = NULL, *ptr_copy = NULL, *comment = NULL;
+
 	*forced = FALSE;
 	if (!query) {
 		DBG_RETURN(USE_MASTER);
@@ -457,46 +457,49 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 	token = mysqlnd_qp_get_token(scanner TSRMLS_CC);
 	DBG_INF_FMT("token=COMMENT? = %d", token.token == QC_TOKEN_COMMENT);
 	while (token.token == QC_TOKEN_COMMENT) {
+		size_t comment_len = Z_STRLEN(token.value);
+		char * comment = Z_STRVAL(token.value);
 
-		comment = emalloc(Z_STRLEN(token.value) + 1);
-		strcpy(comment, Z_STRVAL(token.value));
-		ptr_begin = comment;
-		while (*ptr_begin && isspace(*ptr_begin)) {
-			++ptr_begin;
+		while (*comment && isspace(*comment)) {
+			++comment;
+			--comment_len;
 		}
-		ptr_copy = comment;
-		while (*ptr_begin && !isspace(*ptr_begin)) {
-			*ptr_copy++ = *ptr_begin++;
-		}
-		*ptr_copy = '\0';
-
-		if (!strncasecmp(comment, MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1)) {
-			DBG_INF("forced master");
-			ret = USE_MASTER;
-			*forced = TRUE;
-			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_FORCED);
-		} else if (!strncasecmp(comment, SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1)) {
-			DBG_INF("forced slave");
-			if (MYSQLND_MS_G(disable_rw_split)) {
+		if (comment_len) {
+			if ((comment[sizeof(MASTER_SWITCH)] == '\0' || isspace(comment[sizeof(MASTER_SWITCH)])) &&
+				!strncasecmp(comment, MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1))
+			{
+				DBG_INF("forced master");
 				ret = USE_MASTER;
-			} else {
-				ret = USE_SLAVE;
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
-			}
-			*forced = TRUE;
-		} else if (!strncasecmp(comment, LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1)) {
-			DBG_INF("forced last used");
-			ret = USE_LAST_USED;
-			*forced = TRUE;
-			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_LAST_USED_FORCED);
+				*forced = TRUE;
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_FORCED);
+			} else if ((comment[sizeof(SLAVE_SWITCH)] == '\0' || isspace(comment[sizeof(SLAVE_SWITCH)])) &&
+						!strncasecmp(comment, SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1))
+			{
+				DBG_INF("forced slave");
+				if (MYSQLND_MS_G(disable_rw_split)) {
+					ret = USE_MASTER;
+				} else {
+					ret = USE_SLAVE;
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
+				}
+				*forced = TRUE;
+			} else if ((comment[sizeof(LAST_USED_SWITCH)] == '\0' || isspace(comment[sizeof(LAST_USED_SWITCH)])) &&
+						!strncasecmp(comment, LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1))
+			{
+				DBG_INF("forced last used");
+				ret = USE_LAST_USED;
+				*forced = TRUE;
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_LAST_USED_FORCED);
 #ifdef ALL_SERVER_DISPATCH
-		} else if (!strncasecmp(comment, ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1)) {
-			DBG_INF("forced all server");
-			ret = USE_ALL;
-			*forced = TRUE;
+			} else if ((comment[sizeof(ALL_SERVER_SWITCH)] == '\0' || isspace(comment[sizeof(ALL_SERVER_SWITCH)])) &&
+						!strncasecmp(comment, ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1))
+			{
+				DBG_INF("forced all server");
+				ret = USE_ALL;
+				*forced = TRUE;
 #endif
+			}
 		}
-		efree(comment);
 		zval_dtor(&token.value);
 		token = mysqlnd_qp_get_token(scanner TSRMLS_CC);
 	}
