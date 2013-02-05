@@ -152,7 +152,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 		$expected["scheme"] = $conn["scheme"];
 			/* this is hackish but I can't think of a better way of implementing at the C level */
 	conn_diff(6, $conn, $members, $expected, (0 == $expected['port']) ? array('port') : array());
-
 	/* error on non MS */
 	@$link->query("PLEASE, LET THIS BE INVALID My-S-Q-L");
 	$expected["errno"] = $link->errno;
@@ -183,7 +182,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_get_last_used_connection.ini
 		"sqlstate" 			=> $link->sqlstate,
 	);
 	if ("localhost" != $master_host_only && !$master_socket) {
-		$expected["port"] = $master_port;
+		$expected["port"] = (int)$master_port;
 		$expected["scheme"] = sprintf("tcp://%s:%d", $master_host_only, $master_port);
 	}
 
