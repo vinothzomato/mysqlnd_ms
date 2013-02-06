@@ -243,6 +243,8 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 			str_data_len = php_stream_copy_to_mem(stream, &str_data, PHP_STREAM_COPY_ALL, 0);
 			php_stream_close(stream);
 			if (str_data_len <= 0) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+								" Config file [%s] is empty. If this is not by mistake, please add some minimal JSON to it to prevent this warning. For example, use '{}'. ", json_file_name);
 				break;
 			}
 #if PHP_VERSION_ID >= 50399
@@ -250,10 +252,20 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 #else
 			php_json_decode(&json_data, str_data, str_data_len, 1 /* assoc */, 512 /* default depth */ TSRMLS_CC);
 #endif
+			efree(str_data);
+
+			if (Z_TYPE(json_data) == IS_NULL) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+								" Failed to parse config file [%s]. Please, verify the JSON.", json_file_name);
+				zval_dtor(&json_data);
+				break;
+			}
+
 			cfg->main_section = mysqlnd_ms_zval_data_to_hashtable(&json_data TSRMLS_CC);
 			zval_dtor(&json_data);
-			efree(str_data);
 			if (!cfg->main_section) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+								" Failed to find a main section in the config file [%s]. Please, verify the JSON.", json_file_name);
 				break;
 			}
 			ret = PASS;
