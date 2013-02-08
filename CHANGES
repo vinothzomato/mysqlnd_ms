@@ -37,6 +37,17 @@
 
  * examples/ contents clearned up
 
+ * Extended warnings during RINIT about faulty configuration file
+
+   PHP warnings are thrown is the configuration file cannot be read,
+   is empty or contains no valid JSON.
+
+   Distributions that aim to provide a pre-configured setup including a
+   configuration file stub are asked to put <literal>{}</literal> into
+   the configuration file to prevent any warnings about an invalid
+   configuration.
+
+
 
 1.4.2 stable
 
