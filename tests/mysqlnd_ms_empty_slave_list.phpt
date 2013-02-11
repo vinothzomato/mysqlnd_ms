@@ -6,7 +6,6 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 
 $settings = array(
 	"name_of_a_config_section" => array(
@@ -16,6 +15,8 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_empty_slave_list.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 ?>
 --INI--
 mysqlnd_ms.enable=1

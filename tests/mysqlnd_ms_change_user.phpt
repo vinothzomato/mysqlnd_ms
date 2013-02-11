@@ -6,8 +6,6 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 if ($db == 'mysql')
 	die("SKIP Default test database must not be 'mysql', use 'test' or the like");
@@ -20,6 +18,9 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_change_user.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 function test_mysql_access($host, $user, $passwd, $db, $port, $socket) {
 
@@ -34,6 +35,7 @@ if (!test_mysql_access($master_host_only, $user, $passwd, $db, $master_port, $ma
 
 if (!test_mysql_access($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket))
 	die("skip Slave server account cannot access mysql database");
+
 ?>
 --INI--
 mysqlnd_ms.enable=1

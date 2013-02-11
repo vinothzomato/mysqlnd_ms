@@ -9,6 +9,16 @@ if (($emulated_master_host == $emulated_slave_host)) {
 	die("SKIP master and slave seem to the the same, see tests/README");
 }
 _skipif_check_extensions(array("mysqli"));
+$settings = array(
+	"myapp" => array(
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host, $emulated_slave_host),
+		'pick' => array("roundrobin"),
+	),
+);
+if ($error = mst_create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $settings))
+	die(sprintf("SKIP %s\n", $error));
+
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 _skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
@@ -22,16 +32,6 @@ if (true == $ret)
 
 if (!function_exists("iconv"))
 	die("SKIP needs iconv extension\n");
-
-$settings = array(
-	"myapp" => array(
-		'master' => array($emulated_master_host),
-		'slave' => array($emulated_slave_host, $emulated_slave_host),
-		'pick' => array("roundrobin"),
-	),
-);
-if ($error = mst_create_config("test_mysqlnd_ms_error_errno_sqlstate.ini", $settings))
-	die(sprintf("SKIP %s\n", $error));
 
 msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave[1,2]");
 msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");

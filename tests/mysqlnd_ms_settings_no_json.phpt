@@ -6,8 +6,6 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 if (FALSE === file_put_contents("test_mysqlnd_ms_settings_no_json.ini", "a\0gurken\0\nsalat\rli\t\n"))
 	die(sprintf("SKIP Cannot write config file\n"));
@@ -15,7 +13,7 @@ if (FALSE === file_put_contents("test_mysqlnd_ms_settings_no_json.ini", "a\0gurk
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.force_config=1
+mysqlnd_ms.force_config_usage=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_settings_no_json.ini
 mysqlnd_ms.in_regression_tests=1
 --FILE--
@@ -45,5 +43,8 @@ mysqlnd_ms.in_regression_tests=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_no_json.ini'.\n");
 ?>
 --EXPECTF--
-[001] [2002] %s
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) (mysqlnd_ms) Failed to parse config file [test_mysqlnd_ms_settings_no_json.ini]. Please, verify the JSON in %s on line %d
+[E_WARNING] mysqli_real_connect(): (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section (myapp) in %s on line %d
+[E_WARNING] mysqli_real_connect(): (HY000/2000): (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section in %s on line %d
+[001] [2000] (mysqlnd_ms) Exclusive usage of configuration enforced but did not find the correct INI file section
 done!

@@ -6,8 +6,6 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysql"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 $settings = array(
 	"myapp" => array(
@@ -36,6 +34,10 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_bug_pecl_22784.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+
 ?>
 --INI--
 mysqlnd_ms.enable=1

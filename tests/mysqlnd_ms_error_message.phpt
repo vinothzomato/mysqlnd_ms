@@ -6,9 +6,6 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
-
 
 if (!function_exists("iconv"))
 	die("SKIP needs iconv extension\n");
@@ -23,6 +20,8 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_error_message.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
+_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 ?>
 --INI--
 mysqlnd_ms.enable=1

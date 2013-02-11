@@ -10,7 +10,6 @@ if (($emulated_master_host == $emulated_slave_host)) {
 }
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 
 $settings = array(
 	"myapp" => array(
@@ -22,6 +21,8 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_failover_old_syntax_master.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 ?>
 --INI--
 mysqlnd_ms.enable=1
