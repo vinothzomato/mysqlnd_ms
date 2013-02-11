@@ -14,9 +14,6 @@ if (!defined("MYSQLND_MS_HAVE_CACHE_SUPPORT")) {
 	die("SKIP Cache support not compiled in");
 }
 
-_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
-_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
-
 $settings = array(
 	"myapp" => array(
 		'master' => array(
@@ -49,6 +46,9 @@ $settings = array(
 );
 if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_cache_conflict.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");

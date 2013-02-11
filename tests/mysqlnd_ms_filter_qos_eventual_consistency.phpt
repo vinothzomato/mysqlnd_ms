@@ -9,8 +9,6 @@ if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
 	die(sprintf("SKIP Requires PHP >= 5.3.99, using " . PHP_VERSION));
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
-_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
 
 $settings = array(
 	"myapp" => array(
@@ -37,10 +35,13 @@ $settings = array(
 			"random" => array(),
 		),
 	),
-
 );
 if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_consistency.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
+
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
+_skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
+
 ?>
 --INI--
 mysqlnd_ms.enable=1
