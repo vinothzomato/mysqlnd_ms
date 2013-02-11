@@ -1771,8 +1771,13 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 
 
 /* {{{ mysqlnd_ms_tx_commit_or_rollback */
+#if MYSQLND_VERSION_ID >= 50011
+static enum_func_status
+mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit, const unsigned int flags, const char * const name TSRMLS_DC)
+#else
 static enum_func_status
 mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRMLS_DC)
+#endif
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	enum_func_status ret = PASS;
@@ -1812,8 +1817,13 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 	if (conn_data && *conn_data)
 		(*conn_data)->skip_ms_calls = TRUE;
 	/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
-	ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
+#if MYSQLND_VERSION_ID >= 50011
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit_or_rollback)(conn, commit, flags, name TSRMLS_CC);
+#else
+		ret = commit? MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit)(conn TSRMLS_CC) :
 					MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_rollback)(conn TSRMLS_CC);
+#endif
+
 	if (conn_data && *conn_data) {
 		(*conn_data)->skip_ms_calls = FALSE;
 	}
@@ -1823,6 +1833,19 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 /* }}} */
 
 
+#if MYSQLND_VERSION_ID >= 50011
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, tx_commit_or_rollback) */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, tx_commit_or_rollback)(MYSQLND_CONN_DATA * conn, const zend_bool commit, const unsigned int flags, const char * const name TSRMLS_DC)
+{
+	enum_func_status ret = FAIL;
+	DBG_ENTER("mysqlnd_ms::tx_commit_or_rollback");
+	ret = mysqlnd_ms_tx_commit_or_rollback(conn, commit, flags, name TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+#endif
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, tx_commit) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
@@ -1830,7 +1853,11 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 	enum_func_status ret = FAIL;
 
 	DBG_ENTER("mysqlnd_ms::tx_commit");
+#if MYSQLND_VERSION_ID >= 50011
+	ret = mysqlnd_ms_tx_commit_or_rollback(conn, TRUE, TRANS_COR_NO_OPT, NULL TSRMLS_CC);
+#else
 	ret = mysqlnd_ms_tx_commit_or_rollback(conn, TRUE TSRMLS_CC);
+#endif
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1843,7 +1870,11 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 	enum_func_status ret = FAIL;
 
 	DBG_ENTER("mysqlnd_ms::tx_rollback");
+#if MYSQLND_VERSION_ID >= 50011
+	ret = mysqlnd_ms_tx_commit_or_rollback(conn, FALSE, TRANS_COR_NO_OPT, NULL TSRMLS_CC);
+#else
 	ret = mysqlnd_ms_tx_commit_or_rollback(conn, FALSE TSRMLS_CC);
+#endif
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -2164,6 +2195,9 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.set_autocommit		= MYSQLND_METHOD(mysqlnd_ms, set_autocommit);
 	my_mysqlnd_conn_methods.tx_commit			= MYSQLND_METHOD(mysqlnd_ms, tx_commit);
 	my_mysqlnd_conn_methods.tx_rollback			= MYSQLND_METHOD(mysqlnd_ms, tx_rollback);
+#endif
+#if MYSQLND_VERSION_ID >= 50011
+	my_mysqlnd_conn_methods.tx_commit_or_rollback = MYSQLND_METHOD(mysqlnd_ms, tx_commit_or_rollback);
 #endif
 
 	my_mysqlnd_conn_methods.get_server_statistics	= MYSQLND_METHOD(mysqlnd_ms, get_server_statistics);
