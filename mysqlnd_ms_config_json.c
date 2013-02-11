@@ -225,6 +225,10 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 	char * json_file_name = INI_STR("mysqlnd_ms.config_file");
 	DBG_ENTER("mysqlnd_ms_config_json_load_configuration");
 	DBG_INF_FMT("json_file=%s", json_file_name? json_file_name:"n/a");
+
+	if (MYSQLND_MS_G(config_startup_error))
+		mnd_sprintf_free(MYSQLND_MS_G(config_startup_error));
+
 	if (!json_file_name) {
 		ret = PASS;
 	} else if (json_file_name && cfg) {
@@ -236,15 +240,17 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 			stream = php_stream_open_wrapper_ex(json_file_name, "rb", REPORT_ERRORS, NULL, NULL);
 
 			if (!stream) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
+				mnd_sprintf(&(MYSQLND_MS_G(config_startup_error)), 0, MYSQLND_MS_ERROR_PREFIX
 								" Failed to open server list config file [%s]", json_file_name);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_G(config_startup_error));
 				break;
 			}
 			str_data_len = php_stream_copy_to_mem(stream, &str_data, PHP_STREAM_COPY_ALL, 0);
 			php_stream_close(stream);
 			if (str_data_len <= 0) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
-								" Config file [%s] is empty. If this is not by mistake, please add some minimal JSON to it to prevent this warning. For example, use '{}'. ", json_file_name);
+				mnd_sprintf(&(MYSQLND_MS_G(config_startup_error)), 0, MYSQLND_MS_ERROR_PREFIX
+								" Config file [%s] is empty. If this is not by mistake, please add some minimal JSON to it to prevent this warning. For example, use '{}' ", json_file_name);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_G(config_startup_error));
 				break;
 			}
 #if PHP_VERSION_ID >= 50399
@@ -255,8 +261,9 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 			efree(str_data);
 
 			if (Z_TYPE(json_data) == IS_NULL) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
-								" Failed to parse config file [%s]. Please, verify the JSON.", json_file_name);
+				mnd_sprintf(&(MYSQLND_MS_G(config_startup_error)), 0, MYSQLND_MS_ERROR_PREFIX
+								" Failed to parse config file [%s]. Please, verify the JSON", json_file_name);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_G(config_startup_error));
 				zval_dtor(&json_data);
 				break;
 			}
@@ -264,10 +271,12 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 			cfg->main_section = mysqlnd_ms_zval_data_to_hashtable(&json_data TSRMLS_CC);
 			zval_dtor(&json_data);
 			if (!cfg->main_section) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX
-								" Failed to find a main section in the config file [%s]. Please, verify the JSON.", json_file_name);
+				mnd_sprintf(&(MYSQLND_MS_G(config_startup_error)), 0, MYSQLND_MS_ERROR_PREFIX
+								" Failed to find a main section in the config file [%s]. Please, verify the JSON", json_file_name);
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_G(config_startup_error));
 				break;
 			}
+
 			ret = PASS;
 		} while (0);
 	}

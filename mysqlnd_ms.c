@@ -776,6 +776,13 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 	if (hotloading) {
 		MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 	}
+	if (MYSQLND_MS_G(config_startup_error)) {
+		/* TODO: May bark before a hot loading (disabled) attempt is made.
+		 Same should be true about force config usage */
+		php_error_docref(NULL TSRMLS_CC, E_RECOVERABLE_ERROR,
+									  MYSQLND_MS_ERROR_PREFIX " %s", MYSQLND_MS_G(config_startup_error));
+	}
+
 	section_found = mysqlnd_ms_config_json_section_exists(mysqlnd_ms_json_config, host, host_len, 0, hotloading? FALSE:TRUE TSRMLS_CC);
 	if (MYSQLND_MS_G(force_config_usage) && FALSE == section_found) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Exclusive usage of configuration enforced but did not find the correct INI file section (%s)", host);

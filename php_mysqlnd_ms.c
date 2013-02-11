@@ -91,6 +91,7 @@ php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 	mysqlnd_ms_globals->collect_statistics = FALSE;
 	mysqlnd_ms_globals->multi_master = FALSE;
 	mysqlnd_ms_globals->disable_rw_split = FALSE;
+	mysqlnd_ms_globals->config_startup_error = NULL;
 }
 /* }}} */
 
@@ -113,6 +114,16 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 			mysqlnd_ms_global_config_loaded = TRUE;
 		}
 		MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
+	}
+	return SUCCESS;
+}
+/* }}} */
+
+/* {{{ PHP_RSHUTDOWN_FUNCTION */
+PHP_RSHUTDOWN_FUNCTION(mysqlnd_ms)
+{
+	if (MYSQLND_MS_G(enable) && MYSQLND_MS_G(config_startup_error)) {
+		mnd_sprintf_free(MYSQLND_MS_G(config_startup_error));
 	}
 	return SUCCESS;
 }
@@ -622,7 +633,7 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	PHP_MINIT(mysqlnd_ms),
 	PHP_MSHUTDOWN(mysqlnd_ms),
 	PHP_RINIT(mysqlnd_ms),
-	NULL,
+	PHP_RSHUTDOWN(mysqlnd_ms),
 	PHP_MINFO(mysqlnd_ms),
 	MYSQLND_MS_VERSION,
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
