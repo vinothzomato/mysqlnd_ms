@@ -29,6 +29,7 @@ Edit the server settings in the configuration file you plan to use:
   mysqlnd_ms_single_master_config.json
   mysqlnd_ms_single_master_config_client_failover.json
   mysqlnd_ms_multi_master_config.json
+  mysqlnd_ms_single_master_config_sharding.json
 
 Use the single_master configuration files if running a lazy primary copy
 (asynchronous master slave) cluster of MySQL such as MySQL Replication. Use
@@ -67,6 +68,13 @@ Single master with failover (see documentation notes!):
   php -d mysqlnd_ms.enable=1 \
       -d mysqlnd_ms.config_file=mysqlnd_ms_single_master_config_failover.json \
       failover.php
+
+
+Single master with manual partitioning/sharding (see documentation notes!):
+
+  php -d mysqlnd_ms.enable=1 \
+      -d mysqlnd_ms.config_file=mysqlnd_ms_single_master_config_sharding.json \
+      sharding.php
 
 Multi master with read-write splitting disabled:
 
