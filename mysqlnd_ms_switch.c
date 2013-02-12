@@ -464,42 +464,41 @@ mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * for
 			++comment;
 			--comment_len;
 		}
-		if (comment_len) {
-			if ((comment[sizeof(MASTER_SWITCH)] == '\0' || isspace(comment[sizeof(MASTER_SWITCH)])) &&
+		if ((comment_len >= sizeof(MASTER_SWITCH)) && (comment[sizeof(MASTER_SWITCH)] == '\0' || isspace(comment[sizeof(MASTER_SWITCH)])) &&
 				!strncasecmp(comment, MASTER_SWITCH, sizeof(MASTER_SWITCH) - 1))
-			{
-				DBG_INF("forced master");
-				ret = USE_MASTER;
-				*forced = TRUE;
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_FORCED);
-			} else if ((comment[sizeof(SLAVE_SWITCH)] == '\0' || isspace(comment[sizeof(SLAVE_SWITCH)])) &&
+		{
+			DBG_INF("forced master");
+			ret = USE_MASTER;
+			*forced = TRUE;
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_MASTER_FORCED);
+		} else if ((comment_len >= sizeof(SLAVE_SWITCH)) && (comment[sizeof(SLAVE_SWITCH)] == '\0' || isspace(comment[sizeof(SLAVE_SWITCH)])) &&
 						!strncasecmp(comment, SLAVE_SWITCH, sizeof(SLAVE_SWITCH) - 1))
-			{
-				DBG_INF("forced slave");
-				if (MYSQLND_MS_G(disable_rw_split)) {
-					ret = USE_MASTER;
-				} else {
-					ret = USE_SLAVE;
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
-				}
-				*forced = TRUE;
-			} else if ((comment[sizeof(LAST_USED_SWITCH)] == '\0' || isspace(comment[sizeof(LAST_USED_SWITCH)])) &&
-						!strncasecmp(comment, LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1))
-			{
-				DBG_INF("forced last used");
-				ret = USE_LAST_USED;
-				*forced = TRUE;
-				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_LAST_USED_FORCED);
-#ifdef ALL_SERVER_DISPATCH
-			} else if ((comment[sizeof(ALL_SERVER_SWITCH)] == '\0' || isspace(comment[sizeof(ALL_SERVER_SWITCH)])) &&
-						!strncasecmp(comment, ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1))
-			{
-				DBG_INF("forced all server");
-				ret = USE_ALL;
-				*forced = TRUE;
-#endif
+		{
+			DBG_INF("forced slave");
+			if (MYSQLND_MS_G(disable_rw_split)) {
+				ret = USE_MASTER;
+			} else {
+				ret = USE_SLAVE;
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_SLAVE_FORCED);
 			}
+			*forced = TRUE;
+		} else if ((comment_len >= sizeof(LAST_USED_SWITCH)) && (comment[sizeof(LAST_USED_SWITCH)] == '\0' || isspace(comment[sizeof(LAST_USED_SWITCH)])) &&
+						!strncasecmp(comment, LAST_USED_SWITCH, sizeof(LAST_USED_SWITCH) - 1))
+		{
+			DBG_INF("forced last used");
+			ret = USE_LAST_USED;
+			*forced = TRUE;
+			MYSQLND_MS_INC_STATISTIC(MS_STAT_USE_LAST_USED_FORCED);
+#ifdef ALL_SERVER_DISPATCH
+		} else if ((comment_len >= sizeof(ALL_SERVER_SWITCH)) && (comment[sizeof(ALL_SERVER_SWITCH)] == '\0' || isspace(comment[sizeof(ALL_SERVER_SWITCH)])) &&
+						!strncasecmp(comment, ALL_SERVER_SWITCH, sizeof(ALL_SERVER_SWITCH) - 1))
+		{
+			DBG_INF("forced all server");
+			ret = USE_ALL;
+			*forced = TRUE;
+#endif
 		}
+
 		zval_dtor(&token.value);
 		token = mysqlnd_qp_get_token(scanner TSRMLS_CC);
 	}
