@@ -192,6 +192,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define MASTER_ON_WRITE_NAME				"master_on_write"
 #define TRX_STICKINESS_NAME					"trx_stickiness"
 #define TRX_STICKINESS_MASTER				"master"
+#define TRX_STICKINESS_ON					"on"
 #define TABLE_RULES							"rules"
 #define SECT_SERVER_CHARSET_NAME			"server_charset"
 #define SECT_HOST_NAME						"host"
@@ -271,7 +272,8 @@ enum mysqlnd_ms_server_failover_strategy
 enum mysqlnd_ms_trx_stickiness_strategy
 {
 	TRX_STICKINESS_STRATEGY_DISABLED,
-	TRX_STICKINESS_STRATEGY_MASTER
+	TRX_STICKINESS_STRATEGY_MASTER,
+	TRX_STICKINESS_STRATEGY_ON
 };
 #define DEFAULT_TRX_STICKINESS_STRATEGY TRX_STICKINESS_STRATEGY_DISABLED
 
@@ -489,6 +491,8 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool master_used;
 
 		enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
+		zend_bool trx_stop_switching;
+		zend_bool trx_read_only;
 		zend_bool in_transaction;
 
 		MYSQLND_CONN_DATA * last_used_conn;

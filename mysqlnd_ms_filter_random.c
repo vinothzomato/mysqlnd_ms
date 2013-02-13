@@ -154,7 +154,7 @@ mysqlnd_ms_random_sort_context_init(HashTable * context, const smart_str * const
 	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context;
 	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
 	zend_llist_position	pos;
-	
+
 	DBG_ENTER("mysqlnd_ms_init_sort_list");
 	{
 		MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT local_lb_context;
@@ -351,7 +351,14 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(const zend_llist * const maste
 								"%d slaves to choose from. Something is wrong", zend_llist_count(l));
 				/* should be a very rare case to be here - connection shouldn't be NULL in first place */
 				DBG_RETURN(NULL);
-			} else if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
+			}
+			if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+				DBG_INF("In transaction, no switch allowed");
+				DBG_RETURN(NULL);
+			}
+			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 					((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
 			{
 				/* drop failed server from list, test remaining slaves before fall-through to master */
@@ -423,11 +430,17 @@ mysqlnd_ms_choose_connection_random_use_slave_aux(const zend_llist * const maste
 				DBG_INF("Failover disabled");
 				DBG_RETURN(connection);
 			}
+			if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+				DBG_INF("In transaction, no switch allowed");
+				DBG_RETURN(NULL);
+			}
 			/* falling-through */
 			break;
 		}
 	} /* while */
-	if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
+	if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count((zend_llist *)master_connections))) {
 		DBG_INF("No masters to continue search");
 		/* must not fall through as we'll loose the connection error */
 		DBG_RETURN(connection);
@@ -479,7 +492,7 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 	{
 		zend_llist slaves_copy;
 		zend_llist_copy(&slaves_copy, slave_connections);
-	
+
 		conn = mysqlnd_ms_choose_connection_random_use_slave_aux(master_connections, &slaves_copy, filter, &fprint, stgy, error_info TSRMLS_CC);
 
 		zend_llist_clean(&slaves_copy);
@@ -497,6 +510,12 @@ mysqlnd_ms_choose_connection_random_use_slave(zend_llist * master_connections,
 		*/
 		DBG_INF("Failover disabled");
 		DBG_RETURN(conn);
+	}
+	if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+		DBG_INF("In transaction, no switch allowed");
+		DBG_RETURN(NULL);
 	}
 	*which_server = USE_MASTER;
 	DBG_RETURN(NULL);
@@ -604,7 +623,7 @@ mysqlnd_ms_choose_connection_random_use_master_aux(zend_llist * master_connectio
 									sizeof(MYSQLND *), NULL);
 				}
 				if (fprint_conn.c) {
-					smart_str_free(&fprint_conn);			
+					smart_str_free(&fprint_conn);
 				}
 				DBG_RETURN(connection);
 			}
@@ -616,7 +635,14 @@ mysqlnd_ms_choose_connection_random_use_master_aux(zend_llist * master_connectio
 				}
 			}
 			if (fprint_conn.c) {
-				smart_str_free(&fprint_conn);			
+				smart_str_free(&fprint_conn);
+			}
+
+			if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+				DBG_INF("In transaction, no switch allowed");
+				DBG_RETURN(NULL);
 			}
 
 			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1) &&
@@ -633,6 +659,14 @@ mysqlnd_ms_choose_connection_random_use_master_aux(zend_llist * master_connectio
 			}
 			DBG_INF("Failover disabled");
 		} else {
+
+			if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+				DBG_INF("In transaction, no switch allowed");
+				DBG_RETURN(NULL);
+			}
+
 			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (zend_llist_count(l) > 1) &&
 				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 				/* drop failed server from list, test remaining slaves before fall-through to master */
@@ -661,7 +695,6 @@ static MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_random_use_master(zend_llist * master_connections,
 											   MYSQLND_MS_FILTER_RANDOM_DATA * filter,
 											   struct mysqlnd_ms_lb_strategies * stgy,
-											   zend_bool forced_tx_master,
 											   MYSQLND_ERROR_INFO * error_info TSRMLS_DC)
 {
 	MYSQLND_CONN_DATA * conn = NULL;
@@ -692,7 +725,7 @@ mysqlnd_ms_choose_connection_random_use_master(zend_llist * master_connections,
 	} else {
 		zend_llist masters_copy;
 		zend_llist_copy(&masters_copy, master_connections);
-	
+
 		conn = mysqlnd_ms_choose_connection_random_use_master_aux(&masters_copy, filter, &fprint, stgy, error_info TSRMLS_CC);
 
 		zend_llist_clean(&masters_copy);
@@ -723,7 +756,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
 		*which_server = USE_MASTER;
-		forced_tx_master = TRUE;
+		stgy->trx_stop_switching = TRUE;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
 	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
 		if (*which_server != USE_MASTER) {
@@ -754,10 +787,17 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 				DBG_RETURN(conn);
 			}
 		}
+		if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+			DBG_INF("In transaction, no switch allowed");
+			DBG_RETURN(NULL);
+		}
 		DBG_INF("FAIL-OVER");
 		/* fall-through */
 		case USE_MASTER:
-			DBG_RETURN(mysqlnd_ms_choose_connection_random_use_master(master_connections, filter, stgy, forced_tx_master, error_info TSRMLS_CC));
+			DBG_RETURN(mysqlnd_ms_choose_connection_random_use_master(master_connections, filter, stgy, error_info TSRMLS_CC));
+			break;
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			if (!stgy->last_used_conn) {
@@ -768,6 +808,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(stgy->last_used_conn));
 			}
 			DBG_RETURN(stgy->last_used_conn);
+			break;
 		default:
 			/* error */
 			break;

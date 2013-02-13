@@ -113,7 +113,7 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 		(ret) = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)((connection) TSRMLS_CC);
 
 
-/* {{{ mysqlnd_ms_get_scheme_from_list_data */
+/* {{{ mysqlnd_ms_client_n_php_error */
 void
 mysqlnd_ms_client_n_php_error(MYSQLND_ERROR_INFO * error_info,
 							  unsigned int client_error_code,
@@ -1755,7 +1755,13 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 				/* TODO: Can we ever have a connection with no plugin data? If so, tx handling will break! */
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
-					(*el_conn_data)->stgy.in_transaction = (mode) ? FALSE : TRUE;
+					if (mode) {
+						(*el_conn_data)->stgy.in_transaction = FALSE;
+						(*el_conn_data)->stgy.trx_stop_switching = FALSE;
+						(*el_conn_data)->stgy.trx_read_only = FALSE;
+					} else {
+						(*el_conn_data)->stgy.in_transaction = TRUE;
+					}
 				}
 			}
 		}
@@ -1764,6 +1770,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 
 	MYSQLND_MS_INC_STATISTIC(mode? MS_STAT_TRX_AUTOCOMMIT_ON:MS_STAT_TRX_AUTOCOMMIT_OFF);
 	DBG_INF_FMT("in_transaction = %d", (*conn_data)->stgy.in_transaction);
+	DBG_INF_FMT("trx_stop_switching = %d", (*conn_data)->stgy.trx_stop_switching);
+
 
 	DBG_RETURN(ret);
 }

@@ -251,18 +251,27 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 													   &value_exists, &is_list_value TSRMLS_CC);
 
 		strategies->trx_stickiness_strategy = DEFAULT_TRX_STICKINESS_STRATEGY;
+		strategies->trx_stop_switching = FALSE;
+		strategies->trx_read_only = FALSE;
 		strategies->in_transaction = FALSE;
 
 		if (value_exists && trx_strategy) {
+
 #if PHP_VERSION_ID >= 50399
 			if (!strncasecmp(TRX_STICKINESS_MASTER, trx_strategy, sizeof(TRX_STICKINESS_MASTER) - 1)) {
-				DBG_INF("Transaction strickiness strategy = master");
+				DBG_INF("trx_stickiness = master");
 				strategies->trx_stickiness_strategy = TRX_STICKINESS_STRATEGY_MASTER;
+#if PHP_VERSION_ID >= 50499
+			} else if (!strncasecmp(TRX_STICKINESS_ON, trx_strategy, sizeof(TRX_STICKINESS_ON) - 1)) {
+				DBG_INF("trx_stickiness = on");
+				strategies->trx_stickiness_strategy = TRX_STICKINESS_STRATEGY_ON;
+#endif
 			}
+
 #else
 			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-							 MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " trx_stickiness_strategy is not supported before PHP 5.3.99");
+							 MYSQLND_MS_ERROR_PREFIX " trx_stickiness strategy is not supported before PHP 5.4.0");
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " trx_stickiness strategy is not supported before PHP 5.4.0");
 #endif
 			mnd_efree(trx_strategy);
 		}
