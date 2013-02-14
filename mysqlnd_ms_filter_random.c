@@ -752,12 +752,22 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	if (!which_server) {
 		which_server = &tmp_which;
 	}
+
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
-		*which_server = USE_MASTER;
 		stgy->trx_stop_switching = TRUE;
+		*which_server = USE_MASTER;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
+	} else if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_ON) && stgy->in_transaction && !forced) {
+		stgy->trx_stop_switching = TRUE;
+		if (FALSE == stgy->trx_read_only) {
+			DBG_INF("Enforcing use of master while in transaction");
+			*which_server = USE_MASTER;
+		} else {
+			DBG_INF("Enforcing use of slave while in read only transaction");
+			*which_server = USE_SLAVE;
+		}
 	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
 		if (*which_server != USE_MASTER) {
 			if (stgy->master_used && !forced) {
