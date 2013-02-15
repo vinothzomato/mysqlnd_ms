@@ -1752,26 +1752,43 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 				} else if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_autocommit)(el->conn, mode TSRMLS_CC)) {
 					ret = FAIL;
 				}
-				/* TODO: Can we ever have a connection with no plugin data? If so, tx handling will break! */
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
-					if (mode) {
-						(*el_conn_data)->stgy.in_transaction = FALSE;
-						(*el_conn_data)->stgy.trx_stop_switching = FALSE;
-						(*el_conn_data)->stgy.trx_read_only = FALSE;
-					} else {
-						(*el_conn_data)->stgy.in_transaction = TRUE;
-					}
 				}
 			}
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
+
+		if (PASS == ret) {
+			/*
+			If toggling autocommit fails for any line, we do not touch the plugins transaction
+			detection status. The user is supposed to handle the failed autocommit mode switching
+			function call.
+			*/
+			BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+			{
+				if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
+					MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(el->conn, mysqlnd_ms_plugin_id);
+					if (el_conn_data && *el_conn_data) {
+						if (mode) {
+							(*el_conn_data)->stgy.in_transaction = FALSE;
+							(*el_conn_data)->stgy.trx_stop_switching = FALSE;
+							(*el_conn_data)->stgy.trx_read_only = FALSE;
+							(*el_conn_data)->stgy.trx_autocommit_off = FALSE;
+						} else {
+							(*el_conn_data)->stgy.in_transaction = TRUE;
+							(*el_conn_data)->stgy.trx_autocommit_off = TRUE;
+						}
+					}
+				}
+			}
+			END_ITERATE_OVER_SERVER_LISTS;
+		}
 	}
 
 	MYSQLND_MS_INC_STATISTIC(mode? MS_STAT_TRX_AUTOCOMMIT_ON:MS_STAT_TRX_AUTOCOMMIT_OFF);
 	DBG_INF_FMT("in_transaction = %d", (*conn_data)->stgy.in_transaction);
 	DBG_INF_FMT("trx_stop_switching = %d", (*conn_data)->stgy.trx_stop_switching);
-
 
 	DBG_RETURN(ret);
 }
@@ -1781,20 +1798,25 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 /* {{{ mysqlnd_ms_tx_commit_or_rollback */
 #if MYSQLND_VERSION_ID >= 50011
 static enum_func_status
-mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit, const unsigned int flags, const char * const name TSRMLS_DC)
+mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * proxy_conn, zend_bool commit, const unsigned int flags, const char * const name TSRMLS_DC)
 #else
 static enum_func_status
-mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRMLS_DC)
+mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * proxy_conn, zend_bool commit TSRMLS_DC)
 #endif
 {
-	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+	MYSQLND_CONN_DATA * conn;
+	MYSQLND_MS_CONN_DATA ** conn_data;
+	MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, proxy_conn);
 	enum_func_status ret = PASS;
 
-	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
 
-	if (conn_data && *conn_data && (*conn_data)->stgy.last_used_conn) {
-		conn = (*conn_data)->stgy.last_used_conn;
+	DBG_ENTER("mysqlnd_ms_tx_commit_or_rollback");
+	if (proxy_conn_data && *proxy_conn_data && (*proxy_conn_data)->stgy.last_used_conn) {
+		conn = (*proxy_conn_data)->stgy.last_used_conn;
 		MS_LOAD_CONN_DATA(conn_data, conn);
+	} else {
+		conn = proxy_conn;
+		conn_data = proxy_conn_data;
 	}
 	DBG_INF_FMT("conn="MYSQLND_LLU_SPEC, conn->thread_id);
 
@@ -1834,6 +1856,20 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * conn, zend_bool commit TSRM
 
 	if (conn_data && *conn_data) {
 		(*conn_data)->skip_ms_calls = FALSE;
+
+		if ((PASS == ret) && (FALSE == (*conn_data)->stgy.trx_autocommit_off))  {
+			/* autocommit(true) -> in_trx = 0; begin() -> in_trx = 1; commit() or rollback() -> in_trx = 0; */
+
+			/* proxy conn stgy controls the filter */
+			(*proxy_conn_data)->stgy.in_transaction = FALSE;
+			(*proxy_conn_data)->stgy.trx_stop_switching = FALSE;
+			(*proxy_conn_data)->stgy.trx_read_only = FALSE;
+
+			/* clean up actual line as well to be on the safe side */
+			(*conn_data)->stgy.in_transaction = FALSE;
+			(*conn_data)->stgy.trx_stop_switching = FALSE;
+			(*conn_data)->stgy.trx_read_only = FALSE;
+		}
 	}
 
 	DBG_RETURN(ret);
@@ -1849,6 +1885,75 @@ MYSQLND_METHOD(mysqlnd_ms, tx_commit_or_rollback)(MYSQLND_CONN_DATA * conn, cons
 	enum_func_status ret = FAIL;
 	DBG_ENTER("mysqlnd_ms::tx_commit_or_rollback");
 	ret = mysqlnd_ms_tx_commit_or_rollback(conn, commit, flags, name TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ MYSQLND_METHOD(mysqlnd_ms, tx_begin) */
+static enum_func_status
+MYSQLND_METHOD(mysqlnd_ms, tx_begin)(MYSQLND_CONN_DATA * conn, const unsigned int mode, const char * const name TSRMLS_DC)
+{
+	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+	enum_func_status ret = FAIL;
+	DBG_ENTER("mysqlnd_ms::tx_begin");
+
+	/*
+	 HACK KLUDGE
+
+	 The way MS has been designed an tx_begin(read_only_trx) don't go together.
+	 If a user starts a transaction using tx_begin() it is yet unknown where
+	 this transaction will be executed. This is even true if the sticky
+	 flag has been used because at best the sticky flag reduces the list
+	 of servers down to two for a typical setup: one master, one slave.
+
+	 tx_begin() hints us whether there will be a ready only transaction or not.
+	 Ideally, we keep a read only transaction on a MySQL Replication slave. It is
+	 likely the slave has been marked read only and performance is better on a slave.
+	 Also, its always great to use slaves whenever possible.
+
+	 Now, if read only and if there are slaves and if those slaves qualify for the
+	 execution of the transaction (e.g. their lag is within limits set), then we
+	 may end up on a slave. Otherwise we may end up on a master.
+
+	 We simply do not know at this point which connection will be choosen.
+	 Load balancing/filter chain is yet to come. Thus, we do not know yet on
+	 which server BEGIN shall be executed.
+
+	 As a solution for now, BEGIN is delayed until a connection has been picked.
+	 Once picked, we stay on the same server until the end of the transaction
+	 is recognized.
+
+	 Note that we set the request for BEGIN, the message to the LB filter, on
+	 the proxy connection. We also set in_transaction on the proxy connection.
+	 Whereas the actual BEGIN has to be send on another connection.
+	 The proxy connection stgy object is passed to the filters.
+	 When intercepting a COMMIT/ROLLBACK we have to send the command on the
+	 last used connection but reset in_transaction on the proxy connection.
+	*/
+
+	if ((FALSE == CONN_DATA_NOT_SET(conn_data)) &&
+		((*conn_data)->stgy.trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED)) {
+
+		/* the true answer is delayed... unfortunately :-/ */
+		ret = PASS;
+
+		/* reundant if autocommit(false) -> in_trx = 1 but does not harm */
+		(*conn_data)->stgy.in_transaction = TRUE;
+		/* message to filter: FIXME - it lacks tx_begin parameter */
+		(*conn_data)->stgy.trx_begin_required = TRUE;
+
+		if (mode & TRANS_START_READ_ONLY) {
+			(*conn_data)->stgy.trx_read_only = TRUE;
+			DBG_INF_FMT("In read only transaction, stop switching.");
+		} else {
+			DBG_INF_FMT("In transaction, stop switching.");
+		}
+	} else {
+		/* Note: we are dealing with the proxy connection */
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, mode, name TSRMLS_CC);
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -2205,7 +2310,8 @@ mysqlnd_ms_register_hooks()
 	my_mysqlnd_conn_methods.tx_rollback			= MYSQLND_METHOD(mysqlnd_ms, tx_rollback);
 #endif
 #if MYSQLND_VERSION_ID >= 50011
-	my_mysqlnd_conn_methods.tx_commit_or_rollback = MYSQLND_METHOD(mysqlnd_ms, tx_commit_or_rollback);
+	my_mysqlnd_conn_methods.tx_commit_or_rollback 	= MYSQLND_METHOD(mysqlnd_ms, tx_commit_or_rollback);
+	my_mysqlnd_conn_methods.tx_begin 				= MYSQLND_METHOD(mysqlnd_ms, tx_begin);
 #endif
 
 	my_mysqlnd_conn_methods.get_server_statistics	= MYSQLND_METHOD(mysqlnd_ms, get_server_statistics);

@@ -493,6 +493,8 @@ typedef struct st_mysqlnd_ms_conn_data
 		enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
 		zend_bool trx_stop_switching;
 		zend_bool trx_read_only;
+		zend_bool trx_autocommit_off;
+		zend_bool trx_begin_required;
 		zend_bool in_transaction;
 
 		MYSQLND_CONN_DATA * last_used_conn;

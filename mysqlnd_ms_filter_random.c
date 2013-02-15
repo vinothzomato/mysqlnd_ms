@@ -30,6 +30,9 @@
 #ifndef mnd_emalloc
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
+#if PHP_VERSION_ID >= 50400
+#include "ext/mysqlnd/mysqlnd_ext_plugin.h"
+#endif
 #include "mysqlnd_ms.h"
 #include "ext/standard/php_rand.h"
 #include "mysqlnd_ms_enum_n_def.h"
@@ -747,6 +750,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	zend_bool forced;
 	enum enum_which_server tmp_which;
 	zend_bool forced_tx_master = FALSE;
+	MYSQLND_CONN_DATA * conn = NULL;
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 
 	if (!which_server) {
@@ -756,17 +760,34 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
 		DBG_INF("Enforcing use of master while in transaction");
-		stgy->trx_stop_switching = TRUE;
-		*which_server = USE_MASTER;
+		if (stgy->trx_stop_switching) {
+			/* in the middle of a transaction */
+			*which_server = USE_LAST_USED;
+		} else {
+			/* first statement run in transaction: disable switch and failover */
+			stgy->trx_stop_switching = TRUE;
+			*which_server = USE_MASTER;
+		}
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
 	} else if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_ON) && stgy->in_transaction && !forced) {
-		stgy->trx_stop_switching = TRUE;
-		if (FALSE == stgy->trx_read_only) {
-			DBG_INF("Enforcing use of master while in transaction");
-			*which_server = USE_MASTER;
+		if (stgy->trx_stop_switching) {
+			/* in the middle of a transaction */
+			*which_server = USE_LAST_USED;
 		} else {
-			DBG_INF("Enforcing use of slave while in read only transaction");
-			*which_server = USE_SLAVE;
+			/* first statement run in transaction: disable switch and failover */
+			stgy->trx_stop_switching = TRUE;
+			if (FALSE == stgy->trx_read_only) {
+				DBG_INF("Enforcing use of master while in transaction");
+				*which_server = USE_MASTER;
+			} else {
+				if (0 == zend_llist_count(slave_connections)) {
+					DBG_INF("Read only transaction but no slaves to choose from, using master");
+					*which_server = USE_MASTER;
+				} else {
+					DBG_INF("Enforcing use of slave while in read only transaction");
+					*which_server = USE_SLAVE;
+				}
+			}
 		}
 	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
 		if (*which_server != USE_MASTER) {
@@ -791,22 +812,22 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	switch (*which_server) {
 		case USE_SLAVE:
 		{
-			MYSQLND_CONN_DATA * conn;
 			conn = mysqlnd_ms_choose_connection_random_use_slave(master_connections, slave_connections, filter, stgy, which_server, error_info TSRMLS_CC);
 			if (NULL != conn || USE_MASTER != *which_server) {
-				DBG_RETURN(conn);
+				goto return_connection;
 			}
 		}
 		if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
 			DBG_INF("In transaction, no switch allowed");
-			DBG_RETURN(NULL);
+			conn = NULL;
+			goto return_connection;
 		}
 		DBG_INF("FAIL-OVER");
 		/* fall-through */
 		case USE_MASTER:
-			DBG_RETURN(mysqlnd_ms_choose_connection_random_use_master(master_connections, filter, stgy, error_info TSRMLS_CC));
+			conn = mysqlnd_ms_choose_connection_random_use_master(master_connections, filter, stgy, error_info TSRMLS_CC);
 			break;
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
@@ -817,14 +838,38 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			} else {
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(stgy->last_used_conn));
 			}
-			DBG_RETURN(stgy->last_used_conn);
+			conn = stgy->last_used_conn;
 			break;
 		default:
 			/* error */
 			break;
 	}
 
-	DBG_RETURN(NULL);
+return_connection:
+	if ((conn) && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) &&
+		(TRUE == stgy->in_transaction) && (TRUE == stgy->trx_begin_required) && !forced) {
+		/* See mysqlnd_ms.c tx_begin notes! */
+		char * tmp = NULL;
+		enum_func_status ret = FAIL;
+		MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+
+		if (conn_data && *conn_data) {
+			/* Send BEGIN now that we have decided on a connection for the transaction */
+			(*conn_data)->skip_ms_calls = TRUE;
+			/* TODO: flags */
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, 0, tmp TSRMLS_CC);
+			(*conn_data)->skip_ms_calls = FALSE;
+			stgy->trx_begin_required = FALSE;
+
+			if (FAIL == ret) {
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+														MYSQLND_MS_ERROR_PREFIX "Failed to start transaction after choosing a server");
+			}
+
+		}
+	}
+
+	DBG_RETURN(conn);
 }
 /* }}} */
 
