@@ -784,17 +784,20 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 					DBG_INF("Read only transaction but no slaves to choose from, using master");
 					*which_server = USE_MASTER;
 				} else {
-					DBG_INF("Enforcing use of slave while in read only transaction");
+					DBG_INF("Considering use of slave while in read only transaction");
 					*which_server = USE_SLAVE;
 				}
 			}
 		}
-	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
+	}
+	/* Note: master on write shall be independent of trx settings */
+	if (stgy->mysqlnd_ms_flag_master_on_write) {
 		if (*which_server != USE_MASTER) {
 			if (stgy->master_used && !forced) {
 				switch (*which_server) {
 					case USE_MASTER:
 					case USE_LAST_USED:
+						/* Last used must not be modified, otherwise trx handling breaks */
 						break;
 					case USE_SLAVE:
 					default:

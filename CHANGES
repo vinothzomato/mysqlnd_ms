@@ -47,6 +47,22 @@
    the configuration file to prevent any warnings about an invalid
    configuration.
 
+  * Fixed: Setting transaction stickiness disables all load balancing, 
+    including automatic failover, for the duration of a transaction. 
+    So far connection switches could have happened in the middle of a 
+    transaction in multi-master configurations and during automatic 
+    failover although transaction monitoring had detected 
+    transaction boundaries properly.
+
+  * Added transaction monitoring based on mysqlnd tx_begin()
+
+  * Added new transaction stickiness setting trx_stickiness=on
+    which allows the use of slaves for read only transactions.
+
+  * Removed experimental feature notes for remember_failed 
+    failover setting from documentation. remember_failed is 
+    very useful together with the improved trx_stickiness=on
+    setting.
 
 
 1.4.2 stable
