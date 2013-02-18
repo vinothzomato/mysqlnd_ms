@@ -490,11 +490,17 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool mysqlnd_ms_flag_master_on_write;
 		zend_bool master_used;
 
+		/* note: some flags may not be used, however saves us a ton of ifdef to declare them anyway */
 		enum mysqlnd_ms_trx_stickiness_strategy trx_stickiness_strategy;
 		zend_bool trx_stop_switching;
 		zend_bool trx_read_only;
 		zend_bool trx_autocommit_off;
-		zend_bool trx_begin_required;
+
+		/* buffered tx_begin call */
+		zend_bool 		trx_begin_required;
+		unsigned int 	trx_begin_mode;
+		char *		 	trx_begin_name;
+
 		zend_bool in_transaction;
 
 		MYSQLND_CONN_DATA * last_used_conn;

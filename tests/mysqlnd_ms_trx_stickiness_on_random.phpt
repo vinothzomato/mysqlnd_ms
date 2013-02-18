@@ -9,12 +9,12 @@ require_once('skipif.inc');
 require_once("connect.inc");
 
 _skipif_check_extensions(array("mysqli"));
-_skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+_skipif_connect($emulated_master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
 $settings = array(
 	"myapp" => array(
-		'master' => array($master_host),
+		'master' => array($emulated_master_host),
 		'slave' => array($slave_host, $slave_host),
 		'trx_stickiness' => 'on',
 		'pick' => array("random"),

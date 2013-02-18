@@ -1160,6 +1160,11 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 			zend_hash_destroy(&((*data_pp)->stgy.failed_hosts));
 		}
 
+		if ((*data_pp)->stgy.trx_begin_name) {
+			mnd_pefree((*data_pp)->stgy.trx_begin_name, conn->persistent);
+			(*data_pp)->stgy.trx_begin_name = NULL;
+		}
+
 		mnd_pefree(*data_pp, conn->persistent);
 		*data_pp = NULL;
 	}
@@ -1940,8 +1945,13 @@ MYSQLND_METHOD(mysqlnd_ms, tx_begin)(MYSQLND_CONN_DATA * conn, const unsigned in
 
 		/* reundant if autocommit(false) -> in_trx = 1 but does not harm */
 		(*conn_data)->stgy.in_transaction = TRUE;
-		/* message to filter: FIXME - it lacks tx_begin parameter */
+		/* message to filter: call tx_begin */
 		(*conn_data)->stgy.trx_begin_required = TRUE;
+		(*conn_data)->stgy.trx_begin_mode = mode;
+		if ((*conn_data)->stgy.trx_begin_name) {
+			mnd_pefree((*conn_data)->stgy.trx_begin_name, conn->persistent);
+		}
+		(*conn_data)->stgy.trx_begin_name = (name) ? mnd_pestrdup(name, conn->persistent) : NULL;
 
 		if (mode & TRANS_START_READ_ONLY) {
 			(*conn_data)->stgy.trx_read_only = TRUE;

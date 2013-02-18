@@ -852,7 +852,6 @@ return_connection:
 	if ((conn) && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) &&
 		(TRUE == stgy->in_transaction) && (TRUE == stgy->trx_begin_required) && !forced) {
 		/* See mysqlnd_ms.c tx_begin notes! */
-		char * tmp = NULL;
 		enum_func_status ret = FAIL;
 		MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 
@@ -860,9 +859,15 @@ return_connection:
 			/* Send BEGIN now that we have decided on a connection for the transaction */
 			(*conn_data)->skip_ms_calls = TRUE;
 			/* TODO: flags */
-			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, 0, tmp TSRMLS_CC);
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, stgy->trx_begin_mode, stgy->trx_begin_name TSRMLS_CC);
 			(*conn_data)->skip_ms_calls = FALSE;
+
 			stgy->trx_begin_required = FALSE;
+			stgy->trx_begin_mode = 0;
+			if (stgy->trx_begin_name) {
+				mnd_pefree(stgy->trx_begin_name, conn->persistent);
+				stgy->trx_begin_name = NULL;
+			}
 
 			if (FAIL == ret) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
