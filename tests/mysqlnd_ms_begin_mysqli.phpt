@@ -61,18 +61,20 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 		mst_mysqli_query(3, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 		mst_mysqli_query(4, $link, "CREATE TABLE test(id INT) ENGINE=InnoDB", MYSQLND_MS_LAST_USED_SWITCH);
 		$server['master'][$link->thread_id] = true;
-	} while (($i <= 10) && (count($server['master']) < 2));
-	if (10 == $i) {
+		$i++;
+	} while (($i < 10) && (count($server['master']) < 2));
+	if ((10 == $i) && (count($server['master']) < 2))  {
 		die("[005] Two connections happen to have the same thread id, ignore and run again!");
 	}
 
 	$i = 0;
 	do {
 		mst_mysqli_query(6, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
+		mst_mysqli_query(6, $link, "DROP TABLE IF EXISTS test", MYSQLND_MS_LAST_USED_SWITCH);
 		$server['slave'][$link->thread_id] = true;
 		$i++;
-	} while (($i <= 10) && (count($server['slave']) < 2));
-	if (10 == $i) {
+	} while (($i < 10) && (count($server['slave']) < 2));
+	if ((10 == $i) && (count($server['slave']) < 2)) {
 		die("[007] Two connections happen to have the same thread id, ignore and run again!");
 	}
 
@@ -109,7 +111,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	printf("... named trx rollback\n");
 	$link->begin_transaction(0, "foobar");
 	mst_mysqli_fech_role(mst_mysqli_query(19, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(20, $link, "INSERT INTO test(id) VALUES (3)");
+	mst_mysqli_query(20, $link, "INSERT INTO test(id) VALUES (4)");
 	$link->rollback();
 	$res = mst_mysqli_query(21, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
@@ -125,7 +127,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	$link->begin_transaction(0, "abc");
 	$link->begin_transaction(0, NULL);
 	mst_mysqli_fech_role(mst_mysqli_query(19, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(20, $link, "INSERT INTO test(id) VALUES (3)");
+	mst_mysqli_query(20, $link, "INSERT INTO test(id) VALUES (5)");
 	$link->rollback();
 	$res = mst_mysqli_query(21, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	$row = $res->fetch_assoc();
@@ -141,7 +143,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	$link->begin_transaction(0, "abc");
 	$link->begin_transaction(0, NULL);
 	mst_mysqli_fech_role(mst_mysqli_query(24, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(25, $link, "INSERT INTO test(id) VALUES (3)");
+	mst_mysqli_query(25, $link, "INSERT INTO test(id) VALUES (6)");
 	$link->commit();
 	$res = mst_mysqli_query(26, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	var_dump($res->fetch_assoc());
@@ -176,7 +178,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	$link->autocommit(false);
 	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aobr");
 	mst_mysqli_fech_role(mst_mysqli_query(34, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(35, $link, "INSERT INTO test(id) VALUES (4)");
+	mst_mysqli_query(35, $link, "INSERT INTO test(id) VALUES (7)");
 	$link->rollback();
 	$res = mst_mysqli_query(36, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	var_dump($res->fetch_assoc());
@@ -187,7 +189,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	$link->autocommit(true);
 	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbr");
 	mst_mysqli_fech_role(mst_mysqli_query(38, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(39, $link, "INSERT INTO test(id) VALUES (5)");
+	mst_mysqli_query(39, $link, "INSERT INTO test(id) VALUES (8)");
 	$link->rollback();
 	$res = mst_mysqli_query(40, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	var_dump($res->fetch_assoc());
@@ -196,16 +198,36 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 
 	printf("... autocommit on, begin, begin (= implicit commit), rollback\n");
 	$link->autocommit(true);
-	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
-	mst_mysqli_fech_role(mst_mysqli_query(42, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(43, $link, "INSERT INTO test(id) VALUES (6)");
-	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
+	$last = NULL;
+	$i = 0;
+	do {
+		/* picks either master one or master two */
+		$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
+		mst_mysqli_query(43, $link, "INSERT INTO test(id) VALUES (9)");
+		/* implicit commit */
+		$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
+		$i++;
+		if (is_null($last)) {
+			$last = $link->thread_id;
+		} else if ($last != $link->thread_id) {
+			/* both masters got the insert */
+			break;
+		}
+	} while ($i < 20);
+	if (20 == $i) {
+		printf("[044] No connection switch, test will fail, ignore and run again\n");
+	}
+	/* one of the masters */
 	mst_mysqli_fech_role(mst_mysqli_query(44, $link, "SELECT @myrole AS _role"));
-	mst_mysqli_query(45, $link, "INSERT INTO test(id) VALUES (7)");
+
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
+	mst_mysqli_fech_role(mst_mysqli_query(45, $link, "SELECT @myrole AS _role"));
+	mst_mysqli_query(46, $link, "INSERT INTO test(id) VALUES (10)");
 	$link->rollback();
-	$res = mst_mysqli_query(46, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+
+	$res = mst_mysqli_query(47, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	var_dump($res->fetch_assoc());
-	$res = mst_mysqli_query(47, $link, "SELECT @@autocommit AS _autocommit FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(48, $link, "SELECT @@autocommit AS _autocommit FROM test", MYSQLND_MS_LAST_USED_SWITCH);
 	var_dump($res->fetch_assoc());
 
 
@@ -247,7 +269,7 @@ This is 'slave' speaking
 This is 'master' speaking
 array(1) {
   ["_id"]=>
-  string(1) "3"
+  string(1) "6"
 }
 This is 'slave' speaking
 ... read only transaction commit
@@ -266,7 +288,7 @@ array(1) {
 This is 'master' speaking
 array(1) {
   ["_id"]=>
-  string(1) "3"
+  string(1) "6"
 }
 array(1) {
   ["_autocommit"]=>
@@ -276,7 +298,7 @@ array(1) {
 This is 'master' speaking
 array(1) {
   ["_id"]=>
-  string(1) "3"
+  string(1) "6"
 }
 array(1) {
   ["_autocommit"]=>
@@ -287,7 +309,7 @@ This is 'master' speaking
 This is 'master' speaking
 array(1) {
   ["_id"]=>
-  string(1) "6"
+  string(1) "9"
 }
 array(1) {
   ["_autocommit"]=>

@@ -1945,6 +1945,8 @@ MYSQLND_METHOD(mysqlnd_ms, tx_begin)(MYSQLND_CONN_DATA * conn, const unsigned in
 
 		/* reundant if autocommit(false) -> in_trx = 1 but does not harm */
 		(*conn_data)->stgy.in_transaction = TRUE;
+		/* filter will set this after choosing an initial connection */
+		(*conn_data)->stgy.trx_stop_switching = FALSE;
 		/* message to filter: call tx_begin */
 		(*conn_data)->stgy.trx_begin_required = TRUE;
 		(*conn_data)->stgy.trx_begin_mode = mode;
@@ -1957,6 +1959,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_begin)(MYSQLND_CONN_DATA * conn, const unsigned in
 			(*conn_data)->stgy.trx_read_only = TRUE;
 			DBG_INF_FMT("In read only transaction, stop switching.");
 		} else {
+			(*conn_data)->stgy.trx_read_only = FALSE;
 			DBG_INF_FMT("In transaction, stop switching.");
 		}
 	} else {

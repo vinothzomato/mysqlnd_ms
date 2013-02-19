@@ -756,6 +756,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	if (!which_server) {
 		which_server = &tmp_which;
 	}
+	DBG_INF_FMT("trx_stickiness_strategy=%d in_transaction=%d trx_stop_switching=%d", stgy->trx_stickiness_strategy,  stgy->in_transaction, stgy->trx_stop_switching);
 
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
@@ -771,6 +772,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
 	} else if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_ON) && stgy->in_transaction && !forced) {
 		if (stgy->trx_stop_switching) {
+			DBG_INF("Use last in middle of transaction");
 			/* in the middle of a transaction */
 			*which_server = USE_LAST_USED;
 		} else {
@@ -857,6 +859,8 @@ return_connection:
 
 		if (conn_data && *conn_data) {
 			/* Send BEGIN now that we have decided on a connection for the transaction */
+			DBG_INF_FMT("Delayed BEGIN mode=%d name='%s'", stgy->trx_begin_mode, stgy->trx_begin_name);
+
 			(*conn_data)->skip_ms_calls = TRUE;
 			/* TODO: flags */
 			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, stgy->trx_begin_mode, stgy->trx_begin_name TSRMLS_CC);
@@ -870,10 +874,14 @@ return_connection:
 			}
 
 			if (FAIL == ret) {
-				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
-														MYSQLND_MS_ERROR_PREFIX "Failed to start transaction after choosing a server");
-			}
+				/* back to the beginning: reset everything */
+				stgy->in_transaction = FALSE;
+				stgy->trx_stop_switching = FALSE;
+				stgy->trx_read_only = FALSE;
 
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+														MYSQLND_MS_ERROR_PREFIX " Failed to start transaction after choosing a server");
+			}
 		}
 	}
 
