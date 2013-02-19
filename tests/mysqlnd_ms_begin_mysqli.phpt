@@ -147,7 +147,67 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	var_dump($res->fetch_assoc());
 	mst_mysqli_fech_role(mst_mysqli_query(28, $link, "SELECT @myrole AS _role"));
 
+	/* May use slave */
+	printf("... read only transaction commit\n");
 	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
+	mst_mysqli_fech_role(mst_mysqli_query(29, $link, "SELECT @myrole AS _role"));
+	$link->commit();
+
+	printf("... read only transaction rollback\n");
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
+	mst_mysqli_fech_role(mst_mysqli_query(30, $link, "SELECT @myrole AS _role"));
+	$link->commit();
+
+	printf("... named read only transaction commit\n");
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY, "a");
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY, "abcdefghijklmnopqrstuvwxyz");
+	mst_mysqli_fech_role(mst_mysqli_query(31, $link, "SELECT @myrole AS _role"));
+	$link->commit();
+
+	printf("... autocommit off, begin, commit\n");
+	$link->autocommit(false);
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aobc");
+	mst_mysqli_fech_role(mst_mysqli_query(32, $link, "SELECT @myrole AS _role"));
+	$link->commit();
+	$res = mst_mysqli_query(33, $link, "SELECT @@autocommit AS _autocommit FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+
+	printf("... autocommit off, begin, rollback\n");
+	$link->autocommit(false);
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aobr");
+	mst_mysqli_fech_role(mst_mysqli_query(34, $link, "SELECT @myrole AS _role"));
+	mst_mysqli_query(35, $link, "INSERT INTO test(id) VALUES (4)");
+	$link->rollback();
+	$res = mst_mysqli_query(36, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+	$res = mst_mysqli_query(37, $link, "SELECT @@autocommit AS _autocommit FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+
+	printf("... autocommit on, begin, rollback\n");
+	$link->autocommit(true);
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbr");
+	mst_mysqli_fech_role(mst_mysqli_query(38, $link, "SELECT @myrole AS _role"));
+	mst_mysqli_query(39, $link, "INSERT INTO test(id) VALUES (5)");
+	$link->rollback();
+	$res = mst_mysqli_query(40, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+	$res = mst_mysqli_query(41, $link, "SELECT @@autocommit AS _autocommit FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+
+	printf("... autocommit on, begin, begin (= implicit commit), rollback\n");
+	$link->autocommit(true);
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
+	mst_mysqli_fech_role(mst_mysqli_query(42, $link, "SELECT @myrole AS _role"));
+	mst_mysqli_query(43, $link, "INSERT INTO test(id) VALUES (6)");
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE, "aonbbr");
+	mst_mysqli_fech_role(mst_mysqli_query(44, $link, "SELECT @myrole AS _role"));
+	mst_mysqli_query(45, $link, "INSERT INTO test(id) VALUES (7)");
+	$link->rollback();
+	$res = mst_mysqli_query(46, $link, "SELECT MAX(id) AS _id FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+	$res = mst_mysqli_query(47, $link, "SELECT @@autocommit AS _autocommit FROM test", MYSQLND_MS_LAST_USED_SWITCH);
+	var_dump($res->fetch_assoc());
+
 
 	print "done!";
 ?>
@@ -155,6 +215,9 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 <?php
 	if (!unlink("test_mysqlnd_ms_begin_mysqli.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_begin_mysqli.ini'.\n");
+
+	if ($error = mst_mysqli_drop_test_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
+		printf("[clean] %d\n", $error);
 ?>
 --EXPECTF--
 
@@ -187,4 +250,47 @@ array(1) {
   string(1) "3"
 }
 This is 'slave' speaking
+... read only transaction commit
+This is 'slave' speaking
+... read only transaction rollback
+This is 'slave' speaking
+... named read only transaction commit
+This is 'slave' speaking
+... autocommit off, begin, commit
+This is 'master' speaking
+array(1) {
+  ["_autocommit"]=>
+  string(1) "0"
+}
+... autocommit off, begin, rollback
+This is 'master' speaking
+array(1) {
+  ["_id"]=>
+  string(1) "3"
+}
+array(1) {
+  ["_autocommit"]=>
+  string(1) "0"
+}
+... autocommit on, begin, rollback
+This is 'master' speaking
+array(1) {
+  ["_id"]=>
+  string(1) "3"
+}
+array(1) {
+  ["_autocommit"]=>
+  string(1) "1"
+}
+... autocommit on, begin, begin (= implicit commit), rollback
+This is 'master' speaking
+This is 'master' speaking
+array(1) {
+  ["_id"]=>
+  string(1) "6"
+}
+array(1) {
+  ["_autocommit"]=>
+  string(1) "1"
+}
 done!
