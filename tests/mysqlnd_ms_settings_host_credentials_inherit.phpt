@@ -46,6 +46,8 @@ $settings = array(
 
 			array(
 			  'host' 	=> $emulated_slave_host_only,
+			  'port' 	=> $emulated_slave_port,
+			  'socket' 	=> $emulated_slave_socket,
 			),
 		),
 		'pick' => 'roundrobin',
@@ -94,6 +96,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_host_credentials_inherit.ini
 
 	/* slave 2 */
 	my_mysqli_query(6, $link, "SELECT 2 AS _one FROM DUAL");
+
 	$server_id = mst_mysqli_get_emulated_id(7, $link);
 	$threads[$server_id] = array('role' => 'Slave 2', 'stat' => $link->stat());
 
