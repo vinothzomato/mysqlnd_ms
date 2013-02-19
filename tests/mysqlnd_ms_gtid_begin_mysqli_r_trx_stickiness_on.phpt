@@ -1,5 +1,5 @@
 --TEST--
-PS, autocommit, GTID, stmt.store_result
+PS, autocommit, GTID, stmt.store_result, trx_stickiness=on
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -24,17 +24,18 @@ $settings = array(
 		'master' => array($emulated_master_host),
 		'slave' => array($emulated_slave_host),
 		'filters' => array(
-			"roundrobin" => array(),
+			"random" => array(),
 		),
 		'global_transaction_id_injection' => array(
 			'on_commit'	 				=> $sql['update'],
+			'fetch_last_gtid'			=> $sql['fetch_last_gtid'],
 			'report_error'				=> true,
 		),
-		'trx_stickiness' => 'disabled',
+		'trx_stickiness' => 'on',
 		'lazy_connections' => 1
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_gtid_begin_mysqli_r.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_gtid_begin_mysqli_r_trx_stickiness_on.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
@@ -59,7 +60,7 @@ if ($link->server_version < 50605) {
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_gtid_begin_mysqli_r.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_gtid_begin_mysqli_r_trx_stickiness_on.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -84,7 +85,7 @@ mysqlnd_ms.collect_statistics=1
 	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
-	$expected = array(
+	  $expected = array(
 		"gtid_autocommit_injections_success" => 0,
 		"gtid_autocommit_injections_failure" => 0,
 		"gtid_commit_injections_success" => 0,
@@ -97,13 +98,13 @@ mysqlnd_ms.collect_statistics=1
 		!$link->query("CREATE TABLE test(id INT) ENGINE=InnoDB"))
 		printf("[002] [%d] %s\n", $link->errno, $link->error);
 
-	/* we have to record START TRANSACTION as a new trx in our GTID table */
+	$expected['gtid_autocommit_injections_success'] += 2;
+
+	/* If trx_stickiness is on this will be delayed... */
 	$link->begin_transaction();
-	$expected['gtid_autocommit_injections_success'] += 3;
 
-
-	/* statement created in autocommit mode on master connection */
-	if (!($stmt = $link->prepare(sprintf("/*%s*/SELECT COUNT(*) AS _num_rows FROM test", MYSQLND_MS_MASTER_SWITCH))))
+	/* triggers start transaction on master */
+	if (!($stmt = $link->prepare("SELECT COUNT(*) AS _num_rows FROM test")))
 		printf("[003] [%d] %s\n", $link->errno, $link->error);
 
 	$stats = mysqlnd_ms_get_stats();
@@ -126,14 +127,14 @@ mysqlnd_ms.collect_statistics=1
 	}
 	$expected['gtid_autocommit_injections_success'] += 1;
 
-	/* Note: transaction stickiness is not set! */
+	/* Delayed START ... */
 	$link->begin_transaction();
-	$expected['gtid_autocommit_injections_success'] += 1;
 
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(9, $stats, $expected);
 
-	if (!($res = $link->query(sprintf("/*%s*/SELECT MAX(id) AS _id FROM test", MYSQLND_MS_MASTER_SWITCH)))) {
+	/* master */
+	if (!($res = $link->query("SELECT MAX(id) AS _id FROM test"))) {
 		printf("[010] [%d] %s\n", $link->errno, $link->error);
 	}
 	$row = $res->fetch_assoc();
@@ -143,7 +144,7 @@ mysqlnd_ms.collect_statistics=1
 		printf("[011] [%d] %s\n", $link->errno, $link->error);
 	}
 
-	if (!($res = $link->query(sprintf("/*%s*/SELECT MAX(id) AS _id FROM test", MYSQLND_MS_MASTER_SWITCH)))) {
+	if (!($res = $link->query("SELECT MAX(id) AS _id FROM test"))) {
 		printf("[012] [%d] %s\n", $link->errno, $link->error);
 	}
 	$row = $res->fetch_assoc();
@@ -157,12 +158,31 @@ mysqlnd_ms.collect_statistics=1
 	$stats = mysqlnd_ms_get_stats();
 	compare_stats(13, $stats, $expected);
 
+	/* double begin, second begin will give implicit commit */
+	$link->begin_transaction();
+	if (!$link->query("INSERT INTO test(id) VALUES (1)")) {
+		printf("[014] [%d] %s\n", $link->errno, $link->error);
+	}
+	$expected['gtid_implicit_commit_injections_success'] += 1;
+
+	$link->begin_transaction();
+	if (!($res = $link->query("SELECT MAX(id) AS _id FROM test"))) {
+		printf("[015] [%d] %s\n", $link->errno, $link->error);
+	}
+	$row = $res->fetch_assoc();
+	printf("id = %d\n", $row['_id']);
+	$link->commit();
+	$expected['gtid_commit_injections_success'] += 1;
+
+	$stats = mysqlnd_ms_get_stats();
+	compare_stats(16, $stats, $expected);
+
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_gtid_begin_mysqli_r.ini"))
-		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_begin_mysqli_r.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_gtid_begin_mysqli_r_trx_stickiness_on.ini"))
+		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_gtid_begin_mysqli_r_trx_stickiness_on.ini'.\n");
 
 	require_once("connect.inc");
 	require_once("util.inc");
@@ -175,4 +195,5 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 id = 1
 id = 0
+id = 1
 done!

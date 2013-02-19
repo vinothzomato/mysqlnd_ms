@@ -1938,6 +1938,29 @@ MYSQLND_METHOD(mysqlnd_ms, tx_begin)(MYSQLND_CONN_DATA * conn, const unsigned in
 	*/
 
 	if (FALSE == CONN_DATA_NOT_SET(conn_data)) {
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+		if ((TRUE == (*conn_data)->stgy.in_transaction) &&
+			(CONN_DATA_TRY_TRX_INJECTION(conn_data, conn)))
+		{
+			/*
+			Implicit commit when begin() ..query().. begin().
+			Must inject before second=current begin() call.
+			*/
+			MS_TRX_INJECT(ret, conn, conn_data);
+			MYSQLND_MS_INC_STATISTIC((PASS == ret) ? MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS :
+				MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE);
+
+			if (FAIL == ret) {
+				if (TRUE == (*conn_data)->global_trx.report_error) {
+					DBG_RETURN(ret);
+				}
+
+				ret = PASS;
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+			}
+		}
+#endif
+
 		if	((*conn_data)->stgy.trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) {
 
 			/* the true answer is delayed... unfortunately :-/ */
