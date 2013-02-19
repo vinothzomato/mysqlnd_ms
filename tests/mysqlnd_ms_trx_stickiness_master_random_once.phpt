@@ -161,11 +161,11 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 	if ($row['id'] != 100)
 		printf("[040] Expecting id = 100 got id = '%s'\n", $row['id']);
 
-	/* SQL hint wins: use slave although autocommit is off */
+	/* SQL hint must not win: use master albeit SQL hint used */
 	$res = mst_mysqli_query(41, $link, "SELECT 1 AS id FROM DUAL", MYSQLND_MS_SLAVE_SWITCH);
 	$server_id = mst_mysqli_get_emulated_id(42, $link);
-	if ($server_id != $emulated_slave_thread) {
-		printf("[043] SELECT in autocommit mode should have been run on the slave\n");
+	if ($server_id == $emulated_slave_thread) {
+		printf("[043] Forced SELECT in autocommit mode should have been run on the mast\n");
 	}
 	$row = $res->fetch_assoc();
 	$res->close();
@@ -174,8 +174,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_trx_stickiness_master_random_once.ini
 
 	$res = mst_mysqli_query(45, $link, "SELECT 1 AS id FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
 	$server_id = mst_mysqli_get_emulated_id(46, $link);
-	if ($server_id != $emulated_slave_thread) {
-		printf("[047] SELECT in autocommit mode should have been run on the slave\n");
+	if ($server_id == $emulated_slave_thread) {
+		printf("[047] Forced SELECT in autocommit mode should have been run on the slave\n");
 	}
 	$row = $res->fetch_assoc();
 	$res->close();

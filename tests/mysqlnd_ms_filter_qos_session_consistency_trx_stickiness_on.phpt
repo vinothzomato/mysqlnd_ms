@@ -116,19 +116,20 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	if ($server_id != $emulated_master_id) {
 		printf("[009] Expecting master use, found %s used\n", $server_id);
 	}
-var_dump($server_id);
+
+
 	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)))
 		printf("[010] [%d] %s\n", $link->errno, $link->error);
 
 	/* eventual consistency --- slave may be used */
 	mst_mysqli_query(12, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
 	$server_id = mst_mysqli_get_emulated_id(15, $link);
-var_dump($server_id);
-	if ($server_id == $emulated_master_id) {
-		printf("[016] Expecting slave use, found %s used\n", $server_id);
+
+	if ($server_id != $emulated_master_id) {
+		printf("[016] Expecting master use, found %s used\n", $server_id);
 	}
-die(":)");
-	/* slave */
+
+	/* master */
 	if ($res = mst_mysqli_query(17, $link, "SELECT @myrole AS _msg")) {
 		$row = $res->fetch_assoc();
 		printf("Greetings from '%s'\n", $row['_msg']);
@@ -158,8 +159,6 @@ die(":)");
 	if (!unlink("test_mysqlnd_ms_filter_qos_session_consistency_trx_stickiness_on.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_session_consistency_trx_stickiness_on.ini'.\n");
 ?>
---XFAIL--
-Does not work
 --EXPECTF--
 Greetings from 'slave'
 Greetings from 'slave'

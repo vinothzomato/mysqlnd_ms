@@ -56,7 +56,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_trx_stickiness_master_random.ini
 
 	/* explicitly disabling autocommit via API */
 	$link->autocommit(FALSE);
-	/* SQL hint wins */
+	/* SQL hint does NOT win! */
 	mst_mysqli_fech_role(mst_mysqli_query(9, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_SLAVE_SWITCH));
 	mst_mysqli_fech_role(mst_mysqli_query(10, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_LAST_USED_SWITCH));
 	mst_mysqli_fech_role(mst_mysqli_query(10, $link, "SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role", MYSQLND_MS_MASTER_SWITCH));
@@ -75,8 +75,8 @@ This is 'master %d' speaking
 This is 'slave %d' speaking
 This is 'slave %d' speaking
 This is 'slave %d' speaking
-This is 'slave %d' speaking
-This is 'slave %d' speaking
+This is 'master %d' speaking
+This is 'master %d' speaking
 This is 'master %d' speaking
 This is 'master %d' speaking
 done!

@@ -744,7 +744,8 @@ MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, const size_t query_len,
 									struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info,
 									zend_llist * master_connections, zend_llist * slave_connections,
-									enum enum_which_server * which_server TSRMLS_DC)
+									enum enum_which_server * which_server,
+									zend_bool allow_master_for_slave TSRMLS_DC)
 {
 	MYSQLND_MS_FILTER_RANDOM_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_DATA *) f_data;
 	zend_bool forced;
@@ -759,7 +760,11 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	DBG_INF_FMT("trx_stickiness_strategy=%d in_transaction=%d trx_stop_switching=%d", stgy->trx_stickiness_strategy,  stgy->in_transaction, stgy->trx_stop_switching);
 
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
+	if (allow_master_for_slave && (USE_SLAVE == *which_server) && (0 == zend_llist_count(slave_connections))) {
+		*which_server = USE_MASTER;
+	}
+
+	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction) {
 		DBG_INF("Enforcing use of master while in transaction");
 		if (stgy->trx_stop_switching) {
 			/* in the middle of a transaction */
@@ -770,7 +775,7 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			*which_server = USE_MASTER;
 		}
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
-	} else if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_ON) && stgy->in_transaction && !forced) {
+	} else if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_ON) && stgy->in_transaction) {
 		if (stgy->trx_stop_switching) {
 			DBG_INF("Use last in middle of transaction");
 			/* in the middle of a transaction */

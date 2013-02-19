@@ -595,6 +595,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
 
 	if (conn_data && *conn_data) {
+		zend_bool allow_master_for_slave = FALSE;
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		zend_llist * filters = stgy->filters;
 		zend_llist * master_list = &(*conn_data)->master_connections;
@@ -641,6 +642,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 			 filter_pp && (filter = *filter_pp);
 			 filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
 		{
+			zend_bool trx_continue_filtering = FALSE;
 			zend_bool multi_filter = FALSE;
 			zend_bool multi_filter_single_conn_continue_search = TRUE;
 			if (zend_llist_count(output_masters) || zend_llist_count(output_slaves)) {
@@ -665,7 +667,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					multi_filter = TRUE;
 					/* TODO:
 					 Should we really stop filtering if a user multi filter returns only one server?
-					 User might have returned zero masters for upcoming SELECT and
+					 User might have returned zero masters for upcoming SELECT.
 					*/
 					multi_filter_single_conn_continue_search = FALSE;
 					mysqlnd_ms_user_pick_multiple_server(filter, (*conn_data)->connect_host, (const char * const)*query, *query_len,
@@ -675,19 +677,23 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					break;
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 				case SERVER_PICK_TABLE:
-					multi_filter = TRUE;
-					multi_filter_single_conn_continue_search = TRUE;
-					mysqlnd_ms_choose_connection_table_filter(filter, (const char * const)*query, *query_len,
+					if (FALSE == stgy->trx_stop_switching) {
+						multi_filter = TRUE;
+						multi_filter_single_conn_continue_search = TRUE;
+						mysqlnd_ms_choose_connection_table_filter(filter, (const char * const)*query, *query_len,
 															  CONN_GET_STATE(conn) > CONN_ALLOCED?
 															  	conn->connect_or_select_db:
 															  	(*conn_data)->cred.db,
 															  selected_masters, selected_slaves, output_masters, output_slaves,
 															  stgy, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+					} else {
+						trx_continue_filtering = TRUE;
+					}
 					break;
 #endif
 				case SERVER_PICK_RANDOM:
 					connection = mysqlnd_ms_choose_connection_random(filter, (const char * const)*query, *query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
-																	 selected_masters, selected_slaves, NULL TSRMLS_CC);
+																	 selected_masters, selected_slaves, NULL, allow_master_for_slave TSRMLS_CC);
 					break;
 				case SERVER_PICK_RROBIN:
 					connection = mysqlnd_ms_choose_connection_rr(filter, (const char * const)*query, *query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
@@ -695,28 +701,38 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					break;
 				case SERVER_PICK_QOS:
 					/* TODO: MS must not bail if slave or master list is empty */
-					multi_filter = TRUE;
-					multi_filter_single_conn_continue_search = FALSE;
-					mysqlnd_ms_choose_connection_qos(conn, filter, (*conn_data)->connect_host, query, query_len,
+					if (FALSE == stgy->trx_stop_switching) {
+						multi_filter = TRUE;
+						multi_filter_single_conn_continue_search = TRUE;
+						allow_master_for_slave = TRUE;
+						mysqlnd_ms_choose_connection_qos(conn, filter, (*conn_data)->connect_host, query, query_len,
 													 free_query,
 													 selected_masters, selected_slaves,
 													 output_masters, output_slaves, stgy,
 													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+					} else {
+						trx_continue_filtering = TRUE;
+					}
 					break;
 				case SERVER_PICK_GROUPS:
 					/* TODO: MS must not bail if slave or master list is empty */
-					multi_filter = TRUE;
-					multi_filter_single_conn_continue_search = TRUE;
-					mysqlnd_ms_choose_connection_groups(conn, filter, (*conn_data)->connect_host, query, query_len,
+					if (FALSE == stgy->trx_stop_switching) {
+						multi_filter = TRUE;
+						multi_filter_single_conn_continue_search = TRUE;
+						mysqlnd_ms_choose_connection_groups(conn, filter, (*conn_data)->connect_host, query, query_len,
 													 selected_masters, selected_slaves,
 													 output_masters, output_slaves, stgy,
 													 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+					}
 					break;
 				default:
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 												  MYSQLND_MS_ERROR_PREFIX " Unknown pick type");
 			}
 			DBG_INF_FMT("out_masters_count=%d  out_slaves_count=%d", zend_llist_count(output_masters), zend_llist_count(output_slaves));
+			if (trx_continue_filtering) {
+				continue;
+			}
 			/* if a multi-connection filter reduces the list to a single connection, then use this connection */
 			if (!connection &&
 				multi_filter == TRUE &&
@@ -744,7 +760,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					}
 				}
 			}
-			if (!connection && multi_filter == FALSE) {
+			if (!connection && (multi_filter == FALSE)) {
 				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 											  MYSQLND_MS_ERROR_PREFIX " No connection selected by the last filter");
 				stgy->last_used_conn = conn;
