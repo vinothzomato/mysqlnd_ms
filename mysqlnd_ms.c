@@ -1937,30 +1937,37 @@ MYSQLND_METHOD(mysqlnd_ms, tx_begin)(MYSQLND_CONN_DATA * conn, const unsigned in
 	 last used connection but reset in_transaction on the proxy connection.
 	*/
 
-	if ((FALSE == CONN_DATA_NOT_SET(conn_data)) &&
-		((*conn_data)->stgy.trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED)) {
+	if (FALSE == CONN_DATA_NOT_SET(conn_data)) {
+		if	((*conn_data)->stgy.trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) {
 
-		/* the true answer is delayed... unfortunately :-/ */
-		ret = PASS;
+			/* the true answer is delayed... unfortunately :-/ */
+			ret = PASS;
 
-		/* reundant if autocommit(false) -> in_trx = 1 but does not harm */
-		(*conn_data)->stgy.in_transaction = TRUE;
-		/* filter will set this after choosing an initial connection */
-		(*conn_data)->stgy.trx_stop_switching = FALSE;
-		/* message to filter: call tx_begin */
-		(*conn_data)->stgy.trx_begin_required = TRUE;
-		(*conn_data)->stgy.trx_begin_mode = mode;
-		if ((*conn_data)->stgy.trx_begin_name) {
-			mnd_pefree((*conn_data)->stgy.trx_begin_name, conn->persistent);
-		}
-		(*conn_data)->stgy.trx_begin_name = (name) ? mnd_pestrdup(name, conn->persistent) : NULL;
+			/* reundant if autocommit(false) -> in_trx = 1 but does not harm */
+			(*conn_data)->stgy.in_transaction = TRUE;
+			/* filter will set this after choosing an initial connection */
+			(*conn_data)->stgy.trx_stop_switching = FALSE;
+			/* message to filter: call tx_begin */
+			(*conn_data)->stgy.trx_begin_required = TRUE;
+			(*conn_data)->stgy.trx_begin_mode = mode;
+			if ((*conn_data)->stgy.trx_begin_name) {
+				mnd_pefree((*conn_data)->stgy.trx_begin_name, conn->persistent);
+			}
+			(*conn_data)->stgy.trx_begin_name = (name) ? mnd_pestrdup(name, conn->persistent) : NULL;
 
-		if (mode & TRANS_START_READ_ONLY) {
-			(*conn_data)->stgy.trx_read_only = TRUE;
-			DBG_INF_FMT("In read only transaction, stop switching.");
+			if (mode & TRANS_START_READ_ONLY) {
+				(*conn_data)->stgy.trx_read_only = TRUE;
+				DBG_INF("In read only transaction, stop switching.");
+			} else {
+				(*conn_data)->stgy.trx_read_only = FALSE;
+				DBG_INF("In transaction, stop switching.");
+			}
 		} else {
-			(*conn_data)->stgy.trx_read_only = FALSE;
-			DBG_INF_FMT("In transaction, stop switching.");
+			/* Note: we are dealing with the proxy connection */
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, mode, name TSRMLS_CC);
+			if (PASS == ret)
+				(*conn_data)->stgy.in_transaction = TRUE;
+			DBG_INF_FMT("in_transaction=%d", (*conn_data)->stgy.in_transaction);
 		}
 	} else {
 		/* Note: we are dealing with the proxy connection */
