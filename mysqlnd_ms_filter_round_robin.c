@@ -508,7 +508,8 @@ MYSQLND_CONN_DATA *
 mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const size_t query_len,
 								struct mysqlnd_ms_lb_strategies * stgy, MYSQLND_ERROR_INFO * error_info,
 								zend_llist * master_connections, zend_llist * slave_connections,
-								enum enum_which_server * which_server TSRMLS_DC)
+								enum enum_which_server * which_server,
+								zend_bool allow_master_for_slave TSRMLS_DC)
 {
 	enum enum_which_server tmp_which;
 	zend_bool forced;
@@ -520,8 +521,14 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 	if (!which_server) {
 		which_server = &tmp_which;
 	}
+	DBG_INF_FMT("trx_stickiness_strategy=%d in_transaction=%d trx_stop_switching=%d", stgy->trx_stickiness_strategy,  stgy->in_transaction, stgy->trx_stop_switching);
+
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
-	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction && !forced) {
+	if (allow_master_for_slave && (USE_SLAVE == *which_server) && (0 == zend_llist_count(slave_connections))) {
+		*which_server = USE_MASTER;
+	}
+
+	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction) {
 		DBG_INF("Enforcing use of master while in transaction");
 		*which_server = USE_MASTER;
 		forced_tx_master = TRUE;

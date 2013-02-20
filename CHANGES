@@ -3,6 +3,21 @@
   Motto/theme: Tweaking based on user feedback
   Release date: n/a
 
+  * BC break and bug fix: SQL hints enforcing the use of a specific server
+    are ignored for the duration of a transaction, given a transaction
+    has been properly detected. Please note, other than intended
+    SQL hints did not overrule all other rules in prior versions
+    in all cases (bug). For example, the QoS filter did ignore the SQL hints
+    MYSQLND_MS_USE_SLAVE, MYSQLND_MS_USE_MASTER, MYSQLND_MS_USE_LAST_USED
+    already in prior versions whereas transaction stickiness could
+    be overruled using the SQL hints if, and only if, transaction
+    stickiness was not used with a QoS filter. The new behaviour
+    differs from the previous but its consistent: neither transaction
+    stickiness nor QoS can be overruled by SQL hints. It is no longer
+    possible to send a query to a slave using MYSQLND_MS_USE_SLAVE hint
+    when in a transaction that is to be executed on the master. This is
+    most likely what you expect anyway.
+
   * Fixed #60605 PHP segmentation fault when mysqlnd_ms is enabled
    The bug was caused by using an uninitialized handle. Implicit
    connect as part of lazy connections have been extended to cover
@@ -47,11 +62,11 @@
    the configuration file to prevent any warnings about an invalid
    configuration.
 
-  * Fixed: Setting transaction stickiness disables all load balancing, 
-    including automatic failover, for the duration of a transaction. 
-    So far connection switches could have happened in the middle of a 
-    transaction in multi-master configurations and during automatic 
-    failover although transaction monitoring had detected 
+  * Fixed: Setting transaction stickiness disables all load balancing,
+    including automatic failover, for the duration of a transaction.
+    So far connection switches could have happened in the middle of a
+    transaction in multi-master configurations and during automatic
+    failover although transaction monitoring had detected
     transaction boundaries properly.
 
   * Added transaction monitoring based on mysqlnd tx_begin()
@@ -59,8 +74,8 @@
   * Added new transaction stickiness setting trx_stickiness=on
     which allows the use of slaves for read only transactions.
 
-  * Removed experimental feature notes for remember_failed 
-    failover setting from documentation. remember_failed is 
+  * Removed experimental feature notes for remember_failed
+    failover setting from documentation. remember_failed is
     very useful together with the improved trx_stickiness=on
     setting.
 

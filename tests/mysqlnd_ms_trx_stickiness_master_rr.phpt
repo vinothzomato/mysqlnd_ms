@@ -102,8 +102,8 @@ Stats trx_master_forced: 1
 This is 'slave 1' speaking
 This is 'slave 2' speaking
 This is 'slave 1' speaking
-This is 'slave 2' speaking
-This is 'slave 2' speaking
+This is 'master' speaking
+This is 'master' speaking
 This is 'master' speaking
 This is 'master' speaking
 done!

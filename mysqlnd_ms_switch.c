@@ -697,7 +697,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 					break;
 				case SERVER_PICK_RROBIN:
 					connection = mysqlnd_ms_choose_connection_rr(filter, (const char * const)*query, *query_len, stgy, &MYSQLND_MS_ERROR_INFO(conn),
-																 selected_masters, selected_slaves, NULL TSRMLS_CC);
+																 selected_masters, selected_slaves, NULL, allow_master_for_slave TSRMLS_CC);
 					break;
 				case SERVER_PICK_QOS:
 					/* TODO: MS must not bail if slave or master list is empty */
