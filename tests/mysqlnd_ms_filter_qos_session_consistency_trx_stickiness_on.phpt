@@ -119,7 +119,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 
 
 	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_EVENTUAL)))
-		printf("[010] [%d] %s\n", $link->errno, $link->error);
+		printf("[010] [%d] '%s'\n", $link->errno, $link->error);
 
 	/* eventual consistency --- slave may be used */
 	mst_mysqli_query(12, $link, "SET @myrole='slave'", MYSQLND_MS_SLAVE_SWITCH);
@@ -141,7 +141,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	mst_mysqli_query(19, $link, "SET @myrole='master'");
 
 	if (false === ($ret = mysqlnd_ms_set_qos($link, MYSQLND_MS_QOS_CONSISTENCY_SESSION)))
-		printf("[021] [%d] %s\n", $link->errno, $link->error);
+		printf("[021] [%d] '%s'\n", $link->errno, $link->error);
 
 	/* slave */
 	if ($res = mst_mysqli_query(22, $link, "SELECT @myrole AS _msg")) {
@@ -161,6 +161,12 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 ?>
 --EXPECTF--
 Greetings from 'slave'
+
+Warning: mysqlnd_ms_set_qos(): (mysqlnd_ms) No change allowed in the middle of a transaction in %s on line %d
+[010] [0] ''
 Greetings from 'slave'
+
+Warning: mysqlnd_ms_set_qos(): (mysqlnd_ms) No change allowed in the middle of a transaction in %s on line %d
+[021] [0] ''
 Greetings from 'master'
 done!

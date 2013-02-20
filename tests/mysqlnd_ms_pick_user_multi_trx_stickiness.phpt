@@ -98,7 +98,6 @@ pick_server('myapp', '/*2*/SELECT 2 FROM DUAL, 0)
 pick_server('myapp', '/*ms=last_used*//*3*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, 0)
 Server: slave[1]-%d
 pick_server('myapp', '/*4*/SELECT 4 FROM DUAL, 1)
-pick_server('myapp', 'SET AUTOCOMMIT=0, 1)
 pick_server('myapp', '/*ms=last_used*//*5*//*util.inc*/SELECT role FROM _mysqlnd_ms_roles, 1)
 Server: master-%d
 pick_server('myapp', '/*7*/SELECT 7 FROM DUAL, 1)

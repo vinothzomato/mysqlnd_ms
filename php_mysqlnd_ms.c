@@ -508,6 +508,11 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 			RETURN_FALSE;
 		}
+
+		if ((*conn_data)->stgy.in_transaction && (*conn_data)->stgy.trx_stop_switching) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No change allowed in the middle of a transaction");
+			RETURN_FALSE;
+		}
 	}
 
 	switch ((int)service_level)

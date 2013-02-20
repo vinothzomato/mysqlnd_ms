@@ -234,6 +234,15 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 	MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, (*conn_data)->proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms_lazy_connect");
+	/*
+		We may get called by the load balancing filters (random, roundrobin) while they setup
+		a new connection to be used for running a transaction. If transaction stickiness is
+		enabled, the filters will have set all flags to block connection switches and try
+		to use the last used connection (the one which we are to open yet) when setting
+		up the connection in execute_init_commands(). To prevent this recursion we have to
+		skip MS for the connect itself.
+	*/
+	(*conn_data)->skip_ms_calls = TRUE;
 	if ((*proxy_conn_data)->server_charset && !CONN_GET_OPTION(connection, charset_name) &&
 		FAIL == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(connection, MYSQL_SET_CHARSET_NAME,
 																	(*proxy_conn_data)->server_charset->name TSRMLS_CC)))
@@ -242,11 +251,15 @@ mysqlnd_ms_lazy_connect(MYSQLND_MS_LIST_DATA * element, zend_bool master TSRMLS_
 										MYSQLND_MS_ERROR_PREFIX " Couldn't force charset to '%s'",
 										(*proxy_conn_data)->server_charset->name);
 	} else {
+
+
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(connect)(connection, element->host, element->user,
 													   element->passwd, element->passwd_len,
 													   element->db, element->db_len,
 													   element->port, element->socket, element->connect_flags TSRMLS_CC);
+
 	}
+	(*conn_data)->skip_ms_calls = FALSE;
 
 	if (PASS == ret) {
 		DBG_INF("Connected");
@@ -983,6 +996,10 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	DBG_INF_FMT("query=%s", query);
 
 	if (CONN_DATA_NOT_SET(conn_data)) {
+		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, q_len TSRMLS_CC);
+		DBG_RETURN(ret);
+	}
+	if ((*conn_data)->skip_ms_calls) {
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, q_len TSRMLS_CC);
 		DBG_RETURN(ret);
 	}
@@ -1849,8 +1866,9 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * proxy_conn, zend_bool commi
 	}
 #endif
 
-	if (conn_data && *conn_data)
+	if (conn_data && *conn_data) {
 		(*conn_data)->skip_ms_calls = TRUE;
+	}
 	/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
 #if MYSQLND_VERSION_ID >= 50011
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit_or_rollback)(conn, commit, flags, name TSRMLS_CC);
@@ -1862,18 +1880,24 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * proxy_conn, zend_bool commi
 	if (conn_data && *conn_data) {
 		(*conn_data)->skip_ms_calls = FALSE;
 
-		if ((PASS == ret) && (FALSE == (*conn_data)->stgy.trx_autocommit_off))  {
-			/* autocommit(true) -> in_trx = 0; begin() -> in_trx = 1; commit() or rollback() -> in_trx = 0; */
+		if (PASS == ret) {
+			if (FALSE == (*conn_data)->stgy.trx_autocommit_off)  {
+				/* autocommit(true) -> in_trx = 0; begin() -> in_trx = 1; commit() or rollback() -> in_trx = 0; */
 
-			/* proxy conn stgy controls the filter */
-			(*proxy_conn_data)->stgy.in_transaction = FALSE;
-			(*proxy_conn_data)->stgy.trx_stop_switching = FALSE;
-			(*proxy_conn_data)->stgy.trx_read_only = FALSE;
+				/* proxy conn stgy controls the filter */
+				(*proxy_conn_data)->stgy.in_transaction = FALSE;
+				(*proxy_conn_data)->stgy.trx_stop_switching = FALSE;
+				(*proxy_conn_data)->stgy.trx_read_only = FALSE;
 
-			/* clean up actual line as well to be on the safe side */
-			(*conn_data)->stgy.in_transaction = FALSE;
-			(*conn_data)->stgy.trx_stop_switching = FALSE;
-			(*conn_data)->stgy.trx_read_only = FALSE;
+				/* clean up actual line as well to be on the safe side */
+				(*conn_data)->stgy.in_transaction = FALSE;
+				(*conn_data)->stgy.trx_stop_switching = FALSE;
+				(*conn_data)->stgy.trx_read_only = FALSE;
+			} else if ((*conn_data)->stgy.trx_autocommit_off && (*proxy_conn_data)->stgy.in_transaction) {
+				/* autocommit(false); query()|begin() -> pick server; query() -> keep server; commit()|rollback/() -> keep server; query()|begin() --> pick new server */
+				(*proxy_conn_data)->stgy.trx_stop_switching = FALSE;
+				(*conn_data)->stgy.trx_stop_switching = FALSE;
+			}
 		}
 	}
 
