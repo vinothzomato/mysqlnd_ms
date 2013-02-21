@@ -60,7 +60,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_filter_groups_qos_rr.ini", $sett
 mysqlnd_ms.enable=1
 mysqlnd_ms.multi_master=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_filter_groups_qos_rr.ini
-mysqlnd.debug=d:t:x:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -119,7 +118,7 @@ mysqlnd.debug=d:t:x:O,/tmp/mysqlnd.trace
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_groups_qos.ini"))
+	if (!unlink("test_mysqlnd_ms_filter_groups_qos_rr.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_groups_qos_rr.ini'.\n");
 ?>
 --EXPECTF--

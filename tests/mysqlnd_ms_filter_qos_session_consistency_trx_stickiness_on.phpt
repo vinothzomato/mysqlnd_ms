@@ -80,7 +80,6 @@ if ($link->server_version < 50605) {
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_session_consistency_trx_stickiness_on.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");

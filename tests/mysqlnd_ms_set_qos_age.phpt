@@ -57,7 +57,6 @@ if ($error = mst_create_config("test_mysqlnd_ms_set_qos_age.ini", $settings))
 --INI--
 mysqlnd_ms.enable=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_set_qos_age.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	/* Caution: any test setting on replication is prone to false positive. Replication may be down! */
