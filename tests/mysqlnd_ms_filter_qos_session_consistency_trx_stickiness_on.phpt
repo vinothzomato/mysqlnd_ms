@@ -76,7 +76,6 @@ if (!$link = mst_mysqli_connect($emulated_slave_host_only, $user, $passwd, $db, 
 if ($link->server_version < 50605) {
 	die(sprintf("skip Emulated slave: need MySQL 5.6.5+, got %s", $link->server_version));
 }
-
 ?>
 --INI--
 mysqlnd_ms.enable=1

@@ -18,6 +18,17 @@
     when in a transaction that is to be executed on the master. This is
     most likely what you expect anyway.
 
+  * BC break and bug fix: Calls to mysqlnd_ms_set_qos() are blocked
+    in the middle of a transaction if transaction stickiness is
+    set and transaction boundaries are detected properly. Switching
+    servers is forbidden in the middle of a transaction, thus
+    changes to quality of service resulting in different servers
+    being used are blocked. However, if autocommit is disabled one
+    can still change QoS in between transactions like so:
+    autocommit(false); mysqlnd_ms_set_qos(); begin(); ... ; commit(); mysqlnd_ms_set_qos(); begin();
+    This is no longer allowed:
+    autocommit(false); query()|begin(): mysqlnd_ms_set_qos();
+
   * Fixed #60605 PHP segmentation fault when mysqlnd_ms is enabled
    The bug was caused by using an uninitialized handle. Implicit
    connect as part of lazy connections have been extended to cover

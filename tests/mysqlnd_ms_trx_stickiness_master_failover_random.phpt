@@ -42,15 +42,37 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_trx_stickiness_master_failover_random.ini
 
 	/* trying to hit the unavailable master */
 	$i = 0;
+
 	do {
+		$last = NULL;
 		$link->autocommit(FALSE);
-		$res = $link->query("SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _master_role");
-		if (0 != $link->errno)
+		/*
+         This is the first query in the transaction,
+         failover may be done to find an initial connection.
+		 Once we have a connection, it must not change, ever!
+		*/
+		$res = $link->query("SELECT CONNECTION_ID() AS _master_role");
+		if (0 != $link->errno) {
+			printf("[003] [%d] '%s'\n", $link->errno, $link->error);
 			break;
+		}
+		$row = $res->fetch_assoc();
+		$last = $row['_master_role'];
+
+		$res = $link->query("SELECT CONNECTION_ID() AS _master_role");
+		if (0 != $link->errno) {
+			printf("[004] [%d] '%s'\n", $link->errno, $link->error);
+			break;
+		}
+		$row = $res->fetch_assoc();
+		if ($last != $row['_master_role']) {
+			printf("[005] Server switched in the middle of a transaction!\n");
+			break;
+		}
 		$link->autocommit(TRUE);
 
 	} while ((++$i < 50) && ($res) &&  (0 == $link->errno));
-	printf("[004] [%d] %s\n", $link->errno, $link->error);
+	printf("[006] %d - [%d] '%s'\n", $i, $link->errno, $link->error);
 
 	/* this is a MUST to break out of "in_trx = 1 => use last_used" */
 	$link->autocommit(TRUE);
@@ -60,7 +82,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_trx_stickiness_master_failover_random.ini
 	for ($i = 0; $i < 10; $i++) {
 		$res = $link->query("SELECT CONCAT(@myrole, ' ', CONNECTION_ID()) AS _role");
 		if (!$res) {
-			printf("[005] [%d] '%s'\n", $link->errno, $link->error);
+			printf("[075] [%d] '%s'\n", $link->errno, $link->error);
 			break;
 		}
 	}
@@ -74,9 +96,5 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_trx_stickiness_master_failover_random.ini
 --EXPECTF--
 
 Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
-
-Warning: mysqli::query(): (mysqlnd_ms) Automatic failover is not permitted in the middle of a transaction in %s on line %d
-
-Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
-[004] [2000] (mysqlnd_ms) No connection selected by the last filter
+[006] 50 - [0] ''
 done!

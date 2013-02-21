@@ -761,6 +761,14 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if (allow_master_for_slave && (USE_SLAVE == *which_server) && (0 == zend_llist_count(slave_connections))) {
+		/*
+		In versions prior to 1.5 the QoS filter could end the filter chain if it had
+		sieved out all connections but one. This is no longer allowed to ensure QoS
+		cannot overrule trx stickiness.  trx stickiness is mostly handled by
+		random/roundrobin filter invoked after QoS. Thus, random/roundrobin
+		may be called with an empty slave list to pick a connection for a SELECT.
+		If so, we implicitly switch to master list.
+		*/
 		*which_server = USE_MASTER;
 	}
 
@@ -771,7 +779,6 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			*which_server = USE_LAST_USED;
 		} else {
 			/* first statement run in transaction: disable switch and failover */
-			stgy->trx_stop_switching = TRUE;
 			*which_server = USE_MASTER;
 		}
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
@@ -782,13 +789,12 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 			*which_server = USE_LAST_USED;
 		} else {
 			/* first statement run in transaction: disable switch and failover */
-			stgy->trx_stop_switching = TRUE;
 			if (FALSE == stgy->trx_read_only) {
 				DBG_INF("Enforcing use of master while in transaction");
 				*which_server = USE_MASTER;
 			} else {
 				if (0 == zend_llist_count(slave_connections)) {
-					DBG_INF("Read only transaction but no slaves to choose from, using master");
+					DBG_INF("No slaves to run read only transaction, using master");
 					*which_server = USE_MASTER;
 				} else {
 					DBG_INF("Considering use of slave while in read only transaction");
@@ -823,11 +829,20 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 		case USE_SLAVE:
 		{
 			conn = mysqlnd_ms_choose_connection_random_use_slave(master_connections, slave_connections, filter, stgy, which_server, error_info TSRMLS_CC);
-			if (NULL != conn || USE_MASTER != *which_server) {
+			if ((NULL != conn || USE_MASTER != *which_server) && !(NULL == conn && TRUE == allow_master_for_slave)) {
+				/*
+				conn == NULL && allow_master_for_slave is true if QoS
+				filter has sieved out all slaves.
+				*/
 				goto return_connection;
 			}
 		}
 		if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+			/*
+			If our list of slaves may is short and it contains of nothing but previously failed
+			slaves, then we should allow failover when searching for an server to run a transaction.
+			Thus, we set stgy->trx_stop_switching very late in this function.
+			*/
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
 			DBG_INF("In transaction, no switch allowed");
@@ -856,6 +871,16 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	}
 
 return_connection:
+	if (stgy->in_transaction && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED)) {
+		/*
+		 Initial server for running trx has been identified. No matter
+		 whether we found a valid connection or not, we stop switching
+		 servers until the transaction has ended. No kind of failover allowed
+		 when in a transaction.
+		*/
+		stgy->trx_stop_switching = TRUE;
+	}
+
 	if ((conn) && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) &&
 		(TRUE == stgy->in_transaction) && (TRUE == stgy->trx_begin_required) && !forced) {
 		/* See mysqlnd_ms.c tx_begin notes! */

@@ -700,7 +700,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 																 selected_masters, selected_slaves, NULL, allow_master_for_slave TSRMLS_CC);
 					break;
 				case SERVER_PICK_QOS:
-					/* TODO: MS must not bail if slave or master list is empty */
+					/* TODO: MS must not bail if slave or master list is empty, mostly handled in 1.5 */
 					if (FALSE == stgy->trx_stop_switching) {
 						multi_filter = TRUE;
 						multi_filter_single_conn_continue_search = TRUE;

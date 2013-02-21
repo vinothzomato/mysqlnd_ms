@@ -1,5 +1,5 @@
 --TEST--
-Filter QOS, eventual, trx_stickiness=master
+Filter QOS, eventual, trx_stickiness=on
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -27,22 +27,39 @@ $settings = array(
 			),
 		 ),
 
-		'lazy_connections' => 0,
-		'trx_stickiness' => 'master',
+		'lazy_connections' => 1,
+		'trx_stickiness' => 'on',
 		'filters' => array(
 			"quality_of_service" => array(
 				"eventual_consistency" => 1
 			),
-			'roundrobin' => 1
+			'random' => 1
 		),
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
 _skipif_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket);
+
+
+if (!$link = mst_mysqli_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
+	die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
+
+/* BEGIN READ ONLY exists since MySQL 5.6.5 */
+if ($link->server_version < 50605) {
+	die(sprintf("skip Emulated master: need MySQL 5.6.5+, got %s", $link->server_version));
+}
+
+if (!$link = mst_mysqli_connect($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket))
+	die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
+
+/* BEGIN READ ONLY exists since MySQL 5.6.5 */
+if ($link->server_version < 50605) {
+	die(sprintf("skip Emulated slave: need MySQL 5.6.5+, got %s", $link->server_version));
+}
 
 include_once("util.inc");
 msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
@@ -50,13 +67,11 @@ msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini
 --FILE--
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-
-
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
@@ -64,37 +79,40 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini
 	}
 
 	/* master, RW split */
-	if (!$link->query("DROP TABLE IF EXISTS test") ||
-		!$link->query("CREATE TABLE test(id INT)") ||
-		!$link->query("INSERT INTO test(id) VALUES (1)"))
+	if (!$link->query("SET @myrole='master'"))
 		printf("[002] [%d] %s\n", $link->errno, $link->error);
 
 	$master_id = mst_mysqli_get_emulated_id(3, $link);
 
-	$link->autocommit(false);
-	if ($res = mst_mysqli_query(4, $link, "SELECT id FROM test"))
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
+	if ($res = mst_mysqli_query(4, $link, "SELECT @myrole AS _role"))
 		var_dump($res->fetch_all());
 
 	$server_id = mst_mysqli_get_emulated_id(5, $link);
-	if ($server_id != $master_id)
-		printf("[006] Query should have been executed on master because of trx stickiness\n");
+	if ($server_id == $master_id)
+		printf("[006] Query should have been executed on slave\n");
 
-	$link->autocommit(true);
+	$link->commit();
 
-	if ($res = mst_mysqli_query(6, $link, "SELECT 1 FROM DUAL"))
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+	if ($res = mst_mysqli_query(7, $link, "SELECT @myrole AS _role"))
 		var_dump($res->fetch_all());
 
-	$server_id = mst_mysqli_get_emulated_id(7, $link);
-	if ($server_id == $master_id)
-		printf("[008] Query should have been executed on slave because of autocommit mode\n");
+	$server_id = mst_mysqli_get_emulated_id(8, $link);
+	if ($server_id != $master_id)
+		printf("[009] Query should have been executed on master because of trx stickiness\n");
 
+	$link->rollback();
+
+	if ($res = mst_mysqli_query(9, $link, "SELECT @myrole AS _role"))
+		var_dump($res->fetch_all());
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_trx_stickiness.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini'.\n");
 
 	require_once("connect.inc");
 	require_once("util.inc");
@@ -106,14 +124,21 @@ array(1) {
   [0]=>
   array(1) {
     [0]=>
-    string(1) "1"
+    NULL
   }
 }
 array(1) {
   [0]=>
   array(1) {
     [0]=>
-    string(1) "1"
+    string(6) "master"
+  }
+}
+array(1) {
+  [0]=>
+  array(1) {
+    [0]=>
+    NULL
   }
 }
 done!
