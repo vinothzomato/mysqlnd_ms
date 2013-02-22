@@ -74,7 +74,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli_fail.ini
 	printf("[008] %s '%s'\n", gettype($ret), var_export($ret, true));
 
 	mst_mysqli_fech_role(mst_mysqli_query(9, $link, "SELECT @myrole AS _role"));
-	die(":)");
 	mst_mysqli_fech_role(mst_mysqli_query(10, $link, "SELECT @myrole AS _role"));
 
 	printf("... plain trx commit, begin success, rollback\n");
@@ -125,10 +124,10 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli_fail.ini
 ?>
 --EXPECTF--
 ... plain trx commit, begin fails
-[008] boolean 'true'
 
-Warning: mysqli::query(): (mysqlnd_ms) Failed to start transaction after choosing a server in /home/nixnutz/php-src/pecl/mysqlnd_ms/trunk/tests/util.inc on line 108
-[009] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1
+Warning: mysqli::begin_transaction(): Invalid value for parameter flags (-1) in %s on line %d
+[008] boolean 'false'
+This is 'slave' speaking
 This is 'slave' speaking
 ... plain trx commit, begin success, rollback
 [011] boolean 'true'
@@ -139,10 +138,10 @@ array(1) {
 }
 This is 'slave' speaking
 ... plain trx commit, begin fails
-[017] boolean 'true'
 
-Warning: mysqli::query(): (mysqlnd_ms) Failed to start transaction after choosing a server in /home/nixnutz/php-src/pecl/mysqlnd_ms/trunk/tests/util.inc on line 108
-[018] [1064] You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1
+Warning: mysqli::begin_transaction(): Invalid value for parameter flags (-1) in %s on line %d
+[017] boolean 'false'
+This is 'slave' speaking
 This is 'slave' speaking
 ... plain trx commit, begin success, commit
 [020] boolean 'true'

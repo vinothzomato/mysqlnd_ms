@@ -126,9 +126,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	printf("... named trx rollback started many times\n");
 	$link->begin_transaction(0, "foobar");
 	$link->begin_transaction(0, "foobar20101002928282384gdsgfhdgjhgjh");
-	$link->begin_transaction(0, "\0");
 	$link->begin_transaction(0, "abc");
-	$link->begin_transaction(0, NULL);
 	mst_mysqli_fech_role(mst_mysqli_query(19, $link, "SELECT @myrole AS _role"));
 	mst_mysqli_query(20, $link, "INSERT INTO test(id) VALUES (5)");
 	$link->rollback();
@@ -143,9 +141,7 @@ mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 	printf("... named trx commit started many times\n");
 	$link->begin_transaction(0, "foobar");
 	$link->begin_transaction(0, "foobar20101002928282384gdsgfhdgjhgjh");
-	$link->begin_transaction(0, "\0");
 	$link->begin_transaction(0, "abc");
-	$link->begin_transaction(0, NULL);
 	mst_mysqli_fech_role(mst_mysqli_query(24, $link, "SELECT @myrole AS _role"));
 	mst_mysqli_query(25, $link, "INSERT INTO test(id) VALUES (6)");
 	$link->commit();

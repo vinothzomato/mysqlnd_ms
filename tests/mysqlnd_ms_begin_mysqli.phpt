@@ -80,6 +80,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 
 	printf("... plain trx commit\n");
 	$link->begin_transaction();
+
 	mst_mysqli_fech_role(mst_mysqli_query(7, $link, "SELECT @myrole AS _role"));
 	mst_mysqli_query(8, $link, "INSERT INTO test(id) VALUES (1)");
 	$link->commit();
@@ -123,9 +124,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	printf("... named trx rollback started many times\n");
 	$link->begin_transaction(0, "foobar");
 	$link->begin_transaction(0, "foobar20101002928282384gdsgfhdgjhgjh");
-	$link->begin_transaction(0, "\0");
 	$link->begin_transaction(0, "abc");
-	$link->begin_transaction(0, NULL);
 	mst_mysqli_fech_role(mst_mysqli_query(19, $link, "SELECT @myrole AS _role"));
 	mst_mysqli_query(20, $link, "INSERT INTO test(id) VALUES (5)");
 	$link->rollback();
@@ -139,9 +138,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli.ini
 	printf("... named trx commit started many times\n");
 	$link->begin_transaction(0, "foobar");
 	$link->begin_transaction(0, "foobar20101002928282384gdsgfhdgjhgjh");
-	$link->begin_transaction(0, "\0");
 	$link->begin_transaction(0, "abc");
-	$link->begin_transaction(0, NULL);
 	mst_mysqli_fech_role(mst_mysqli_query(24, $link, "SELECT @myrole AS _role"));
 	mst_mysqli_query(25, $link, "INSERT INTO test(id) VALUES (6)");
 	$link->commit();
