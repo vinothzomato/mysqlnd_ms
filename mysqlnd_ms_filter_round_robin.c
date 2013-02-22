@@ -30,6 +30,9 @@
 #ifndef mnd_emalloc
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
+#if PHP_VERSION_ID >= 50400
+#include "ext/mysqlnd/mysqlnd_ext_plugin.h"
+#endif
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_switch.h"
 #include "mysqlnd_ms_enum_n_def.h"
@@ -617,7 +620,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			DBG_INF("Fall-through to master");
 			/* fall-through */
 		case USE_MASTER:
-			DBG_RETURN(mysqlnd_ms_choose_connection_rr_use_master(master_connections, filter, stgy, forced_tx_master, error_info TSRMLS_CC));
+			conn = mysqlnd_ms_choose_connection_rr_use_master(master_connections, filter, stgy, forced_tx_master, error_info TSRMLS_CC);
 			break;
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
