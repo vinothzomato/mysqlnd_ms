@@ -252,6 +252,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 
 	if (0 == zend_llist_count(l)) {
 		DBG_INF("Slave list is empty");
+		MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, NULL);
 		if ((SERVER_FAILOVER_MASTER == stgy->failover_strategy) || (SERVER_FAILOVER_LOOP == stgy->failover_strategy)) {
 			*which_server = USE_MASTER;
 			DBG_RETURN(connection);
@@ -294,6 +295,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
 			{
+				MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, NULL);
 				/* time to increment the position */
 				*pos = ((*pos) + 1) % zend_llist_count(l);
 				DBG_INF("Trying next slave, if any");
@@ -350,6 +352,7 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 			}
 		}
 		/* if we are here, we had some kind of a problem, either !connection or establishment failed */
+		MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, NULL);
 		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 			((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
 			DBG_INF("Trying next slave, if any");
@@ -361,6 +364,12 @@ mysqlnd_ms_choose_connection_rr_use_slave(zend_llist * master_connections,
 		DBG_INF("Falling back to the master");
 		break;
 	} while (retry_count < zend_llist_count(l));
+
+	/*
+	   We should never get here if trx disallows switching.
+	   If no slaves, we have a test prior to the loop. If no connection, we have tests in the loop.
+	*/
+	MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, NULL);
 
 	if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) && (0 == zend_llist_count(master_connections))) {
 		/* must not fall through as we'll loose the connection error */
@@ -431,6 +440,7 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 			if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 				((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries)))
 			{
+				MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, NULL);
 				/* we must move to the next position and ignore forced_tx_master */
 				*pos = ((*pos) + 1) % zend_llist_count(l);
 				DBG_INF("Trying next master, if any");
@@ -447,10 +457,9 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 			connection = element->conn;
 		}
 		DBG_INF("Using master connection");
-		if (FALSE == forced_tx_master) {
-			/* time to increment the position */
-			*pos = ((*pos) + 1) % zend_llist_count(l);
-		}
+		/* time to increment the position */
+		*pos = ((*pos) + 1) % zend_llist_count(l);
+
 		if (connection) {
 			smart_str fprint_conn = {0};
 
@@ -458,10 +467,6 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, &element TSRMLS_CC);
 				if (zend_hash_exists(&stgy->failed_hosts, fprint_conn.c, fprint_conn.len /*\0 counted*/)) {
 					smart_str_free(&fprint_conn);
-					if (TRUE == forced_tx_master) {
-						/* we must move to the next position and ignore forced_tx_master */
-						*pos = ((*pos) + 1) % zend_llist_count(l);
-					}
 					DBG_INF("Skipping previously failed connection");
 					continue;
 				}
@@ -487,10 +492,7 @@ mysqlnd_ms_choose_connection_rr_use_master(zend_llist * master_connections,
 		}
 		if ((SERVER_FAILOVER_LOOP == stgy->failover_strategy) &&
 			((0 == stgy->failover_max_retries) || (retry_count <= stgy->failover_max_retries))) {
-			if (TRUE == forced_tx_master) {
-				/* we must move to the next position and ignore forced_tx_master */
-				*pos = ((*pos) + 1) % zend_llist_count(l);
-			}
+			MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, NULL);
 			DBG_INF("Trying next master, if any");
 			continue;
 		} else if (SERVER_FAILOVER_DISABLED == stgy->failover_strategy) {
@@ -525,15 +527,53 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if (allow_master_for_slave && (USE_SLAVE == *which_server) && (0 == zend_llist_count(slave_connections))) {
+		/*
+		In versions prior to 1.5 the QoS filter could end the filter chain if it had
+		sieved out all connections but one. This is no longer allowed to ensure QoS
+		cannot overrule trx stickiness.  trx stickiness is mostly handled by
+		random/roundrobin filter invoked after QoS. Thus, random/roundrobin
+		may be called with an empty slave list to pick a connection for a SELECT.
+		If so, we implicitly switch to master list.
+		*/
 		*which_server = USE_MASTER;
 	}
 
 	if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_MASTER) && stgy->in_transaction) {
 		DBG_INF("Enforcing use of master while in transaction");
-		*which_server = USE_MASTER;
+		if (stgy->trx_stop_switching) {
+			/* in the middle of a transaction */
+			*which_server = USE_LAST_USED;
+		} else {
+			/* first statement run in transaction: disable switch and failover */
+			*which_server = USE_MASTER;
+		}
 		forced_tx_master = TRUE;
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_TRX_MASTER_FORCED);
-	} else if (stgy->mysqlnd_ms_flag_master_on_write) {
+	} else if ((stgy->trx_stickiness_strategy == TRX_STICKINESS_STRATEGY_ON) && stgy->in_transaction) {
+		if (stgy->trx_stop_switching) {
+			DBG_INF("Use last in middle of transaction");
+			/* in the middle of a transaction */
+			*which_server = USE_LAST_USED;
+		} else {
+			/* first statement run in transaction: disable switch and failover */
+			if (FALSE == stgy->trx_read_only) {
+				DBG_INF("Enforcing use of master while in transaction");
+				forced_tx_master = TRUE;
+				*which_server = USE_MASTER;
+			} else {
+				if (0 == zend_llist_count(slave_connections)) {
+					DBG_INF("No slaves to run read only transaction, using master");
+					forced_tx_master = TRUE;
+					*which_server = USE_MASTER;
+				} else {
+					DBG_INF("Considering use of slave while in read only transaction");
+					*which_server = USE_SLAVE;
+				}
+			}
+		}
+	}
+
+	if (stgy->mysqlnd_ms_flag_master_on_write) {
 		if (*which_server != USE_MASTER) {
 			if (stgy->master_used && !forced) {
 				switch (*which_server) {
@@ -552,16 +592,33 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			stgy->master_used = TRUE;
 		}
 	}
+
 	switch (*which_server) {
 		case USE_SLAVE:
 			conn = mysqlnd_ms_choose_connection_rr_use_slave(master_connections, slave_connections, filter, stgy, which_server, error_info TSRMLS_CC);
-			if (NULL != conn || USE_MASTER != *which_server) {
-				DBG_RETURN(conn);
+			/*
+			conn == NULL && allow_master_for_slave is true if QoS filter has sieved out all available slaves.
+			*/
+			if ((NULL != conn || USE_MASTER != *which_server) &&  !(NULL == conn && TRUE == allow_master_for_slave)) {
+				goto return_connection;
+			}
+			if ((TRUE == stgy->in_transaction) && (TRUE == stgy->trx_stop_switching)) {
+				/*
+				If our list of slaves may is short and it contains of nothing but previously failed
+				slaves, then we should allow failover when searching for an server to run a transaction.
+				Thus, we set stgy->trx_stop_switching very late in this function.
+				*/
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction");
+				DBG_INF("In transaction, no switch allowed");
+				conn = NULL;
+				goto return_connection;
 			}
 			DBG_INF("Fall-through to master");
 			/* fall-through */
 		case USE_MASTER:
 			DBG_RETURN(mysqlnd_ms_choose_connection_rr_use_master(master_connections, filter, stgy, forced_tx_master, error_info TSRMLS_CC));
+			break;
 		case USE_LAST_USED:
 			DBG_INF("Using last used connection");
 			if (!stgy->last_used_conn) {
@@ -572,13 +629,60 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 			} else {
 				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(stgy->last_used_conn));
 			}
-			DBG_RETURN(stgy->last_used_conn);
+			conn = stgy->last_used_conn;
+			break;
 		default:
 			/* error */
-			DBG_RETURN(NULL);
+			conn = NULL;
 			break;
 	}
-	DBG_RETURN(NULL);
+
+return_connection:
+	if (stgy->in_transaction && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED)) {
+		/*
+		 Initial server for running trx has been identified. No matter
+		 whether we found a valid connection or not, we stop switching
+		 servers until the transaction has ended. No kind of failover allowed
+		 when in a transaction.
+		*/
+		stgy->trx_stop_switching = TRUE;
+	}
+
+	if ((conn) && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) &&
+		(TRUE == stgy->in_transaction) && (TRUE == stgy->trx_begin_required) && !forced) {
+		/* See mysqlnd_ms.c tx_begin notes! */
+		enum_func_status ret = FAIL;
+		MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+
+		if (conn_data && *conn_data) {
+			/* Send BEGIN now that we have decided on a connection for the transaction */
+			DBG_INF_FMT("Delayed BEGIN mode=%d name='%s'", stgy->trx_begin_mode, stgy->trx_begin_name);
+
+			(*conn_data)->skip_ms_calls = TRUE;
+			/* TODO: flags */
+			ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_begin)(conn, stgy->trx_begin_mode, stgy->trx_begin_name TSRMLS_CC);
+			(*conn_data)->skip_ms_calls = FALSE;
+
+			stgy->trx_begin_required = FALSE;
+			stgy->trx_begin_mode = 0;
+			if (stgy->trx_begin_name) {
+				mnd_pefree(stgy->trx_begin_name, conn->persistent);
+				stgy->trx_begin_name = NULL;
+			}
+
+			if (FAIL == ret) {
+				/* back to the beginning: reset everything */
+				stgy->in_transaction = FALSE;
+				stgy->trx_stop_switching = FALSE;
+				stgy->trx_read_only = FALSE;
+
+				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+														MYSQLND_MS_ERROR_PREFIX " Failed to start transaction after choosing a server");
+			}
+		}
+	}
+
+	DBG_RETURN(conn);
 }
 /* }}} */
 

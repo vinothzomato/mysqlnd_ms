@@ -165,6 +165,16 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 		(run_time) = __now - (run_time); \
 	} \
 
+
+#define MS_WARN_AND_RETURN_IF_TRX_FORBIDS_FAILOVER(stgy, retval) \
+   if ((TRUE == (stgy)->in_transaction) && (TRUE == (stgy)->trx_stop_switching)) { \
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,  \
+					MYSQLND_MS_ERROR_PREFIX " Automatic failover is not permitted in the middle of a transaction"); \
+		DBG_INF("In transaction, no switch allowed"); \
+		DBG_RETURN((retval)); \
+	} \
+
+
 #define MASTER_SWITCH "ms=master"
 #define SLAVE_SWITCH "ms=slave"
 #define LAST_USED_SWITCH "ms=last_used"
