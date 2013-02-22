@@ -45,7 +45,6 @@ if ($link->server_version < 50605) {
 mysqlnd_ms.enable=1
 mysqlnd_ms.multi_master=1
 mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli_rr.ini
-mysqlnd.debug=d:t:O,/tmp/mysqlnd.trace
 --FILE--
 <?php
 	require_once("connect.inc");
