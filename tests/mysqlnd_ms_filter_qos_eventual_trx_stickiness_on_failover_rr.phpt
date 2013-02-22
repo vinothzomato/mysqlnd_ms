@@ -18,6 +18,11 @@ $settings = array(
 				'port' 		=> (int)$emulated_master_port,
 				'socket' 	=> $emulated_master_socket,
 			),
+			"master2" => array(
+				'host' 		=> $emulated_master_host_only,
+				'port' 		=> (int)$emulated_master_port,
+				'socket' 	=> $emulated_master_socket,
+			),
 		),
 		'slave' => array("unknown:7033"),
 
@@ -27,13 +32,13 @@ $settings = array(
 			"quality_of_service" => array(
 				"eventual_consistency" => 1
 			),
-			'random' => 1
+			'roundrobin' => 1
 		),
 		'failover' => array('strategy' => 'loop_before_master', 'remember_failed' => 1),
 	),
 
 );
-if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover_rr.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
 _skipif_connect($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket);
@@ -55,14 +60,11 @@ if (!$link = mst_mysqli_connect($emulated_slave_host_only, $user, $passwd, $db, 
 if ($link->server_version < 50605) {
 	die(sprintf("skip Emulated slave: need MySQL 5.6.5+, got %s", $link->server_version));
 }
-
-include_once("util.inc");
-msg_mysqli_init_emulated_id_skip($emulated_slave_host_only, $user, $passwd, $db, $emulated_slave_port, $emulated_slave_socket, "slave");
-msg_mysqli_init_emulated_id_skip($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket, "master");
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover.ini
+mysqlnd_ms.multi_master=1
+mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover_rr.ini
 --FILE--
 <?php
 	require_once("connect.inc");
@@ -73,41 +75,43 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_fai
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-	/* master, RW split */
-	if (!$link->query("SET @myrole='master'"))
-		printf("[002] [%d] %s\n", $link->errno, $link->error);
+	mst_mysqli_query(2, $link, "SET @myrole='master0'");
+	mst_mysqli_query(3, $link, "SET @myrole='master1'");
 
-	$master_id = mst_mysqli_get_emulated_id(3, $link);
-
+	/* try slave and failover to master0 */
 	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
 	if ($res = mst_mysqli_query(4, $link, "SELECT @myrole AS _role"))
 		var_dump($res->fetch_all());
 
-	$server_id = mst_mysqli_get_emulated_id(5, $link);
-	if ($server_id != $master_id)
-		printf("[006] Query should have been executed on master because of failover\n");
-
 	$link->commit();
 
+	/* master 1 */
 	$link->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
-	if ($res = mst_mysqli_query(7, $link, "SELECT @myrole AS _role"))
+	if ($res = mst_mysqli_query(5, $link, "SELECT @myrole AS _role"))
 		var_dump($res->fetch_all());
-
-	$server_id = mst_mysqli_get_emulated_id(8, $link);
-	if ($server_id != $master_id)
-		printf("[009] Query should have been executed on master because of trx stickiness\n");
 
 	$link->rollback();
 
-	if ($res = mst_mysqli_query(9, $link, "SELECT @myrole AS _role"))
+	/* master 0 */
+	if ($res = mst_mysqli_query(6, $link, "SELECT @myrole AS _role"))
 		var_dump($res->fetch_all());
+
+	/* try slave and failover to master 1, stick with master 1 */
+	$link->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
+	if ($res = mst_mysqli_query(7, $link, "SELECT @myrole AS _role"))
+		var_dump($res->fetch_all());
+
+	if ($res = mst_mysqli_query(8, $link, "SELECT @myrole AS _role"))
+		var_dump($res->fetch_all());
+
+	$link->commit();
 
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover_rr.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover_rr.ini'.\n");
 
 	require_once("connect.inc");
 	require_once("util.inc");
@@ -115,26 +119,41 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_fai
 		printf("[clean] %s\n");
 ?>
 --EXPECTF--
+
 Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
 array(1) {
   [0]=>
   array(1) {
     [0]=>
-    string(6) "master"
+    string(7) "master0"
   }
 }
 array(1) {
   [0]=>
   array(1) {
     [0]=>
-    string(6) "master"
+    string(7) "master1"
   }
 }
 array(1) {
   [0]=>
   array(1) {
     [0]=>
-    string(6) "master"
+    string(7) "master0"
+  }
+}
+array(1) {
+  [0]=>
+  array(1) {
+    [0]=>
+    string(7) "master1"
+  }
+}
+array(1) {
+  [0]=>
+  array(1) {
+    [0]=>
+    string(7) "master1"
   }
 }
 done!

@@ -5,8 +5,8 @@ Filter QOS, eventual, trx_stickiness=on
 require_once('skipif.inc');
 require_once("connect.inc");
 
-if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
-	die(sprintf("SKIP Requires PHP 5.3.99 or newer, using " . PHP_VERSION));
+if (version_compare(PHP_VERSION, '5.4.99-dev', '<'))
+	die(sprintf("SKIP Requires PHP 5.5.0 or newer, using " . PHP_VERSION));
 
 _skipif_check_extensions(array("mysqli"));
 
@@ -113,11 +113,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini
 <?php
 	if (!unlink("test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.ini'.\n");
-
-	require_once("connect.inc");
-	require_once("util.inc");
-	if ($error = mst_mysqli_drop_test_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
-		printf("[clean] %s\n");
 ?>
 --EXPECTF--
 array(1) {

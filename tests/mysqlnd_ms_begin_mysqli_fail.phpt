@@ -74,6 +74,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_begin_mysqli_fail.ini
 	printf("[008] %s '%s'\n", gettype($ret), var_export($ret, true));
 
 	mst_mysqli_fech_role(mst_mysqli_query(9, $link, "SELECT @myrole AS _role"));
+	die(":)");
 	mst_mysqli_fech_role(mst_mysqli_query(10, $link, "SELECT @myrole AS _role"));
 
 	printf("... plain trx commit, begin success, rollback\n");
