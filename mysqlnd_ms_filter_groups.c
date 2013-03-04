@@ -34,10 +34,6 @@
 #include "ext/mysqlnd/mysqlnd_ext_plugin.h"
 #endif
 
-#ifdef MYSQLND_MS_HAVE_MYSQLND_QC
-#include "ext/mysqlnd_qc/mysqlnd_qc.h"
-#endif
-
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 #include "mysqlnd_ms_enum_n_def.h"
