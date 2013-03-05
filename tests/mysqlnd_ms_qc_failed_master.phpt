@@ -54,9 +54,18 @@ mysqlnd_qc.ttl=99
 		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
-
-	@mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
-	@mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
+	$res = mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	if ($res) {
+		var_dump($res->fetch_assoc());
+	}
+	$res = mst_mysqli_query(3, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_LAST_USED_SWITCH);
+		if ($res) {
+		var_dump($res->fetch_assoc());
+	}
+	mst_mysqli_query(4, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_MASTER_SWITCH);
+	if ($res) {
+		var_dump($res->fetch_assoc());
+	}
 
 	print "done!";
 ?>
@@ -66,6 +75,13 @@ mysqlnd_qc.ttl=99
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_qc_failed_master.ini'.\n");
 ?>
 --EXPECTF--
-Connect error, [002] %s
-Connect error, [003] %s
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+Connect error, [002] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
+
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+
+Warning: mysqli::query(): (mysqlnd_qc) Plugin data is empty. If you are trying to use PECL/mysqlnd_ms together with PECL/mysqlnd_qc make sure to compile PECL/mysqlnd_ms appropriately respectively load the PECL/mysqlnd_qc extension into PHP before loading the PECL/mysqlnd_ms extension into PHP to avoid issues with the plugin initialization order in %s on line %d
+
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+Connect error, [004] [2002] php_network_getaddresses: getaddrinfo failed: Name or service not known
 done!

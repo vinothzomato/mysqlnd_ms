@@ -70,9 +70,8 @@ mysqlnd_qc.ttl=99
 	if (!unlink("test_mysqlnd_ms_qc_failed_slave_failover.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_qc_failed_slave.ini'.\n");
 ?>
---XFAIL--
-remember_failed + QoS is experimental. To be fixed in 1.5
 --EXPECTF--
+Warning: mysqli::query(): %A
 array(1) {
   [1]=>
   string(1) "1"
