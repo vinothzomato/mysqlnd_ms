@@ -1,6 +1,6 @@
 1.5.0 alpha
 
-  Motto/theme: Tweaking based on user feedback
+  Motto/theme: Sharding support, improved transaction support
   Release date: n/a
 
   * BC break and bug fix: SQL hints enforcing the use of a specific server
@@ -89,6 +89,9 @@
     failover setting from documentation. remember_failed is
     very useful together with the improved trx_stickiness=on
     setting.
+
+  * Marked query cache support as beta in config.m4. It should work
+    fine for primary copy based clusters.
 
 
 1.4.2 stable
