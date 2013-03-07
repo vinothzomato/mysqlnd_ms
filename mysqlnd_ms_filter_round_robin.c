@@ -528,6 +528,7 @@ mysqlnd_ms_choose_connection_rr(void * f_data, const char * const query, const s
 	}
 	DBG_INF_FMT("trx_stickiness_strategy=%d in_transaction=%d trx_stop_switching=%d", stgy->trx_stickiness_strategy,  stgy->in_transaction, stgy->trx_stop_switching);
 
+
 	*which_server = mysqlnd_ms_query_is_select(query, query_len, &forced TSRMLS_CC);
 	if (allow_master_for_slave && (USE_SLAVE == *which_server) && (0 == zend_llist_count(slave_connections))) {
 		/*
@@ -651,6 +652,7 @@ return_connection:
 		stgy->trx_stop_switching = TRUE;
 	}
 
+#if MYSQLND_VERSION_ID >= 50011
 	if ((conn) && (stgy->trx_stickiness_strategy != TRX_STICKINESS_STRATEGY_DISABLED) &&
 		(TRUE == stgy->in_transaction) && (TRUE == stgy->trx_begin_required) && !forced) {
 		/* See mysqlnd_ms.c tx_begin notes! */
@@ -684,6 +686,7 @@ return_connection:
 			}
 		}
 	}
+#endif
 
 	DBG_RETURN(conn);
 }

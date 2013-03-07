@@ -2,8 +2,8 @@
 trx_stickiness=on, RO trx, master on write, pick = random
 --SKIPIF--
 <?php
-if (version_compare(PHP_VERSION, '5.3.99-dev', '<'))
-	die(sprintf("SKIP Requires PHP 5.3.99 or newer, using " . PHP_VERSION));
+if (version_compare(PHP_VERSION, '5.4.99-dev', '<'))
+	die(sprintf("SKIP Requires PHP 5.5.0 or newer, using " . PHP_VERSION));
 
 require_once('skipif.inc');
 require_once("connect.inc");
