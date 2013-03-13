@@ -57,7 +57,8 @@ mysqlnd_ms.disable_rw_split=1
 			$pdo = my_pdo_connect($host, $user, $passwd, $db, $port, $socket, $options);
 			$pdo->beginTransaction();
 			$ret = $pdo->query("SELECT @@hostname AS _hostname");
-			var_dump($ret->fetch(PDO::FETCH_ASSOC)['_hostname']);
+			$row = $ret->fetch(PDO::FETCH_ASSOC);
+			var_dump($row['_hostname']);
 			$pdo->commit();
 
 		} catch (Exception $e) {

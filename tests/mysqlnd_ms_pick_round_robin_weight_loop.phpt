@@ -125,7 +125,7 @@ Call 1 - %d - 1 -  no change
 Call 2 - %d - 1 -  change
 Call 3 - %d - 2 -  change
 
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %A
 Call 4 - %d - 3 -  no change
 Call 5 - %d - 4 -  no change
 Call 6 - %d - 2 -  change

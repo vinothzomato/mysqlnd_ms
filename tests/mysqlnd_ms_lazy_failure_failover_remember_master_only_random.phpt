@@ -61,6 +61,6 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_failure_failover_remember_master_onl
 ?>
 --EXPECTF--
 
-Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %d
+Warning: mysqli::query(): php_network_getaddresses: getaddrinfo failed: Name or service not known in %s on line %A
 %d: 10
 done!

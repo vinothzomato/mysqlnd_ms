@@ -67,5 +67,5 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_db_invalid.ini
 ?>
 --EXPECTF--
 %A
-Warning: mysqli_connect(): (HY000/1049): %s '-1' %s
+Warning: mysqli_connect(): (%s/1049): %s '-1' %s
 %A

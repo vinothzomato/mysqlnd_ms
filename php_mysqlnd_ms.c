@@ -37,6 +37,12 @@
 #include "mysqlnd_ms_filter_qos.h"
 #include "mysqlnd_ms_switch.h"
 
+#ifndef mnd_sprintf
+#define mnd_sprintf spprintf
+#define mnd_sprintf_free efree
+#endif
+
+
 #define STR_W_LEN(str)  str, (sizeof(str) - 1)
 const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 {

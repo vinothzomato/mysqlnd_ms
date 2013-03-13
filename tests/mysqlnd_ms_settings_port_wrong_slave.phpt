@@ -66,7 +66,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_port_wrong_slave.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_settings_port_wrong_slave.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqli_connect(): (mysqlnd_ms) Cannot connect to %s in %s on line %d
+%Aarning: mysqli_connect(): (mysqlnd_ms) Cannot connect to %s in %s on line %d
 
 Warning: mysqli_connect(): (mysqlnd_ms) Error while connecting to the slaves in %s on line %d
 %A
