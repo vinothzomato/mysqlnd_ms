@@ -94,8 +94,9 @@
     very useful together with the improved trx_stickiness=on
     setting.
 
-  * Marked query cache support as beta in config.m4. It should work
-    fine for primary copy based clusters.
+  * Marked query cache support as beta for mysqli in config.m4. 
+    It should work fine for primary copy based clusters.
+    NOTE: PDO is a different story, still experimental.
 
 
 1.4.2 stable
