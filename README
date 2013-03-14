@@ -42,8 +42,6 @@ Key Features
 																													     
 Limitations
 ===========																													     
-The plugin does not support MySQL replication setups with more than one master
-server.
 
 The built-in read/write-split mechanism is very basic. Every query which
 starts with SELECT is considered a read request to be sent to a MySQL slave 

@@ -1,7 +1,7 @@
 1.5.0 alpha
 
   Motto/theme: Sharding support, improved transaction support
-  Release date: n/a
+  Release date: 03/2013
 
   * BC break and bug fix: SQL hints enforcing the use of a specific server
     are ignored for the duration of a transaction, given a transaction
@@ -81,6 +81,10 @@
     transaction boundaries properly.
 
   * Added transaction monitoring based on mysqlnd tx_begin()
+    (user space call: mysqli_begin(), mysqli_rollback(), ...)
+    NOTE: PDO_MySQL has not yet been modified to use the appropriate
+    mysqlnd library calls. Improved trx monitoring works
+    with mysqli only.
 
   * Added new transaction stickiness setting trx_stickiness=on
     which allows the use of slaves for read only transactions.
