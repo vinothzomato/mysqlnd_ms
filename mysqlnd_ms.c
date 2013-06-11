@@ -989,6 +989,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	enum_func_status ret = FAIL;
 	zend_bool free_query = FALSE;
 	size_t query_len = q_len;
+	uint transient_error_no = 0, transient_error_retries = 0;
 #ifdef ALL_SERVER_DISPATCH
 	zend_bool use_all = 0;
 #endif
@@ -1013,6 +1014,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	  If we skip these checks we will get 2014 from original->query.
 	*/
 	if (!connection || (MYSQLND_MS_ERROR_INFO(connection).error_no)) {
+		/* Connect error to be handled by failover logic, not a transient error */
 		if (TRUE == free_query) {
 			efree((void *)query);
 		}
@@ -1041,6 +1043,12 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 	if (CONN_DATA_TRX_SET(conn_data) && CONN_DATA_TRY_TRX_INJECTION(conn_data, connection))
 	{
+		/*
+		 We don't need to care about transient errors.
+		 GTID injection makes only sense for MySQL Replication but transient errors
+		 are a MySQL Cluster specific thing. As using GTID injection with MySQL Cluster
+		 is pointless, we don't care about transient errors as part of GTID injection.
+		*/
 		if (FALSE == (*conn_data)->stgy.in_transaction) {
 			/* autocommit mode */
 			MS_TRX_INJECT(ret, connection, conn_data);
@@ -1059,13 +1067,34 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		}
 	}
 #endif
-	if ((PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
-		(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC))))
-	{
-		if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
-			MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
+    do {
+		if ((PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
+			(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC))))
+		{
+			if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
+				MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
+			}
 		}
-	}
+		/* Is there a transient error that we shall ignore? */
+		MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no);
+		if (transient_error_no) {
+			DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+			transient_error_retries++;
+			if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+				DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+							transient_error_retries,
+							(*conn_data)->stgy.transient_error_max_retries,
+							(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+				usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+			} else {
+				DBG_INF("No more transient error retries allowed");
+				break;
+			}
+		}
+	} while (transient_error_no);
 
 	if (TRUE == free_query) {
 		efree((void *)query);
@@ -1180,6 +1209,10 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 		if ((*data_pp)->stgy.trx_begin_name) {
 			mnd_pefree((*data_pp)->stgy.trx_begin_name, conn->persistent);
 			(*data_pp)->stgy.trx_begin_name = NULL;
+		}
+
+		if (TRANSIENT_ERROR_STRATEGY_ON == (*data_pp)->stgy.transient_error_strategy) {
+			zend_llist_clean(&((*data_pp)->stgy.transient_error_codes));
 		}
 
 		mnd_pefree(*data_pp, conn->persistent);

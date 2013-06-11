@@ -1,3 +1,35 @@
+1.6.0 alpha
+
+  Motto/theme: maintenance
+  Release date: TBD
+
+  * Introduced automatic query retry for transient errrors.
+
+    Whenever any kind of MySQL cluster wants a client to wait and repeat its
+    command before giving up, the driver plugin can now attempt a wait and repeat
+    loop before forwarding the transient/temporary error to the application.
+
+    For example, MySQL Cluster can return SQL error code 1297/Temporary error
+    for many reasons. In all cases the client may retry its command in a bit.
+    Clients are not required to immediately fail over to other nodes but
+    can continue to ask the server they are connected to before eventually
+    giving up. Sometimes MySQL Cluster hides 1297 from the user already
+    by transparently retrying the command before forwarding 1297 to the user.
+
+    Other kinds of MySQL clusters may have other reasons for issuing a
+    transient error, for example, they may want to hint a client that a
+    server is synchronizing with the rest but can be expected to be back
+    soon, thus no fail over is required.
+
+    Transient errors are not limited to 1297, error codes can be set freely.
+    Transient error handling does not replace failover logic. Failover
+    logic is applied whenever the plugin attempts to connect to a server.
+    Transient error handling logic is applied when already connected to
+    a server and a command fails.
+
+    EXPERIMENTAL, incomplete.
+
+
 1.5.0 alpha
 
   Motto/theme: Sharding support, improved transaction support
@@ -94,7 +126,7 @@
     very useful together with the improved trx_stickiness=on
     setting.
 
-  * Marked query cache support as beta for mysqli in config.m4. 
+  * Marked query cache support as beta for mysqli in config.m4.
     It should work fine for primary copy based clusters.
     NOTE: PDO is a different story, still experimental.
 

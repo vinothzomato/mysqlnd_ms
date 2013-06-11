@@ -175,6 +175,25 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 	} \
 
 
+#define MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no) \
+    { \
+		transient_error_no = 0; \
+		if ((MYSQLND_MS_ERROR_INFO((connection)).error_no) && (TRANSIENT_ERROR_STRATEGY_ON == (*(conn_data))->stgy.transient_error_strategy)) { \
+			zend_llist_position	pos; \
+			zend_llist * transient_error_codes = &((*(conn_data))->stgy.transient_error_codes); \
+			uint * transient_error_code_p; \
+			for (transient_error_code_p = (uint *)zend_llist_get_first_ex(transient_error_codes, &pos); \
+				transient_error_code_p; \
+				transient_error_code_p = (uint *)zend_llist_get_next_ex(transient_error_codes, &pos)) { \
+				if (MYSQLND_MS_ERROR_INFO((connection)).error_no == *transient_error_code_p) { \
+					transient_error_no = *transient_error_code_p; \
+					break; \
+				} \
+			} \
+		} \
+	} \
+
+
 #define MASTER_SWITCH "ms=master"
 #define SLAVE_SWITCH "ms=slave"
 #define LAST_USED_SWITCH "ms=last_used"
@@ -227,7 +246,10 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_G_TRX_CHECK_FOR_GTID 			"check_for_gtid"
 #define SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT 	"wait_for_gtid_timeout"
 #define SECT_LB_WEIGHTS						"weights"
-
+#define TRANSIENT_ERROR_NAME				"transient_error"
+#define TRANSIENT_ERROR_MAX_RETRIES			"max_retries"
+#define TRANSIENT_ERROR_USLEEP_RETRY		"usleep_retry"
+#define TRANSIENT_ERROR_CODES				"mysql_error_codes"
 
 typedef enum
 {
@@ -287,6 +309,14 @@ enum mysqlnd_ms_trx_stickiness_strategy
 };
 #define DEFAULT_TRX_STICKINESS_STRATEGY TRX_STICKINESS_STRATEGY_DISABLED
 
+enum mysqlnd_ms_transient_error_strategy
+{
+	TRANSIENT_ERROR_STRATEGY_DISABLED,
+	TRANSIENT_ERROR_STRATEGY_ON
+};
+#define DEFAULT_TRANSIENT_ERROR_STRATEGY TRANSIENT_ERROR_STRATEGY_DISABLED
+#define DEFAULT_TRANSIENT_ERROR_MAX_RETRIES 1
+#define DEFAULT_TRANSIENT_ERROR_USLEEP_BEFORE_RETRY 100
 
 typedef enum mysqlnd_ms_collected_stats
 {
@@ -318,6 +348,7 @@ typedef enum mysqlnd_ms_collected_stats
 	MS_STAT_GTID_IMPLICIT_COMMIT_SUCCESS,
 	MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE,
 #endif
+	MS_STAT_TRANSIENT_ERROR_RETRIES,
 	MS_STAT_LAST /* Should be always the last */
 } enum_mysqlnd_ms_collected_stats;
 
@@ -517,6 +548,13 @@ typedef struct st_mysqlnd_ms_conn_data
 		MYSQLND_CONN_DATA * random_once_slave;
 
 		zend_llist * filters;
+
+		enum mysqlnd_ms_transient_error_strategy transient_error_strategy;
+		uint transient_error_max_retries;
+		long transient_error_usleep_before_retry;
+		/* list of uint */
+		zend_llist transient_error_codes;
+
 	} stgy;
 
 	struct st_mysqlnd_ms_conn_credentials {

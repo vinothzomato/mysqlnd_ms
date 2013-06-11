@@ -212,7 +212,7 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 				if ((failover_max_retries < 0) || (failover_max_retries > 65535)) {
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 					 E_RECOVERABLE_ERROR TSRMLS_CC,
-					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for max_retries. Stopping", failover_max_retries);
+					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for " FAILOVER_MAX_RETRIES ". Stopping", failover_max_retries);
 				} else {
 					strategies->failover_max_retries = (uint)failover_max_retries;
 				}
@@ -276,6 +276,79 @@ mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies,
 			mnd_efree(trx_strategy);
 		}
 	}
+
+
+	{
+		struct st_mysqlnd_ms_config_json_entry * trans_section = mysqlnd_ms_config_json_sub_section(the_section, TRANSIENT_ERROR_NAME,
+																									sizeof(TRANSIENT_ERROR_NAME) - 1,  &value_exists TSRMLS_CC);
+
+		strategies->transient_error_strategy 	= DEFAULT_TRANSIENT_ERROR_STRATEGY;
+		strategies->transient_error_max_retries	= DEFAULT_TRANSIENT_ERROR_MAX_RETRIES;
+		strategies->transient_error_usleep_before_retry = DEFAULT_TRANSIENT_ERROR_USLEEP_BEFORE_RETRY;
+
+		if (value_exists && trans_section) {
+			int64_t trans_max_retries, usleep_before_retry;
+			struct st_mysqlnd_ms_config_json_entry * error_codes_section;
+
+			strategies->transient_error_strategy = TRANSIENT_ERROR_STRATEGY_ON;
+			zend_llist_init(&strategies->transient_error_codes, sizeof(uint), NULL /*dtor*/, persistent);
+
+			trans_max_retries =
+				mysqlnd_ms_config_json_int_from_section(trans_section, TRANSIENT_ERROR_MAX_RETRIES, sizeof(TRANSIENT_ERROR_MAX_RETRIES) - 1, 0, &value_exists, &is_list_value TSRMLS_CC);
+
+			if (value_exists) {
+				if ((trans_max_retries < 0) || (trans_max_retries > 65535)) {
+					/* TODO: Leak? Will we exit the function immediately? */
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					 E_RECOVERABLE_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for " TRANSIENT_ERROR_MAX_RETRIES ". Stopping", trans_max_retries);
+				} else {
+					strategies->transient_error_max_retries = (uint)trans_max_retries;
+				}
+			}
+
+			usleep_before_retry =
+				mysqlnd_ms_config_json_int_from_section(trans_section, TRANSIENT_ERROR_USLEEP_RETRY, sizeof(TRANSIENT_ERROR_USLEEP_RETRY) - 1, 0, &value_exists, &is_list_value TSRMLS_CC);
+
+			if (value_exists) {
+				if ((usleep_before_retry < 0) || (usleep_before_retry > 30000000)) {
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					 E_RECOVERABLE_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for " TRANSIENT_ERROR_USLEEP_RETRY ". Stopping", usleep_before_retry);
+				} else {
+					strategies->transient_error_usleep_before_retry = (long)usleep_before_retry;
+				}
+			}
+
+			error_codes_section = mysqlnd_ms_config_json_sub_section(trans_section, TRANSIENT_ERROR_CODES, sizeof(TRANSIENT_ERROR_CODES) - 1, &value_exists TSRMLS_CC);
+			if (value_exists && error_codes_section) {
+				if (TRUE == mysqlnd_ms_config_json_section_is_list(error_codes_section TSRMLS_CC)) {
+					ulong nkey = 0;
+					int64_t error_code;
+					uint real_error_code;
+
+					while ((error_code = mysqlnd_ms_config_json_int_from_section(error_codes_section, NULL, 0, nkey, &value_exists, &is_list_value TSRMLS_CC))
+						&& value_exists) {
+						if ((error_code < 0) || (error_code > 9999)) {
+							/* TODO: Leak? Will we exit the function immediately? */
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+														  E_RECOVERABLE_ERROR TSRMLS_CC,
+									 MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for entry %lu from " TRANSIENT_ERROR_CODES " list. Stopping", error_code, nkey);
+						} else {
+							real_error_code = (uint)error_code;
+							zend_llist_add_element(&strategies->transient_error_codes, &real_error_code);
+						}
+						nkey++;
+					}
+				} else {
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+					 E_RECOVERABLE_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Invalid value for " TRANSIENT_ERROR_CODES ". Please, provide a list. Stopping");
+				}
+			}
+		}
+	}
+
 	DBG_VOID_RETURN;
 }
 /* }}} */

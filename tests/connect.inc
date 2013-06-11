@@ -445,6 +445,9 @@
 				if (isset($config['global_transaction_id_injection'])) {
 				  $json[$application]['global_transaction_id_injection'] = $config['global_transaction_id_injection'];
 				}
+				if (isset($config['transient_error'])) {
+				  $json[$application]['transient_error'] = $config['transient_error'];
+				}
 			}
 
 			fwrite($fp, json_encode($json));

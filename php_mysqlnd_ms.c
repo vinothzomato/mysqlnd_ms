@@ -75,6 +75,7 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("gtid_implicit_commit_injections_success") },
 	{ STR_W_LEN("gtid_implicit_commit_injections_failure") },
 #endif
+	{ STR_W_LEN("transient_error_retries") },
 };
 /* }}} */
 
