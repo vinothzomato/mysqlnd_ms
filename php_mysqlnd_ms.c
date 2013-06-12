@@ -414,7 +414,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_set_qos, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 
-/* {{{ proto bool mysqlnd_ms_set_qos)
+/* {{{ proto bool mysqlnd_ms_set_qos()
    */
 static PHP_FUNCTION(mysqlnd_ms_set_qos)
 {
@@ -555,7 +555,7 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 
 	RETURN_FALSE;
 }
-
+/* }}} */
 #endif
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_query_is_select, 0, 0, 1)
