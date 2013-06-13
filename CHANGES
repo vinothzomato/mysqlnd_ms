@@ -27,6 +27,10 @@
     Transient error handling logic is applied when already connected to
     a server and a command fails.
 
+    Covers: query(), change_user(). Note: settings are per connection,
+    if dispatching to multiple connections, for example, in change_user()
+    you can wait upto number of connections * retry count * retry sleep milliseconds.
+
     EXPERIMENTAL, incomplete.
 
 

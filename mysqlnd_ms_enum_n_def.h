@@ -178,7 +178,9 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no) \
     { \
 		transient_error_no = 0; \
-		if ((MYSQLND_MS_ERROR_INFO((connection)).error_no) && (TRANSIENT_ERROR_STRATEGY_ON == (*(conn_data))->stgy.transient_error_strategy)) { \
+		if ((connection) && (conn_data) && (*(conn_data)) && \
+			(MYSQLND_MS_ERROR_INFO((connection)).error_no) && \
+			(TRANSIENT_ERROR_STRATEGY_ON == (*(conn_data))->stgy.transient_error_strategy)) { \
 			zend_llist_position	pos; \
 			zend_llist * transient_error_codes = &((*(conn_data))->stgy.transient_error_codes); \
 			uint * transient_error_code_p; \
