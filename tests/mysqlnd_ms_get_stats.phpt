@@ -60,6 +60,10 @@ mysqlnd_ms.collect_statistics=1
 		$expected["gtid_implicit_commit_injections_failure"] = true;
 	}
 
+	if (MYSQLND_MS_VERSION_ID >= 10600) {
+		$expected["transient_error_retries"] = true;
+	}
+
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {
 		printf("[001] Expecting NULL got %s/%s\n", gettype($ret), $ret);
 	}
