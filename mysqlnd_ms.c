@@ -1641,7 +1641,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_conn, enum_mysqlnd_server_option option TSRMLS_DC)
 {
-	enum_func_status ret = PASS;
+	enum_func_status last, ret = PASS;
+	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms::set_server_option");
@@ -1659,9 +1660,39 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 					(*el_conn_data)->skip_ms_calls = TRUE;
 				}
 
-				if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(el->conn, option TSRMLS_CC)) {
-					ret = FAIL;
-				}
+				transient_error_retries = 0;
+				do {
+					last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(el->conn, option TSRMLS_CC);
+					if (PASS == last) {
+						break;
+					}
+					MS_CHECK_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					if (transient_error_no) {
+						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+						transient_error_retries++;
+						if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+							DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+								transient_error_retries,
+								(*conn_data)->stgy.transient_error_max_retries,
+								(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+							usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+						} else {
+							DBG_INF("No more transient error retries allowed");
+							ret = FAIL;
+							break;
+						}
+					} else {
+						/* an error that is not considered transient */
+						ret = FAIL;
+						break;
+					}
+
+				} while (transient_error_no);
+
+
 
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
