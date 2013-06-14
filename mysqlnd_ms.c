@@ -1714,7 +1714,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND_CONN_DATA * const proxy_co
 	enum_func_status ret = PASS;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
-	DBG_ENTER("mysqlnd_ms::set_server_option");
+	DBG_ENTER("mysqlnd_ms::set_client_option");
 	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(proxy_conn, option, value TSRMLS_CC));
 	} else {
@@ -1727,6 +1727,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND_CONN_DATA * const proxy_co
 				(*el_conn_data)->skip_ms_calls = TRUE;
 			}
 
+			/* This is buffered and replies come later, thus we cannot add transient error loop */
 			if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, option, value TSRMLS_CC)) {
 				ret = FAIL;
 			}
