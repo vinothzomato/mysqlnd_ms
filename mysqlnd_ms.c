@@ -1477,7 +1477,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND_CONN_DATA * const proxy_conn, con
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
 {
-	enum_func_status last, ret = PASS;
+	enum_func_status last = PASS, ret = PASS;
 	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
@@ -1554,7 +1554,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, const char * const csname TSRMLS_DC)
 {
-	enum_func_status last, ret = PASS;
+	enum_func_status last = PASS, ret = PASS;
 	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
@@ -1641,7 +1641,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_conn, enum_mysqlnd_server_option option TSRMLS_DC)
 {
-	enum_func_status last, ret = PASS;
+	enum_func_status last = PASS, ret = PASS;
 	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
@@ -1924,6 +1924,13 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		}
 #endif
 
+		/* No need to handle transient errors
+		 set_autocommit() calls query() if connected. query() is covered.
+		 If client is not connected to server, then set_autocimmit() calls
+		 set_client_option() which is buffered. We cannot handle buffered
+		 connect options through the transient error retry logic. in sum:
+		 set_autocommit() handled transient errors if connected, otherwise not.
+		*/
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
 			if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
@@ -2034,6 +2041,7 @@ mysqlnd_ms_tx_commit_or_rollback(MYSQLND_CONN_DATA * proxy_conn, zend_bool commi
 		(*conn_data)->skip_ms_calls = TRUE;
 	}
 	/* TODO: the recursive rattle tail is terrible, we should optimize and call query() directly */
+	/* Transient error retry covered as long as query() is used */
 #if MYSQLND_VERSION_ID >= 50011
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(tx_commit_or_rollback)(conn, commit, flags, name TSRMLS_CC);
 #else
@@ -2355,8 +2363,9 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
-	enum_func_status ret = FAIL;
+ enum_func_status last = PASS, ret = PASS;
 	zend_bool free_query = FALSE;
+	uint transient_error_no = 0, transient_error_retries = 0;
 	DBG_ENTER("mysqlnd_ms_stmt::prepare");
 	DBG_INF_FMT("query=%s", query);
 
@@ -2392,7 +2401,37 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 		}
 	}
 
-	ret = ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC);
+	do {
+		last = ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC);
+		if (PASS == last) {
+			break;
+		}
+		MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no);
+		if (transient_error_no) {
+			DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+			transient_error_retries++;
+			if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+				DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+					transient_error_retries,
+					(*conn_data)->stgy.transient_error_max_retries,
+					(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+				usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+			} else {
+				DBG_INF("No more transient error retries allowed");
+				ret = FAIL;
+				break;
+			}
+		} else {
+			/* an error that is not considered transient */
+			ret = FAIL;
+			break;
+		}
+	} while (transient_error_no);
+
+
 	if (TRUE == free_query) {
 		efree((void *)query);
 	}

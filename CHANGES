@@ -28,7 +28,13 @@
     a server and a command fails.
 
     Covers: query(),
-            change_user(), select_db(), set_charset(), set_server_option()
+            change_user(), select_db(), set_charset(), set_server_option(),
+            prepare()
+    Implicit: set_autocommit() [through query when connected, not handled if not connected:
+    impossible set_client_option() has buffer]
+    Implicit: tx_commit, tx_rollback, tx_commit_or_rollback through query()
+    Implicit: tx_begin
+
     New statistics: transient_error_retries
 
     Note: settings are per connection,
