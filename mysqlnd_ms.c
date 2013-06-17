@@ -1076,7 +1076,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 			}
 		}
 		/* Is there a transient error that we shall ignore? */
-		MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no);
+		MS_CHECK_CONN_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no);
 		if (transient_error_no) {
 			DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
 			transient_error_retries++;
@@ -1350,7 +1350,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND_CONN_DATA * const proxy_conn,
 					if (PASS == last) {
 						break;
 					}
-					MS_CHECK_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
 					if (transient_error_no) {
 						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
 						transient_error_retries++;
@@ -1504,7 +1504,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 					if (PASS == last) {
 						break;
 					}
-					MS_CHECK_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
 					if (transient_error_no) {
 						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
 						transient_error_retries++;
@@ -1596,7 +1596,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 					if (PASS == last) {
 						break;
 					}
-					MS_CHECK_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
 					if (transient_error_no) {
 						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
 						transient_error_retries++;
@@ -1666,7 +1666,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 					if (PASS == last) {
 						break;
 					}
-					MS_CHECK_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
 					if (transient_error_no) {
 						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
 						transient_error_retries++;
@@ -2363,7 +2363,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 {
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
- enum_func_status last = PASS, ret = PASS;
+	enum_func_status ret = PASS;
 	zend_bool free_query = FALSE;
 	uint transient_error_no = 0, transient_error_retries = 0;
 	DBG_ENTER("mysqlnd_ms_stmt::prepare");
@@ -2402,11 +2402,11 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	}
 
 	do {
-		last = ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC);
-		if (PASS == last) {
+		ret = ms_orig_mysqlnd_stmt_methods->prepare(s, query, query_len TSRMLS_CC);
+		if (PASS == ret) {
 			break;
 		}
-		MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no);
+		MS_CHECK_CONN_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no);
 		if (transient_error_no) {
 			DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
 			transient_error_retries++;
@@ -2447,6 +2447,8 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+	uint transient_error_no = 0, transient_error_retries = 0;
+	unsigned int stmt_errno;
 	MYSQLND_CONN_DATA * connection = NULL;
 	MYSQLND_STMT_DATA * stmt = s? s->data:NULL;
 
@@ -2484,7 +2486,29 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 		}
 	}
 
-	ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
+	do {
+		ret = ms_orig_mysqlnd_stmt_methods->execute(s TSRMLS_CC);
+		stmt_errno = ms_orig_mysqlnd_stmt_methods->get_error_no(s TSRMLS_CC);
+		MS_CHECK_FOR_TRANSIENT_ERROR(stmt_errno, conn_data, transient_error_no);
+		if (transient_error_no) {
+			DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+			transient_error_retries++;
+			if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+				MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+				DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+							transient_error_retries,
+							(*conn_data)->stgy.transient_error_max_retries,
+							(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+				usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+			} else {
+				DBG_INF("No more transient error retries allowed");
+				break;
+			}
+		}
+	} while (transient_error_no);
+
 
 	DBG_RETURN(ret);
 }

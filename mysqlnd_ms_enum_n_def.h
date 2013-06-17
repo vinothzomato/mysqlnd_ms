@@ -64,6 +64,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define MYSQLND_MS_ERROR_INFO(conn_object) (*((conn_object)->error_info))
 #endif
 
+
 #if MYSQLND_VERSION_ID < 50010
 #define MYSQLND_MS_UPSERT_STATUS(conn_object) ((conn_object)->upsert_status)
 #else
@@ -175,11 +176,15 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 	} \
 
 
-#define MS_CHECK_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no) \
+#define MS_CHECK_CONN_FOR_TRANSIENT_ERROR(connection, conn_data, transient_error_no) \
+	if ((connection) && MYSQLND_MS_ERROR_INFO((connection)).error_no) { \
+		MS_CHECK_FOR_TRANSIENT_ERROR((MYSQLND_MS_ERROR_INFO((connection)).error_no), conn_data, transient_error_no); \
+	} \
+
+#define MS_CHECK_FOR_TRANSIENT_ERROR(error_no, conn_data, transient_error_no) \
     { \
 		transient_error_no = 0; \
-		if ((connection) && (conn_data) && (*(conn_data)) && \
-			(MYSQLND_MS_ERROR_INFO((connection)).error_no) && \
+		if ((conn_data) && (*(conn_data)) && \
 			(TRANSIENT_ERROR_STRATEGY_ON == (*(conn_data))->stgy.transient_error_strategy)) { \
 			zend_llist_position	pos; \
 			zend_llist * transient_error_codes = &((*(conn_data))->stgy.transient_error_codes); \
@@ -187,7 +192,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 			for (transient_error_code_p = (uint *)zend_llist_get_first_ex(transient_error_codes, &pos); \
 				transient_error_code_p; \
 				transient_error_code_p = (uint *)zend_llist_get_next_ex(transient_error_codes, &pos)) { \
-				if (MYSQLND_MS_ERROR_INFO((connection)).error_no == *transient_error_code_p) { \
+				if ((error_no) == *transient_error_code_p) { \
 					transient_error_no = *transient_error_code_p; \
 					break; \
 				} \
