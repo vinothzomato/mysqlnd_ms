@@ -22,31 +22,36 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2012-08-15</date>
+  <date>2013-03-18</date>
   <time>12:00:00</time>
   <version>
-    <release>1.4.2</release>
-    <api>1.4.0</api>
+    <release>1.5.0</release>
+    <api>1.5.0</api>
   </version>
   <stability>
-    <release>stable</release>
-    <api>stable</api>
+    <release>alpha</release>
+    <api>alpha</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>GA release</notes>
+  <notes>First release of the 1.5 series</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
-		<file name="bug_60605.phpt" role="test"/>
+        <file name="bug_60605.phpt" role="test"/>
         <file name="bug_pecl_22784.phpt" role="test"/>
         <file name="config.inc" role="test"/>
         <file name="connect.inc" role="test"/>
         <file name="mysqlnd_ms_autocommit_kill.phpt" role="test"/>
         <file name="mysqlnd_ms_autocommit.phpt" role="test"/>
+        <file name="mysqlnd_ms_begin_mysqli_fail.phpt" role="test"/>
+        <file name="mysqlnd_ms_begin_mysqli.phpt" role="test"/>
+        <file name="mysqlnd_ms_begin_mysqli_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_begin_pdo_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_change_user_fail.phpt" role="test"/>
         <file name="mysqlnd_ms_change_user.phpt" role="test"/>
         <file name="mysqlnd_ms_charsets_fail.phpt" role="test"/>
         <file name="mysqlnd_ms_charsets_kill.phpt" role="test"/>
+        <file name="mysqlnd_ms_charsets_pdo_fail.phpt" role="test"/>
         <file name="mysqlnd_ms_charsets.phpt" role="test"/>
         <file name="mysqlnd_ms_commit.phpt" role="test"/>
         <file name="mysqlnd_ms_config_access.phpt" role="test"/>
@@ -65,6 +70,13 @@
         <file name="mysqlnd_ms_field_count.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_empty_lazy.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_empty_non_lazy.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups_no_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups_no_slave.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups_qos_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups_setup_mess.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups_unknown_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_groups_unknown_slave.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_multi_last.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_config_conflict1.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_config_conflict2.phpt" role="test"/>
@@ -77,18 +89,27 @@
         <file name="mysqlnd_ms_filter_qos_eventual_consistency.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_eventual_consistency_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_eventual_disable_rw_split.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_failover_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_trx_stickiness_on.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_eventual_trx_stickiness_on_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_eventual_trx_stickiness.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_multi_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_multi_master_strong_r.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_multi_master_strong_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_rt_gtid_master_on_write.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_rt_gtid.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_rt_gtid_trx_stickiness.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_rt_gtid_trx_stickiness_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_rt_gtid_wait_for_fail.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_rt_gtid_wait_for.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_runtime.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_session_consistency_mm_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_session_consistency_no_slaves.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_session_consistency.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_session_consistency_trx_stickiness_on.phpt" role="test"/>
+        <file name="mysqlnd_ms_filter_qos_session_consistency_trx_stickiness_on_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_strong_consistency.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_qos_trx_stickiness.phpt" role="test"/>
         <file name="mysqlnd_ms_filter_ro_partitioning_rr.phpt" role="test"/>
@@ -106,6 +127,9 @@
         <file name="mysqlnd_ms_get_stats_register_shutdown.phpt" role="test"/>
         <file name="mysqlnd_ms_gtid_autocommit_stats.phpt" role="test"/>
         <file name="mysqlnd_ms_gtid_basics.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_begin_mysqli_r.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_begin_mysqli_rr_trx_stickiness_on.phpt" role="test"/>
+        <file name="mysqlnd_ms_gtid_begin_mysqli_r_trx_stickiness_on.phpt" role="test"/>
         <file name="mysqlnd_ms_gtid_commit_stats.phpt" role="test"/>
         <file name="mysqlnd_ms_gtid_commit_stats_ps.phpt" role="test"/>
         <file name="mysqlnd_ms_gtid_implicit_commit_autocommit.phpt" role="test"/>
@@ -156,6 +180,9 @@
         <file name="mysqlnd_ms_lazy_master_failure_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_master_failure_user.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_more_results.phpt" role="test"/>
+        <file name="mysqlnd_ms_lazy_multi_master_failure_failover_loop_master_random_once.phpt" role="test"/>
+        <file name="mysqlnd_ms_lazy_multi_master_failure_failover_loop_master_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_lazy_multi_master_failure_failover_loop_master_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_next_result.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_other_commands_old.phpt" role="test"/>
         <file name="mysqlnd_ms_lazy_other_commands.phpt" role="test"/>
@@ -226,7 +253,9 @@
         <file name="mysqlnd_ms_multi_query.phpt" role="test"/>
         <file name="mysqlnd_ms_no_master.phpt" role="test"/>
         <file name="mysqlnd_ms_no_slaves.phpt" role="test"/>
+        <file name="mysqlnd_ms_pdo_autocommit.phpt" role="test"/>
         <file name="mysqlnd_ms_pdo_basics.phpt" role="test"/>
+        <file name="mysqlnd_ms_pdo_begin_trx.phpt" role="test"/>
         <file name="mysqlnd_ms_phpinfo.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_random_once2.phpt" role="test"/>
         <file name="mysqlnd_ms_pick_random_once.phpt" role="test"/>
@@ -308,6 +337,10 @@
         <file name="mysqlnd_ms_set_qos_gtid_sql_parsing2.phpt" role="test"/>
         <file name="mysqlnd_ms_set_qos_gtid_sql_parsing.phpt" role="test"/>
         <file name="mysqlnd_ms_set_qos_params.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_trx_stickiness_master.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_trx_stickiness_off.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_trx_stickiness_on.phpt" role="test"/>
+        <file name="mysqlnd_ms_set_qos_trx_stickiness_on_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_connect_flags_invalid.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_connect_flags.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_db_invalid.phpt" role="test"/>
@@ -323,6 +356,8 @@
         <file name="mysqlnd_ms_settings_ini_bool_true.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_ini_file_faulty.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_ini_file_invalid.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_ini_file_json_empty.phpt" role="test"/>
+        <file name="mysqlnd_ms_settings_ini_file_json_stub.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_no_host.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_no_json.phpt" role="test"/>
         <file name="mysqlnd_ms_settings_password_invalid.phpt" role="test"/>
@@ -346,6 +381,7 @@
         <file name="mysqlnd_ms_slave_unreachable_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_slave_unreachable_user.phpt" role="test"/>
         <file name="mysqlnd_ms_sql_hints.phpt" role="test"/>
+        <file name="mysqlnd_ms_sql_hints_space.phpt" role="test"/>
         <file name="mysqlnd_ms_stat.phpt" role="test"/>
         <file name="mysqlnd_ms_table_assorted_slave.phpt" role="test"/>
         <file name="mysqlnd_ms_table_basics.phpt" role="test"/>
@@ -420,10 +456,23 @@
         <file name="mysqlnd_ms_table_write_non_unique.phpt" role="test"/>
         <file name="mysqlnd_ms_thread_id.phpt" role="test"/>
         <file name="mysqlnd_ms_tmp_double_error.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_master_failover_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_master_failover_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_trx_stickiness_master_random_once.phpt" role="test"/>
         <file name="mysqlnd_ms_trx_stickiness_master_random.phpt" role="test"/>
         <file name="mysqlnd_ms_trx_stickiness_master_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_trx_stickiness_master_user.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_no_slave_failover_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_no_slave_failover_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_begin_name_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_ro_mor_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_ro_mor_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_ro_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_ro_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_on_rr.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_slave_failover_random.phpt" role="test"/>
+        <file name="mysqlnd_ms_trx_stickiness_slave_failover_rr.phpt" role="test"/>
         <file name="mysqlnd_ms_unknown_filter2.phpt" role="test"/>
         <file name="mysqlnd_ms_unknown_filter3.phpt" role="test"/>
         <file name="mysqlnd_ms_unknown_filter4.phpt" role="test"/>
@@ -439,7 +488,6 @@
         <file name="README" role="doc"/>
         <file name="skipif.inc" role="test"/>
         <file name="util.inc" role="test"/>
-
         <dir name="bench">
          <file name="README" role="test" />
 
@@ -500,16 +548,18 @@
         <!-- // bench -->
       </dir>
       <!-- //tests -->
-      <file name="CHANGES" role="src"/>
+      <file name="CHANGES" role="doc"/>
       <file name="config.m4" role="src"/>
       <file name="config.w32" role="src"/>
-      <file name="CREDITS" role="src"/>
-      <file name="LICENSE" role="src"/>
+      <file name="CREDITS" role="doc"/>
+      <file name="LICENSE" role="doc"/>
       <file name="mf_wcomp.c" role="src"/>
       <file name="mysqlnd_ms.c" role="src"/>
       <file name="mysqlnd_ms_config_json.c" role="src"/>
       <file name="mysqlnd_ms_config_json.h" role="src"/>
       <file name="mysqlnd_ms_enum_n_def.h" role="src"/>
+      <file name="mysqlnd_ms_filter_groups.c" role="src"/>
+      <file name="mysqlnd_ms_filter_groups.h" role="src"/>
       <file name="mysqlnd_ms_filter_qos.c" role="src"/>
       <file name="mysqlnd_ms_filter_qos.h" role="src"/>
       <file name="mysqlnd_ms_filter_random.c" role="src"/>
@@ -520,9 +570,9 @@
       <file name="mysqlnd_ms_filter_table_partition.h" role="src"/>
       <file name="mysqlnd_ms_filter_user.c" role="src"/>
       <file name="mysqlnd_ms_filter_user.h" role="src"/>
+      <file name="mysqlnd_ms.h" role="src"/>
       <file name="mysqlnd_ms_lb_weights.c" role="src"/>
       <file name="mysqlnd_ms_lb_weights.h" role="src"/>
-      <file name="mysqlnd_ms.h" role="src"/>
       <file name="mysqlnd_ms_switch.c" role="src"/>
       <file name="mysqlnd_ms_switch.h" role="src"/>
       <file name="mysqlnd_qp.h" role="src"/>
@@ -532,6 +582,7 @@
       <file name="mysqlnd_query_parser.c" role="src"/>
       <file name="mysqlnd_query_parser.grammar" role="src"/>
       <file name="mysqlnd_query_parser.h" role="src"/>
+      <file name="package.xml" role="src"/>
       <file name="php_mysqlnd_ms.c" role="src"/>
       <file name="php_mysqlnd_ms.h" role="src"/>
       <file name="README" role="doc"/>
@@ -554,6 +605,19 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.5.0</release>
+        <api>1.5.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2012-08-15</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>GA release</notes>
+    </release>
     <release>
       <version>
         <release>1.4.2</release>
