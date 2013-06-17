@@ -77,7 +77,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_pick_random_weight.ini
 	foreach ($servers as $conn_id => $used) {
 		printf("%04d - %d\n", $conn_id, $used);
 		if ($last_used && (($used * 1.2) > $last_used)) {
-			printf("[002] Validate manually, could be falst positive as its random - last_used %d used %d\n", $last_used, $used);
+			printf("[002] Validate manually, could be false positive as it is random - last_used %d used %d\n", $last_used, $used);
 		}
 		$last_used = $used;
 	}
