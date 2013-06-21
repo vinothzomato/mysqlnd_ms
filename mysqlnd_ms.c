@@ -2506,10 +2506,6 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, execute)(MYSQLND_STMT * const s TSRMLS_DC)
 				DBG_INF("No more transient error retries allowed");
 				break;
 			}
-		} else {
-			/* an error that is not considered transient */
-			ret = FAIL;
-			break;
 		}
 	} while (transient_error_no);
 
