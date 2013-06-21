@@ -22,18 +22,18 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2013-03-18</date>
+  <date>2013-06-21</date>
   <time>12:00:00</time>
   <version>
-    <release>1.5.0</release>
+    <release>1.5.2</release>
     <api>1.5.0</api>
   </version>
   <stability>
-    <release>alpha</release>
-    <api>alpha</api>
+    <release>stable</release>
+    <api>stable</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>First release of the 1.5 series</notes>
+  <notes>Fix hardcoded version number</notes>
   <contents>
     <dir name="/">
       <dir name="tests">
@@ -605,6 +605,32 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.5.2</release>
+        <api>1.5.0</api>
+      </version>
+      <stability>
+        <release>GA</release>
+        <api>GA</api>
+      </stability>
+      <date>2013-06-21</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>Fix hardcoded version number</notes>
+    </release>
+    <release>
+      <version>
+        <release>1.5.1</release>
+        <api>1.5.0</api>
+      </version>
+      <stability>
+        <release>GA</release>
+        <api>GA</api>
+      </stability>
+      <date>2013-06-18</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>GA release</notes>
+    </release>
     <release>
       <version>
         <release>1.5.0</release>
