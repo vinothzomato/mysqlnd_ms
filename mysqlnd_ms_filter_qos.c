@@ -67,7 +67,7 @@ qos_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 MYSQLND_MS_FILTER_DATA *
 mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
-	MYSQLND_MS_FILTER_QOS_DATA * ret;
+	MYSQLND_MS_FILTER_QOS_DATA * ret = NULL;
 	DBG_ENTER("mysqlnd_ms_qos_filter_ctor");
 	DBG_INF_FMT("section=%p", section);
 	if (section) {
