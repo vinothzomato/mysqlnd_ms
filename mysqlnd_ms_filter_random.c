@@ -523,7 +523,7 @@ mysqlnd_ms_choose_connection_random_use_master_aux(zend_llist * master_connectio
 	zend_llist_position	pos;
 	zend_bool use_lb_context = FALSE;
 	MYSQLND_MS_LIST_DATA * element = NULL, ** element_pp = NULL;
-	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context, ** lb_weight_context_pp;
+	MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT * lb_weight_context = NULL, ** lb_weight_context_pp;
 	MYSQLND_MS_FILTER_RANDOM_LB_CONTEXT * lb_context = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
 	zend_llist sort_list;
