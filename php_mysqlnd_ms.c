@@ -276,6 +276,39 @@ static PHP_FUNCTION(mysqlnd_ms_match_wild)
 /* }}} */
 
 #if PHP_VERSION_ID > 50399
+
+static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC)
+{
+	zend_class_entry *root_ce;
+	
+	if (Z_TYPE_P(zv) != IS_OBJECT || !Z_OBJCE_P(zv)->parent) {
+		/* This an object or a non-inherited object, we can use the default implementation without hacks*/
+		return zval_to_mysqlnd(zv TSRMLS_CC);
+	}
+	
+	root_ce = Z_OBJCE_P(zv)->parent;
+	while (root_ce->parent) {
+		root_ce = root_ce->parent;
+	}
+	
+	if (root_ce->type != ZEND_INTERNAL_CLASS) {
+		/* This can neither be mysqli nor pdo */
+		return NULL;
+	}
+	
+	if (!strcmp("mysqli", root_ce->name) || !strcmp("PDO", root_ce->name)) {
+		MYSQLND *retval;
+		zend_class_entry *orig_ce = Z_OBJCE_P(zv);
+		zend_object *object = zend_object_store_get_object(zv TSRMLS_CC);
+		object->ce = root_ce;
+		retval = zval_to_mysqlnd(zv TSRMLS_CC);
+		object->ce = orig_ce;
+		return retval;
+	} else {
+		return zval_to_mysqlnd(zv TSRMLS_CC);
+	}
+}
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_used_connection, 0, 0, 1)
 	ZEND_ARG_INFO(0, object)
 ZEND_END_ARG_INFO()
@@ -291,7 +324,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_used_connection)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &handle) == FAILURE) {
 		return;
 	}
-	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(handle TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
 	{
@@ -331,7 +364,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &handle) == FAILURE) {
 		return;
 	}
-	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(handle TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
 	{
@@ -504,7 +537,7 @@ static PHP_FUNCTION(mysqlnd_ms_set_qos)
 		option = QOS_OPTION_NONE;
 	}
 
-	if (!(proxy_conn = zval_to_mysqlnd(handle TSRMLS_CC))) {
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(handle TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
 
