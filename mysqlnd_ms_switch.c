@@ -521,7 +521,7 @@ err:
 
 
 /* {{{ mysqlnd_ms_query_is_select */
-PHPAPI enum enum_which_server
+PHP_MYSQLND_MS_API enum enum_which_server
 mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC)
 {
 	enum enum_which_server ret = USE_MASTER;

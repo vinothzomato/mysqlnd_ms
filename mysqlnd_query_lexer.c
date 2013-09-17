@@ -9524,7 +9524,7 @@ mysqlnd_qp_error(const char *format, ...)
 
 
 /* {{{ mysqlnd_qp_free_scanner */
-PHPAPI void
+PHP_MYSQLND_MS_API void
 mysqlnd_qp_free_scanner(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_qp_free_scanner");
@@ -9541,7 +9541,7 @@ mysqlnd_qp_free_scanner(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 
 
 /* {{{ mysqlnd_qp_create_scanner */
-PHPAPI struct st_mysqlnd_query_scanner *
+PHP_MYSQLND_MS_API struct st_mysqlnd_query_scanner *
 mysqlnd_qp_create_scanner(TSRMLS_D)
 {
 	struct st_mysqlnd_query_scanner * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_query_scanner));
@@ -9562,7 +9562,7 @@ mysqlnd_qp_create_scanner(TSRMLS_D)
 
 
 /* {{{ mysqlnd_qp_get_token */
-PHPAPI struct st_ms_token_and_value
+PHP_MYSQLND_MS_API struct st_ms_token_and_value
 mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 {
 	YYSTYPE lex_val;
@@ -9602,7 +9602,7 @@ mysqlnd_qp_get_token(struct st_mysqlnd_query_scanner * scanner TSRMLS_DC)
 
 
 /* {{{ mysqlnd_qp_set_string */
-PHPAPI void
+PHP_MYSQLND_MS_API void
 mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * const s, size_t len TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_qp_set_string");
@@ -9616,7 +9616,7 @@ mysqlnd_qp_set_string(struct st_mysqlnd_query_scanner * scanner, const char * co
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 
 /* {{{ mysqlnd_qp_create_parser */
-PHPAPI struct st_mysqlnd_query_parser *
+PHP_MYSQLND_MS_API struct st_mysqlnd_query_parser *
 mysqlnd_qp_create_parser(TSRMLS_D)
 {
 	struct st_mysqlnd_query_parser * ret = mnd_ecalloc(1, sizeof(struct st_mysqlnd_query_parser));
@@ -9633,7 +9633,7 @@ mysqlnd_qp_create_parser(TSRMLS_D)
 
 
 /* {{{ mysqlnd_qp_free_parser */
-PHPAPI void
+PHP_MYSQLND_MS_API void
 mysqlnd_qp_free_parser(struct st_mysqlnd_query_parser * parser TSRMLS_DC)
 {
 	DBG_ENTER("mysqlnd_qp_free_parser");
@@ -9704,7 +9704,7 @@ mysqlnd_ms_field_list_dtor(void * pDest)
 extern int mysqlnd_qp_parse (void * TSRMLS_DC);
 
 /* {{{ mysqlnd_qp_start_parser */
-PHPAPI int
+PHP_MYSQLND_MS_API int
 mysqlnd_qp_start_parser(struct st_mysqlnd_query_parser * parser, const char * const query, const size_t query_len TSRMLS_DC)
 {
 	int ret;

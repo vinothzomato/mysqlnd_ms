@@ -22,6 +22,16 @@
 #ifndef MYSQLND_MS_H
 #define MYSQLND_MS_H
 
+#ifdef PHP_WIN32
+#define PHP_MYSQLND_MS_API __declspec(dllexport)
+#else
+# if defined(__GNUC__) && __GNUC__ >= 4
+#  define PHP_MYSQLND_MS_API __attribute__ ((visibility("default")))
+# else
+#  define PHP_MYSQLND_MS_API
+# endif
+#endif
+
 #ifndef SMART_STR_START_SIZE
 #define SMART_STR_START_SIZE 1024
 #endif
@@ -92,7 +102,7 @@ ZEND_EXTERN_MODULE_GLOBALS(mysqlnd_ms)
 
 void mysqlnd_ms_register_hooks();
 void mysqlnd_ms_conn_list_dtor(void * pDest);
-PHPAPI zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wildstr TSRMLS_DC);
+PHP_MYSQLND_MS_API zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wildstr TSRMLS_DC);
 struct st_mysqlnd_ms_list_data;
 enum_func_status mysqlnd_ms_lazy_connect(struct st_mysqlnd_ms_list_data * element, zend_bool master TSRMLS_DC);
 

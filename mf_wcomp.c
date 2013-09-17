@@ -21,13 +21,14 @@
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"
 #include "ext/mysqlnd/mysqlnd_debug.h"
+#include "mysqlnd_ms.h"
 
 /* $Id: mysqlnd_ms_config_json.c 311386 2011-05-24 12:10:21Z andrey $ */
 
 
 
 /* {{{ mysqlnd_ms_match_wild */
-PHPAPI
+PHP_MYSQLND_MS_API
 zend_bool mysqlnd_ms_match_wild(const char * const str, const char * const wildstr TSRMLS_DC)
 {
 	static char many = '%';

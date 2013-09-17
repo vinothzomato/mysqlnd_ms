@@ -24,7 +24,7 @@
 struct mysqlnd_ms_lb_strategies;
 struct st_mysqlnd_ms_config_json_entry;
 
-PHPAPI enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
+PHP_MYSQLND_MS_API enum enum_which_server mysqlnd_ms_query_is_select(const char * query, size_t query_len, zend_bool * forced TSRMLS_DC);
 
 zend_llist * mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section, MYSQLND_ERROR_INFO * error_info,
 											 zend_llist * master_connections, zend_llist * slave_connections,
