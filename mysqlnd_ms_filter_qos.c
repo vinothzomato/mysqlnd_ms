@@ -218,7 +218,11 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 				*/
 				DBG_INF_FMT("sleep and retry, time left=" MYSQLND_LLU_SPEC, (my_wait_time - total_time));
 				MS_TIME_SET(run_time);
+#ifdef PHP_WIN32
+				Sleep(1);
+#else
 				sleep(1);
+#endif
 				if (res) {
 					res->m.free_result(res, FALSE TSRMLS_CC);
 				}
