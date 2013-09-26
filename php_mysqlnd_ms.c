@@ -649,7 +649,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
 	mysqlnd_fabric_server *servers, *tofree;
 
-	if (!(proxy_conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
 
@@ -768,7 +768,7 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 		return;
 	}
 
-	if (!(conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
 
