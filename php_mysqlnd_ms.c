@@ -643,7 +643,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 }
 /* }}} */
 
-static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_fabric_hint hint) /* {{{ */
+static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC) /* {{{ */
 {
 	MYSQLND *proxy_conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
@@ -709,7 +709,7 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 		return;
 	}
 
-	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, key, LOCAL);
+	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, key, LOCAL TSRMLS_CC);
 }
 /* }}} */
 
@@ -730,7 +730,7 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_global)
 		return;
 	}
 
-	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, NULL, GLOBAL);	
+	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, NULL, GLOBAL TSRMLS_CC);	
 }
 /* }}} */
 
