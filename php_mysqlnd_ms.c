@@ -643,18 +643,11 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 }
 /* }}} */
 
-static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
+static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_fabric_hint hint) /* {{{ */
 {
-	zval *conn_zv;
 	MYSQLND *proxy_conn;
-	char *table, *key;
-	int table_len, key_len;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
 	mysqlnd_fabric_server *servers, *tofree;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zss", &conn_zv, &table, &table_len, &key, &key_len) == FAILURE) {
-		return;
-	}
 
 	if (!(proxy_conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
 		RETURN_FALSE;
@@ -674,7 +667,7 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
 	
-	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, LOCAL);
+	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, hint);
 	if (!servers) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Didn't receive usable servers from MySQL Fabric");
 		RETURN_FALSE;
@@ -695,18 +688,51 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 	mysqlnd_fabric_free_server_list(tofree);
 	
 	RETURN_TRUE;
-	
-#ifdef JO_RESET_STGY	
-	(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
-																	 &(*conn_data)->master_connections,
-																	 &(*conn_data)->slave_connections,
-																	 TRUE /* load all config persistently */ TSRMLS_CC);
-	if (!(*conn_data)->stgy.filters) {
-		DBG_RETURN(FAIL);
-	}
-	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
-#endif
 }
+/* }}} */
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_shard, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, table)
+	ZEND_ARG_INFO(0, shard_key)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto long mysqlnd_ms_fabric_select_shard(mixed connection, string table, string shard_key)
+   Pick server configuration for a shard key */
+static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
+{
+	zval *conn_zv;
+	char *table, *key;
+	int table_len, key_len;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zss", &conn_zv, &table, &table_len, &key, &key_len) == FAILURE) {
+		return;
+	}
+
+	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, key, LOCAL);
+}
+/* }}} */
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_global, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, table)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto long mysqlnd_ms_fabric_select_global(mixed connection, string table)
+   Pick server configuration for a shard key */
+static PHP_FUNCTION(mysqlnd_ms_fabric_select_global)
+{
+	zval *conn_zv;
+	char *table;
+	int table_len;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", &conn_zv, &table, &table_len) == FAILURE) {
+		return;
+	}
+
+	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, NULL, GLOBAL);	
+}
+/* }}} */
 
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
@@ -734,7 +760,8 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_get_last_gtid,	arginfo_mysqlnd_ms_get_last_gtid)
 	PHP_FE(mysqlnd_ms_set_qos,	arginfo_mysqlnd_ms_set_qos)
 #endif
-	PHP_FE(mysqlnd_ms_fabric_select_shard, NULL)
+	PHP_FE(mysqlnd_ms_fabric_select_shard, arginfo_mysqlnd_ms_fabric_select_shard)
+	PHP_FE(mysqlnd_ms_fabric_select_global, arginfo_mysqlnd_ms_fabric_select_global)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
