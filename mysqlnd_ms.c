@@ -991,7 +991,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
 		if (mysqlnd_ms_config_json_sub_section_exists(the_section, "fabric", sizeof("fabric")-1, 0 TSRMLS_CC)) {
-                	ret = mysqlnd_ms_init_with_fabric(the_section, conn, *conn_data TSRMLS_CC);
+			ret = mysqlnd_ms_init_with_fabric(the_section, conn, *conn_data TSRMLS_CC);
 		} else {
 			ret = mysqlnd_ms_init_with_master_slave(the_section, conn, *conn_data TSRMLS_CC);
 		}
