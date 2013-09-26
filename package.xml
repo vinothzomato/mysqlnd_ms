@@ -22,20 +22,27 @@
     <email>johannes@php.net</email>
     <active>yes</active>
   </lead>
-  <date>2013-06-21</date>
+  <date>2013-09-26</date>
   <time>12:00:00</time>
   <version>
-    <release>1.5.2</release>
-    <api>1.5.0</api>
+    <release>1.6.0</release>
+    <api>1.6.0</api>
   </version>
   <stability>
-    <release>stable</release>
-    <api>stable</api>
+    <release>alpha</release>
+    <api>alpha</api>
   </stability>
   <license uri="http://www.php.net/license">PHP License</license>
-  <notes>Fix hardcoded version number</notes>
+  <notes>Add initial MySQL Fabric support and automatic retry for transient errors</notes>
   <contents>
     <dir name="/">
+      <dir name="fabric">
+        <file name="mysqlnd_fabric_parse_xml.c" role="src"/>
+        <file name="mysqlnd_fabric_priv.h" role="src"/>
+        <file name="mysqlnd_fabric.h" role="src"/>
+        <file name="mysqlnd_fabric.c" role="src"/>
+      </dir>
+      <!-- //fabric -->
       <dir name="tests">
         <file name="bug_60605.phpt" role="test"/>
         <file name="bug_pecl_22784.phpt" role="test"/>
@@ -586,6 +593,7 @@
       <file name="php_mysqlnd_ms.c" role="src"/>
       <file name="php_mysqlnd_ms.h" role="src"/>
       <file name="README" role="doc"/>
+      <file name="README.fabric" role="doc"/>
     </dir>
     <!-- / -->
   </contents>
@@ -605,6 +613,19 @@
   <extsrcrelease />
 
   <changelog>
+    <release>
+      <version>
+        <release>1.6.0</release>
+        <api>1.6.0</api>
+      </version>
+      <stability>
+        <release>alpha</release>
+        <api>alpha</api>
+      </stability>
+      <date>2013-09-26</date>
+      <license uri="http://www.php.net/license">PHP License</license>
+      <notes>Add initial MySQL Fabric support and automatic retry for transient errors</notes>
+    </release>
     <release>
       <version>
         <release>1.5.2</release>
