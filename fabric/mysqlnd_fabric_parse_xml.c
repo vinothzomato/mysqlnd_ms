@@ -35,10 +35,10 @@ static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 	xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
 	if(xpathCtx == NULL) {
 		xmlFreeDoc(doc); 
-		return;
+		return NULL;
 	}
 
-	retval = xmlXPathEvalExpression("//params/param/value/array/data/value[3]/array/data/value", xpathCtx);
+	retval = xmlXPathEvalExpression((xmlChar*)"//params/param/value/array/data/value[3]/array/data/value", xpathCtx);
 	xmlXPathFreeContext(xpathCtx); 
 
 	return retval;
@@ -47,13 +47,13 @@ static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpathCtx)
 {
 	char *retval;
-	xmlXPathObjectPtr xpathObj = xpathObj = xmlXPathEvalExpression(xpath, xpathCtx);
+	xmlXPathObjectPtr xpathObj = xpathObj = xmlXPathEvalExpression((xmlChar*)xpath, xpathCtx);
 
 	if (xpathObj == NULL) {
 		return NULL;
 	}
 
-	retval = xpathObj->nodesetval->nodeTab[0]->children->content;
+	retval = (char*)xpathObj->nodesetval->nodeTab[0]->children->content;
 
 	xmlXPathFreeObject(xpathObj);
 
@@ -62,7 +62,7 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 
 static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric_server *server)
 {
-	xmlXPathContextPtr xpathCtx = xmlXPathNewContext(node);
+	xmlXPathContextPtr xpathCtx = xmlXPathNewContext((xmlDocPtr)node);
 	char *tmp;
 
 	if (xpathCtx == NULL) {
