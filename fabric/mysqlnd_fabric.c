@@ -79,18 +79,22 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
 	
 	php_stream_context *ctxt = php_stream_context_alloc(TSRMLS_C);
-	zval method, content;
+	zval method, content, header;
 	ZVAL_STRING(&method, "POST", 0);
 	ZVAL_STRING(&content, req, 0);
+	ZVAL_STRING(&header, "Content-type: application/x-www-form-urlencoded", 0);
 	
 	/* prevent anybody from freeing these */
 	Z_SET_ISREF(method);
 	Z_SET_ISREF(content);
+	Z_SET_ISREF(header);
 	Z_SET_REFCOUNT(method, 2);
 	Z_SET_REFCOUNT(content, 2);
+	Z_SET_REFCOUNT(header, 2);
 	
 	php_stream_context_set_option(ctxt, "http", "method", &method);
 	php_stream_context_set_option(ctxt, "http", "content", &content);
+	php_stream_context_set_option(ctxt, "http", "header", &header);
 	
 	php_stream *stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
 	if (!stream) {
