@@ -880,7 +880,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	if (!value_exists) {
 		abort();
 	}
-	if (!mysqlnd_ms_config_json_section_is_list(hostlist_section)) {
+	if (!mysqlnd_ms_config_json_section_is_list(hostlist_section TSRMLS_CC)) {
 		abort();
 	}
         
@@ -991,9 +991,9 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
 		if (mysqlnd_ms_config_json_sub_section_exists(the_section, "fabric", sizeof("fabric")-1, 0 TSRMLS_CC)) {
-                	ret = mysqlnd_ms_init_with_fabric(the_section, conn, *conn_data);
+                	ret = mysqlnd_ms_init_with_fabric(the_section, conn, *conn_data TSRMLS_CC);
 		} else {
-			ret = mysqlnd_ms_init_with_master_slave(the_section, conn, *conn_data);
+			ret = mysqlnd_ms_init_with_master_slave(the_section, conn, *conn_data TSRMLS_CC);
 		}
 
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
