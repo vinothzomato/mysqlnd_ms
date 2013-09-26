@@ -737,13 +737,16 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_global)
 static void mysqlnd_ms_add_server_to_array(void *data, void *arg TSRMLS_DC) /* {{{ */
 {
 	zval *host;
-	MYSQLND_MS_LIST_DATA *element = (MYSQLND_MS_LIST_DATA *)data;
+	MYSQLND_MS_LIST_DATA **element = (MYSQLND_MS_LIST_DATA **)data;
 	zval *array = (zval *)arg;
 	
 	MAKE_STD_ZVAL(host);
 	array_init(host);
-	add_assoc_string(host, "hostname", element->host, 1);
-	add_assoc_long(host, "port", element->port);
+	add_assoc_string(host, "hostname", (*element)->host, 1);
+	if ((*element)->socket) {
+		add_assoc_string(host, "socket", (*element)->socket, 1);
+	}		
+	add_assoc_long(host, "port", (*element)->port);
 	
 	add_next_index_zval(array, host);
 }
