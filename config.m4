@@ -14,7 +14,7 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
                   mf_wcomp.c mysqlnd_query_lexer.c \
                   mysqlnd_ms_filter_random.c mysqlnd_ms_filter_round_robin.c \
                   mysqlnd_ms_filter_user.c mysqlnd_ms_filter_qos.c \
-                  mysqlnd_ms_lb_weights.c mysqlnd_ms_filter_groups.c"
+                  mysqlnd_ms_lb_weights.c mysqlnd_ms_filter_groups.c fabric/mysqlnd_fabric.c"
 
   if test "$PHP_MYSQLND_MS_TABLE_FILTER" && test "$PHP_MYSQLND_MS_TABLE_FILTER" != "no"; then
     AC_DEFINE([MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION], 1, [Enable table partition support])

@@ -45,6 +45,7 @@
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_switch.h"
 
+#include "fabric/mysqlnd_fabric.h"
 
 #if PHP_VERSION_ID < 50400
 #define mnd_vsprintf vspprintf
@@ -765,6 +766,130 @@ mysqlnd_ms_connect_load_charset(MYSQLND_MS_CONN_DATA ** conn_data, struct st_mys
 }
 /* }}} */
 
+/* {{{ mysqlnd_ms_init_with_master_slave */
+static enum_func_status
+mysqlnd_ms_init_with_master_slave(struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data TSRMLS_DC)
+{
+	enum_func_status ret = FAIL;
+        DBG_ENTER("mysqlnd_ms_init_with_master_slave");
+        
+	zend_bool use_lazy_connections = TRUE;
+	/* create master connection */
+
+	SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+#ifndef MYSQLND_HAS_INJECTION_FEATURE
+	mysqlnd_ms_load_trx_config(the_section, &conn_data->global_trx, conn, conn->persistent TSRMLS_CC);
+#endif
+	{
+		char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
+												&use_lazy_connections, NULL TSRMLS_CC);
+		/* ignore if lazy_connections ini entry exists or not */
+		use_lazy_connections = TRUE;
+		if (lazy_connections) {
+			/* lazy_connections ini entry exists, disabled? */
+			use_lazy_connections = !mysqlnd_ms_config_json_string_is_bool_false(lazy_connections);
+			mnd_efree(lazy_connections);
+			lazy_connections = NULL;
+		}
+	}
+
+	if (FAIL == mysqlnd_ms_connect_load_charset(&conn_data, the_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC)) {
+		DBG_RETURN(FAIL);
+	}
+
+	{
+		const char * const sects_to_check[] = {MASTER_NAME, SLAVE_NAME};
+		unsigned int i = 0;
+		for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
+			size_t sect_len = strlen(sects_to_check[i]);
+			if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
+				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host", sects_to_check[i]);
+			}
+		}
+	}
+
+	DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
+	ret = mysqlnd_ms_connect_to_host(conn, conn, &conn_data->master_connections,
+									 TRUE, &conn_data->cred,
+									 &conn_data->global_trx, the_section,
+									 MASTER_NAME, sizeof(MASTER_NAME) - 1,
+									 use_lazy_connections,
+									 conn->persistent, MYSQLND_MS_G(multi_master) /* multimaster*/,
+									 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
+									 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
+									 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+	if (FAIL == ret || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
+		DBG_RETURN(ret);
+	}
+
+	SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
+
+	DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
+	ret = mysqlnd_ms_connect_to_host(conn, NULL, &conn_data->slave_connections,
+									 FALSE, &conn_data->cred,
+									 &conn_data->global_trx, the_section,
+									 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
+									 use_lazy_connections,
+									 conn->persistent, TRUE /* multi*/,
+									 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
+									 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
+									 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
+
+	if (FAIL == ret || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
+		DBG_RETURN(ret);
+	}
+	DBG_INF_FMT("master_list=%p count=%d", &conn_data->master_connections, zend_llist_count(&conn_data->master_connections));
+	DBG_INF_FMT("slave_list=%p count=%d", &conn_data->slave_connections, zend_llist_count(&conn_data->slave_connections));
+	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
+																	 &conn_data->master_connections,
+																	 &conn_data->slave_connections,
+																	 TRUE /* load all config persistently */ TSRMLS_CC);
+	if (!conn_data->stgy.filters) {
+		DBG_RETURN(FAIL);
+	}
+	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+        
+        DBG_RETURN(ret);
+}
+/* }}} */
+
+static enum_func_status
+mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data TSRMLS_DC)
+{
+	zend_bool value_exists = FALSE;
+	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
+	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
+        
+	if (!value_exists) {
+		abort();
+	}
+
+	hostlist_section = mysqlnd_ms_config_json_sub_section(fabric_section, "hosts", sizeof("hosts")-1, &value_exists TSRMLS_CC);
+	if (!value_exists) {
+		abort();
+	}
+	if (!mysqlnd_ms_config_json_section_is_list(hostlist_section)) {
+		abort();
+	}
+        
+	mysqlnd_fabric *fabric = mysqlnd_fabric_init();
+	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
+		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
+		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
+		
+		mysqlnd_fabric_add_host(fabric, hostname, port);
+
+	}
+	
+	mysqlnd_fabric_get_shard_servers(fabric, "table", "key", LOCAL);
+	
+	mysqlnd_fabric_free(fabric);
+        
+	return FAIL;
+}
 
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
@@ -822,9 +947,11 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(connect)(conn, host, user, passwd, passwd_len, db, db_len, port, socket, mysql_flags TSRMLS_CC);
 	} else {
 		struct st_mysqlnd_ms_config_json_entry * the_section;
+		zend_bool value_exists = FALSE;
 		MS_LOAD_CONN_DATA(conn_data, conn);
 
 		*conn_data = mnd_pecalloc(1, sizeof(MYSQLND_MS_CONN_DATA), conn->persistent);
+
 		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 
@@ -845,97 +972,23 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 		}
 
-		do {
-			zend_bool value_exists = FALSE, use_lazy_connections = TRUE;
-			/* create master connection */
-			the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
+		the_section = mysqlnd_ms_config_json_section(mysqlnd_ms_json_config, host, host_len, &value_exists TSRMLS_CC);
 
-			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
-#ifndef MYSQLND_HAS_INJECTION_FEATURE
-			mysqlnd_ms_load_trx_config(the_section, &(*conn_data)->global_trx, conn, conn->persistent TSRMLS_CC);
-#endif
-			{
-				char * lazy_connections = mysqlnd_ms_config_json_string_from_section(the_section, LAZY_NAME, sizeof(LAZY_NAME) - 1, 0,
-													&use_lazy_connections, NULL TSRMLS_CC);
-				/* ignore if lazy_connections ini entry exists or not */
-				use_lazy_connections = TRUE;
-				if (lazy_connections) {
-					/* lazy_connections ini entry exists, disabled? */
-					use_lazy_connections = !mysqlnd_ms_config_json_string_is_bool_false(lazy_connections);
-					mnd_efree(lazy_connections);
-					lazy_connections = NULL;
-				}
-			}
+		if (mysqlnd_ms_config_json_sub_section_exists(the_section, "fabric", sizeof("fabric")-1, 0 TSRMLS_CC)) {
+                	ret = mysqlnd_ms_init_with_fabric(the_section, conn, *conn_data);
+		} else {
+			ret = mysqlnd_ms_init_with_master_slave(the_section, conn, *conn_data);
+		}
 
-			if (FAIL == (ret = mysqlnd_ms_connect_load_charset(conn_data, the_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC))) {
-				break;
-			}
-
-			{
-				const char * const sects_to_check[] = {MASTER_NAME, SLAVE_NAME};
-				unsigned int i = 0;
-				for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
-					size_t sect_len = strlen(sects_to_check[i]);
-					if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
-						mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-								MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", sects_to_check[i], host);
-					}
-				}
-			}
-
-			DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
-			ret = mysqlnd_ms_connect_to_host(conn, conn, &(*conn_data)->master_connections,
-											 TRUE, &(*conn_data)->cred,
-											 &(*conn_data)->global_trx, the_section,
-											 MASTER_NAME, sizeof(MASTER_NAME) - 1,
-											 use_lazy_connections,
-											 conn->persistent, MYSQLND_MS_G(multi_master) /* multimaster*/,
-											 MS_STAT_NON_LAZY_CONN_MASTER_SUCCESS,
-											 MS_STAT_NON_LAZY_CONN_MASTER_FAILURE,
-											 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
-			if (FAIL == ret || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the master(s)");
-				break;
-			}
-
-			SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
-
-			DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
-			ret = mysqlnd_ms_connect_to_host(conn, NULL, &(*conn_data)->slave_connections,
-											 FALSE, &(*conn_data)->cred,
-											 &(*conn_data)->global_trx, the_section,
-											 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
-											 use_lazy_connections,
-											 conn->persistent, TRUE /* multi*/,
-											 MS_STAT_NON_LAZY_CONN_SLAVE_SUCCESS,
-											 MS_STAT_NON_LAZY_CONN_SLAVE_FAILURE,
-											 &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC);
-
-			if (FAIL == ret || (MYSQLND_MS_ERROR_INFO(conn).error_no)) {
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
-				break;
-			}
-			DBG_INF_FMT("master_list=%p count=%d", &(*conn_data)->master_connections, zend_llist_count(&(*conn_data)->master_connections));
-			DBG_INF_FMT("slave_list=%p count=%d", &(*conn_data)->slave_connections, zend_llist_count(&(*conn_data)->slave_connections));
-			(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
-																		 &(*conn_data)->master_connections,
-																		 &(*conn_data)->slave_connections,
-																		 TRUE /* load all config persistently */ TSRMLS_CC);
-			if (!(*conn_data)->stgy.filters) {
-				ret = FAIL;
-				break;
-			}
-			mysqlnd_ms_lb_strategy_setup(&(*conn_data)->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
-		} while (0);
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
 
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
-
-		if (ret == PASS) {
-			(*conn_data)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
-		}
+                
+                if (ret == PASS) {
+        		(*conn_data)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
+                }
 	}
 
 	if (hotloading) {
