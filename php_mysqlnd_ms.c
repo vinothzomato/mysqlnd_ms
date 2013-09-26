@@ -646,7 +646,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 {
 	zval *conn_zv;
-	MYSQLND *conn;
+	MYSQLND *proxy_conn;
 	char *table, *key;
 	int table_len, key_len;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
@@ -656,11 +656,11 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 		return;
 	}
 
-	if (!(conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
+	if (!(proxy_conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
 		RETURN_FALSE;
 	}
 
-	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn->data, mysqlnd_ms_plugin_id);
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
 	if (!conn_data || !(*conn_data)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
@@ -673,9 +673,9 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 		MYSQLND *conn = mysqlnd_init(conn->data->persistent);
 		
 		if (servers->master) {
-			mysqlnd_ms_connect_to_host_aux(conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
-			mysqlnd_ms_connect_to_host_aux(conn->data, conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		}
 		
 		conn->m->dtor(conn TSRMLS_CC);
