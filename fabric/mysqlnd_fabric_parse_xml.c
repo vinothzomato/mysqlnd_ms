@@ -34,7 +34,6 @@ static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 	xmlXPathObjectPtr retval;
     xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
     if(xpathCtx == NULL) {
-        fprintf(stderr,"Error: unable to create new XPath context\n");
         xmlFreeDoc(doc); 
         return;
     }
@@ -51,7 +50,6 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 	xmlXPathObjectPtr xpathObj = xpathObj = xmlXPathEvalExpression(xpath, xpathCtx);
 	
 	if (xpathObj == NULL) {
-		fprintf(stderr, "Error: unable to evaluate xpath expression\n");
 		return NULL;
 	}
 	
@@ -68,7 +66,6 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	char *tmp;
 	
 	if (xpathCtx == NULL) {
-		fprintf(stderr, "Error: unable to create new XPath context\n");
 		return 1;
 	}
 	
@@ -122,19 +119,16 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 	doc = xmlParseMemory(xmlstr, xmlstr_len);
 
 	if (doc == NULL) {
-		fprintf(stderr, "Error: unable to parse \n");
 		return NULL;
     }
 	
 	xpathObj1 = mysqlnd_fabric_find_value_nodes(doc);
 	if (!xpathObj1) {
 		xmlFreeDoc(doc);
-		printf("Didn't find value nodes\n");
 		return NULL;
 	}
 	
 	if (!xpathObj1->nodesetval) {
-		printf("Didn't find value nodes 2\n");
 		/* Verbose debug info in /methodresponse/params/param/value/array/data/value[2]/array/data/value[3]/struct/member/value/string */
 		xmlXPathFreeObject(xpathObj1);
 		xmlFreeDoc(doc);
