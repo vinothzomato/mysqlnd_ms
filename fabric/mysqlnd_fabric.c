@@ -109,7 +109,7 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	php_stream_context_set_option(ctxt, "http", "header", &header);
 
-	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count);
+	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count - 1);
 	for (server = fabric->hosts; !stream && server < fabric->hosts  + fabric->host_count; server++) {
 		char *url = NULL;
 		
