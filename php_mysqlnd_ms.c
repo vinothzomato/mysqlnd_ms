@@ -691,7 +691,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_shard, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_shard, 0, 0, 3)
 	ZEND_ARG_INFO(0, connection)
     ZEND_ARG_INFO(0, table)
 	ZEND_ARG_INFO(0, shard_key)
@@ -713,7 +713,7 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_global, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_global, 0, 0, 2)
 	ZEND_ARG_INFO(0, connection)
     ZEND_ARG_INFO(0, table)
 ZEND_END_ARG_INFO()
