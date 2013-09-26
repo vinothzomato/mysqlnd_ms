@@ -1,4 +1,4 @@
-1.6.1 alpha
+1.6.0 alpha
 
   Motto/theme: maintenance and MySQL Fabric
 
@@ -16,14 +16,6 @@
       void mysqlnd_ms_fabric_select_global(object $connection, string $tablename);
       array mysqlnd_ms_dump_servers(object $connection);
       array mysqlnd_ms_dump_fabric_hosts(object $connection);
-
-
-    EXPERIMENTAL, incomplete.
-
-1.6.0 alpha
-
-  Motto/theme: maintenance
-  Release date: TBD
 
   * Introduced automatic query retry for transient errrors.
 
