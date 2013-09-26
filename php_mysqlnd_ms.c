@@ -665,6 +665,11 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
 	}
+	
+	if (!(*conn_data)->fabric) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Connection is not configured to use MySQL Fabric");
+		RETURN_FALSE;
+	}
 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
@@ -688,6 +693,8 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 	}
 	
 	mysqlnd_fabric_free_server_list(tofree);
+	
+	RETURN_TRUE;
 	
 #ifdef JO_RESET_STGY	
 	(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
