@@ -64,7 +64,7 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 		return 1;
 	}
 	
-	fabric->hosts[fabric->host_count].hostname = hostname;
+	fabric->hosts[fabric->host_count].hostname = estrdup(hostname);
 	fabric->hosts[fabric->host_count].port = port;
 	fabric->host_count++;	
 	
@@ -74,7 +74,7 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
 	mysqlnd_fabric_server *retval = safe_emalloc(3, sizeof(mysqlnd_fabric_server), 0);
-	retval[0].hostname = "localhost";
+	retval[0].hostname = "127.0.0.1";
 	retval[0].port = 3306;
 	retval[0].server_uuid = "1234-5678-9012-3456";
 	retval[0].server_uuid = "0987-6543-2109-8765";

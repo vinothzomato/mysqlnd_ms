@@ -112,6 +112,15 @@ void mysqlnd_ms_client_n_php_error(MYSQLND_ERROR_INFO * error_info,
 								   unsigned int php_error_level TSRMLS_DC,
 								   const char * const format, ...);
 
+enum_func_status
+mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn, const char * name_from_config,
+							   zend_bool is_master,
+							   const char * host, unsigned int port, zend_llist * conn_list,
+							   struct st_mysqlnd_ms_conn_credentials * cred,
+							   struct st_mysqlnd_ms_global_trx_injection * global_trx,
+							   zend_bool lazy_connections,
+							   zend_bool persistent TSRMLS_DC);
+
 struct st_ms_token_and_value
 {
 	unsigned int token;

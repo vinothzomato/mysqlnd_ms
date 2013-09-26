@@ -25,12 +25,12 @@ struct struct_mysqlnd_fabric;
 typedef struct struct_mysqlnd_fabric mysqlnd_fabric;
 
 mysqlnd_fabric *mysqlnd_fabric_init();
-void mysqlnd_fabric_free();
+void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
 int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port);
 
 typedef struct {
 	char *hostname;
-	int port;
+	unsigned int port;
 	char *server_uuid;
 	char *group_uuid;
 } mysqlnd_fabric_server;

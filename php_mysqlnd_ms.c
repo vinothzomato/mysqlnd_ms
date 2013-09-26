@@ -643,15 +643,16 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 }
 /* }}} */
 
-static PHP_FUNCTION(mysqlndms_fabric_select_shard)
+static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 {
 	zval *conn_zv;
 	MYSQLND *conn;
 	char *table, *key;
-	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
-	mysqlnd_fabric_server *servers;
+	int table_len, key_len;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+	mysqlnd_fabric_server *servers, *tofree;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zss", &conn_zv, &table, &key) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zss", &conn_zv, &table, &table_len, &key, &key_len) == FAILURE) {
 		return;
 	}
 
@@ -665,9 +666,24 @@ static PHP_FUNCTION(mysqlndms_fabric_select_shard)
 		RETURN_FALSE;
 	}
 
-	servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, LOCAL);
-	
-	/* ... */
+	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, LOCAL);
+	zend_llist_clean(&(*conn_data)->master_connections);
+	zend_llist_clean(&(*conn_data)->slave_connections);
+	for (; servers->hostname; servers++) {
+		mysqlnd_ms_connect_to_host_aux(conn->data, mysqlnd_init(conn->data->persistent)->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+		mysqlnd_ms_connect_to_host_aux(conn->data, mysqlnd_init(conn->data->persistent)->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+	}
+	efree(tofree);
+#ifdef JO_RESET_STGY	
+	(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
+																	 &(*conn_data)->master_connections,
+																	 &(*conn_data)->slave_connections,
+																	 TRUE /* load all config persistently */ TSRMLS_CC);
+	if (!(*conn_data)->stgy.filters) {
+		DBG_RETURN(FAIL);
+	}
+	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+#endif
 }
 
 /* {{{ mysqlnd_ms_deps[] */
@@ -696,7 +712,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_get_last_gtid,	arginfo_mysqlnd_ms_get_last_gtid)
 	PHP_FE(mysqlnd_ms_set_qos,	arginfo_mysqlnd_ms_set_qos)
 #endif
-	PHP_FE(mysqlndms_fabric_select_shard, NULL)
+	PHP_FE(mysqlnd_ms_fabric_select_shard, NULL)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */

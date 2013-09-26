@@ -321,10 +321,10 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 
 
 /* {{{ mysqlnd_ms_connect_to_host_aux */
-static enum_func_status
+enum_func_status
 mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn, const char * name_from_config,
 							   zend_bool is_master,
-							   const char * host, zend_llist * conn_list,
+							   const char * host, unsigned int port, zend_llist * conn_list,
 							   struct st_mysqlnd_ms_conn_credentials * cred,
 							   struct st_mysqlnd_ms_global_trx_injection * global_trx,
 							   zend_bool lazy_connections,
@@ -366,7 +366,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 #endif
 		new_element->host = host? mnd_pestrdup(host, persistent) : NULL;
 		new_element->persistent = persistent;
-		new_element->port = cred->port;
+		new_element->port = port;
 
 		new_element->user = cred->user? mnd_pestrdup(cred->user, conn->persistent) : NULL;
 
@@ -560,7 +560,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 #endif
 			if (tmp_conn) {
 				enum_func_status status =
-					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, is_master, host, conn_list, &cred,
+					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, is_master, host, cred.port, conn_list, &cred,
 												   master_global_trx, lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
@@ -860,6 +860,7 @@ mysqlnd_ms_init_with_master_slave(struct st_mysqlnd_ms_config_json_entry * the_s
 static enum_func_status
 mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data TSRMLS_DC)
 {
+	mysqlnd_fabric *fabric;
 	zend_bool value_exists = FALSE;
 	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
@@ -867,7 +868,14 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	if (!value_exists) {
 		abort();
 	}
-
+	
+	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, MASTER_NAME, sizeof(MASTER_NAME)-1, 0 TSRMLS_CC)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Section [" MASTER_NAME "] exists. Ignored for MySQL Fabric based configuration");
+	}
+	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, SLAVE_NAME, sizeof(SLAVE_NAME)-1, 0 TSRMLS_CC)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Section [" SLAVE_NAME "] exists. Ignored for MySQL Fabric based configuration");
+	}
+	
 	hostlist_section = mysqlnd_ms_config_json_sub_section(fabric_section, "hosts", sizeof("hosts")-1, &value_exists TSRMLS_CC);
 	if (!value_exists) {
 		abort();
@@ -876,17 +884,26 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		abort();
 	}
         
-	mysqlnd_fabric *fabric = mysqlnd_fabric_init();
+	fabric = mysqlnd_fabric_init();
 	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
 		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
 		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
 		
 		mysqlnd_fabric_add_host(fabric, hostname, port);
-
+		efree(hostname);
 	}
 	
 	conn_data->fabric = fabric;
-        
+ 
+	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(fabric_section, &MYSQLND_MS_ERROR_INFO(conn),
+																	 &conn_data->master_connections,
+																	 &conn_data->slave_connections,
+																	 TRUE /* load all config persistently */ TSRMLS_CC);
+	if (!conn_data->stgy.filters) {
+		return FAIL;
+	}
+	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, fabric_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+	
 	return SUCCESS;
 }
 
@@ -1265,6 +1282,10 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 
 		if (TRANSIENT_ERROR_STRATEGY_ON == (*data_pp)->stgy.transient_error_strategy) {
 			zend_llist_clean(&((*data_pp)->stgy.transient_error_codes));
+		}
+		
+		if ((*data_pp)->fabric) {
+			mysqlnd_fabric_free((*data_pp)->fabric);
 		}
 
 		mnd_pefree(*data_pp, conn->persistent);
