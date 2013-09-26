@@ -21,6 +21,8 @@
 #ifndef MYSQLND_MS_ENUM_N_DEF_H
 #define MYSQLND_MS_ENUM_N_DEF_H
 
+#include "fabric/mysqlnd_fabric.h"
+
 #if MYSQLND_VERSION_ID < 50010 && !defined(MYSQLND_CONN_DATA_DEFINED)
 typedef MYSQLND MYSQLND_CONN_DATA;
 #endif
@@ -596,6 +598,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool report_error;
 	} global_trx;
 #endif
+	mysqlnd_fabric *fabric;
 } MYSQLND_MS_CONN_DATA;
 
 

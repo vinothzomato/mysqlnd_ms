@@ -643,6 +643,32 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 }
 /* }}} */
 
+static PHP_FUNCTION(mysqlndms_fabric_select_shard)
+{
+	zval *conn_zv;
+	MYSQLND *conn;
+	char *table, *key;
+	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
+	mysqlnd_fabric_server *servers;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zss", &conn_zv, &table, &key) == FAILURE) {
+		return;
+	}
+
+	if (!(conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn->data, mysqlnd_ms_plugin_id);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+	servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, LOCAL);
+	
+	/* ... */
+}
 
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
@@ -670,6 +696,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_get_last_gtid,	arginfo_mysqlnd_ms_get_last_gtid)
 	PHP_FE(mysqlnd_ms_set_qos,	arginfo_mysqlnd_ms_set_qos)
 #endif
+	PHP_FE(mysqlndms_fabric_select_shard, NULL)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */

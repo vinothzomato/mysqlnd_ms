@@ -851,6 +851,7 @@ mysqlnd_ms_init_with_master_slave(struct st_mysqlnd_ms_config_json_entry * the_s
 		DBG_RETURN(FAIL);
 	}
 	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+	conn_data->fabric = NULL;
         
         DBG_RETURN(ret);
 }
@@ -884,11 +885,9 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 
 	}
 	
-	mysqlnd_fabric_get_shard_servers(fabric, "table", "key", LOCAL);
-	
-	mysqlnd_fabric_free(fabric);
+	conn_data->fabric = fabric;
         
-	return FAIL;
+	return SUCCESS;
 }
 
 /* {{{ mysqlnd_ms::connect */
