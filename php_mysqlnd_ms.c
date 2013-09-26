@@ -283,7 +283,7 @@ static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 	zend_class_entry *root_ce;
 	
 	if (Z_TYPE_P(zv) != IS_OBJECT || !Z_OBJCE_P(zv)->parent) {
-		/* This an object or a non-inherited object, we can use the default implementation without hacks*/
+		/* This is not an object or it is a non-inherited object, we can use the default implementation without hacks */
 		return zval_to_mysqlnd(zv TSRMLS_CC);
 	}
 	
