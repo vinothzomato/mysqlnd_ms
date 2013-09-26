@@ -90,7 +90,6 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	
 	php_stream *stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
 	if (!stream) {
-		//php_stream_context_free(ctxt TSRMLS_CC);
 		efree(url);
 		efree(req);
 		
@@ -99,9 +98,10 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	
 	int len = php_stream_read(stream, foo, 4000);
 	foo[len] = '\0';
+	/* what happens with a response > 4000 bytes ... needs to be handled once we have the dump API */
 
 	php_stream_close(stream);
-	//php_stream_context_free(ctxt TSRMLS_CC);
+	
 	efree(url);
 	efree(req);
 	
