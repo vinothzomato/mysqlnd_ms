@@ -32,15 +32,15 @@
 static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 {
 	xmlXPathObjectPtr retval;
-    xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
-    if(xpathCtx == NULL) {
-        xmlFreeDoc(doc); 
-        return;
-    }
-    
-    retval = xmlXPathEvalExpression("//params/param/value/array/data/value[3]/array/data/value", xpathCtx);
+	xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
+	if(xpathCtx == NULL) {
+		xmlFreeDoc(doc); 
+		return;
+	}
+
+	retval = xmlXPathEvalExpression("//params/param/value/array/data/value[3]/array/data/value", xpathCtx);
 	xmlXPathFreeContext(xpathCtx); 
-	
+
 	return retval;
 }
 
@@ -48,15 +48,15 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 {
 	char *retval;
 	xmlXPathObjectPtr xpathObj = xpathObj = xmlXPathEvalExpression(xpath, xpathCtx);
-	
+
 	if (xpathObj == NULL) {
 		return NULL;
 	}
-	
+
 	retval = xpathObj->nodesetval->nodeTab[0]->children->content;
-	
+
 	xmlXPathFreeObject(xpathObj);
-	
+
 	return retval;
 }
 
@@ -64,17 +64,17 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 {
 	xmlXPathContextPtr xpathCtx = xmlXPathNewContext(node);
 	char *tmp;
-	
+
 	if (xpathCtx == NULL) {
 		return 1;
 	}
-	
+
 	tmp = myslqnd_fabric_get_actual_value("//array/data/value[1]/string", xpathCtx);
 	if (!tmp) {
 		xmlXPathFreeContext(xpathCtx);
 		return 1;
 	}
-	
+
 	server->uuid = estrdup(tmp);
 
 	tmp = myslqnd_fabric_get_actual_value("//array/data/value[2]/string", xpathCtx);
@@ -82,9 +82,9 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 		xmlXPathFreeContext(xpathCtx);
 		return 1;
 	}
-	
+
 	server->hostname = estrdup(tmp);
-	
+
 	tmp = strchr(server->hostname, ':');
 	*tmp = '\0';
 	server->port = atoi(&tmp[1]);
@@ -104,15 +104,15 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	}
 
 	xmlXPathFreeContext(xpathCtx);
-	
+
 	return 0;
 }
 
 mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 {
 	mysqlnd_fabric_server *retval;
-    xmlDocPtr doc;
-    xmlXPathObjectPtr xpathObj1;
+	xmlDocPtr doc;
+	xmlXPathObjectPtr xpathObj1;
 	int i;
 
 	LIBXML_TEST_VERSION
@@ -120,8 +120,8 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 
 	if (doc == NULL) {
 		return NULL;
-    }
-	
+	}
+
 	xpathObj1 = mysqlnd_fabric_find_value_nodes(doc);
 	if (!xpathObj1) {
 		xmlFreeDoc(doc);
@@ -143,14 +143,13 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 			return NULL;
 		}
 	}
-	
+
 	retval[i].hostname = NULL;
 	retval[i].port = 0;
-	
 
-    xmlXPathFreeObject(xpathObj1);
-    xmlFreeDoc(doc); 
-	
+	xmlXPathFreeObject(xpathObj1);
+	xmlFreeDoc(doc);
+
 	return retval;
 }
 
