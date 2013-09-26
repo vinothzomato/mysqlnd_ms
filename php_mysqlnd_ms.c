@@ -670,8 +670,14 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
 	for (; servers->hostname; servers++) {
-		mysqlnd_ms_connect_to_host_aux(conn->data, mysqlnd_init(conn->data->persistent)->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
-		mysqlnd_ms_connect_to_host_aux(conn->data, mysqlnd_init(conn->data->persistent)->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+		MYSQLND *master_conn = mysqlnd_init(conn->data->persistent);
+		MYSQLND *slave_conn = mysqlnd_init(conn->data->persistent);
+			
+		mysqlnd_ms_connect_to_host_aux(conn->data, master_conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+		mysqlnd_ms_connect_to_host_aux(conn->data, slave_conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, conn->data->persistent TSRMLS_CC);
+
+		master_conn->m->dtor(master_conn TSRMLS_CC);
+		slave_conn->m->dtor(slave_conn TSRMLS_CC);
 	}
 	efree(tofree);
 #ifdef JO_RESET_STGY	
