@@ -66,7 +66,7 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
 	char *url = NULL, *req = NULL;
-	char foo[4000];
+	char foo[4001];
 	TSRMLS_FETCH();
 	
 	spprintf(&url, 0, "http://%s:%d/", fabric->hosts[0].hostname, fabric->hosts[0].port);
@@ -78,20 +78,49 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	zval method, content;
 	ZVAL_STRING(&method, "POST", 0);
 	ZVAL_STRING(&content, req, 0);
+	
+	/* prevent anybody from freeing these */
+	Z_SET_ISREF(method);
+	Z_SET_ISREF(content);
+	Z_SET_REFCOUNT(method, 2);
+	Z_SET_REFCOUNT(content, 2);
+	
 	php_stream_context_set_option(ctxt, "http", "method", &method);
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	
 	php_stream *stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
-	int len = php_stream_read(stream, foo, 4000);
-//	printf("%s", foo);
-	php_stream_close(stream);
-	efree(url);
+	if (!stream) {
+		//php_stream_context_free(ctxt TSRMLS_CC);
+		efree(url);
+		efree(req);
+		
+		return NULL;
+	}
 	
+	int len = php_stream_read(stream, foo, 4000);
+	foo[len] = '\0';
+
+	php_stream_close(stream);
+	//php_stream_context_free(ctxt TSRMLS_CC);
+	efree(url);
 	efree(req);
 	
-	mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
-	
 	return mysqlnd_fabric_parse_xml(foo, len);
+}
+
+void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers)
+{
+	mysqlnd_fabric_server *pos;
+	
+	if (!servers) {
+		return;
+	}
+	
+	for (pos = servers; pos->hostname; pos++) {
+		efree(pos->hostname);
+		efree(pos->uuid);
+	}
+	efree(servers);
 }
 
 /*

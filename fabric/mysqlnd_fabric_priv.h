@@ -31,6 +31,8 @@ struct struct_mysqlnd_fabric {
 	mysqlnd_fabric_host hosts[10];
 };
 
+mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
+
 #endif	/* MYSQLND_FABRIC_PRIV_H */
 
 /*

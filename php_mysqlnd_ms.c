@@ -666,21 +666,29 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 		RETURN_FALSE;
 	}
 
-	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, LOCAL);
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
+	
+	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, LOCAL);
+	if (!servers) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Didn't receive usable servers from MySQL Fabric");
+		RETURN_FALSE;
+	}
+	
 	for (; servers->hostname; servers++) {
-		MYSQLND *conn = mysqlnd_init(conn->data->persistent);
+		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
 		
 		if (servers->master) {
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		}
-		
+
 		conn->m->dtor(conn TSRMLS_CC);
 	}
-	//efree(tofree);
+	
+	mysqlnd_fabric_free_server_list(tofree);
+	
 #ifdef JO_RESET_STGY	
 	(*conn_data)->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
 																	 &(*conn_data)->master_connections,

@@ -120,7 +120,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 
 	LIBXML_TEST_VERSION
 	doc = xmlParseMemory(xmlstr, xmlstr_len);
-	
+
 	if (doc == NULL) {
 		fprintf(stderr, "Error: unable to parse \n");
 		return NULL;
@@ -133,16 +133,19 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 		return NULL;
 	}
 	
+	if (!xpathObj1->nodesetval) {
+		printf("Didn't find value nodes 2\n");
+		/* Verbose debug info in /methodresponse/params/param/value/array/data/value[2]/array/data/value[3]/struct/member/value/string */
+		return NULL;
+	}
+	
 	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(mysqlnd_fabric_server), 0);
 	for (i = 0; i < xpathObj1->nodesetval->nodeNr; i++) {
 		if (mysqlnd_fabric_fill_server_from_value(xpathObj1->nodesetval->nodeTab[i], &retval[i])) {
 			return NULL;
 		}
-		
-		printf("%d: %s:%d (%s)\n", i, retval[i].hostname, retval[i].port, retval[i].master ? "master" : "slave");
 	}
 	
-	printf("%d\n", i);
 	retval[i].hostname = NULL;
 	retval[i].port = 0;
 	
