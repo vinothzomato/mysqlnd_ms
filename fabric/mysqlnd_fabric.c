@@ -27,6 +27,8 @@
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
+#include "ext/standard/php_rand.h"
+
 #define FABRIC_SHARD_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
 			"<methodCall><methodName>sharding.lookup_servers</methodName><params>\n" \
 			"<param><!-- table --><value><string>%s</string></value></param>\n" \
@@ -34,6 +36,25 @@
 			"<param><!-- hint --><value><string>%s</string></value></param>\n" \
 			"<param><!-- sync --><value><boolean>1</boolean></value></param></params>\n" \
 			"</methodCall>"
+
+static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
+{
+	TSRMLS_FETCH();
+	
+	if (!BG(mt_rand_is_seeded)) {
+		php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+	}
+	
+	if (n > 1) {
+		size_t i;
+		for (i = 0; i < n - 1; i++)  {
+			size_t j = i + php_mt_rand(TSRMLS_C) / (PHP_MT_RAND_MAX / (n - i) + 1);
+			mysqlnd_fabric_host t = a[j];
+			a[j] = a[i];
+			a[i] = t;
+		}
+	}
+}
 
 mysqlnd_fabric *mysqlnd_fabric_init()
 {
@@ -63,27 +84,16 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 	return 0;
 }
 
-mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
+static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *request_body)
 {
-	int len;
-	char *url = NULL, *req = NULL;
-	char foo[4001];
 	zval method, content, header;
 	php_stream_context *ctxt;
-	php_stream *stream;
+	php_stream *stream = NULL;
+	mysqlnd_fabric_host *server;
 	TSRMLS_FETCH();
 	
-	if (!fabric->host_count) {
-		return NULL;
-	}
-	
-	/* TODO: We shouldn't alwaysgo to host 0, and fallback to others on error */
-	spprintf(&url, 0, "http://%s:%d/", fabric->hosts[0].hostname, fabric->hosts[0].port);
-	
-	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
-	
 	ZVAL_STRING(&method, "POST", 0);
-	ZVAL_STRING(&content, req, 0);
+	ZVAL_STRING(&content, request_body, 0);
 	ZVAL_STRING(&header, "Content-type: application/x-www-form-urlencoded", 0);
 	
 	/* prevent anybody from freeing these */
@@ -98,12 +108,37 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	php_stream_context_set_option(ctxt, "http", "method", &method);
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	php_stream_context_set_option(ctxt, "http", "header", &header);
-	
-	stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
-	if (!stream) {
-		efree(url);
-		efree(req);
+
+	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count);
+	for (server = fabric->hosts; !stream && server < fabric->hosts  + fabric->host_count; server++) {
+		char *url = NULL;
 		
+		spprintf(&url, 0, "http://%s:%d/", server->hostname, server->port);
+	
+		/* TODO: Switch to quiet mode */
+		stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
+		efree(url);
+	};
+	
+	return stream;
+}
+
+mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
+{
+	int len;
+	char *req = NULL;
+	char foo[4001];
+	php_stream *stream;
+	
+	if (!fabric->host_count) {
+		return NULL;
+	}
+	
+	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
+
+	stream = mysqlnd_fabric_open_stream(fabric, req);
+	if (!stream) {
+		efree(req);
 		return NULL;
 	}
 	
@@ -113,7 +148,6 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 
 	php_stream_close(stream);
 	
-	efree(url);
 	efree(req);
 	
 	return mysqlnd_fabric_parse_xml(foo, len);
