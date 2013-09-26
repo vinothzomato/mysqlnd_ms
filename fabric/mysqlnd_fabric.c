@@ -39,17 +39,18 @@
 
 static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
 {
-	TSRMLS_FETCH();
-	
-	if (!BG(mt_rand_is_seeded)) {
-		php_mt_srand(GENERATE_SEED() TSRMLS_CC);
-	}
-	
 	if (n > 1) {
 		size_t i;
+		TSRMLS_FETCH();
+	
+		if (!BG(mt_rand_is_seeded)) {
+			php_mt_srand(GENERATE_SEED() TSRMLS_CC);
+		}
+
 		for (i = 0; i < n - 1; i++)  {
-			size_t j = i + php_mt_rand(TSRMLS_C) / (PHP_MT_RAND_MAX / (n - i) + 1);
+			size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
 			mysqlnd_fabric_host t = a[j];
+
 			a[j] = a[i];
 			a[i] = t;
 		}
@@ -109,7 +110,7 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	php_stream_context_set_option(ctxt, "http", "header", &header);
 
-	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count - 1);
+	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count);
 	for (server = fabric->hosts; !stream && server < fabric->hosts  + fabric->host_count; server++) {
 		char *url = NULL;
 		
