@@ -65,8 +65,12 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
+	int len;
 	char *url = NULL, *req = NULL;
 	char foo[4001];
+	zval method, content, header;
+	php_stream_context *ctxt;
+	php_stream *stream;
 	TSRMLS_FETCH();
 	
 	if (!fabric->host_count) {
@@ -78,8 +82,6 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	
 	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
 	
-	php_stream_context *ctxt = php_stream_context_alloc(TSRMLS_C);
-	zval method, content, header;
 	ZVAL_STRING(&method, "POST", 0);
 	ZVAL_STRING(&content, req, 0);
 	ZVAL_STRING(&header, "Content-type: application/x-www-form-urlencoded", 0);
@@ -92,11 +94,12 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	Z_SET_REFCOUNT(content, 2);
 	Z_SET_REFCOUNT(header, 2);
 	
+	ctxt = php_stream_context_alloc(TSRMLS_C);
 	php_stream_context_set_option(ctxt, "http", "method", &method);
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	php_stream_context_set_option(ctxt, "http", "header", &header);
 	
-	php_stream *stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
+	stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
 	if (!stream) {
 		efree(url);
 		efree(req);
@@ -104,7 +107,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 		return NULL;
 	}
 	
-	int len = php_stream_read(stream, foo, 4000);
+	len = php_stream_read(stream, foo, 4000);
 	foo[len] = '\0';
 	/* TODO: what happens with a response > 4000 bytes ... needs to be handled once we have the dump API */
 
