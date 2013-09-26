@@ -31,8 +31,8 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port);
 typedef struct {
 	char *hostname;
 	unsigned int port;
-	char *server_uuid;
-	char *group_uuid;
+	char *uuid;
+	int master;
 } mysqlnd_fabric_server;
 
 enum mysqlnd_fabric_hint {

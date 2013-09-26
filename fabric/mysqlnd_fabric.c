@@ -27,20 +27,12 @@
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
-#define FABRIC_SHARD_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>" \
-			"<methodCall><methodName>sharding.lookup_servers</methodName><params>" \
-			"<param><!-- table --><value><string>%s</string></value></param>" \
-			"<param><!-- shard key --><value><string>%s</string></value></param>" \
-			"<param><!-- hint --><value><string>%s</string></value></param>" \
-			"<param><!-- sync --><value><boolean>0</boolean></value></param></params>" \
-			"</methodCall>"
-
-#define FABRIC_GROUP_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>" \
-			"<methodCall><methodName>roup.lookup_servers</methodName><params>" \
-			"<param><!-- group --><value><string>%s</string></value></param>" \
-			"<param><!-- uuid --><value><boolean>0</boolean></value></param>" \
-			"<param><!-- status --><value><boolean>0</boolean></value></param>" \
-			"<param><!-- sync --><value><boolean>0</boolean></value></param></params>" \
+#define FABRIC_SHARD_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
+			"<methodCall><methodName>sharding.lookup_servers</methodName><params>\n" \
+			"<param><!-- table --><value><string>%s</string></value></param>\n" \
+			"<param><!-- shard key --><value><string>%s</string></value></param>\n" \
+			"<param><!-- hint --><value><string>%s</string></value></param>\n" \
+			"<param><!-- sync --><value><boolean>1</boolean></value></param></params>\n" \
 			"</methodCall>"
 
 mysqlnd_fabric *mysqlnd_fabric_init()
@@ -73,23 +65,12 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
-	mysqlnd_fabric_server *retval = safe_emalloc(3, sizeof(mysqlnd_fabric_server), 0);
-	retval[0].hostname = "127.0.0.1";
-	retval[0].port = 3306;
-	retval[0].server_uuid = "1234-5678-9012-3456";
-	retval[0].server_uuid = "0987-6543-2109-8765";
-	retval[1] = retval[0];
-	retval[2].hostname = 0;
-	retval[2].port = 0;
-	
-	return retval;
-#ifdef J0
 	char *url = NULL, *req = NULL;
-	char foo[1000];
+	char foo[4000];
 	spprintf(&url, 0, "http://%s:%d/", fabric->hosts[0].hostname, fabric->hosts[0].port);
 	
 	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key, hint == LOCAL ? "LOCAL" : "GLOBAL");
-	printf("%s", req);
+//	printf("%s", req);
 	
 	php_stream_context *ctxt = php_stream_context_alloc(TSRMLS_C);
 	zval method, content;
@@ -99,14 +80,16 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	
 	php_stream *stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
-	php_stream_read(stream, foo, 1000);
-	printf("%s", foo);
+	int len = php_stream_read(stream, foo, 4000);
+//	printf("%s", foo);
 	php_stream_close(stream);
 	efree(url);
 	
 	efree(req);
-	return NULL;
-#endif
+	
+	mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
+	
+	return mysqlnd_fabric_parse_xml(foo, len);
 }
 
 /*
