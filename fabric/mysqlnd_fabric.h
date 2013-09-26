@@ -28,6 +28,10 @@ mysqlnd_fabric *mysqlnd_fabric_init();
 void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
 int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port);
 
+typedef void(*mysqlnd_fabric_apply_func)(const char *hostname, unsigned int port, void *data);
+
+int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_apply_func cb, void *data);
+
 typedef struct {
 	char *hostname;
 	unsigned int port;

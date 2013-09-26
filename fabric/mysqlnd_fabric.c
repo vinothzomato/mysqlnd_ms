@@ -82,6 +82,15 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 	return 0;
 }
 
+int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_apply_func cb, void *data)
+{
+	int i;
+	for (i = 0; i < fabric->host_count; ++i) {
+		cb(fabric->hosts[i].hostname, fabric->hosts[i].port, data);
+	}
+	return i;
+}
+
 static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *request_body)
 {
 	zval method, content, header;

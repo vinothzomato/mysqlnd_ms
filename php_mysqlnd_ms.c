@@ -792,6 +792,51 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 }
 /* }}} */
 
+static void mysqlnd_ms_dump_fabric_hosts_cb(const char *hostname, unsigned int port, void *data)
+{
+	zval *item;
+	zval *return_value = (zval*)data;
+	
+	MAKE_STD_ZVAL(item);
+	array_init(item);
+	add_assoc_string(item, "hostname", hostname, 1);
+	add_assoc_long(item, "port", port);
+	
+	add_next_index_zval(return_value,  item);
+}
+
+/* {{{ proto long mysqlnd_ms_dump_fabric_hosts(mixed connection)
+   Dump configured master and slave servers */
+static PHP_FUNCTION(mysqlnd_ms_dump_fabric_hosts)
+{
+	zval *conn_zv;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
+		return;
+	}
+
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn->data, mysqlnd_ms_plugin_id);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+	
+	if (!(*conn_data)->fabric) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No MySQL Fabric connection");
+		RETURN_FALSE;
+	}
+
+	array_init(return_value);
+	mysqlnd_fabric_host_list_apply((*conn_data)->fabric, mysqlnd_ms_dump_fabric_hosts_cb, return_value);
+}
+/* }}} */
+
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
@@ -821,6 +866,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_fabric_select_shard, arginfo_mysqlnd_ms_fabric_select_shard)
 	PHP_FE(mysqlnd_ms_fabric_select_global, arginfo_mysqlnd_ms_fabric_select_global)
 	PHP_FE(mysqlnd_ms_dump_servers, arginfo_mysqlnd_ms_dump_servers)
+	PHP_FE(mysqlnd_ms_dump_fabric_hosts, arginfo_mysqlnd_ms_dump_servers)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
