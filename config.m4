@@ -7,7 +7,16 @@ PHP_ARG_ENABLE(mysqlnd_ms_cache_support, whether to query caching through mysqln
 [  --enable-mysqlnd-ms-cache-support   Enable query caching through mysqlnd_qc (BETA for mysqli - try!, EXPERIMENTAL for all other - do not use!)], no, 
 no)
 
+if test -z "$PHP_LIBXML_DIR"; then
+  PHP_ARG_WITH(libxml-dir, libxml2 install dir,
+    [  --with-libxml-dir=DIR     mysqlnd_ms: libxml2 install prefix], no, no)
+fi
+
 if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
+  if test "$PHP_LIBXML" = "no"; then
+    AC_MSG_ERROR([mysqlnd_ms requires LIBXML extension])
+  fi
+
   PHP_SUBST(MYSQLND_MS_SHARED_LIBADD)
 
   mysqlnd_ms_sources="php_mysqlnd_ms.c mysqlnd_ms.c mysqlnd_ms_switch.c mysqlnd_ms_config_json.c \
@@ -29,8 +38,12 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
     AC_DEFINE([MYSQLND_MS_HAVE_MYSQLND_QC], 1, [Whether mysqlnd_qc is enabled])
   fi
 
-  PHP_ADD_EXTENSION_DEP(mysqlnd_ms, mysqlnd)
-  PHP_ADD_EXTENSION_DEP(mysqlnd_ms, json)
-  PHP_NEW_EXTENSION(mysqlnd_ms, $mysqlnd_ms_sources, $ext_shared)
-  PHP_INSTALL_HEADERS([ext/mysqlnd_ms/])
+  PHP_SETUP_LIBXML(XMLWRITER_SHARED_LIBADD, [
+    PHP_ADD_EXTENSION_DEP(mysqlnd_ms, mysqlnd)
+    PHP_ADD_EXTENSION_DEP(mysqlnd_ms, json)
+    PHP_NEW_EXTENSION(mysqlnd_ms, $mysqlnd_ms_sources, $ext_shared)
+    PHP_INSTALL_HEADERS([ext/mysqlnd_ms/])
+  ], [
+    AC_MSG_ERROR([xml2-config not found. Please check your libxml2 installation.])
+  ])
 fi
