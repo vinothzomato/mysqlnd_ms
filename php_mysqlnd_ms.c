@@ -278,7 +278,7 @@ static PHP_FUNCTION(mysqlnd_ms_match_wild)
 #if PHP_VERSION_ID > 50399
 
 #if PHP_VERSION_ID < 50418 || PHP_VERSION_ID == 50500
-static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC)
+static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 {
 	zend_class_entry *root_ce;
 	
@@ -309,11 +309,13 @@ static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC)
 		return zval_to_mysqlnd(zv TSRMLS_CC);
 	}
 }
+/* }}} */
 #else /* PHP_VERSION_ID < 50418 || PHP_VERSION_ID == 50500 */
-static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC)
+static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 {
 	return zval_to_mysqlnd(zv TSRMLS_CC);
 }
+/* }}} */
 #endif
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_get_last_used_connection, 0, 0, 1)
@@ -792,7 +794,7 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 }
 /* }}} */
 
-static void mysqlnd_ms_dump_fabric_hosts_cb(const char *hostname, unsigned int port, void *data)
+static void mysqlnd_ms_dump_fabric_hosts_cb(const char *hostname, unsigned int port, void *data) /* {{{ */
 {
 	zval *item;
 	zval *return_value = (zval*)data;
@@ -804,6 +806,7 @@ static void mysqlnd_ms_dump_fabric_hosts_cb(const char *hostname, unsigned int p
 	
 	add_next_index_zval(return_value,  item);
 }
+/* }}} */
 
 /* {{{ proto long mysqlnd_ms_dump_fabric_hosts(mixed connection)
    Dump configured master and slave servers */
