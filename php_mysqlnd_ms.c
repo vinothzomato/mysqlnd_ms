@@ -734,6 +734,61 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_global)
 }
 /* }}} */
 
+static void mysqlnd_ms_add_server_to_array(void *data, void *arg TSRMLS_DC) /* {{{ */
+{
+	zval *host;
+	MYSQLND_MS_LIST_DATA *element = (MYSQLND_MS_LIST_DATA *)data;
+	zval *array = (zval *)arg;
+	
+	MAKE_STD_ZVAL(host);
+	array_init(host);
+	add_assoc_string(host, "hostname", element->host, 1);
+	add_assoc_long(host, "port", element->port);
+	
+	add_next_index_zval(array, host);
+}
+/* }}} */
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_dump_servers, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto long mysqlnd_ms_dump_servers(mixed connection)
+   Dump configured master and slave servers */
+static PHP_FUNCTION(mysqlnd_ms_dump_servers)
+{
+	zval *conn_zv, *master, *slaves;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
+		return;
+	}
+
+	if (!(conn = zval_to_mysqlnd(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn->data, mysqlnd_ms_plugin_id);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+	
+	MAKE_STD_ZVAL(master);
+	MAKE_STD_ZVAL(slaves);
+	array_init(master);
+	array_init(slaves);
+	
+	zend_llist_apply_with_argument(&(*conn_data)->master_connections, mysqlnd_ms_add_server_to_array, master);
+	zend_llist_apply_with_argument(&(*conn_data)->slave_connections, mysqlnd_ms_add_server_to_array, slaves);
+	
+	array_init(return_value);
+	add_assoc_zval(return_value, "master", master);
+	add_assoc_zval(return_value, "slaves", slaves);
+}
+/* }}} */
+
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
@@ -762,6 +817,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 #endif
 	PHP_FE(mysqlnd_ms_fabric_select_shard, arginfo_mysqlnd_ms_fabric_select_shard)
 	PHP_FE(mysqlnd_ms_fabric_select_global, arginfo_mysqlnd_ms_fabric_select_global)
+	PHP_FE(mysqlnd_ms_dump_servers, arginfo_mysqlnd_ms_dump_servers)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
