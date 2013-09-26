@@ -1,3 +1,25 @@
+1.6.1 alpha
+
+  Motto/theme: maintenance and MySQL Fabric
+
+  * Introduced initial support for MySQL Fabric. 
+
+    MySQL Fabric is an integrated framework for managing farms of MySQL servers
+    with support for both high-availability and sharding.
+
+    This release adds premilary support for Faric-based sharding setups. Please
+    see README.fabric for details.
+
+    New configuration object: fabric
+    New functions:
+      void mysqlnd_ms_fabric_select_shard(object $connection, string $tablename, string $shard_key);
+      void mysqlnd_ms_fabric_select_global(object $connection, string $tablename);
+      array mysqlnd_ms_dump_servers(object $connection);
+      array mysqlnd_ms_dump_fabric_hosts(object $connection);
+
+
+    EXPERIMENTAL, incomplete.
+
 1.6.0 alpha
 
   Motto/theme: maintenance
