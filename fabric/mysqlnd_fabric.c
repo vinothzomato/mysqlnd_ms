@@ -95,7 +95,7 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	
 	ZVAL_STRING(&method, "POST", 0);
 	ZVAL_STRING(&content, request_body, 0);
-	ZVAL_STRING(&header, "Content-type: application/x-www-form-urlencoded", 0);
+	ZVAL_STRING(&header, "Content-type: text/xml", 0);
 	
 	/* prevent anybody from freeing these */
 	Z_SET_ISREF(method);
