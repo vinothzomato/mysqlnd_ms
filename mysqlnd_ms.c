@@ -902,14 +902,14 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	
 	conn_data->fabric = fabric;
  
-	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(fabric_section, &MYSQLND_MS_ERROR_INFO(conn),
+	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(group_section, &MYSQLND_MS_ERROR_INFO(conn),
 																	 &conn_data->master_connections,
 																	 &conn_data->slave_connections,
 																	 TRUE /* load all config persistently */ TSRMLS_CC);
 	if (!conn_data->stgy.filters) {
 		return FAIL;
 	}
-	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, fabric_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, group_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
 	
 	return SUCCESS;
 }
