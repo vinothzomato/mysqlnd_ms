@@ -136,6 +136,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 	if (!xpathObj1->nodesetval) {
 		printf("Didn't find value nodes 2\n");
 		/* Verbose debug info in /methodresponse/params/param/value/array/data/value[2]/array/data/value[3]/struct/member/value/string */
+		xmlFreeDoc(doc);
 		return NULL;
 	}
 	
