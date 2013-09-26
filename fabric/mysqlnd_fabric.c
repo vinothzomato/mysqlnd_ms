@@ -69,10 +69,14 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	char foo[4001];
 	TSRMLS_FETCH();
 	
+	if (!fabric->host_count) {
+		return NULL;
+	}
+	
+	/* TODO: We shouldn't alwaysgo to host 0, and fallback to others on error */
 	spprintf(&url, 0, "http://%s:%d/", fabric->hosts[0].hostname, fabric->hosts[0].port);
 	
 	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key, hint == LOCAL ? "LOCAL" : "GLOBAL");
-//	printf("%s", req);
 	
 	php_stream_context *ctxt = php_stream_context_alloc(TSRMLS_C);
 	zval method, content;
@@ -98,7 +102,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	
 	int len = php_stream_read(stream, foo, 4000);
 	foo[len] = '\0';
-	/* what happens with a response > 4000 bytes ... needs to be handled once we have the dump API */
+	/* TODO: what happens with a response > 4000 bytes ... needs to be handled once we have the dump API */
 
 	php_stream_close(stream);
 	

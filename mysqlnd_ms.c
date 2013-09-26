@@ -864,9 +864,11 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	zend_bool value_exists = FALSE;
 	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
-        
+    
+	conn_data->fabric = NULL;
+	
 	if (!value_exists) {
-		abort();
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "MySQL Fabric configuration detected but no Faric section found. This is a bug, please report. Terminating");
 	}
 	
 	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, MASTER_NAME, sizeof(MASTER_NAME)-1, 0 TSRMLS_CC)) {
@@ -878,10 +880,13 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	
 	hostlist_section = mysqlnd_ms_config_json_sub_section(fabric_section, "hosts", sizeof("hosts")-1, &value_exists TSRMLS_CC);
 	if (!value_exists) {
-		abort();
+		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Section [hosts] doesn't exist for host. This is needed for MySQL Fabric");
 	}
+	
 	if (!mysqlnd_ms_config_json_section_is_list(hostlist_section TSRMLS_CC)) {
-		abort();
+		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+					MYSQLND_MS_ERROR_PREFIX " Section [hosts] exists but no list. This is needed for MySQL Fabric");
 	}
         
 	fabric = mysqlnd_fabric_init();
@@ -889,8 +894,10 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
 		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
 		
-		mysqlnd_fabric_add_host(fabric, hostname, port);
-		efree(hostname);
+		if (hostname) {
+			mysqlnd_fabric_add_host(fabric, hostname, port);
+			efree(hostname);
+		}
 	}
 	
 	conn_data->fabric = fabric;
