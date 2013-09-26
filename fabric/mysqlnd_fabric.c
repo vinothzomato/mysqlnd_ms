@@ -47,7 +47,7 @@ static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
 	}
 
 	for (i = 0; i < n - 1; i++)  {
-		size_t j = i +  php_rand(TSRMLS_C) / (RAND_MAX / (n - i) + 1);
+		size_t j = i +  rand(TSRMLS_C) / (RAND_MAX / (n - i) + 1);
 		mysqlnd_fabric_host t = a[j];
 
 		a[j] = a[i];
