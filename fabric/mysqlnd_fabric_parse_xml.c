@@ -136,6 +136,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 	if (!xpathObj1->nodesetval) {
 		printf("Didn't find value nodes 2\n");
 		/* Verbose debug info in /methodresponse/params/param/value/array/data/value[2]/array/data/value[3]/struct/member/value/string */
+		xmlXPathFreeObject(xpathObj1);
 		xmlFreeDoc(doc);
 		return NULL;
 	}
@@ -143,6 +144,8 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(mysqlnd_fabric_server), 0);
 	for (i = 0; i < xpathObj1->nodesetval->nodeNr; i++) {
 		if (mysqlnd_fabric_fill_server_from_value(xpathObj1->nodesetval->nodeTab[i], &retval[i])) {
+			xmlXPathFreeObject(xpathObj1);
+			xmlFreeDoc(doc);
 			return NULL;
 		}
 	}
