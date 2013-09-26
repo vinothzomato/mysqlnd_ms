@@ -67,6 +67,8 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 {
 	char *url = NULL, *req = NULL;
 	char foo[4000];
+	TSRMLS_FETCH();
+	
 	spprintf(&url, 0, "http://%s:%d/", fabric->hosts[0].hostname, fabric->hosts[0].port);
 	
 	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key, hint == LOCAL ? "LOCAL" : "GLOBAL");
