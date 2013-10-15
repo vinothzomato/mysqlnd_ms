@@ -164,7 +164,7 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 		mysqlnd_ms_json_config = mysqlnd_ms_config_json_init(TSRMLS_C);
 	}
 
-	REGISTER_STRING_CONSTANT("MYSQLND_MS_VERSION", MYSQLND_MS_VERSION, CONST_CS | CONST_PERSISTENT);
+	REGISTER_STRING_CONSTANT("MYSQLND_MS_VERSION", PHP_MYSQLND_MS_VERSION, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_VERSION_ID", MYSQLND_MS_VERSION_ID, CONST_CS | CONST_PERSISTENT);
 
 	REGISTER_STRING_CONSTANT("MYSQLND_MS_MASTER_SWITCH", MASTER_SWITCH, CONST_CS | CONST_PERSISTENT);
@@ -222,7 +222,7 @@ PHP_MINFO_FUNCTION(mysqlnd_ms)
 
 	php_info_print_table_start();
 	php_info_print_table_header(2, "mysqlnd_ms support", "enabled");
-	snprintf(buf, sizeof(buf), "%s (%d)", MYSQLND_MS_VERSION, MYSQLND_MS_VERSION_ID);
+	snprintf(buf, sizeof(buf), "%s (%d)", PHP_MYSQLND_MS_VERSION, MYSQLND_MS_VERSION_ID);
 	php_info_print_table_row(2, "Mysqlnd master/slave plugin version", buf);
 	php_info_print_table_row(2, "Plugin active", MYSQLND_MS_G(enable) ? "yes" : "no");
 #if PHP_VERSION_ID >= 50399
@@ -887,7 +887,7 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	PHP_RINIT(mysqlnd_ms),
 	PHP_RSHUTDOWN(mysqlnd_ms),
 	PHP_MINFO(mysqlnd_ms),
-	MYSQLND_MS_VERSION,
+	PHP_MYSQLND_MS_VERSION,
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
 	PHP_GINIT(mysqlnd_ms),
 	NULL,
