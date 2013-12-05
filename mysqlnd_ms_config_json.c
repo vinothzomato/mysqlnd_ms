@@ -248,7 +248,7 @@ mysqlnd_ms_config_json_load_configuration(struct st_mysqlnd_ms_json_config * cfg
 				mnd_sprintf(&(MYSQLND_MS_G(config_startup_error)), 0, MYSQLND_MS_ERROR_PREFIX
 								" Failed to open server list config file [%s]", json_file_name);
 				/* The only one to bark in RINIT as otherwise no specific warning/error appears */
-				php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_G(config_startup_error));
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", MYSQLND_MS_G(config_startup_error));
 				break;
 			}
 			str_data_len = php_stream_copy_to_mem(stream, &str_data, PHP_STREAM_COPY_ALL, 0);
