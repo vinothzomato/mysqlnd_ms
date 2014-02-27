@@ -84,6 +84,7 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 Transient error retries: 0
 Transient error retries: 0
+Transient error retries: 0
 [006] [1062] %s
 Transient error retries: 5
 [008] [1146] %s

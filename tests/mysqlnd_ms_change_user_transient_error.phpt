@@ -37,12 +37,18 @@ mysqlnd_ms.collect_statistics=1
 	$stats =  mysqlnd_ms_get_stats();
 	printf("Transient error retries: %d\n", $stats['transient_error_retries']);
 
-	if (!$link->change_user("letmebe", "unknown", "whatever")) {
+	if (!@$link->change_user("letmebe", "unknown", "whatever")) {
 		printf("[002] [%d] %s\n", $link->errno, $link->error);
 	}
 
 	$stats =  mysqlnd_ms_get_stats();
 	printf("Transient error retries: %d\n", $stats['transient_error_retries']);
+	if ($stats['transient_error_retries'] < 3) {
+		/* Can be 3 or 4. Until at least MySQL 5.6.10 a failed change user call did not close
+		the line. Some later versions close the line. If the line is closed, there will
+		be less retries. */
+		printf("[003] There should be 3 or 4 retries depending on the server version.");
+	}
 
 	print "done!";
 ?>
@@ -54,6 +60,5 @@ mysqlnd_ms.collect_statistics=1
 --EXPECTF--
 Transient error retries: 0
 [002] [1045] %s
-Transient error retries: 4
+Transient error retries: %d
 done!
-

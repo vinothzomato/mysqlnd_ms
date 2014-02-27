@@ -78,6 +78,6 @@ var_dump($pdo->quote("a"));
 --EXPECTF--
 Fatal error: Uncaught exception 'PDOException' with message 'SQLSTATE[HY000] [2019] Unknown character set' in %s:%d
 Stack trace:
-#0 %s(%d): PDO->__construct('mysql:host=%s', '%s', '%s')
+#0 %s(%d): PDO->__construct('mysql:host=%s', '%s', '%A')
 #1 {main}
   thrown in %s on line 5

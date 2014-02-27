@@ -59,7 +59,17 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_change_user_fail.ini
 	if (!$link->change_user($user, $passwd, 'please_do_no_create_such_db'))
 	  printf("[006] Failed to change user, [%d] %s\n", $link->errno, $link->error);
 
+
+	if (!@$link->query("SELECT 1") && (2006 == $link->errno)) {
+	  /* Server changed its behaviour sometime between 5.6.10 and 5.6.16.
+	  A failed change user now shuts down the line. Upto 5.6.10 it just failed but
+	  the connection was not killed. Can't do anything about it, ... ignore....
+	  */
+	  die("done!");
+	}
+
 	$res = mst_mysqli_query(7, $link, "SELECT @myrole AS _role, DATABASE() as _database");
+
 	if (!$row = $res->fetch_assoc())
 		printf("[008] [%d] %s\n", $link->errno, $link->error);
 
