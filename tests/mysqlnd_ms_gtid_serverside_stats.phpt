@@ -18,7 +18,7 @@ if (is_string($ret))
 	die(sprintf("SKIP Failed to check if server has built-in GTID support, %s\n", $ret));
 
 if (true != $ret)
-	die(sprintf("SKIP Server has no built-in GTID support"));
+	die(sprintf("SKIP Server has no built-in GTID support (want MySQL 5.6.16+)"));
 
 $ret = mst_is_slave_of($slave_host_only, $slave_port, $slave_socket, $master_host_only, $master_port, $master_socket, $user, $passwd, $db);
 if (is_string($ret))
@@ -45,9 +45,9 @@ $settings = array(
 		),
 
 		'global_transaction_id_injection' => array(
-			'select'					=> "SELECT @@GLOBAL.GTID_DONE",
-			"fetch_last_gtid"			=> "SELECT @@GLOBAL.GTID_DONE AS trx_id FROM DUAL",
-			"check_for_gtid"			=> "SELECT GTID_SUBSET('#GTID', @@GLOBAL.GTID_DONE) AS trx_id FROM DUAL",
+			'select'					=> "SELECT @@GLOBAL.GTID_EXECUTED",
+			"fetch_last_gtid"			=> "SELECT @@GLOBAL.GTID_EXECUTED AS trx_id FROM DUAL",
+			"check_for_gtid"			=> "SELECT GTID_SUBSET('#GTID', @@GLOBAL.GTID_EXECUTED) AS trx_id FROM DUAL",
 			'report_errors'				=> true,
 		),
 
