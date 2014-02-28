@@ -620,7 +620,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 
 #ifdef MYSQLND_MS_HAVE_MYSQLND_QC
 						if (QOS_OPTION_CACHE == filter_data->option) {
-							if ((lag > 0) && (lag < filter_data->option_data.ttl)) {
+							if ((lag >= 0) && (lag < filter_data->option_data.ttl)) {
 								if ((filter_data->option_data.ttl - lag) < ttl) {
 									ttl = (filter_data->option_data.ttl - lag);
 								}
@@ -630,7 +630,7 @@ mysqlnd_ms_choose_connection_qos(MYSQLND_CONN_DATA * conn, void * f_data, const 
 						}
 #endif
 						/* Must be QOS_OPTION_AGE */
-						if ((lag > 0) && (lag <= filter_data->option_data.age)) {
+						if ((lag >= 0) && (lag <= filter_data->option_data.age)) {
 							zend_llist_add_element(selected_slaves, &element);
 						}
 					END_ITERATE_OVER_SERVER_LIST;
