@@ -768,11 +768,11 @@ mysqlnd_ms_connect_load_charset(MYSQLND_MS_CONN_DATA ** conn_data, struct st_mys
 
 /* {{{ mysqlnd_ms_init_with_master_slave */
 static enum_func_status
-mysqlnd_ms_init_with_master_slave(struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data TSRMLS_DC)
+mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data, const char * host TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
-        DBG_ENTER("mysqlnd_ms_init_with_master_slave");
-        
+        DBG_ENTER("mysqlnd_ms_init_without_fabric");
+
 	zend_bool use_lazy_connections = TRUE;
 	/* create master connection */
 
@@ -804,7 +804,7 @@ mysqlnd_ms_init_with_master_slave(struct st_mysqlnd_ms_config_json_entry * the_s
 			size_t sect_len = strlen(sects_to_check[i]);
 			if (FALSE == mysqlnd_ms_config_json_sub_section_exists(the_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
 				mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-					MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host", sects_to_check[i]);
+					MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for host [%s]", sects_to_check[i], host);
 			}
 		}
 	}
@@ -852,7 +852,7 @@ mysqlnd_ms_init_with_master_slave(struct st_mysqlnd_ms_config_json_entry * the_s
 	}
 	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
 	conn_data->fabric = NULL;
-        
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -864,48 +864,48 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	zend_bool value_exists = FALSE;
 	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
-    
+
 	conn_data->fabric = NULL;
-	
+
 	if (!value_exists) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "MySQL Fabric configuration detected but no Faric section found. This is a bug, please report. Terminating");
 	}
-	
+
 	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, MASTER_NAME, sizeof(MASTER_NAME)-1, 0 TSRMLS_CC)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Section [" MASTER_NAME "] exists. Ignored for MySQL Fabric based configuration");
 	}
 	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, SLAVE_NAME, sizeof(SLAVE_NAME)-1, 0 TSRMLS_CC)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Section [" SLAVE_NAME "] exists. Ignored for MySQL Fabric based configuration");
 	}
-	
+
 	hostlist_section = mysqlnd_ms_config_json_sub_section(fabric_section, "hosts", sizeof("hosts")-1, &value_exists TSRMLS_CC);
 	if (!value_exists) {
 		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 					MYSQLND_MS_ERROR_PREFIX " Section [hosts] doesn't exist for host. This is needed for MySQL Fabric");
 	}
-	
+
 	if (!mysqlnd_ms_config_json_section_is_list(hostlist_section TSRMLS_CC)) {
 		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 					MYSQLND_MS_ERROR_PREFIX " Section [hosts] exists but no list. This is needed for MySQL Fabric");
 	}
-	
+
 	if (FAIL == mysqlnd_ms_connect_load_charset(&conn_data, group_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC)) {
 		return FAIL;
 	}
-        
+
 	fabric = mysqlnd_fabric_init();
 	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
 		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
 		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
-		
+
 		if (hostname) {
 			mysqlnd_fabric_add_host(fabric, hostname, port);
 			efree(hostname);
 		}
 	}
-	
+
 	conn_data->fabric = fabric;
- 
+
 	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(group_section, &MYSQLND_MS_ERROR_INFO(conn),
 																	 &conn_data->master_connections,
 																	 &conn_data->slave_connections,
@@ -914,7 +914,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		return FAIL;
 	}
 	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, group_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
-	
+
 	return SUCCESS;
 }
 
@@ -1004,7 +1004,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		if (mysqlnd_ms_config_json_sub_section_exists(the_section, "fabric", sizeof("fabric")-1, 0 TSRMLS_CC)) {
 			ret = mysqlnd_ms_init_with_fabric(the_section, conn, *conn_data TSRMLS_CC);
 		} else {
-			ret = mysqlnd_ms_init_with_master_slave(the_section, conn, *conn_data TSRMLS_CC);
+			ret = mysqlnd_ms_init_without_fabric(the_section, conn, *conn_data, host TSRMLS_CC);
 		}
 
 		mysqlnd_ms_config_json_reset_section(the_section, TRUE TSRMLS_CC);
@@ -1012,7 +1012,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		if (!hotloading) {
 			MYSQLND_MS_CONFIG_JSON_UNLOCK(mysqlnd_ms_json_config);
 		}
-                
+
                 if (ret == PASS) {
         		(*conn_data)->connect_host = host? mnd_pestrdup(host, conn->persistent) : NULL;
                 }
@@ -1294,7 +1294,7 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 		if (TRANSIENT_ERROR_STRATEGY_ON == (*data_pp)->stgy.transient_error_strategy) {
 			zend_llist_clean(&((*data_pp)->stgy.transient_error_codes));
 		}
-		
+
 		if ((*data_pp)->fabric) {
 			mysqlnd_fabric_free((*data_pp)->fabric);
 		}

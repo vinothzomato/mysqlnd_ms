@@ -79,6 +79,10 @@ Version: 1.6.0-alpha
 Dependencies:
 %s
 Functions:
+  mysqlnd_ms_dump_fabric_hosts
+  mysqlnd_ms_dump_servers
+  mysqlnd_ms_fabric_select_global
+  mysqlnd_ms_fabric_select_shard
   mysqlnd_ms_get_last_used_connection
   mysqlnd_ms_get_stats
   mysqlnd_ms_match_wild

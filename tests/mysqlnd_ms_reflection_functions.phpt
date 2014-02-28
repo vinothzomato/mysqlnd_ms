@@ -38,6 +38,29 @@ if (version_compare(PHP_VERSION, '5.3.99', "<")) {
 ?>
 --EXPECTF--
 Functions:
+  mysqlnd_ms_dump_fabric_hosts
+    Deprecated: no
+    Accepted parameters: 1
+    Required parameters: 1
+      Parameter #0 [ <required> $connection ]
+  mysqlnd_ms_dump_servers
+    Deprecated: no
+    Accepted parameters: 1
+    Required parameters: 1
+      Parameter #0 [ <required> $connection ]
+  mysqlnd_ms_fabric_select_global
+    Deprecated: no
+    Accepted parameters: 2
+    Required parameters: 2
+      Parameter #0 [ <required> $connection ]
+      Parameter #1 [ <required> $table ]
+  mysqlnd_ms_fabric_select_shard
+    Deprecated: no
+    Accepted parameters: 3
+    Required parameters: 3
+      Parameter #0 [ <required> $connection ]
+      Parameter #1 [ <required> $table ]
+      Parameter #2 [ <required> $shard_key ]
   mysqlnd_ms_get_last_used_connection
     Deprecated: no
     Accepted parameters: 1

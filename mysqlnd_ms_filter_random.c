@@ -86,7 +86,7 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 																	&current_subsection_name,
 																	&current_subsection_name_len,
 																	NULL TSRMLS_CC);
-					if (!subsection) {
+					if (!subsection || !current_subsection_name_len) {
 						break;
 					}
 

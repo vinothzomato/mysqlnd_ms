@@ -281,22 +281,22 @@ static PHP_FUNCTION(mysqlnd_ms_match_wild)
 static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 {
 	zend_class_entry *root_ce;
-	
+
 	if (Z_TYPE_P(zv) != IS_OBJECT || !Z_OBJCE_P(zv)->parent) {
 		/* This is not an object or it is a non-inherited object, we can use the default implementation without hacks */
 		return zval_to_mysqlnd(zv TSRMLS_CC);
 	}
-	
+
 	root_ce = Z_OBJCE_P(zv)->parent;
 	while (root_ce->parent) {
 		root_ce = root_ce->parent;
 	}
-	
+
 	if (root_ce->type != ZEND_INTERNAL_CLASS) {
 		/* This can neither be mysqli nor pdo */
 		return NULL;
 	}
-	
+
 	if (!strcmp("mysqli", root_ce->name) || !strcmp("PDO", root_ce->name)) {
 		MYSQLND *retval;
 		zend_class_entry *orig_ce = Z_OBJCE_P(zv);
@@ -660,7 +660,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
 	}
-	
+
 	if (!(*conn_data)->fabric) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Connection is not configured to use MySQL Fabric");
 		RETURN_FALSE;
@@ -668,16 +668,16 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
-	
-	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, hint);
+
+	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, hint TSRMLS_CC);
 	if (!servers) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Didn't receive usable servers from MySQL Fabric");
 		RETURN_FALSE;
 	}
-	
+
 	for (; servers->hostname; servers++) {
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
-		
+
 		if (servers->master) {
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
@@ -686,9 +686,9 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 
 		conn->m->dtor(conn TSRMLS_CC);
 	}
-	
+
 	mysqlnd_fabric_free_server_list(tofree);
-	
+
 	RETURN_TRUE;
 }
 /* }}} */
@@ -706,7 +706,7 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_shard)
 	zval *conn_zv;
 	char *table, *key;
 	int table_len, key_len;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zss", &conn_zv, &table, &table_len, &key, &key_len) == FAILURE) {
 		return;
 	}
@@ -727,12 +727,12 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_global)
 	zval *conn_zv;
 	char *table;
 	int table_len;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", &conn_zv, &table, &table_len) == FAILURE) {
 		return;
 	}
 
-	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, NULL, GLOBAL TSRMLS_CC);	
+	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, NULL, GLOBAL TSRMLS_CC);
 }
 /* }}} */
 
@@ -741,15 +741,15 @@ static void mysqlnd_ms_add_server_to_array(void *data, void *arg TSRMLS_DC) /* {
 	zval *host;
 	MYSQLND_MS_LIST_DATA **element = (MYSQLND_MS_LIST_DATA **)data;
 	zval *array = (zval *)arg;
-	
+
 	MAKE_STD_ZVAL(host);
 	array_init(host);
 	add_assoc_string(host, "hostname", (*element)->host, 1);
 	if ((*element)->socket) {
 		add_assoc_string(host, "socket", (*element)->socket, 1);
-	}		
+	}
 	add_assoc_long(host, "port", (*element)->port);
-	
+
 	add_next_index_zval(array, host);
 }
 /* }}} */
@@ -765,7 +765,7 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 	zval *conn_zv, *master, *slaves;
 	MYSQLND *conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
 		return;
 	}
@@ -779,15 +779,15 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
 	}
-	
+
 	MAKE_STD_ZVAL(master);
 	MAKE_STD_ZVAL(slaves);
 	array_init(master);
 	array_init(slaves);
-	
-	zend_llist_apply_with_argument(&(*conn_data)->master_connections, mysqlnd_ms_add_server_to_array, master);
-	zend_llist_apply_with_argument(&(*conn_data)->slave_connections, mysqlnd_ms_add_server_to_array, slaves);
-	
+
+	zend_llist_apply_with_argument(&(*conn_data)->master_connections, mysqlnd_ms_add_server_to_array, master TSRMLS_CC);
+	zend_llist_apply_with_argument(&(*conn_data)->slave_connections, mysqlnd_ms_add_server_to_array, slaves TSRMLS_CC);
+
 	array_init(return_value);
 	add_assoc_zval(return_value, "master", master);
 	add_assoc_zval(return_value, "slaves", slaves);
@@ -798,12 +798,12 @@ static void mysqlnd_ms_dump_fabric_hosts_cb(const char *hostname, unsigned int p
 {
 	zval *item;
 	zval *return_value = (zval*)data;
-	
+
 	MAKE_STD_ZVAL(item);
 	array_init(item);
-	add_assoc_string(item, "hostname", hostname, 1);
+	add_assoc_string(item, "hostname", (char *)hostname, 1);
 	add_assoc_long(item, "port", port);
-	
+
 	add_next_index_zval(return_value,  item);
 }
 /* }}} */
@@ -815,7 +815,7 @@ static PHP_FUNCTION(mysqlnd_ms_dump_fabric_hosts)
 	zval *conn_zv;
 	MYSQLND *conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
 		return;
 	}
@@ -829,7 +829,7 @@ static PHP_FUNCTION(mysqlnd_ms_dump_fabric_hosts)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
 	}
-	
+
 	if (!(*conn_data)->fabric) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No MySQL Fabric connection");
 		RETURN_FALSE;
