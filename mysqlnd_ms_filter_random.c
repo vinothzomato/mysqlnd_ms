@@ -72,18 +72,12 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 		if (section) {
 			/* random => array(sticky => true) */
 			zend_bool value_exists = FALSE, is_list_value = FALSE;
-			char * once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
-																		   &value_exists, &is_list_value TSRMLS_CC);
-			if (value_exists && once_value) {
-				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
-				mnd_efree(once_value);
-			}
+			char * once_value;
 
-			if ((TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&
-				 TRUE == mysqlnd_ms_config_json_section_is_object_list(section TSRMLS_CC)))
+			if ((TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC)))
 			{
 				struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
-				/* random => array(weights => ...) */
+				/* random => array(weights => ..., sticky) */
 				do {
 					char * current_subsection_name = NULL;
 					size_t current_subsection_name_len = 0;
@@ -95,11 +89,35 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 					if (!subsection) {
 						break;
 					}
-					if (!strcmp(current_subsection_name, SECT_LB_WEIGHTS)) {
+
+					if (!strncmp(current_subsection_name, SECT_LB_WEIGHTS, current_subsection_name_len)) {
+						if (zend_hash_num_elements(&ret->lb_weight)) {
+							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+								E_RECOVERABLE_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " No more than one weights list may be given for '%s' filter. Stopping", PICK_RANDOM);
+							continue;
+						}
 						mysqlnd_ms_filter_ctor_load_weights_config(&ret->lb_weight, PICK_RANDOM, subsection, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
-						break;
 					}
+
+					if (!strncmp(current_subsection_name, PICK_ONCE, current_subsection_name_len)) {
+							once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
+																					&value_exists, &is_list_value TSRMLS_CC);
+						if (value_exists && once_value) {
+							ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
+							mnd_efree(once_value);
+						}
+					}
+
 				} while (1);
+			}
+
+			/* TODO This is the old syntax. Let's keep it for one more release - 1.6 - , then warn - 1.7 - , then deprecate - 1.8*/
+			once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
+																	&value_exists, &is_list_value TSRMLS_CC);
+			if (value_exists && once_value) {
+				ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);
+				mnd_efree(once_value);
 			}
 
 		} else {
@@ -110,6 +128,8 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 			ret->sticky.once = TRUE;
 		}
 		DBG_INF_FMT("sticky=%d", ret->sticky.once);
+		DBG_INF_FMT("#weight entries=%d", zend_hash_num_elements(&ret->lb_weight));
+
 		/* XXX: this could be initialized only in case of ONCE */
 		zend_hash_init(&ret->sticky.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 		zend_hash_init(&ret->sticky.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
@@ -240,7 +260,7 @@ mysqlnd_ms_choose_connection_random_populate_sort_list(zend_llist * sort_list,
 
 /*
     Basic idea: summarize weights, compute random between 1... total_weight.
-    Pick server that matches the rande of the random value.
+    Pick server that matches the range of the random value.
 
 	Example list, total_weight = 4, rnd_idx = 1..4
 	slave 1, weight  2  -> rnx_idx = 1..2
