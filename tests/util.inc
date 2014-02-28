@@ -269,7 +269,7 @@
 	}
 
 
-	function mst_mysqli_get_emulated_id($offset, $link) {
+	function mst_mysqli_get_emulated_id($offset, $link, $include_thread_id = true) {
 
 		$thread_id = $link->thread_id;
 		if (0 == $thread_id)
@@ -292,7 +292,7 @@
 		}
 
 		$row = $res->fetch_assoc();
-		return sprintf("%s-%d", $row['role'], $link->thread_id);
+		return ($include_thread_id) ? sprintf("%s-%d", $row['role'], $link->thread_id) : $row['role'];
 	}
 
 
@@ -362,6 +362,13 @@
 		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
 		if (mysqli_connect_errno()) {
 			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if ($link->server_version < 50616) {
+			/* GTID related SQL syntax was in flux in early 5.6.x releases. One may want to
+			look up the exact version by which the syntax (and feature) became stable or just go for
+			5.6.16 which happend to be at hand when writing this... */
+			return false;
 		}
 
 		if (!($res = $link->query("SHOW GLOBAL VARIABLES LIKE 'GTID_MODE'"))) {
