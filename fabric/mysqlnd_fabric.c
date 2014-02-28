@@ -40,7 +40,7 @@
 static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
 {
 	size_t i;
-	
+
 	if (n == 1) {
 		return;
 	}
@@ -74,11 +74,11 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 	if (fabric->host_count >= 10) {
 		return 1;
 	}
-	
+
 	fabric->hosts[fabric->host_count].hostname = estrdup(hostname);
 	fabric->hosts[fabric->host_count].port = port;
-	fabric->host_count++;	
-	
+	fabric->host_count++;
+
 	return 0;
 }
 
@@ -98,11 +98,11 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	php_stream *stream = NULL;
 	mysqlnd_fabric_host *server;
 	TSRMLS_FETCH();
-	
+
 	ZVAL_STRING(&method, "POST", 0);
 	ZVAL_STRING(&content, request_body, 0);
 	ZVAL_STRING(&header, "Content-type: text/xml", 0);
-	
+
 	/* prevent anybody from freeing these */
 	Z_SET_ISREF(method);
 	Z_SET_ISREF(content);
@@ -110,7 +110,7 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	Z_SET_REFCOUNT(method, 2);
 	Z_SET_REFCOUNT(content, 2);
 	Z_SET_REFCOUNT(header, 2);
-	
+
 	ctxt = php_stream_context_alloc(TSRMLS_C);
 	php_stream_context_set_option(ctxt, "http", "method", &method);
 	php_stream_context_set_option(ctxt, "http", "content", &content);
@@ -119,28 +119,28 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count);
 	for (server = fabric->hosts; !stream && server < fabric->hosts  + fabric->host_count; server++) {
 		char *url = NULL;
-		
+
 		spprintf(&url, 0, "http://%s:%d/", server->hostname, server->port);
-	
+
 		/* TODO: Switch to quiet mode */
 		stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
 		efree(url);
 	};
-	
+
 	return stream;
 }
 
-mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
+mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC)
 {
 	int len;
 	char *req = NULL;
 	char foo[4001];
 	php_stream *stream;
-	
+
 	if (!fabric->host_count) {
 		return NULL;
 	}
-	
+
 	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
 
 	stream = mysqlnd_fabric_open_stream(fabric, req);
@@ -148,26 +148,26 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 		efree(req);
 		return NULL;
 	}
-	
+
 	len = php_stream_read(stream, foo, 4000);
 	foo[len] = '\0';
 	/* TODO: what happens with a response > 4000 bytes ... needs to be handled once we have the dump API */
 
 	php_stream_close(stream);
-	
+
 	efree(req);
-	
+
 	return mysqlnd_fabric_parse_xml(foo, len);
 }
 
 void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers)
 {
 	mysqlnd_fabric_server *pos;
-	
+
 	if (!servers) {
 		return;
 	}
-	
+
 	for (pos = servers; pos->hostname; pos++) {
 		efree(pos->hostname);
 		efree(pos->uuid);

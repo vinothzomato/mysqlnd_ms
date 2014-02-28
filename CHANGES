@@ -1,6 +1,9 @@
 1.6.0 alpha
 
-  Motto/theme: maintenance and MySQL Fabric
+  Motto/theme: maintenance and initial MySQL Fabric support
+
+  * Bugs fixed: #66064, #65496, #65408
+  * Won't fix: #66616 - see the manual for details, be careful with the GTID support
 
   * Introduced initial support for MySQL Fabric. 
 
