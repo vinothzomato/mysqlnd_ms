@@ -24,20 +24,31 @@
 #include "main/spprintf.h"
 #include "main/php_streams.h"
 
+#include "ext/standard/php_rand.h"
+
+#include "ext/standard/php_smart_str.h"
+
+#include "ext/mysqlnd/mysqlnd.h"
+#include "ext/mysqlnd/mysqlnd_priv.h"
+#include "ext/mysqlnd/mysqlnd_debug.h"
+#include "mysqlnd_ms_enum_n_def.h"
+#if PHP_VERSION_ID >= 50400
+#include "ext/mysqlnd/mysqlnd_ext_plugin.h"
+#endif
+#include "mysqlnd_ms.h"
+
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
-#include "ext/standard/php_rand.h"
-
-#define FABRIC_SHARD_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
+#define FABRIC_SHARDING_LOOKUP_SERVERS_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
 			"<methodCall><methodName>sharding.lookup_servers</methodName><params>\n" \
 			"<param><!-- table --><value><string>%s</string></value></param>\n" \
 			"<param><!-- shard key --><value><string>%s</string></value></param>\n" \
 			"<param><!-- hint --><value><string>%s</string></value></param>\n" \
-			"<param><!-- sync --><value><boolean>1</boolean></value></param></params>\n" \
+			"</params>\n" \
 			"</methodCall>"
 
-static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
+static void mysqlnd_fabric_host_shuffle(MYSQLND_MS_FABRIC_HOST *a, size_t n)
 {
 	size_t i;
 
@@ -47,20 +58,20 @@ static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
 
 	for (i = 0; i < n - 1; i++)  {
 		size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
-		mysqlnd_fabric_host t = a[j];
+		MYSQLND_MS_FABRIC_HOST t = a[j];
 
 		a[j] = a[i];
 		a[i] = t;
 	}
 }
 
-mysqlnd_fabric *mysqlnd_fabric_init()
+MYSQLND_MS_FABRIC *mysqlnd_fabric_init()
 {
-	mysqlnd_fabric *fabric = ecalloc(1, sizeof(mysqlnd_fabric));
+	MYSQLND_MS_FABRIC *fabric = ecalloc(1, sizeof(MYSQLND_MS_FABRIC));
 	return fabric;
 }
 
-void mysqlnd_fabric_free(mysqlnd_fabric *fabric)
+void mysqlnd_fabric_free(MYSQLND_MS_FABRIC *fabric)
 {
 	int i;
 	for (i = 0; i < fabric->host_count ; ++i) {
@@ -69,7 +80,7 @@ void mysqlnd_fabric_free(mysqlnd_fabric *fabric)
 	efree(fabric);
 }
 
-int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
+int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port)
 {
 	if (fabric->host_count >= 10) {
 		return 1;
@@ -82,7 +93,7 @@ int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port)
 	return 0;
 }
 
-int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_apply_func cb, void *data)
+int mysqlnd_fabric_host_list_apply(const MYSQLND_MS_FABRIC *fabric, mysqlnd_fabric_apply_func cb, void *data)
 {
 	int i;
 	for (i = 0; i < fabric->host_count; ++i) {
@@ -91,12 +102,12 @@ int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_
 	return i;
 }
 
-static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *request_body)
+static php_stream *mysqlnd_fabric_open_stream(MYSQLND_MS_FABRIC *fabric, char *request_body)
 {
 	zval method, content, header;
 	php_stream_context *ctxt;
 	php_stream *stream = NULL;
-	mysqlnd_fabric_host *server;
+	MYSQLND_MS_FABRIC_HOST *server;
 	TSRMLS_FETCH();
 
 	ZVAL_STRING(&method, "POST", 0);
@@ -116,6 +127,8 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	php_stream_context_set_option(ctxt, "http", "header", &header);
 
+	SET_EMPTY_FABRIC_ERROR(*fabric);
+
 	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count);
 	for (server = fabric->hosts; !stream && server < fabric->hosts  + fabric->host_count; server++) {
 		char *url = NULL;
@@ -130,39 +143,69 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	return stream;
 }
 
-mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC)
+MYSQLND_MS_FABRIC_SERVER * mysqlnd_fabric_get_shard_servers(MYSQLND_MS_FABRIC *fabric, const char *table, const char *key, enum mysqlnd_ms_fabric_hint hint TSRMLS_DC)
 {
+	time_t fetch_time;
 	int len;
 	char *req = NULL;
-	char foo[4001];
+	char buf[2048];
 	php_stream *stream;
+	MYSQLND_MS_FABRIC_SERVER *retval;
+	smart_str xml_str = {0, 0, 0};
+
+	DBG_ENTER("mysqlnd_fabric_get_shard_servers");
+	DBG_INF_FMT("table=%s, key=%s", table, key);
+	MYSQLND_MS_STATS_TIME_SET(fetch_time);
+
 
 	if (!fabric->host_count) {
-		return NULL;
+		DBG_INF("No hosts");
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_FAILURE);
+		MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "No fabric hosts found.");
+		DBG_RETURN(NULL);
 	}
 
-	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
-
+	spprintf(&req, 0, FABRIC_SHARDING_LOOKUP_SERVERS_XML, table, key ? key : "''", hint == LOCAL ? "LOCAL" : "GLOBAL");
 	stream = mysqlnd_fabric_open_stream(fabric, req);
 	if (!stream) {
+		DBG_INF("Failed to open stream");
 		efree(req);
-		return NULL;
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_FAILURE);
+		MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to open stream to fabric host.");
+		DBG_RETURN(NULL);
 	}
 
-	len = php_stream_read(stream, foo, 4000);
-	foo[len] = '\0';
-	/* TODO: what happens with a response > 4000 bytes ... needs to be handled once we have the dump API */
-
+	while ((len = php_stream_read(stream, buf, sizeof(buf))) > 0) {
+		smart_str_appendl(&xml_str, buf, len);
+	}
+	smart_str_appendc(&xml_str, '\0');
 	php_stream_close(stream);
 
-	efree(req);
+	MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_SUCCESS);
+	MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
+	MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
+	MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_BYTES_TOTAL, xml_str.len);
 
-	return mysqlnd_fabric_parse_xml(foo, len);
+	retval = mysqlnd_fabric_parse_xml(fabric, (xml_str.c) ? xml_str.c : "", xml_str.len);
+	if (!retval) {
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_XML_FAILURE);
+		DBG_INF_FMT("Request %s", req);
+		DBG_INF_FMT("Reply %s", xml_str.c);
+	}
+
+	efree(req);
+	smart_str_free(&xml_str);
+
+	DBG_RETURN(retval);
 }
 
-void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers)
+void mysqlnd_fabric_free_server_list(MYSQLND_MS_FABRIC_SERVER *servers)
 {
-	mysqlnd_fabric_server *pos;
+	MYSQLND_MS_FABRIC_SERVER *pos;
 
 	if (!servers) {
 		return;

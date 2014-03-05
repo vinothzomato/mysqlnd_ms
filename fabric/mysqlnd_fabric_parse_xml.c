@@ -27,19 +27,31 @@
 
 #include "zend.h"
 #include "zend_alloc.h"
+
+
+#include "zend.h"
+#include "zend_alloc.h"
+#include "main/php.h"
+#include "main/php_streams.h"
+#include "ext/mysqlnd/mysqlnd.h"
+#include "ext/mysqlnd/mysqlnd_priv.h"
+#include "ext/mysqlnd/mysqlnd_debug.h"
+#include "mysqlnd_ms_enum_n_def.h"
+
 #include "fabric/mysqlnd_fabric.h"
+#include "fabric/mysqlnd_fabric_priv.h"
 
 static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 {
 	xmlXPathObjectPtr retval;
 	xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
 	if(xpathCtx == NULL) {
-		xmlFreeDoc(doc); 
+		xmlFreeDoc(doc);
 		return NULL;
 	}
 
 	retval = xmlXPathEvalExpression((xmlChar*)"//params/param/value/array/data/value[3]/array/data/value", xpathCtx);
-	xmlXPathFreeContext(xpathCtx); 
+	xmlXPathFreeContext(xpathCtx);
 
 	return retval;
 }
@@ -60,7 +72,7 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 	return retval;
 }
 
-static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric_server *server)
+static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, MYSQLND_MS_FABRIC_SERVER *server)
 {
 	xmlXPathContextPtr xpathCtx = xmlXPathNewContext((xmlDocPtr)node);
 	char *tmp;
@@ -108,9 +120,9 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	return 0;
 }
 
-mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
+MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_parse_xml(MYSQLND_MS_FABRIC * fabric, char *xmlstr, int xmlstr_len)
 {
-	mysqlnd_fabric_server *retval;
+	MYSQLND_MS_FABRIC_SERVER *retval;
 	xmlDocPtr doc;
 	xmlXPathObjectPtr xpathObj1;
 	int i;
@@ -119,27 +131,31 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 	doc = xmlParseMemory(xmlstr, xmlstr_len);
 
 	if (doc == NULL) {
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to parse Fabric XML reply");
 		return NULL;
 	}
 
 	xpathObj1 = mysqlnd_fabric_find_value_nodes(doc);
 	if (!xpathObj1) {
 		xmlFreeDoc(doc);
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to find nodes in Fabric XML reply");
 		return NULL;
 	}
-	
+
 	if (!xpathObj1->nodesetval) {
 		/* Verbose debug info in /methodresponse/params/param/value/array/data/value[2]/array/data/value[3]/struct/member/value/string */
 		xmlXPathFreeObject(xpathObj1);
 		xmlFreeDoc(doc);
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to find node set in Fabric XML reply");
 		return NULL;
 	}
-	
-	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(mysqlnd_fabric_server), 0);
+
+	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(MYSQLND_MS_FABRIC_SERVER), 0);
 	for (i = 0; i < xpathObj1->nodesetval->nodeNr; i++) {
 		if (mysqlnd_fabric_fill_server_from_value(xpathObj1->nodesetval->nodeTab[i], &retval[i])) {
 			xmlXPathFreeObject(xpathObj1);
 			xmlFreeDoc(doc);
+			SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to parse node entry in Fabric XML reply");
 			return NULL;
 		}
 	}

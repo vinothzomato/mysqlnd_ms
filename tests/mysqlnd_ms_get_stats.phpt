@@ -62,6 +62,11 @@ mysqlnd_ms.collect_statistics=1
 
 	if (MYSQLND_MS_VERSION_ID >= 10600) {
 		$expected["transient_error_retries"] = true;
+		$expected["fabric_sharding_lookup_servers_success"] = true;
+		$expected["fabric_sharding_lookup_servers_failure"] = true;
+		$expected["fabric_sharding_lookup_servers_time_total"] = true;
+		$expected["fabric_sharding_lookup_servers_bytes_total"] = true;
+		$expected["fabric_sharding_lookup_servers_xml_failure"] = true;
 	}
 
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {

@@ -21,7 +21,11 @@
 #ifndef MYSQLND_MS_ENUM_N_DEF_H
 #define MYSQLND_MS_ENUM_N_DEF_H
 
-#include "fabric/mysqlnd_fabric.h"
+#ifdef PHP_WIN32
+#include "win32/time.h"
+#else
+#include "sys/time.h"
+#endif
 
 #if MYSQLND_VERSION_ID < 50010 && !defined(MYSQLND_CONN_DATA_DEFINED)
 typedef MYSQLND MYSQLND_CONN_DATA;
@@ -358,11 +362,35 @@ typedef enum mysqlnd_ms_collected_stats
 	MS_STAT_GTID_IMPLICIT_COMMIT_FAILURE,
 #endif
 	MS_STAT_TRANSIENT_ERROR_RETRIES,
+	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_SUCCESS,
+	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_FAILURE,
+	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL,
+	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_BYTES_TOTAL,
+	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_XML_FAILURE,
 	MS_STAT_LAST /* Should be always the last */
 } enum_mysqlnd_ms_collected_stats;
 
 #define MYSQLND_MS_INC_STATISTIC(stat) MYSQLND_INC_STATISTIC(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat))
 #define MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, value) MYSQLND_INC_STATISTIC_W_VALUE(MYSQLND_MS_G(collect_statistics), mysqlnd_ms_stats, (stat), (value))
+
+#define MYSQLND_MS_TIMEVAL_TO_UINT64(tp) (uint64_t)(tp.tv_sec*1000000 + tp.tv_usec)
+
+#define MYSQLND_MS_STATS_TIME_SET(time_now) \
+	if (MYSQLND_MS_G(collect_statistics) == FALSE) { \
+		(time_now) = 0; \
+	} else { \
+		struct timeval __tp = {0}; \
+		struct timezone __tz = {0}; \
+		gettimeofday(&__tp, &__tz); \
+		(time_now) = MYSQLND_MS_TIMEVAL_TO_UINT64(__tp); \
+	} \
+
+#define MYSQLND_MS_STATS_TIME_DIFF(run_time) \
+	{ \
+		uint64_t now; \
+		MYSQLND_MS_STATS_TIME_SET(now); \
+		(run_time) = now - (run_time); \
+	}
 
 
 typedef struct st_mysqlnd_ms_list_data
@@ -511,6 +539,43 @@ typedef struct st_mysqlnd_ms_filter_groups_data_group
 	HashTable slave_context;
 } MYSQLND_MS_FILTER_GROUPS_DATA_GROUP;
 
+
+/* Fabric host from config we connect to */
+typedef struct st_mysqlnd_ms_fabric_host
+{
+	char *hostname;
+	int port;
+} MYSQLND_MS_FABRIC_HOST;
+
+/* Fabric handle */
+#define MYSQLND_MS_ERRMSG_SIZE 1024
+#define MYSQLND_MS_SQLSTATE_LENGTH 5
+typedef struct st_mysqlnd_fabric
+{
+	int host_count;
+	MYSQLND_MS_FABRIC_HOST hosts[10];
+	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
+	char error[MYSQLND_MS_ERRMSG_SIZE+1];
+	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];
+	unsigned int error_no;
+} MYSQLND_MS_FABRIC;
+
+/* MySQL server/node returned by Fabric */
+typedef struct st_mysqlnd_fabric_server {
+	char *hostname;
+	unsigned int port;
+	char *uuid;
+	int master;
+} MYSQLND_MS_FABRIC_SERVER;
+
+/* MySQL server/node hint returned by Fabric */
+enum mysqlnd_ms_fabric_hint
+{
+	LOCAL,
+	GLOBAL
+};
+
+
 /*
  NOTE: Some elements are available with every connection, some
  are set for the global/proxy connection only. The global/proxy connection
@@ -598,7 +663,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool report_error;
 	} global_trx;
 #endif
-	mysqlnd_fabric *fabric;
+	MYSQLND_MS_FABRIC *fabric;
 } MYSQLND_MS_CONN_DATA;
 
 

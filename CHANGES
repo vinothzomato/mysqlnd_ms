@@ -1,11 +1,21 @@
 1.6.0 alpha
 
-  Motto/theme: maintenance and initial MySQL Fabric support
+  Motto/theme: maintenance and initial MySQL Fabric
+
+  * Introduced new statistics related to Fabrics sharding.lookup_servers command.
+
+    fabric_sharding_lookup_servers_success - # of successful RPC network calls
+	fabric_sharding_lookup_servers_failure - # of failed RPC network calls
+	fabric_sharding_lookup_servers_time_total - total time spent in milliseconds
+    fabric_sharding_lookup_servers_bytes_total - total bytes received from Fabric
+	fabric_sharding_lookup_servers_xml_failure - # of XML reply parsing failures
 
   * Bugs fixed: #66064, #65496, #65408
   * Won't fix: #66616 - see the manual for details, be careful with the GTID support
 
-  * Introduced initial support for MySQL Fabric. 
+  * Due to Fabric, we now depend on libxml2.
+
+  * Introduced initial support for MySQL Fabric.
 
     MySQL Fabric is an integrated framework for managing farms of MySQL servers
     with support for both high-availability and sharding.
@@ -71,7 +81,7 @@
 1.5.1 stable
 
   Release date: 06/2013
-  
+
   Release as stable
 
 

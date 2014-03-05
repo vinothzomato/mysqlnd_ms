@@ -860,7 +860,7 @@ mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_sect
 static enum_func_status
 mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data TSRMLS_DC)
 {
-	mysqlnd_fabric *fabric;
+	MYSQLND_MS_FABRIC *fabric;
 	zend_bool value_exists = FALSE;
 	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
@@ -900,7 +900,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 
 		if (hostname) {
 			mysqlnd_fabric_add_host(fabric, hostname, port);
-			efree(hostname);
+			mnd_efree(hostname);
 		}
 	}
 

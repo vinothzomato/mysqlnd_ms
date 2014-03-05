@@ -17,6 +17,9 @@
 	putenv("MYSQL_TEST_CONNECT_FLAGS=0");
 	putenv("MYSQL_TEST_EXPERIMENTAL=0");
 
+	/* Whether to run Fabric related tests */
+	putenv("MYSQL_TEST_FABRIC=0");
+
 	/*
 	Tests will automatically detect server roles and will be skipped if required.
 

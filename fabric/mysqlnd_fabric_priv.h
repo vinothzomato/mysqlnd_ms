@@ -21,17 +21,25 @@
 #ifndef MYSQLND_FABRIC_PRIV_H
 #define MYSQLND_FABRIC_PRIV_H
 
-typedef struct {
-	char *hostname;
-	int port;
-} mysqlnd_fabric_host;
+/* Staying close to mysqlnd here for now, may change later */
+#define SET_EMPTY_FABRIC_ERROR(fabric) \
+{ \
+	(fabric).error_no = 0; \
+	(fabric).error[0] = '\0'; \
+}
 
-struct struct_mysqlnd_fabric {
-	int host_count;
-	mysqlnd_fabric_host hosts[10];
-};
+#define SET_FABRIC_ERROR(fabric, a_error_no, b_sqlstate, c_error) \
+{\
+	if (0 == (a_error_no)) { \
+		SET_EMPTY_FABRIC_ERROR(fabric); \
+	} else { \
+		(fabric).error_no = a_error_no; \
+		strlcpy((fabric).sqlstate, b_sqlstate, sizeof((fabric).sqlstate)); \
+		strlcpy((fabric).error, c_error, sizeof((fabric).error)); \
+	} \
+}
 
-mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
+MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_parse_xml(MYSQLND_MS_FABRIC * fabric, char *xmlstr, int xmlstr_len);
 
 #endif	/* MYSQLND_FABRIC_PRIV_H */
 

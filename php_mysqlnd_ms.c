@@ -36,6 +36,7 @@
 #include "ext/standard/php_rand.h"
 #include "mysqlnd_ms_filter_qos.h"
 #include "mysqlnd_ms_switch.h"
+#include "fabric/mysqlnd_fabric.h"
 
 #ifndef mnd_sprintf
 #define mnd_sprintf spprintf
@@ -76,6 +77,11 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("gtid_implicit_commit_injections_failure") },
 #endif
 	{ STR_W_LEN("transient_error_retries") },
+	{ STR_W_LEN("fabric_sharding_lookup_servers_success") },
+	{ STR_W_LEN("fabric_sharding_lookup_servers_failure") },
+	{ STR_W_LEN("fabric_sharding_lookup_servers_time_total") },
+	{ STR_W_LEN("fabric_sharding_lookup_servers_bytes_total") },
+	{ STR_W_LEN("fabric_sharding_lookup_servers_xml_failure") },
 };
 /* }}} */
 
@@ -645,34 +651,53 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 }
 /* }}} */
 
-static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC) /* {{{ */
+static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_ms_fabric_hint hint TSRMLS_DC) /* {{{ */
 {
 	MYSQLND *proxy_conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
-	mysqlnd_fabric_server *servers, *tofree;
+	MYSQLND_MS_FABRIC_SERVER *servers, *tofree;
+	MYSQLND_MS_FABRIC *fabric;
+	DBG_ENTER("mysqlnd_ms_fabric_select_servers");
 
 	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
-		RETURN_FALSE;
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
 	}
 
 	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
 	if (!conn_data || !(*conn_data)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
-		RETURN_FALSE;
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
 	}
 
 	if (!(*conn_data)->fabric) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Connection is not configured to use MySQL Fabric");
-		RETURN_FALSE;
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX, " Connection is not configured to use MySQL Fabric");
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
 	}
 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
 
-	tofree = servers = mysqlnd_fabric_get_shard_servers((*conn_data)->fabric, table, key, hint TSRMLS_CC);
+	fabric = (*conn_data)->fabric;
+	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint TSRMLS_CC);
+	if (fabric->error_no > 0) {
+		/*
+		TODO - should be bubble this up to the connection?
+		MYSQLND_ERROR_INFO * error_info = &MYSQLND_MS_ERROR_INFO(proxy_conn->data);
+		if (error_info) {
+			SET_CLIENT_ERROR((*error_info), fabric->error_no, fabric->sqlstate, fabric->error);
+		}
+		*/
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s %s", MYSQLND_MS_ERROR_PREFIX, fabric->error);
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
+	}
 	if (!servers) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Didn't receive usable servers from MySQL Fabric");
-		RETURN_FALSE;
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Didn't receive usable servers from MySQL Fabric");
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
 	}
 
 	for (; servers->hostname; servers++) {
@@ -689,7 +714,8 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 
 	mysqlnd_fabric_free_server_list(tofree);
 
-	RETURN_TRUE;
+	RETVAL_TRUE;
+	DBG_VOID_RETURN;
 }
 /* }}} */
 

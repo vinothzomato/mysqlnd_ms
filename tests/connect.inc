@@ -347,6 +347,23 @@
 			foreach ($settings as $application => $config) {
 
 				$json[$application] = array();
+				if (isset($config['fabric'])) {
+					if (!isset($config['fabric']['hosts'])) {
+						return "No fabric hosts given";
+					}
+					$json[$application]['fabric']['hosts'] = array();
+					foreach ($config['fabric']['hosts'] as $host_info) {
+						$host = new stdClass();
+						if (isset($host_info['host'])) {
+							$host->host = $host_info['host'];
+						}
+						if (isset($host_info['port'])) {
+							$host->port = $host_info['port'];
+						}
+						$json[$application]['fabric']['hosts'][] = $host;
+					}
+				}
+
 				if (isset($config['master'])) {
 					if (!is_array($config['master']))
 						return sprintf("The master must be set using a hash");

@@ -21,31 +21,16 @@
 #ifndef MYSQLND_FABRIC_H
 #define MYSQLND_FABRIC_H
 
-struct struct_mysqlnd_fabric;
-typedef struct struct_mysqlnd_fabric mysqlnd_fabric;
-
-mysqlnd_fabric *mysqlnd_fabric_init();
-void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
-int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port);
+MYSQLND_MS_FABRIC *mysqlnd_fabric_init();
+void mysqlnd_fabric_free(MYSQLND_MS_FABRIC *fabric);
+int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port);
 
 typedef void(*mysqlnd_fabric_apply_func)(const char *hostname, unsigned int port, void *data);
 
-int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_apply_func cb, void *data);
+int mysqlnd_fabric_host_list_apply(const MYSQLND_MS_FABRIC *fabric, mysqlnd_fabric_apply_func cb, void *data);
 
-typedef struct {
-	char *hostname;
-	unsigned int port;
-	char *uuid;
-	int master;
-} mysqlnd_fabric_server;
-
-enum mysqlnd_fabric_hint {
-	LOCAL,
-	GLOBAL
-};
-
-mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC);
-void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers);
+MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_get_shard_servers(MYSQLND_MS_FABRIC *fabric, const char *table, const char *key, enum mysqlnd_ms_fabric_hint hint TSRMLS_DC);
+void mysqlnd_fabric_free_server_list(MYSQLND_MS_FABRIC_SERVER *servers);
 
 #endif	/* MYSQLND_FABRIC_H */
 
