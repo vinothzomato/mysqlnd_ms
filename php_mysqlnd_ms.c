@@ -430,15 +430,14 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 		if (Z_TYPE_P(row) != IS_ARRAY) {
 			zval_ptr_dtor(&row);
 			res->m.free_result(res, FALSE TSRMLS_CC);
-			RETURN_FALSE;
+			goto getlastidfailure;
 		}
 
 		if (SUCCESS == zend_hash_index_find(Z_ARRVAL_P(row), 0, (void**)&gtid)) {
-			char gtid_str[64];
-			strncpy(gtid_str, Z_STRVAL_PP(gtid), sizeof(gtid_str) - 1);
+			RETVAL_ZVAL(*gtid, 1, NULL);
 			zval_ptr_dtor(&row);
 			res->m.free_result(res, FALSE TSRMLS_CC);
-			RETURN_STRING(gtid_str, 1);
+			return;
 		} else {
 			/* no error code set on line, we need to bail explicitly */
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "Failed to read GTID from result set. Please report a bug");
