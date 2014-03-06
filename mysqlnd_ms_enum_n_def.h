@@ -259,6 +259,8 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_G_TRX_CHECK_FOR_GTID 			"check_for_gtid"
 #define SECT_G_TRX_WAIT_FOR_GTID_TIMEOUT 	"wait_for_gtid_timeout"
 #define SECT_LB_WEIGHTS						"weights"
+#define SECT_FABRIC_NAME					"fabric"
+#define SECT_FABRIC_HOSTS					"hosts"
 #define TRANSIENT_ERROR_NAME				"transient_error"
 #define TRANSIENT_ERROR_MAX_RETRIES			"max_retries"
 #define TRANSIENT_ERROR_USLEEP_RETRY		"usleep_retry"
