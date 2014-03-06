@@ -80,9 +80,10 @@ void mysqlnd_fabric_free(MYSQLND_MS_FABRIC *fabric)
 	efree(fabric);
 }
 
-int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port)
+int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port TSRMLS_DC)
 {
 	if (fabric->host_count >= 10) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Please report a bug: no more than 10 Fabric hosts allowed");
 		return 1;
 	}
 
