@@ -909,7 +909,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		int port = mysqlnd_ms_config_json_int_from_section(host_section, SECT_PORT_NAME, sizeof(SECT_PORT_NAME)-1, 0, NULL, NULL TSRMLS_CC);
 
 		if (hostname) {
-			mysqlnd_fabric_add_host(fabric, hostname, port);
+			mysqlnd_fabric_add_host(fabric, hostname, port TSRMLS_DC);
 			mnd_efree(hostname);
 		} else {
 			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
