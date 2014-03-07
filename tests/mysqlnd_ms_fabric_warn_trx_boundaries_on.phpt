@@ -20,12 +20,12 @@ $settings = array(
 		)
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_fabric_warn_trx_boundaries.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_fabric_warn_trx_boundaries.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
@@ -56,8 +56,8 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_fabric_warn_trx_boundaries.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_warn_trx_boundaries.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini'.\n");
 ?>
 --EXPECTF--
 Warning: mysqlnd_ms_fabric_select_global(): (mysqlnd_ms) Fabric server exchange in the middle of a transaction in %s on line %d
