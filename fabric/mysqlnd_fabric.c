@@ -176,7 +176,7 @@ MYSQLND_MS_FABRIC_SERVER * mysqlnd_fabric_get_shard_servers(MYSQLND_MS_FABRIC *f
 		DBG_RETURN(NULL);
 	}
 
-	spprintf(&req, 0, FABRIC_SHARDING_LOOKUP_SERVERS_XML, table, key ? key : "''", hint == LOCAL ? "LOCAL" : "GLOBAL");
+	spprintf(&req, 0, FABRIC_SHARDING_LOOKUP_SERVERS_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
 	stream = mysqlnd_fabric_open_stream(fabric, req TSRMLS_CC);
 	if (!stream) {
 		DBG_INF("Failed to open stream");

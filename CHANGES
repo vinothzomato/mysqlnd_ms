@@ -2,13 +2,21 @@
 
   Motto/theme: maintenance and initial MySQL Fabric
 
+  * Added trx_warn_serverlist_changes option to Fabric configuration. PHP shall
+    warn if server list changes (e.g. loading list of shards for key) happen
+    in the middle of a transaction. Consider this experimental!
+
+  * Added timeout option to Fabric configuration. The timeout value is interpreted
+    by PHP's HTTP stream wrapper (connect + read timeout - depends on streams
+    implementation)
+
   * Introduced new statistics related to Fabrics sharding.lookup_servers command.
 
     fabric_sharding_lookup_servers_success - # of successful RPC network calls
-	fabric_sharding_lookup_servers_failure - # of failed RPC network calls
-	fabric_sharding_lookup_servers_time_total - total time spent in milliseconds
+    fabric_sharding_lookup_servers_failure - # of failed RPC network calls
+    fabric_sharding_lookup_servers_time_total - total time spent in milliseconds
     fabric_sharding_lookup_servers_bytes_total - total bytes received from Fabric
-	fabric_sharding_lookup_servers_xml_failure - # of XML reply parsing failures
+    fabric_sharding_lookup_servers_xml_failure - # of XML reply parsing failures
 
   * Bugs fixed: #66064, #65496, #65408
   * Won't fix: #66616 - see the manual for details, be careful with the GTID support

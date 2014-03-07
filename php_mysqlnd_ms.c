@@ -675,11 +675,16 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		RETVAL_FALSE;
 		DBG_VOID_RETURN;
 	}
+	fabric = (*conn_data)->fabric;
+
+	if ((fabric->trx_warn_serverlist_changes) &&
+		(((*conn_data)->stgy.trx_stop_switching) || (*conn_data)->stgy.in_transaction)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
+	}
 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
 
-	fabric = (*conn_data)->fabric;
 	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint TSRMLS_CC);
 	if (fabric->error_no > 0) {
 		/*

@@ -939,9 +939,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] exists but is empty. This is needed for MySQL Fabric");
 				}
-			}
-
-			if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
+			} else if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
 				int timeout = mysqlnd_ms_config_json_int_from_section(fabric_section, current_subsection_name,
 														 current_subsection_name_len, 0,
 														 &value_exists, &is_list_value TSRMLS_CC);
@@ -954,6 +952,15 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 					} else {
 						fabric->timeout = (unsigned int)timeout;
 					}
+				}
+			} else if (!strncmp(current_subsection_name, SECT_FABRIC_TRX_BOUNDARY_WARNING, current_subsection_name_len)) {
+				char * trx_warn;
+				trx_warn = mysqlnd_ms_config_json_string_from_section(fabric_section, current_subsection_name,
+														current_subsection_name_len, 0,
+														&value_exists, &is_list_value TSRMLS_CC);
+				if (value_exists && trx_warn) {
+					fabric->trx_warn_serverlist_changes = !mysqlnd_ms_config_json_string_is_bool_false(trx_warn);
+					mnd_efree(trx_warn);
 				}
 			}
 
