@@ -348,12 +348,11 @@
 
 				$json[$application] = array();
 				if (isset($config['fabric'])) {
-					if (!isset($config['fabric']['hosts'])) {
-						$json[$application]['fabric'] = array();
-					} else if (!is_array($config['fabric']['hosts'])) {
-						$json[$application]['fabric']['hosts'] = $config['fabric']['hosts'];
-					} else {
+					$json[$application]['fabric'] = $config['fabric'];
+
+					if (isset($config['fabric']['hosts']) && is_array($config['fabric']['hosts'])) {
 						$json[$application]['fabric']['hosts'] = array();
+						/* restructure */
 						foreach ($config['fabric']['hosts'] as $host_info) {
 							$host = new stdClass();
 							if (isset($host_info['host'])) {

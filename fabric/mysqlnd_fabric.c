@@ -103,13 +103,13 @@ int mysqlnd_fabric_host_list_apply(const MYSQLND_MS_FABRIC *fabric, mysqlnd_fabr
 	return i;
 }
 
-static php_stream *mysqlnd_fabric_open_stream(MYSQLND_MS_FABRIC *fabric, char *request_body)
+static php_stream *mysqlnd_fabric_open_stream(MYSQLND_MS_FABRIC *fabric, char *request_body TSRMLS_DC)
 {
 	zval method, content, header;
 	php_stream_context *ctxt;
 	php_stream *stream = NULL;
 	MYSQLND_MS_FABRIC_HOST *server;
-	TSRMLS_FETCH();
+
 
 	ZVAL_STRING(&method, "POST", 0);
 	ZVAL_STRING(&content, request_body, 0);
@@ -127,6 +127,13 @@ static php_stream *mysqlnd_fabric_open_stream(MYSQLND_MS_FABRIC *fabric, char *r
 	php_stream_context_set_option(ctxt, "http", "method", &method);
 	php_stream_context_set_option(ctxt, "http", "content", &content);
 	php_stream_context_set_option(ctxt, "http", "header", &header);
+	if (fabric->timeout) {
+		zval timeout;
+		ZVAL_DOUBLE(&timeout, fabric->timeout);
+		Z_SET_ISREF(timeout);
+		Z_SET_REFCOUNT(timeout, 2);
+		php_stream_context_set_option(ctxt, "http", "timeout", &timeout);
+	}
 
 	SET_EMPTY_FABRIC_ERROR(*fabric);
 
@@ -138,6 +145,7 @@ static php_stream *mysqlnd_fabric_open_stream(MYSQLND_MS_FABRIC *fabric, char *r
 
 		/* TODO: Switch to quiet mode */
 		stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
+
 		efree(url);
 	};
 
@@ -164,19 +172,19 @@ MYSQLND_MS_FABRIC_SERVER * mysqlnd_fabric_get_shard_servers(MYSQLND_MS_FABRIC *f
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_FAILURE);
 		MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
 		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
-		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "No fabric hosts found.");
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "No fabric hosts found");
 		DBG_RETURN(NULL);
 	}
 
 	spprintf(&req, 0, FABRIC_SHARDING_LOOKUP_SERVERS_XML, table, key ? key : "''", hint == LOCAL ? "LOCAL" : "GLOBAL");
-	stream = mysqlnd_fabric_open_stream(fabric, req);
+	stream = mysqlnd_fabric_open_stream(fabric, req TSRMLS_CC);
 	if (!stream) {
 		DBG_INF("Failed to open stream");
 		efree(req);
 		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_FAILURE);
 		MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
 		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
-		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to open stream to fabric host.");
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to open stream to any configured Fabric host");
 		DBG_RETURN(NULL);
 	}
 

@@ -261,6 +261,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_LB_WEIGHTS						"weights"
 #define SECT_FABRIC_NAME					"fabric"
 #define SECT_FABRIC_HOSTS					"hosts"
+#define SECT_FABRIC_TIMEOUT					"timeout"
 #define TRANSIENT_ERROR_NAME				"transient_error"
 #define TRANSIENT_ERROR_MAX_RETRIES			"max_retries"
 #define TRANSIENT_ERROR_USLEEP_RETRY		"usleep_retry"
@@ -556,6 +557,10 @@ typedef struct st_mysqlnd_fabric
 {
 	int host_count;
 	MYSQLND_MS_FABRIC_HOST hosts[10];
+
+	/* timeout connect + read, see PHP stream wrapper */
+	unsigned int timeout;
+
 	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
 	char error[MYSQLND_MS_ERRMSG_SIZE+1];
 	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];

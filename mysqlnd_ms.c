@@ -862,16 +862,19 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 {
 	unsigned int host_entry_counter = 0;
 	MYSQLND_MS_FABRIC *fabric;
-	zend_bool value_exists = FALSE;
-	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host_section;
-	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, SECT_FABRIC_NAME, sizeof(SECT_FABRIC_NAME)-1, &value_exists TSRMLS_CC);
+	zend_bool value_exists = FALSE, is_list_value = FALSE;
+	struct st_mysqlnd_ms_config_json_entry *fabric_section;
 
 	conn_data->fabric = NULL;
 
+	fabric_section = mysqlnd_ms_config_json_sub_section(group_section, SECT_FABRIC_NAME, sizeof(SECT_FABRIC_NAME)-1, &value_exists TSRMLS_CC);
 	if (!value_exists) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "MySQL Fabric configuration detected but no Faric section found. This is a bug, please report. Terminating");
 	}
+	/* TODO KLUDGE FIXME: free fabric on error - not a big deal as long as we use E_ERROR */
+	fabric = mysqlnd_fabric_init();
 
+	/* Do we need those checks: will there ever be a direct host/slave config?  Well, given how picky I'm about reporting... */
 	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, MASTER_NAME, sizeof(MASTER_NAME)-1, 0 TSRMLS_CC)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Section [" MASTER_NAME "] exists. Ignored for MySQL Fabric based configuration");
 	}
@@ -879,49 +882,94 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Section [" SLAVE_NAME "] exists. Ignored for MySQL Fabric based configuration");
 	}
 
-	hostlist_section = mysqlnd_ms_config_json_sub_section(fabric_section, SECT_FABRIC_HOSTS, sizeof(SECT_FABRIC_HOSTS)-1, &value_exists TSRMLS_CC);
-	if (!value_exists) {
-		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-					MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] doesn't exist or is not a list. This is needed for MySQL Fabric");
+	if ((TRUE == mysqlnd_ms_config_json_section_is_list(fabric_section TSRMLS_CC)))
+	{
+		struct st_mysqlnd_ms_config_json_entry * subsection = NULL;
+		/* fabric => array(hosts => array(), timeout => string) */
+		do {
+			char * current_subsection_name = NULL;
+			size_t current_subsection_name_len = 0;
+
+			subsection = mysqlnd_ms_config_json_next_sub_section(fabric_section,
+																&current_subsection_name,
+																&current_subsection_name_len,
+																NULL TSRMLS_CC);
+			if (!subsection || !current_subsection_name_len) {
+				break;
+			}
+
+			if (!strncmp(current_subsection_name, SECT_FABRIC_HOSTS, current_subsection_name_len)) {
+				struct st_mysqlnd_ms_config_json_entry *host_section;
+				const char * const sects_to_check[] = {SECT_HOST_NAME, SECT_PORT_NAME};
+
+				if ((FALSE == mysqlnd_ms_config_json_section_is_list(subsection TSRMLS_CC))) {
+					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] is not a list. This is needed for MySQL Fabric");
+				}
+
+				while (host_section = mysqlnd_ms_config_json_next_sub_section(subsection, NULL, NULL, NULL TSRMLS_CC)) {
+					host_entry_counter++;
+					{
+						unsigned int i = 0;
+						for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
+							size_t sect_len = strlen(sects_to_check[i]);
+							if (FALSE == mysqlnd_ms_config_json_sub_section_exists(host_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
+								mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+									MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for Fabric host list entry number %d", sects_to_check[i], host_entry_counter);
+							}
+						}
+					}
+					char *hostname = mysqlnd_ms_config_json_string_from_section(host_section, SECT_HOST_NAME, sizeof(SECT_HOST_NAME)-1, 0, NULL, NULL TSRMLS_CC);
+					int port = mysqlnd_ms_config_json_int_from_section(host_section, SECT_PORT_NAME, sizeof(SECT_PORT_NAME)-1, 0, NULL, NULL TSRMLS_CC);
+
+					if (hostname) {
+						mysqlnd_fabric_add_host(fabric, hostname, port TSRMLS_DC);
+						mnd_efree(hostname);
+					} else {
+						mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] lists contains an entry which has an empty [" SECT_HOST_NAME "] value. This is needed for MySQL Fabric");
+					}
+					if (host_entry_counter > 65535) {
+							mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] list has more than 65535 entries. Is this on purpose? If this is on purpose, please report a bug to upper the limit.");
+					}
+				}
+				if (0 == host_entry_counter) {
+					/* As we stop here, we should not be required to check for duplicate host sections overwriting each other */
+					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] exists but is empty. This is needed for MySQL Fabric");
+				}
+			}
+
+			if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
+				int timeout = mysqlnd_ms_config_json_int_from_section(fabric_section, current_subsection_name,
+														 current_subsection_name_len, 0,
+														 &value_exists, &is_list_value TSRMLS_CC);
+
+				if (value_exists) {
+					if ((timeout < 0) || (timeout > 65535)) {
+						mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							E_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for [" SECT_FABRIC_TIMEOUT "]. Stopping", timeout);
+					} else {
+						fabric->timeout = (unsigned int)timeout;
+					}
+				}
+			}
+
+		} while (1);
 	}
+
+	if (0 == host_entry_counter) {
+		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+			MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] doesn't exist. This is needed for MySQL Fabric");
+	}
+
+	conn_data->fabric = fabric;
 
 	if (FAIL == mysqlnd_ms_connect_load_charset(&conn_data, group_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC)) {
 		return FAIL;
 	}
-
-	fabric = mysqlnd_fabric_init();
-	while (host_section = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
-		host_entry_counter++;
-
-		{
-			const char * const sects_to_check[] = {SECT_HOST_NAME, SECT_PORT_NAME};
-			unsigned int i = 0;
-			for (; i < sizeof(sects_to_check) / sizeof(sects_to_check[0]); ++i) {
-				size_t sect_len = strlen(sects_to_check[i]);
-				if (FALSE == mysqlnd_ms_config_json_sub_section_exists(host_section, sects_to_check[i], sect_len, 0 TSRMLS_CC)) {
-					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-						MYSQLND_MS_ERROR_PREFIX " Section [%s] doesn't exist for Fabric host list entry number %d", sects_to_check[i], host_entry_counter);
-				}
-			}
-		}
-
-		char *hostname = mysqlnd_ms_config_json_string_from_section(host_section, SECT_HOST_NAME, sizeof(SECT_HOST_NAME)-1, 0, NULL, NULL TSRMLS_CC);
-		int port = mysqlnd_ms_config_json_int_from_section(host_section, SECT_PORT_NAME, sizeof(SECT_PORT_NAME)-1, 0, NULL, NULL TSRMLS_CC);
-
-		if (hostname) {
-			mysqlnd_fabric_add_host(fabric, hostname, port TSRMLS_DC);
-			mnd_efree(hostname);
-		} else {
-			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-					MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] lists contains an entry which has an empty [" SECT_HOST_NAME "] value. This is needed for MySQL Fabric");
-		}
-	}
-	if (0 == host_entry_counter) {
-		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-			MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] exists but is empty. This is needed for MySQL Fabric");
-	}
-
-	conn_data->fabric = fabric;
 
 	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(group_section, &MYSQLND_MS_ERROR_INFO(conn),
 																	 &conn_data->master_connections,

@@ -101,7 +101,7 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 					}
 
 					if (!strncmp(current_subsection_name, PICK_ONCE, current_subsection_name_len)) {
-							once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
+						once_value = mysqlnd_ms_config_json_string_from_section(section, PICK_ONCE, sizeof(PICK_ONCE) - 1, 0,
 																					&value_exists, &is_list_value TSRMLS_CC);
 						if (value_exists && once_value) {
 							ret->sticky.once = !mysqlnd_ms_config_json_string_is_bool_false(once_value);

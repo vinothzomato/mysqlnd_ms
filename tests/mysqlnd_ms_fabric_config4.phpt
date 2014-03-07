@@ -37,4 +37,4 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_fabric_config4.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_config4.ini'.\n");
 ?>
 --EXPECTF--
-Fatal error: mysqli_real_connect(): (mysqlnd_ms) Section [hosts] doesn't exist or is not a list. This is needed for MySQL Fabric in %s on line %d
+Fatal error: mysqli_real_connect(): (mysqlnd_ms) Section [hosts] doesn't exist. This is needed for MySQL Fabric in %s on line %d

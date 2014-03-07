@@ -14,7 +14,8 @@ $settings = array(
 		'fabric' => array(
 			'hosts' => array(
 				array('host' => 'example.com', 'port' => 8080)
-			)
+			),
+			'timeout' => 2
 		)
 	),
 );
@@ -31,6 +32,7 @@ mysqlnd_ms.collect_statistics=1
 	require_once("util.inc");
 
 	$stats = mysqlnd_ms_get_stats();
+	$begin = microtime(true);
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno())
@@ -38,6 +40,10 @@ mysqlnd_ms.collect_statistics=1
 
 		/* Would be surprised if anybody set a mapping for table=DUAL... */
 	var_dump(mysqlnd_ms_fabric_select_global($link, "test"));
+	if ((microtime(true) - $begin) > 5) {
+		printf("[002] Operation took longer than expected. Expecting 2s, allowing 5s, took: %.2fs. Verify manually.\n", microtime(true) - $begin);
+	}
+
 	$now = mysqlnd_ms_get_stats();
 
 	foreach ($stats as $k => $v) {
@@ -53,9 +59,9 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_host_timeout.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqlnd_ms_fabric_select_global(http://example.com:8080/): failed to open stream: Connection refused in %s on line %d
+Warning: mysqlnd_ms_fabric_select_global(http://example.com:8080/): failed to open stream: Connection timed out in %s on line %d
 
-Warning: mysqlnd_ms_fabric_select_global(): (mysqlnd_ms) Failed to open stream to fabric host. in %s on line %d
+Warning: mysqlnd_ms_fabric_select_global(): (mysqlnd_ms) Failed to open stream to any configured Fabric host in %s on line %d
 bool(false)
 fabric_sharding_lookup_servers_failure: 0 -> 1
 fabric_sharding_lookup_servers_time_total: 0 -> %d
