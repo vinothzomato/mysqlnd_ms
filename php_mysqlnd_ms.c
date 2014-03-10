@@ -774,11 +774,27 @@ static void mysqlnd_ms_add_server_to_array(void *data, void *arg TSRMLS_DC) /* {
 
 	MAKE_STD_ZVAL(host);
 	array_init(host);
+	if ((*element)->name_from_config) {
+		add_assoc_string(host, "name_from_config", (*element)->name_from_config, 1);
+	} else {
+		add_assoc_null(host, "name_from_config");
+	}
+
 	add_assoc_string(host, "hostname", (*element)->host, 1);
+
+	if ((*element)->user) {
+		add_assoc_string(host, "user", (*element)->user, 1);
+	} else {
+		add_assoc_null(host, "user");
+	}
+
+	add_assoc_long(host, "port", (*element)->port);
+
 	if ((*element)->socket) {
 		add_assoc_string(host, "socket", (*element)->socket, 1);
+	} else {
+		add_assoc_null(host, "socket");
 	}
-	add_assoc_long(host, "port", (*element)->port);
 
 	add_next_index_zval(array, host);
 }
@@ -792,7 +808,7 @@ ZEND_END_ARG_INFO()
    Dump configured master and slave servers */
 static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 {
-	zval *conn_zv, *master, *slaves;
+	zval *conn_zv, *masters, *slaves;
 	MYSQLND *conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
 
@@ -810,16 +826,16 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 		RETURN_FALSE;
 	}
 
-	MAKE_STD_ZVAL(master);
+	MAKE_STD_ZVAL(masters);
 	MAKE_STD_ZVAL(slaves);
-	array_init(master);
+	array_init(masters);
 	array_init(slaves);
 
-	zend_llist_apply_with_argument(&(*conn_data)->master_connections, mysqlnd_ms_add_server_to_array, master TSRMLS_CC);
+	zend_llist_apply_with_argument(&(*conn_data)->master_connections, mysqlnd_ms_add_server_to_array, masters TSRMLS_CC);
 	zend_llist_apply_with_argument(&(*conn_data)->slave_connections, mysqlnd_ms_add_server_to_array, slaves TSRMLS_CC);
 
 	array_init(return_value);
-	add_assoc_zval(return_value, "master", master);
+	add_assoc_zval(return_value, "masters", masters);
 	add_assoc_zval(return_value, "slaves", slaves);
 }
 /* }}} */
