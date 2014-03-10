@@ -54,7 +54,7 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_transient_error.inix"))
+	if (!unlink("test_mysqlnd_transient_error.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_transient_error.ini'.\n");
 ?>
 --EXPECTF--

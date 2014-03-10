@@ -21,6 +21,16 @@ $sql = mst_get_gtid_sql($db);
 if ($error = mst_mysqli_setup_gtid_table($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))
   die(sprintf("SKIP Failed to setup GTID on master, %s\n", $error));
 
+if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
+		die(sprintf("SKIP Cannot connect, [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
+
+if (!$link->query("DROP PROCEDURE IF EXISTS p") ||
+	!$link->query("CREATE PROCEDURE p(IN ver_in VARCHAR(25)) BEGIN SELECT ver_in AS _ver_out; END;") ||
+	!$link->prepare("CALL p(?)")) {
+	unlink("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini");
+	die(sprintf("SKIP Not supported, [%d] %s\n", $link->errno, $link->error));
+}
+
 $settings = array(
 	"myapp" => array(
 		'master' => array($emulated_master_host),
@@ -39,15 +49,6 @@ $settings = array(
 if ($error = mst_create_config("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
 
-if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		die(sprintf("SKIP Cannot connect, [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error()));
-
-if (!$link->query("DROP PROCEDURE IF EXISTS p") ||
-	!$link->query("CREATE PROCEDURE p(IN ver_in VARCHAR(25)) BEGIN SELECT ver_in AS _ver_out; END;") ||
-	!$link->prepare("CALL p(?)")) {
-	unlink("test_mysqlnd_ms_gtid_ps_autocommit_get_result_mq.ini");
-	die(sprintf("SKIP Not supported, [%d] %s\n", $link->errno, $link->error));
-}
 ?>
 --INI--
 mysqlnd_ms.enable=1
