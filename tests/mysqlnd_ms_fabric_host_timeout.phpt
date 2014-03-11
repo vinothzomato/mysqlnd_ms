@@ -55,7 +55,7 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --CLEAN--
 <?php
-	if (!unlink("_test_mysqlnd_ms_fabric_host_timeout.ini"))
+	if (!unlink("test_mysqlnd_ms_fabric_host_timeout.ini"))
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_host_timeout.ini'.\n");
 ?>
 --EXPECTF--
