@@ -1,5 +1,5 @@
 --TEST--
-Fabric: sharding.lookup_servers command + warn about trx boundaries
+Fabric: sharding.lookup_servers command + warn about trx boundaries off
 --SKIPIF--
 <?php
 require_once('skipif.inc');
@@ -15,24 +15,21 @@ $settings = array(
 			'hosts' => array(
 						array('host' => '127.0.0.1', 'port' => '8080')
 					),
-			'trx_warn_serverlist_changes' => 1,
 		),
 		'trx_stickiness' => 'on',
 	),
 );
-if ($error = mst_create_config("test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini", $settings))
+if ($error = mst_create_config("test_mysqlnd_ms_fabric_warn_trx_boundaries_off.ini", $settings))
   die(sprintf("SKIP %s\n", $error));
 ?>
 --INI--
 mysqlnd_ms.enable=1
-mysqlnd_ms.config_file=test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini
+mysqlnd_ms.config_file=test_mysqlnd_ms_fabric_warn_trx_boundaries_off.ini
 mysqlnd_ms.collect_statistics=1
 --FILE--
 <?php
 	require_once("connect.inc");
 	require_once("util.inc");
-
-	$stats = mysqlnd_ms_get_stats();
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (0 !== mysqli_connect_errno())
@@ -44,22 +41,12 @@ mysqlnd_ms.collect_statistics=1
 	@$link->query("DROP TABLE IF EXISTS test");
 	mysqlnd_ms_fabric_select_global($link, 1);
 
-
-	$now = mysqlnd_ms_get_stats();
-
-	foreach ($stats as $k => $v) {
-		if ($now[$k] != $v) {
-			printf("%s: %s -> %s\n", $k, $v, $now[$k]);
-		}
-	}
 	print "done!";
 ?>
 --CLEAN--
 <?php
-	if (!unlink("test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini"))
-	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_warn_trx_boundaries_on.ini'.\n");
+	if (!unlink("test_mysqlnd_ms_fabric_warn_trx_boundaries_off.ini"))
+	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_fabric_warn_trx_boundaries_off.ini'.\n");
 ?>
 --EXPECTF--
-Warning: mysqlnd_ms_fabric_select_global(): (mysqlnd_ms) Fabric server exchange in the middle of a transaction in %s on line %d
-%A
 done!

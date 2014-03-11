@@ -677,8 +677,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	}
 	fabric = (*conn_data)->fabric;
 
-	if ((fabric->trx_warn_serverlist_changes) &&
-		(((*conn_data)->stgy.trx_stop_switching) || (*conn_data)->stgy.in_transaction)) {
+	if ((fabric->trx_warn_serverlist_changes) && ((*conn_data)->stgy.trx_stop_switching))  {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
 
