@@ -418,8 +418,11 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 		if (PASS !=  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) {
 			goto getlastidfailure;
 		}
-
+#if PHP_VERSION_ID < 50600
 		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
+#else
+		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, 0 TSRMLS_CC))) {
+#endif
 			goto getlastidfailure;
 		}
 
