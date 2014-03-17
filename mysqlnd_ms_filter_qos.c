@@ -202,7 +202,12 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 	do {
 		if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
 			(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
-			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+#if PHP_VERSION_ID < 50600
+			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))
+#else
+			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, 0 TSRMLS_CC))
+#endif
+		)
 		{
 			ret = (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows) ? PASS : FAIL;
 			DBG_INF_FMT("sql = %s -  ret = %d - affected_rows = %d", sql, ret, (MYSQLND_MS_UPSERT_STATUS(conn).affected_rows));
@@ -311,7 +316,12 @@ mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 	(*conn_data)->skip_ms_calls = TRUE;
 
 	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
-		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC)))
+#if PHP_VERSION_ID < 50600
+		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))
+#else
+		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, 0 TSRMLS_CC))
+#endif
+	)
 	{
 		zval * row;
 		zval ** seconds_behind_master;

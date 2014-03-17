@@ -1259,14 +1259,22 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 
 /* {{{ mysqlnd_ms::use_result */
 static MYSQLND_RES *
+#if PHP_VERSION_ID < 50600
 MYSQLND_METHOD(mysqlnd_ms, use_result)(MYSQLND_CONN_DATA * const proxy_conn TSRMLS_DC)
+#else
+MYSQLND_METHOD(mysqlnd_ms, use_result)(MYSQLND_CONN_DATA * const proxy_conn, const unsigned int flags TSRMLS_DC)
+#endif
 {
 	MYSQLND_RES * result;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::use_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, conn->thread_id);
+#if PHP_VERSION_ID < 50600
 	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(use_result)(conn TSRMLS_CC);
+#else
+	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(use_result)(conn, flags TSRMLS_CC);
+#endif
 	DBG_RETURN(result);
 }
 /* }}} */
@@ -1274,14 +1282,22 @@ MYSQLND_METHOD(mysqlnd_ms, use_result)(MYSQLND_CONN_DATA * const proxy_conn TSRM
 
 /* {{{ mysqlnd_ms::store_result */
 static MYSQLND_RES *
+#if PHP_VERSION_ID < 50600
 MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND_CONN_DATA * const proxy_conn TSRMLS_DC)
+#else
+MYSQLND_METHOD(mysqlnd_ms, store_result)(MYSQLND_CONN_DATA * const proxy_conn, const unsigned int flags TSRMLS_DC)
+#endif
 {
 	MYSQLND_RES * result;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	DBG_ENTER("mysqlnd_ms::store_result");
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, conn->thread_id);
+#if PHP_VERSION_ID < 50600
 	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC);
+#else
+	result = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, flags TSRMLS_CC);
+#endif
 	DBG_RETURN(result);
 }
 /* }}} */
