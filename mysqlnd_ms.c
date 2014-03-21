@@ -918,7 +918,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] is not a list. This is needed for MySQL Fabric");
 				}
 
-				while (host_section = mysqlnd_ms_config_json_next_sub_section(subsection, NULL, NULL, NULL TSRMLS_CC)) {
+				while ((host_section = mysqlnd_ms_config_json_next_sub_section(subsection, NULL, NULL, NULL TSRMLS_CC))) {
 					host_entry_counter++;
 					{
 						unsigned int i = 0;
