@@ -674,7 +674,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	}
 
 	if (!(*conn_data)->fabric) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX, " Connection is not configured to use MySQL Fabric");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Connection is not configured to use MySQL Fabric");
 		RETVAL_FALSE;
 		DBG_VOID_RETURN;
 	}
