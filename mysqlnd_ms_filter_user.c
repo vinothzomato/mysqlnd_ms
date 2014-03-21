@@ -110,6 +110,8 @@ mysqlnd_ms_user_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, ze
 				php_error_docref(NULL TSRMLS_CC, E_ERROR,
 									 MYSQLND_MS_ERROR_PREFIX " Error by creating filter 'user', can't find section '%s' . Stopping.", SECT_USER_CALLBACK);
 			}
+		} else {
+			MYSQLND_MS_WARN_OOM();
 		}
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);

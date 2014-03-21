@@ -68,9 +68,11 @@ mysqlnd_ms_config_json_init(TSRMLS_D)
 	struct st_mysqlnd_ms_json_config * ret;
 	DBG_ENTER("mysqlnd_ms_config_json_init");
 	ret = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_json_config));
+	if (ret) {
 #ifdef ZTS
-	ret->LOCK_access = tsrm_mutex_alloc();
+		ret->LOCK_access = tsrm_mutex_alloc();
 #endif
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -138,29 +140,45 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 			break;
 		case IS_STRING:
 			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_json_entry));
-			new_entry->type = IS_STRING;
-			new_entry->value.str.c = mnd_pestrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv), 1);
-			new_entry->value.str.len = Z_STRLEN_P(zv);
-			DBG_INF_FMT("str=%s", new_entry->value.str.c);
+			if (new_entry) {
+				new_entry->type = IS_STRING;
+				new_entry->value.str.c = mnd_pestrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv), 1);
+				new_entry->value.str.len = Z_STRLEN_P(zv);
+				DBG_INF_FMT("str=%s", new_entry->value.str.c);
+			} else {
+				MYSQLND_MS_WARN_OOM();
+			}
 			break;
 		case IS_DOUBLE:
 			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_json_entry));
-			new_entry->type = IS_DOUBLE;
-			new_entry->value.dval = Z_DVAL_P(zv);
-			DBG_INF_FMT("dval=%f", new_entry->value.dval);
+			if (new_entry) {
+				new_entry->type = IS_DOUBLE;
+				new_entry->value.dval = Z_DVAL_P(zv);
+				DBG_INF_FMT("dval=%f", new_entry->value.dval);
+			} else {
+				MYSQLND_MS_WARN_OOM();
+			}
 			break;
 		case IS_BOOL:
 			DBG_INF("boolean");
 		case IS_LONG:
 			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_json_entry));
-			new_entry->type = IS_LONG;
-			new_entry->value.lval = Z_LVAL_P(zv);
-			DBG_INF_FMT("lval="MYSQLND_LL_SPEC, (long long) new_entry->value.lval);
+			if (new_entry) {
+				new_entry->type = IS_LONG;
+				new_entry->value.lval = Z_LVAL_P(zv);
+				DBG_INF_FMT("lval="MYSQLND_LL_SPEC, (long long) new_entry->value.lval);
+			} else {
+				MYSQLND_MS_WARN_OOM();
+			}
 			break;
 		case IS_NULL:
 			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_json_entry));
-			new_entry->type = IS_NULL;
-			DBG_INF("null value");
+			if (new_entry) {
+				new_entry->type = IS_NULL;
+				DBG_INF("null value");
+			} else {
+				MYSQLND_MS_WARN_OOM();
+			}
 			break;
 		default:
 			DBG_INF("unknown type");
@@ -196,6 +214,12 @@ mysqlnd_ms_zval_data_to_hashtable(zval * json_data TSRMLS_DC)
 
 		ret->type = IS_ARRAY;
 		ret->value.ht = mnd_calloc(1, sizeof(HashTable));
+		if (!(ret->value.ht)) {
+			MYSQLND_MS_WARN_OOM();
+			mnd_free(ret);
+			ret = NULL;
+			DBG_RETURN(ret);
+		}
 		zend_hash_init(ret->value.ht, Z_TYPE_P(json_data) == IS_ARRAY? zend_hash_num_elements(Z_ARRVAL_P(json_data)) : 1,
 						NULL /* hash_func */, mysqlnd_ms_config_json_section_dtor /*dtor*/, 1 /* persistent */);
 

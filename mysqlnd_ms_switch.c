@@ -391,13 +391,18 @@ mysqlnd_ms_section_filters_add_filter(zend_llist * filters,
 					}
 				} else {
 					new_filter_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_DATA), persistent);
+					if (!new_filter_entry) {
+						MYSQLND_MS_WARN_OOM();
+					}
 				}
-				new_filter_entry->persistent = persistent;
-				new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
-				new_filter_entry->name_len = filter_name_len;
-				new_filter_entry->pick_type = specific_ctors[i].pick_type;
-				new_filter_entry->multi_filter = specific_ctors[i].multi_filter;
-				zend_llist_add_element(filters, &new_filter_entry);
+				if (new_filter_entry) {
+					new_filter_entry->persistent = persistent;
+					new_filter_entry->name = mnd_pestrndup(filter_name, filter_name_len, persistent);
+					new_filter_entry->name_len = filter_name_len;
+					new_filter_entry->pick_type = specific_ctors[i].pick_type;
+					new_filter_entry->multi_filter = specific_ctors[i].multi_filter;
+					zend_llist_add_element(filters, &new_filter_entry);
+				}
 				break;
 			}
 			++i;
@@ -423,6 +428,9 @@ mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_entry * section
 
 	if (section) {
 		ret = mnd_pemalloc(sizeof(zend_llist), persistent);
+		if (!ret) {
+			MYSQLND_MS_WARN_OOM();
+		}
 	}
 	if (ret) {
 		zend_bool section_exists;
@@ -683,6 +691,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 		/* 1. */
 		selected_masters = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
 		if (!selected_masters) {
+			MYSQLND_MS_WARN_OOM();
 			goto end;
 		}
 		zend_llist_init(selected_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
@@ -690,6 +699,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 		/* 2. */
 		selected_slaves = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
 		if (!selected_slaves) {
+			MYSQLND_MS_WARN_OOM();
 			goto end;
 		}
 		zend_llist_init(selected_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
@@ -697,6 +707,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 		/* 3. */
 		output_masters = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
 		if (!output_masters) {
+			MYSQLND_MS_WARN_OOM();
 			goto end;
 		}
 		zend_llist_init(output_masters, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);
@@ -704,6 +715,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 		/* 4. */
 		output_slaves = mnd_pemalloc(sizeof(zend_llist), conn->persistent);
 		if (!output_slaves) {
+			MYSQLND_MS_WARN_OOM();
 			goto end;
 		}
 		zend_llist_init(output_slaves, sizeof(MYSQLND_MS_LIST_DATA *), NULL /*dtor*/, conn->persistent);

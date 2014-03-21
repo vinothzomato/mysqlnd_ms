@@ -125,20 +125,24 @@ mysqlnd_ms_filter_ctor_load_weights_config(HashTable * lb_weights_list, const ch
 					MYSQLND_MS_ERROR_PREFIX " Fingerprint is empty. Did you ignore an error about an unknown server? Stopping");
 			} else {
 				MYSQLND_MS_FILTER_LB_WEIGHT * weight_entry;
-				/* Handle OOM */
 				weight_entry = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), persistent);
-				weight_entry->weight = weight_entry->current_weight = weight;
-				weight_entry->persistent = persistent;
+				if (!weight_entry) {
+					/* Not sure if we need to stop here */
+					MYSQLND_MS_WARN_OOM();
+				} else {
+					weight_entry->weight = weight_entry->current_weight = weight;
+					weight_entry->persistent = persistent;
 
-				mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
+					mysqlnd_ms_get_fingerprint_connection(&fprint_conn, entry_pp TSRMLS_CC);
 
-				if (SUCCESS != zend_hash_add(lb_weights_list, fprint_conn.c, fprint_conn.len, weight_entry, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), NULL)) {
-					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-						E_RECOVERABLE_ERROR TSRMLS_CC,
-						MYSQLND_MS_ERROR_PREFIX " Failed to create internal weights lookup table for filter '%s'. Stopping", filter_name);
+					if (SUCCESS != zend_hash_add(lb_weights_list, fprint_conn.c, fprint_conn.len, weight_entry, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT), NULL)) {
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							E_RECOVERABLE_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " Failed to create internal weights lookup table for filter '%s'. Stopping", filter_name);
+					}
+
+					smart_str_free(&fprint_conn);
 				}
-
-				smart_str_free(&fprint_conn);
 			}
 		}
 	} while (1);
@@ -181,10 +185,15 @@ mysqlnd_ms_populate_weights_sort_list(HashTable * lb_weights_list,
 		if (SUCCESS == retval) {
 			/* persistent needed in weight entry - could take from element/conn */
 			lb_weight_context = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_LB_WEIGHT_IN_CONTEXT), weight_entry->persistent);
-			/* TODO: are we getting a pointer to the main list ? */
-			lb_weight_context->lb_weight = weight_entry;
-			lb_weight_context->element = element;
-			zend_llist_add_element(lb_sort_list, &lb_weight_context);
+			if (lb_weight_context) {
+				/* TODO: are we getting a pointer to the main list ? */
+				lb_weight_context->lb_weight = weight_entry;
+				lb_weight_context->element = element;
+				zend_llist_add_element(lb_sort_list, &lb_weight_context);
+			} else {
+				MYSQLND_MS_WARN_OOM();
+				retval = FAIL;
+			}
 		}
 		if (SUCCESS != retval) {
 			DBG_INF_FMT("Failed to create sort list, fingerprint -%s- %d", fprint_conn.c, fprint_conn.len);

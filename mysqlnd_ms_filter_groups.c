@@ -152,7 +152,6 @@ mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 							E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Failed to allocate memory to create node group '%s' for '%s' filter. Stopping", current_group_name, PICK_GROUPS);
-						mnd_pefree(node_group, persistent);
 						break;
 					}
 
@@ -163,7 +162,6 @@ mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 							E_RECOVERABLE_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Failed to create node group '%s' for '%s' filter. Stopping", current_group_name, PICK_GROUPS);
-						mnd_pefree(node_group, persistent);
 						break;
 					}
 
@@ -253,6 +251,8 @@ mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 				zend_hash_destroy(&server_names);
 			}
 
+		} else {
+			MYSQLND_MS_WARN_OOM();
 		}
 	}
 

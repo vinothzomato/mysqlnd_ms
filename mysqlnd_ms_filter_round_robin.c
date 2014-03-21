@@ -114,6 +114,8 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 				}
 			} while (1);
 		}
+	} else {
+		MYSQLND_MS_WARN_OOM();
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }

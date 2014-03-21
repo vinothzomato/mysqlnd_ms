@@ -206,6 +206,9 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 		} \
 	} \
 
+#define MYSQLND_MS_WARN_OOM() \
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to allocate memory. Memory exhausted.")
+
 
 #define MASTER_SWITCH "ms=master"
 #define SLAVE_SWITCH "ms=slave"

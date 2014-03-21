@@ -161,6 +161,8 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zen
 						" Error by creating filter '%s', can't find section '%s', '%s' or '%s' . Stopping",
 						PICK_QOS, SECT_QOS_STRONG, SECT_QOS_SESSION, SECT_QOS_EVENTUAL);
 			}
+		} else {
+			MYSQLND_MS_WARN_OOM();
 		}
 	}
 
@@ -727,39 +729,43 @@ mysqlnd_ms_section_filters_prepend_qos(MYSQLND * proxy_conn,
 
 		/* new QOS filter */
 		new_qos_filter = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_QOS_DATA), persistent);
-		new_qos_filter->parent.filter_dtor = qos_filter_dtor;
-		new_qos_filter->consistency = consistency;
-		new_qos_filter->option = option;
+		if (new_qos_filter) {
+			new_qos_filter->parent.filter_dtor = qos_filter_dtor;
+			new_qos_filter->consistency = consistency;
+			new_qos_filter->option = option;
 
-		/* preserve settings from current filter */
-		if (old_qos_filter)
-			new_qos_filter->option_data = old_qos_filter->option_data;
+			/* preserve settings from current filter */
+			if (old_qos_filter)
+				new_qos_filter->option_data = old_qos_filter->option_data;
 
-		if (QOS_OPTION_AGE == option && CONSISTENCY_EVENTUAL == consistency) {
- 			new_qos_filter->option_data.age = option_data->age;
+			if (QOS_OPTION_AGE == option && CONSISTENCY_EVENTUAL == consistency) {
+				new_qos_filter->option_data.age = option_data->age;
+			}
+			if (QOS_OPTION_CACHE == option && CONSISTENCY_EVENTUAL == consistency) {
+				new_qos_filter->option_data.ttl = option_data->ttl;
+			}
+			if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
+				new_qos_filter->option_data.gtid_len = option_data->gtid_len;
+				new_qos_filter->option_data.gtid = estrndup(option_data->gtid, option_data->gtid_len);
+				efree(option_data->gtid);
+			}
+
+
+			new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
+			new_filter_entry->persistent = persistent;
+			new_filter_entry->name = mnd_pestrndup(PICK_QOS, sizeof(PICK_QOS) -1, persistent);
+			new_filter_entry->name_len = sizeof(PICK_QOS) -1;
+			new_filter_entry->pick_type = (enum mysqlnd_ms_server_pick_strategy)SERVER_PICK_QOS;
+			new_filter_entry->multi_filter = TRUE;
+
+			/* remove all existing QOS filters */
+			zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
+
+			/* prepend with new filter */
+			zend_llist_prepend_element(filters, &new_filter_entry);
+		} else {
+			MYSQLND_MS_WARN_OOM();
 		}
-		if (QOS_OPTION_CACHE == option && CONSISTENCY_EVENTUAL == consistency) {
-			new_qos_filter->option_data.ttl = option_data->ttl;
-		}
-		if (QOS_OPTION_GTID == option && CONSISTENCY_SESSION == consistency) {
-			new_qos_filter->option_data.gtid_len = option_data->gtid_len;
-			new_qos_filter->option_data.gtid = estrndup(option_data->gtid, option_data->gtid_len);
-			efree(option_data->gtid);
-		}
-
-
-		new_filter_entry = (MYSQLND_MS_FILTER_DATA *)new_qos_filter;
-		new_filter_entry->persistent = persistent;
-		new_filter_entry->name = mnd_pestrndup(PICK_QOS, sizeof(PICK_QOS) -1, persistent);
-		new_filter_entry->name_len = sizeof(PICK_QOS) -1;
-		new_filter_entry->pick_type = (enum mysqlnd_ms_server_pick_strategy)SERVER_PICK_QOS;
-		new_filter_entry->multi_filter = TRUE;
-
-		/* remove all existing QOS filters */
-		zend_llist_del_element(filters, NULL, mysqlnd_ms_remove_qos_filter);
-
-		/* prepend with new filter */
-		zend_llist_prepend_element(filters, &new_filter_entry);
 	}
 
 	ret = PASS;

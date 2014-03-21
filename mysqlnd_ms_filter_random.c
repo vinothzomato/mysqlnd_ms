@@ -136,6 +136,8 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 
 		zend_hash_init(&ret->weight_context.master_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
 		zend_hash_init(&ret->weight_context.slave_context, 4, NULL/*hash*/, NULL/*dtor*/, persistent);
+	} else {
+		MYSQLND_MS_WARN_OOM();
 	}
 	DBG_RETURN((MYSQLND_MS_FILTER_DATA *) ret);
 }
