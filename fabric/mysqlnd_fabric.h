@@ -23,7 +23,7 @@
 
 MYSQLND_MS_FABRIC *mysqlnd_fabric_init();
 void mysqlnd_fabric_free(MYSQLND_MS_FABRIC *fabric);
-int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port);
+int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port TSRMLS_DC);
 
 typedef void(*mysqlnd_fabric_apply_func)(const char *hostname, unsigned int port, void *data);
 
