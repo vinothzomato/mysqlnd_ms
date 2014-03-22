@@ -492,7 +492,7 @@
         <file name="mysqlnd_ms_use_result2.phpt" role="test"/>
         <file name="mysqlnd_ms_use_result.phpt" role="test"/>
         <file name="mysqlnd_ms_warning_count.phpt" role="test"/>
-        <file name="README" role="doc"/>
+        <file name="README" role="test"/>
         <file name="skipif.inc" role="test"/>
         <file name="util.inc" role="test"/>
         <dir name="bench">
