@@ -286,8 +286,10 @@ static PHP_FUNCTION(mysqlnd_ms_match_wild)
 #if PHP_VERSION_ID >= 50600
 static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 {
-	unsigned int client_api_capabilities;
-	return zval_to_mysqlnd(zv, 0,&client_api_capabilities TSRMLS_CC);
+	unsigned int client_api_capabilities, tmp;
+	MYSQLND * conn = zval_to_mysqlnd(zv, 0, &client_api_capabilities TSRMLS_CC);
+	conn = zval_to_mysqlnd(zv, client_api_capabilities, &tmp TSRMLS_CC);
+	return conn;
 }
 /* }}} */
 #elif PHP_VERSION_ID > 50500
@@ -428,7 +430,7 @@ static PHP_FUNCTION(mysqlnd_ms_get_last_gtid)
 #if PHP_VERSION_ID < 50600
 		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))) {
 #else
-		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, 0 TSRMLS_CC))) {
+		if (!(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, MYSQLND_STORE_NO_COPY TSRMLS_CC))) {
 #endif
 			goto getlastidfailure;
 		}
@@ -715,7 +717,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 
 	for (; servers->hostname; servers++) {
 #if PHP_VERSION_ID >= 50600
-		MYSQLND *conn = mysqlnd_init(0, proxy_conn->data->persistent);
+		MYSQLND *conn = mysqlnd_init(proxy_conn->data->m->get_client_api_capabilities(proxy_conn->data TSRMLS_CC), proxy_conn->data->persistent);
 #else
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
 #endif

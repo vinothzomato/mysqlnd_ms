@@ -207,7 +207,7 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 #if PHP_VERSION_ID < 50600
 			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))
 #else
-			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, 0 TSRMLS_CC))
+			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, MYSQLND_STORE_NO_COPY TSRMLS_CC))
 #endif
 		)
 		{
@@ -321,7 +321,7 @@ mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 #if PHP_VERSION_ID < 50600
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))
 #else
-		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, 0 TSRMLS_CC))
+		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn, MYSQLND_STORE_NO_COPY TSRMLS_CC))
 #endif
 	)
 	{
