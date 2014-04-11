@@ -561,7 +561,11 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 			if (conn && i==0) {
 				tmp_conn = conn;
 			} else {
+#if PHP_VERSION_ID < 50600
 				tmp_conn_handle = mysqlnd_init(persistent);
+#else
+				tmp_conn_handle = mysqlnd_init(0, persistent);
+#endif
 				if (tmp_conn_handle) {
 					tmp_conn = MS_GET_CONN_DATA_FROM_CONN(tmp_conn_handle);
 				}

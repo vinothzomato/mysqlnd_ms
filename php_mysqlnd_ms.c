@@ -283,7 +283,20 @@ static PHP_FUNCTION(mysqlnd_ms_match_wild)
 
 #if PHP_VERSION_ID > 50399
 
-#if PHP_VERSION_ID < 50418 || PHP_VERSION_ID == 50500
+#if PHP_VERSION_ID >= 50600
+static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
+{
+	unsigned int client_api_capabilities;
+	return zval_to_mysqlnd(zv, 0,&client_api_capabilities TSRMLS_CC);
+}
+/* }}} */
+#elif PHP_VERSION_ID > 50500
+static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
+{
+	return zval_to_mysqlnd(zv TSRMLS_CC);
+}
+/* }}} */
+#elif PHP_VERSION_ID <= 50500
 static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 {
 	zend_class_entry *root_ce;
@@ -314,12 +327,6 @@ static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 	} else {
 		return zval_to_mysqlnd(zv TSRMLS_CC);
 	}
-}
-/* }}} */
-#else /* PHP_VERSION_ID < 50418 || PHP_VERSION_ID == 50500 */
-static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
-{
-	return zval_to_mysqlnd(zv TSRMLS_CC);
 }
 /* }}} */
 #endif
@@ -707,8 +714,11 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	}
 
 	for (; servers->hostname; servers++) {
+#if PHP_VERSION_ID >= 50600
+		MYSQLND *conn = mysqlnd_init(0, proxy_conn->data->persistent);
+#else
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
-
+#endif
 		if (servers->master) {
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
