@@ -288,7 +288,9 @@ static MYSQLND *zval_to_mysqlnd_inherited(zval *zv TSRMLS_DC) /* {{{ */
 {
 	unsigned int client_api_capabilities, tmp;
 	MYSQLND * conn = zval_to_mysqlnd(zv, 0, &client_api_capabilities TSRMLS_CC);
-	conn = zval_to_mysqlnd(zv, client_api_capabilities, &tmp TSRMLS_CC);
+	if (conn) {
+		conn = zval_to_mysqlnd(zv, client_api_capabilities, &tmp TSRMLS_CC);
+	}
 	return conn;
 }
 /* }}} */
