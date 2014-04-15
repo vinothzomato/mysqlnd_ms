@@ -1,5 +1,5 @@
 --TEST--
-MySQL Fabric: Fabrc and fixed master
+MySQL Fabric: Fabric and fixed master
 --SKIPIF--
 <?php
 require_once(__DIR__.'/../skipif.inc');
