@@ -171,7 +171,6 @@ int fill_shard_table_entry(void *pDest TSRMLS_DC, int num_args, va_list args, ze
 	
 	zend_hash_internal_pointer_reset(source);
 	zend_hash_get_current_data(source, (void**)&data);
-	zend_hash_get_current_data(source, (void**)&data);
 	if (Z_TYPE_P(data) != IS_STRING || Z_STRLEN_P(data) + 1 > sizeof(target->schema_name)) {
 		return ZEND_HASH_APPLY_STOP;
 	}
