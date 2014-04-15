@@ -45,7 +45,7 @@
 extern const myslqnd_fabric_strategy mysqlnd_fabric_strategy_direct;
 extern const myslqnd_fabric_strategy mysqlnd_fabric_strategy_dump;
 
-mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsigned int timeout)
+mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsigned int timeout, zend_bool trx_warn_serverlist_changes)
 {
 	mysqlnd_fabric *fabric = ecalloc(1, sizeof(mysqlnd_fabric));
 
@@ -59,6 +59,7 @@ mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsig
 	}
 
 	fabric->timeout = timeout;
+	fabric->trx_warn_serverlist_changes = trx_warn_serverlist_changes;
 
 	if (fabric->strategy.init) {
 		fabric->strategy.init(fabric);
@@ -77,6 +78,11 @@ void mysqlnd_fabric_free(mysqlnd_fabric *fabric)
 		efree(fabric->hosts[i].url);
 	}
 	efree(fabric);
+}
+
+zend_bool mysqlnd_fabric_get_trx_warn_serverlist_changes(mysqlnd_fabric *fabric)
+{
+	return fabric->trx_warn_serverlist_changes;
 }
 
 int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)

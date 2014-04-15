@@ -102,6 +102,9 @@ struct struct_mysqlnd_fabric {
 	/* timeout connect + read, see PHP stream wrapper */
 	unsigned int timeout;
 
+	/* warn about switching to other servers in the middle of a transaction */
+	zend_bool trx_warn_serverlist_changes;
+
 	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
 	char error[MYSQLND_MS_ERRMSG_SIZE+1];
 	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];

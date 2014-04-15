@@ -691,12 +691,9 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	}
 	fabric = (*conn_data)->fabric;
 
-/* TODO: This can't see into mysqlnd_fabric, probably we have to move the warn_serverlistchanges flag */
-/*
-	if ((fabric->trx_warn_serverlist_changes) && ((*conn_data)->stgy.trx_stop_switching))  {
+	if (mysqlnd_fabric_get_trx_warn_serverlist_changes(fabric) && ((*conn_data)->stgy.trx_stop_switching))  {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
-*/
 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);

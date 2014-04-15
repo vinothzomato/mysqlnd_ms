@@ -884,6 +884,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
 	unsigned int timeout = 5; /* TODO: Is this an acceptable default timeout? - We should rather take global stream value */
+	zend_bool trx_warn = 0;
 	
 	conn_data->fabric = NULL;
 
@@ -971,16 +972,16 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 						timeout = (unsigned int)new_timeout;
 					}
 				}
-			} /* else if (!strncmp(current_subsection_name, SECT_FABRIC_TRX_BOUNDARY_WARNING, current_subsection_name_len)) {
-				char * trx_warn;
-				trx_warn = mysqlnd_ms_config_json_string_from_section(fabric_section, current_subsection_name,
+			} else if (!strncmp(current_subsection_name, SECT_FABRIC_TRX_BOUNDARY_WARNING, current_subsection_name_len)) {
+				char *trx_warn_value;
+				trx_warn_value = mysqlnd_ms_config_json_string_from_section(fabric_section, current_subsection_name,
 														current_subsection_name_len, 0,
 														&value_exists, &is_list_value TSRMLS_CC);
-				if (value_exists && trx_warn) {
-					fabric->trx_warn_serverlist_changes = !mysqlnd_ms_config_json_string_is_bool_false(trx_warn);
-					mnd_efree(trx_warn);
+				if (value_exists && trx_warn_value) {
+					trx_warn = !mysqlnd_ms_config_json_string_is_bool_false(trx_warn_value);
+					mnd_efree(trx_warn_vaue);
 				}
-			} */
+			}
 
 		} while (1);
 	}
@@ -1007,7 +1008,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		return FAIL;
 	}
         
-	fabric = mysqlnd_fabric_init(strategy, timeout);
+	fabric = mysqlnd_fabric_init(strategy, timeout, trx_warn);
 	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
 		char *url = mysqlnd_ms_config_json_string_from_section(host, "url", sizeof("url")-1, 0, NULL, NULL TSRMLS_CC);
 		if (!url) {
