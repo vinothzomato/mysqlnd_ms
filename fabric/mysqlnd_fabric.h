@@ -38,7 +38,7 @@ enum mysqlnd_fabric_strategy {
  * If DUMP strategy is used an initial dump will be fetched from Fabric. This
  * dump will eventually be cached. All further lookups will use this cache.
  */
-mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy);
+mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsigned int timeout);
 void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
 int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url);
 
