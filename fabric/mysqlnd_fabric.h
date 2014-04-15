@@ -21,6 +21,8 @@
 #ifndef MYSQLND_FABRIC_H
 #define MYSQLND_FABRIC_H
 
+#include "Zend/zend_types.h"
+
 /* Consumers should only use opaque mysqlnd_fabric pointers via accessor functions */
 struct struct_mysqlnd_fabric;
 typedef struct struct_mysqlnd_fabric mysqlnd_fabric;
