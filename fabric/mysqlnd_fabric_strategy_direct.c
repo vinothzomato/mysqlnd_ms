@@ -78,10 +78,6 @@ static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_group_servers(mysqlnd_fa
 	char *req = NULL;
 	size_t req_len;
 
-	if (!fabric->host_count) {
-		return NULL;
-	}
-
 	req_len = spprintf(&req, 0, FABRIC_GROUP_LOOKUP_XML, group);
 	retval = mysqlnd_fabric_direct_do_request(fabric, req, req_len);
 	efree(req);
@@ -94,10 +90,6 @@ static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_shard_servers(mysqlnd_fa
 	mysqlnd_fabric_server *retval;
 	char *req = NULL;
 	size_t req_len;
-
-	if (!fabric->host_count) {
-		return NULL;
-	}
 
 	req_len = spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
 	retval = mysqlnd_fabric_direct_do_request(fabric, req, req_len);
