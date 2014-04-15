@@ -548,22 +548,6 @@ typedef struct st_mysqlnd_ms_filter_groups_data_group
 	HashTable slave_context;
 } MYSQLND_MS_FILTER_GROUPS_DATA_GROUP;
 
-
-//typedef struct st_mysqlnd_fabric
-//{
-//	int host_count;
-
-	/* timeout connect + read, see PHP stream wrapper */
-//	unsigned int timeout;
-	/* warn about switching to other servers in the middle of a transaction */
-//	zend_bool trx_warn_serverlist_changes;
-
-	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
-//	char error[MYSQLND_MS_ERRMSG_SIZE+1];
-//	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];
-//	unsigned int error_no;
-//} mysqlnd_fabric;
-
 /*
  NOTE: Some elements are available with every connection, some
  are set for the global/proxy connection only. The global/proxy connection
