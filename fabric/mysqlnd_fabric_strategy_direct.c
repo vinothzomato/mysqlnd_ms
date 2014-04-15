@@ -118,7 +118,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_shard_servers(mysqlnd_fa
 	
 	efree(req);
 	
-	return mysqlnd_fabric_parse_xml(foo, len);
+	return mysqlnd_fabric_parse_xml(fabric, foo, len);
 }
 
 const myslqnd_fabric_strategy mysqlnd_fabric_strategy_direct = {

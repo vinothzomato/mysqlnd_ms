@@ -878,16 +878,18 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	unsigned int host_entry_counter = 0;
 	mysqlnd_fabric *fabric;
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
-	struct st_mysqlnd_ms_config_json_entry *fabric_section;
 
+	char *strategy_str;
+	enum mysqlnd_fabric_strategy strategy = DUMP;
+	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
+	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
+    
 	conn_data->fabric = NULL;
 
 	fabric_section = mysqlnd_ms_config_json_sub_section(group_section, SECT_FABRIC_NAME, sizeof(SECT_FABRIC_NAME)-1, &value_exists TSRMLS_CC);
 	if (!value_exists) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "MySQL Fabric configuration detected but no Faric section found. This is a bug, please report. Terminating");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "MySQL Fabric configuration detected but no Fabric section found. This is a bug, please report. Terminating");
 	}
-	/* TODO KLUDGE FIXME: free fabric on error - not a big deal as long as we use E_ERROR */
-	fabric = mysqlnd_fabric_init();
 
 	/* Do we need those checks: will there ever be a direct host/slave config?  Well, given how picky I'm about reporting... */
 	if (TRUE == mysqlnd_ms_config_json_sub_section_exists(group_section, MASTER_NAME, sizeof(MASTER_NAME)-1, 0 TSRMLS_CC)) {
@@ -954,7 +956,8 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] exists but is empty. This is needed for MySQL Fabric");
 				}
-			} else if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
+			} /* TODO 
+				 else if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
 				int timeout = mysqlnd_ms_config_json_int_from_section(fabric_section, current_subsection_name,
 														 current_subsection_name_len, 0,
 														 &value_exists, &is_list_value TSRMLS_CC);
@@ -977,7 +980,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 					fabric->trx_warn_serverlist_changes = !mysqlnd_ms_config_json_string_is_bool_false(trx_warn);
 					mnd_efree(trx_warn);
 				}
-			}
+			} */
 
 		} while (1);
 	}
@@ -986,14 +989,25 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 			MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] doesn't exist. This is needed for MySQL Fabric");
 	}
-
-	conn_data->fabric = fabric;
+	
+	strategy_str = mysqlnd_ms_config_json_string_from_section(fabric_section, "strategy", sizeof("strategy")-1, 0, &value_exists, NULL);
+	if (value_exists) {
+		if (!strcmp(strategy_str, "dump")) {
+			strategy = DUMP;
+		} else if (!strcmp(strategy_str, "direct")) {
+			strategy = DIRECT;
+		} else {
+			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_WARNING TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " Unknown MySQL Fabric strategy %s selected, falling back to default dump", strategy_str);
+		}
+		efree(strategy_str);
+	}
 
 	if (FAIL == mysqlnd_ms_connect_load_charset(&conn_data, group_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC)) {
 		return FAIL;
 	}
         
-	fabric = mysqlnd_fabric_init(DIRECT);
+	fabric = mysqlnd_fabric_init(strategy);
 	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
 		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
 		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);

@@ -77,7 +77,7 @@ enum mysqlnd_fabric_hint {
 	GLOBAL
 };
 
-mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC);
+mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint);
 void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers);
 
 #endif	/* MYSQLND_FABRIC_H */

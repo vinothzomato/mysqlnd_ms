@@ -91,15 +91,22 @@ typedef struct {
 	int port;
 } mysqlnd_fabric_rpc_host;
 
+#define MYSQLND_MS_ERRMSG_SIZE 1024
+#define MYSQLND_MS_SQLSTATE_LENGTH 5
 struct struct_mysqlnd_fabric {
 	int host_count;
 	mysqlnd_fabric_rpc_host hosts[10];
 	myslqnd_fabric_strategy strategy;
 	void *strategy_data;
+
+	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
+	char error[MYSQLND_MS_ERRMSG_SIZE+1];
+	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];
+	unsigned int error_no;
 };
 
 
-mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
+mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(mysqlnd_fabric *fabric, char *xmlstr, int xmlstr_len);
 
 #endif	/* MYSQLND_FABRIC_PRIV_H */
 

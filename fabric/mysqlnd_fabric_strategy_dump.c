@@ -25,8 +25,6 @@
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
-#include "Zend/zend_alloc.h"
-
 typedef struct {
 	int shard_table_count;
 	mysqlnd_fabric_shard_table shard_table[];

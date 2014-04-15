@@ -124,9 +124,9 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	return 0;
 }
 
-mysqlnd_fabric_SERVER *mysqlnd_fabric_parse_xml(mysqlnd_fabric * fabric, char *xmlstr, int xmlstr_len)
+mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(mysqlnd_fabric *fabric, char *xmlstr, int xmlstr_len)
 {
-	mysqlnd_fabric_SERVER *retval;
+	mysqlnd_fabric_server *retval;
 	xmlDocPtr doc;
 	xmlXPathObjectPtr xpathObj1;
 	int i;
@@ -154,7 +154,7 @@ mysqlnd_fabric_SERVER *mysqlnd_fabric_parse_xml(mysqlnd_fabric * fabric, char *x
 		return NULL;
 	}
 
-	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(mysqlnd_fabric_SERVER), 0);
+	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(mysqlnd_fabric_server), 0);
 	for (i = 0; i < xpathObj1->nodesetval->nodeNr; i++) {
 		if (mysqlnd_fabric_fill_server_from_value(xpathObj1->nodesetval->nodeTab[i], &retval[i])) {
 			xmlXPathFreeObject(xpathObj1);

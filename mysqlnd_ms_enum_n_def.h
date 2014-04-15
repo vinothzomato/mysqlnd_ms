@@ -549,8 +549,6 @@ typedef struct st_mysqlnd_ms_filter_groups_data_group
 } MYSQLND_MS_FILTER_GROUPS_DATA_GROUP;
 
 
-#define MYSQLND_MS_ERRMSG_SIZE 1024
-#define MYSQLND_MS_SQLSTATE_LENGTH 5
 //typedef struct st_mysqlnd_fabric
 //{
 //	int host_count;
