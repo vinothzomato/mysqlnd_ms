@@ -72,13 +72,20 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 	return retval;
 }
 
+#define GET_VALUE(target, xpath, ctx) \
+	(target) = myslqnd_fabric_get_actual_value((xpath), (ctx)); \
+	if (!(target)) { \
+		xmlXPathFreeContext(ctx); \
+		return 1; \
+	}
+
 #define COPY_VALUE_IN_FIELD(target, field, value) \
 	(target)->field ## _len = strlen(value); \
 	if ((target)->field ## _len > sizeof(server->field) - 1) { \
 		xmlXPathFreeContext(xpathCtx); \
 		return 1; \
 	} \
-	strncpy((target)->field, (value), (target)->field ## _len);
+	strncpy((target)->field, (value), (target)->field ## _len)
 
 static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric_server *server)
 {
@@ -88,32 +95,18 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	if (xpathCtx == NULL) {
 		return 1;
 	}
-
-	tmp = myslqnd_fabric_get_actual_value("//array/data/value[1]/string", xpathCtx);
-	if (!tmp) {
-		xmlXPathFreeContext(xpathCtx);
-		return 1;
-	}
-
+	
+	GET_VALUE(tmp, "//array/data/value[1]/string", xpathCtx);
 	COPY_VALUE_IN_FIELD(server, uuid, tmp);
 	
-	tmp = myslqnd_fabric_get_actual_value("//array/data/value[2]/string", xpathCtx);
-	if (!tmp) {
-		xmlXPathFreeContext(xpathCtx);
-		return 1;
-	}
-
+	GET_VALUE(tmp, "//array/data/value[2]/string", xpathCtx);
 	COPY_VALUE_IN_FIELD(server, hostname, tmp);
 
 	tmp = strchr(server->hostname, ':');
 	*tmp = '\0';
 	server->port = atoi(&tmp[1]);
 
-	tmp = myslqnd_fabric_get_actual_value("//array/data/value[3]/boolean", xpathCtx);
-	if (!tmp) {
-		xmlXPathFreeContext(xpathCtx);
-		return 1;
-	}
+	GET_VALUE(tmp, "//array/data/value[3]/boolean", xpathCtx);
 
 	switch (tmp[0]) {
 	case '0': server->mode = READ_ONLY; break;
