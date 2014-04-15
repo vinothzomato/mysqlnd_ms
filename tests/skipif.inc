@@ -1,5 +1,5 @@
 <?php
-require_once("connect.inc");
+require_once(__DIR__."/connect.inc");
 
 function _skipif_check_extensions($extensions) {
 	if (!is_array($extensions))

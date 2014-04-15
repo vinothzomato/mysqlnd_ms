@@ -1,5 +1,5 @@
 <?php
-	require_once("config.inc");
+	require_once(__DIR__."/config.inc");
 	/*
 	Default values are "localhost", "root",
 	database "stest" and empty password.

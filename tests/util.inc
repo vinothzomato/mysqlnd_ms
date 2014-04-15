@@ -1,5 +1,5 @@
 <?php
-	require_once("connect.inc");
+	require_once(__DIR__."/connect.inc");
 
 	/*
 	Error: 2002 (CR_CONNECTION_ERROR)
