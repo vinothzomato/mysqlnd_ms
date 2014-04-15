@@ -115,7 +115,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 	return fabric->strategy.get_shard_servers(fabric, table, key, hint);
 }
 
-void mysqlnd_fabric_free_server_list(mysqlnd_fabric_SERVER *servers)
+void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers)
 {
 	efree(servers);
 }
