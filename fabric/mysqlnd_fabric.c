@@ -100,6 +100,11 @@ int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_
 	return i;
 }
 
+mysqlnd_fabric_server *mysqlnd_fabric_get_group_servers(mysqlnd_fabric *fabric, const char *group)
+{
+	return fabric->strategy.get_group_servers(fabric, group);
+}
+
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
 	return fabric->strategy.get_shard_servers(fabric, table, key, hint);

@@ -237,6 +237,11 @@ static void fabric_dump_deinit(mysqlnd_fabric *fabric)
 	efree(fabric->strategy_data);
 }
 
+static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_group_servers(mysqlnd_fabric *fabric, const char *group)
+{
+	return mysqlnd_fabric_get_server_for_group(fabric, group);
+}
+
 static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
 	const char *group = NULL;
@@ -267,6 +272,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 const myslqnd_fabric_strategy mysqlnd_fabric_strategy_dump = {
 	fabric_dump_init,
 	fabric_dump_deinit,
+	mysqlnd_fabric_dump_get_group_servers,
 	mysqlnd_fabric_dump_get_shard_servers
 };
 

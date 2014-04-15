@@ -27,6 +27,11 @@
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
+#define FABRIC_GROUP_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
+			"<methodCall><methodName>sharding.lookup_servers</methodName><params>\n" \
+			"<param><!-- group --><value><string>%s</string></value></param>\n" \
+			"</methodCall>"
+
 #define FABRIC_SHARD_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
 			"<methodCall><methodName>sharding.lookup_servers</methodName><params>\n" \
 			"<param><!-- table --><value><string>%s</string></value></param>\n" \
@@ -91,19 +96,12 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 	return stream;
 }
 
-static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
+static mysqlnd_fabric_server *mysqlnd_fabric_prepare_and_do_request(mysqlnd_fabric *fabric, char *req)
 {
 	int len;
-	char *req = NULL;
 	char foo[4001];
 	php_stream *stream;
 	
-	if (!fabric->host_count) {
-		return NULL;
-	}
-	
-	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
-
 	stream = mysqlnd_fabric_open_stream(fabric, req);
 	if (!stream) {
 		efree(req);
@@ -121,9 +119,42 @@ static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_shard_servers(mysqlnd_fa
 	return mysqlnd_fabric_parse_xml(fabric, foo, len);
 }
 
+static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_group_servers(mysqlnd_fabric *fabric, const char *group)
+{
+	mysqlnd_fabric_server *retval;
+	char *req = NULL;
+
+	if (!fabric->host_count) {
+		return NULL;
+	}
+
+	spprintf(&req, 0, FABRIC_GROUP_LOOKUP_XML, group);
+	retval = mysqlnd_fabric_prepare_and_do_request(fabric, req);
+	efree(req);
+
+	return retval;
+}
+
+static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
+{
+	mysqlnd_fabric_server *retval;
+	char *req = NULL;
+
+	if (!fabric->host_count) {
+		return NULL;
+	}
+
+	spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
+	retval = mysqlnd_fabric_prepare_and_do_request(fabric, req);
+	efree(req);
+
+	return retval;
+}
+
 const myslqnd_fabric_strategy mysqlnd_fabric_strategy_direct = {
 	NULL, /* init */
 	NULL, /* deinit */
+	mysqlnd_fabric_direct_get_group_servers,
 	mysqlnd_fabric_direct_get_shard_servers
 };
 
