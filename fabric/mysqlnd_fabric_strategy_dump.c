@@ -164,7 +164,9 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 	table++;
 	
 	for (i = 0; i < index->shard_table_count; ++i) {
-		if (   !strncmp(index->shard_table[i].schema_name, schema, table-schema-1)
+		if (   strlen(index->shard_table[i].schema_name) == table-schema-1
+			&& strlen(index->shard_table[i].table_name) == table_len - (table-schema)
+			&& !strncmp(index->shard_table[i].schema_name, schema, table-schema-1)
 			&& !strncmp(index->shard_table[i].table_name,  table, table_len - (table-schema)))
 		{
 			return index->shard_table[i].shard_mapping_id;
@@ -206,12 +208,13 @@ static const char *mysqlnd_fabric_get_shard_group_for_key(const mysqlnd_fabric *
 static mysqlnd_fabric_server *mysqlnd_fabric_get_server_for_group(mysqlnd_fabric *fabric, const char *group)
 {
 	int i, count = 0;
+	size_t group_len = strlen(group);
 	const fabric_dump_index *index = &((const fabric_dump_data*)fabric->strategy_data)->index;
 	mysqlnd_fabric_server *retval = safe_emalloc(10, sizeof(mysqlnd_fabric_server), 0); /* FIXME!!!!! */
 	memset(retval, 0, 10 * sizeof(mysqlnd_fabric_server));
 	
 	for (i = 0; i < index->server_count; ++i) {
-		if (!strcmp(index->server[i].group, group)) {
+		if (index->server[i].group_len == group_len && !strcmp(index->server[i].group, group)) {
 			memcpy(&retval[count++], &index->server[i], sizeof(mysqlnd_fabric_server));
 		}
 	}
