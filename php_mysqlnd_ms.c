@@ -699,7 +699,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	zend_llist_clean(&(*conn_data)->slave_connections);
 
 	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint TSRMLS_CC);
-	if (0 /* fabric->error_no > 0  --- We need etter error handling */) {
+	if (mysqlnd_fabric_get_error_no(fabric) > 0) {
 		/*
 		TODO - should be bubble this up to the connection?
 		MYSQLND_ERROR_INFO * error_info = &MYSQLND_MS_ERROR_INFO(proxy_conn->data);
@@ -707,7 +707,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 			SET_CLIENT_ERROR((*error_info), fabric->error_no, fabric->sqlstate, fabric->error);
 		}
 		*/
-/*		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s %s", MYSQLND_MS_ERROR_PREFIX, fabric->error);*/
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s %s", MYSQLND_MS_ERROR_PREFIX, mysqlnd_fabric_get_error(fabric));
 		RETVAL_FALSE;
 		DBG_VOID_RETURN;
 	}

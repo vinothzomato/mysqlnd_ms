@@ -979,7 +979,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 														&value_exists, &is_list_value TSRMLS_CC);
 				if (value_exists && trx_warn_value) {
 					trx_warn = !mysqlnd_ms_config_json_string_is_bool_false(trx_warn_value);
-					mnd_efree(trx_warn_vaue);
+					mnd_efree(trx_warn_value);
 				}
 			}
 

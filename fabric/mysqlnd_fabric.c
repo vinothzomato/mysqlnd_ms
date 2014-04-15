@@ -58,6 +58,7 @@ mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsig
 		break;
 	}
 
+	fabric->error_no = 0;
 	fabric->timeout = timeout;
 	fabric->trx_warn_serverlist_changes = trx_warn_serverlist_changes;
 
@@ -83,6 +84,16 @@ void mysqlnd_fabric_free(mysqlnd_fabric *fabric)
 zend_bool mysqlnd_fabric_get_trx_warn_serverlist_changes(mysqlnd_fabric *fabric)
 {
 	return fabric->trx_warn_serverlist_changes;
+}
+
+unsigned int mysqlnd_fabric_get_error_no(mysqlnd_fabric *fabric)
+{
+	return fabric->error_no;
+}
+
+char *mysqlnd_fabric_get_error(mysqlnd_fabric *fabric)
+{
+	return fabric->error;
 }
 
 int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)

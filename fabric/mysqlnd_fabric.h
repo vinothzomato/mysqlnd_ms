@@ -42,6 +42,8 @@ mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsig
 void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
 int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url);
 zend_bool mysqlnd_fabric_get_trx_warn_serverlist_changes(mysqlnd_fabric *fabric);
+unsigned int mysqlnd_fabric_get_error_no(mysqlnd_fabric *fabric);
+char *mysqlnd_fabric_get_error(mysqlnd_fabric *fabric);
 
 typedef void(*mysqlnd_fabric_apply_func)(const char *url, void *data);
 
