@@ -151,68 +151,57 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 	fabric_dump_data *dump_data = (fabric_dump_data*)fabric->strategy_data;
 	dump_data->raw = (fabric_dump_raw*)estrndup(data, data_len);
 	fabric_create_index(&dump_data->index, dump_data->raw);
-}	
+}
 
-int fill_shard_table_entry(void *pDest TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key) 
+#define DECLARE_FILL_ENTRY_BEGIN(name, target_type) \
+	int name(void *pDest TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key) \
+	{ \
+		zval *data; \
+		HashTable *source = Z_ARRVAL_P((zval*)pDest); \
+		target_type *target; \
+		zend_bool *success; \
+		\
+		if (num_args != 2) { \
+			/* This should never ever happen */ \
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Wrong number of arguments to internal fill_shard_mapping_entry from zend_hash_apply call"); \
+		} \
+		\
+		target =  va_arg(args, target_type *); \
+		success = va_arg(args, zend_bool *); /* Will be false by default, only change on success */ \
+		do
+
+#define DECLARE_FILL_ENTRY_END() \
+		while(0); \
+		\
+		*success = 1; \
+		return ZEND_HASH_APPLY_KEEP; \
+	}
+	
+#define CHECK_AND_COPY_STRING(zv, target_item) \
+	zend_hash_get_current_data(source, (void**)&zv); \
+	if (Z_TYPE_P((zv)) != IS_STRING || Z_STRLEN_P((zv)) + 1 > sizeof(target_item)) { \
+		return ZEND_HASH_APPLY_STOP; \
+	} \
+	memcpy(target_item, Z_STRVAL_P((zv)), Z_STRLEN_P((zv)) + 1)
+
+DECLARE_FILL_ENTRY_BEGIN(fill_shard_table_entry, mysqlnd_fabric_shard_table)
 {
-	zval *data;
-	HashTable *source = Z_ARRVAL_P((zval*)pDest);
-	mysqlnd_fabric_shard_table *target;
-	zend_bool *success;
-	
-	if (num_args != 2) {
-		/* This should never ever happen */
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Wrong number of arguments to internal fill_shard_table_entry from zend_hash_apply call");
-	}
-	
-	target =  va_arg(args, mysqlnd_fabric_shard_table *);
-	success = va_arg(args, zend_bool *); /* Will be false by default, only change on success */
-	
-	
 	zend_hash_internal_pointer_reset(source);
-	zend_hash_get_current_data(source, (void**)&data);
-	if (Z_TYPE_P(data) != IS_STRING || Z_STRLEN_P(data) + 1 > sizeof(target->schema_name)) {
-		return ZEND_HASH_APPLY_STOP;
-	}
-	memcpy(target->schema_name, Z_STRVAL_P(data), Z_STRLEN_P(data) + 1);
-	
+	CHECK_AND_COPY_STRING(data, target->schema_name);
+
 	zend_hash_move_forward(source);
-	zend_hash_get_current_data(source, (void**)&data);
-	if (Z_TYPE_P(data) != IS_STRING || Z_STRLEN_P(data) + 1 > sizeof(target->table_name)) {
-		return ZEND_HASH_APPLY_STOP;
-	}
-	memcpy(target->table_name, Z_STRVAL_P(data), Z_STRLEN_P(data) + 1);
-	
+	CHECK_AND_COPY_STRING(data, target->table_name);
+
 	zend_hash_move_forward(source);
-	zend_hash_get_current_data(source, (void**)&data);
-	if (Z_TYPE_P(data) != IS_STRING || Z_STRLEN_P(data) + 1 > sizeof(target->column_name)) {
-		return ZEND_HASH_APPLY_STOP;
-	}
-	memcpy(target->column_name, Z_STRVAL_P(data), Z_STRLEN_P(data) + 1);
-	
+	CHECK_AND_COPY_STRING(data, target->column_name);
+
 	zend_hash_move_forward(source);
 	convert_to_long(data);
 	target->shard_mapping_id = Z_LVAL_P(data);
-	
-	*success = 1;
-	return ZEND_HASH_APPLY_KEEP;
-}
+} DECLARE_FILL_ENTRY_END()
 
-int fill_shard_mapping_entry(void *pDest TSRMLS_DC, int num_args, va_list args, zend_hash_key *hash_key) 
+DECLARE_FILL_ENTRY_BEGIN(fill_shard_mapping_entry, mysqlnd_fabric_shard_mapping)
 {
-	zval *data;
-	HashTable *source = Z_ARRVAL_P((zval*)pDest);
-	mysqlnd_fabric_shard_mapping *target;
-	zend_bool *success;
-	
-	if (num_args != 2) {
-		/* This should never ever happen */
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Wrong number of arguments to internal fill_shard_mapping_entry from zend_hash_apply call");
-	}
-	
-	target =  va_arg(args, mysqlnd_fabric_shard_mapping *);
-	success = va_arg(args, zend_bool *); /* Will be false by default, only change on success */
-	
 	zend_hash_internal_pointer_reset(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(data);
@@ -226,15 +215,8 @@ int fill_shard_mapping_entry(void *pDest TSRMLS_DC, int num_args, va_list args, 
 	target->type_name = RANGE;
 	
 	zend_hash_move_forward(source);
-	zend_hash_get_current_data(source, (void**)&data);
-	if (Z_TYPE_P(data) != IS_STRING || Z_STRLEN_P(data) + 1 > sizeof(target->global_group)) {
-		return ZEND_HASH_APPLY_STOP;
-	}
-	memcpy(target->global_group, Z_STRVAL_P(data), Z_STRLEN_P(data) + 1);
-	
-	*success = 1;
-	return ZEND_HASH_APPLY_KEEP;
-}
+	CHECK_AND_COPY_STRING(data, target->global_group);
+} DECLARE_FILL_ENTRY_END()
 
 int fill_shard_index_entry(void *pDest, void *argument TSRMLS_DC) {}
 int fill_server_entry(void *pDest, void *argument TSRMLS_DC) {}
