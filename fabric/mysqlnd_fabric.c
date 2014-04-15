@@ -45,10 +45,10 @@
 extern const myslqnd_fabric_strategy mysqlnd_fabric_strategy_direct;
 extern const myslqnd_fabric_strategy mysqlnd_fabric_strategy_dump;
 
-mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy)
+mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsigned int timeout)
 {
 	mysqlnd_fabric *fabric = ecalloc(1, sizeof(mysqlnd_fabric));
-	
+
 	switch (strategy) {
 	case DIRECT:
 		fabric->strategy = mysqlnd_fabric_strategy_direct;
@@ -57,6 +57,8 @@ mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy)
 		fabric->strategy = mysqlnd_fabric_strategy_dump;
 		break;
 	}
+
+	fabric->timeout = timeout;
 
 	if (fabric->strategy.init) {
 		fabric->strategy.init(fabric);

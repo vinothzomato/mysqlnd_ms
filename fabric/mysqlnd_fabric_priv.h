@@ -99,6 +99,9 @@ struct struct_mysqlnd_fabric {
 	myslqnd_fabric_strategy strategy;
 	void *strategy_data;
 
+	/* timeout connect + read, see PHP stream wrapper */
+	unsigned int timeout;
+
 	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
 	char error[MYSQLND_MS_ERRMSG_SIZE+1];
 	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];

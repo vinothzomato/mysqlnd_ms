@@ -883,7 +883,8 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	enum mysqlnd_fabric_strategy strategy = DUMP;
 	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
-    
+	unsigned int timeout = 5; /* TODO: Is this an acceptable default timeout? - We should rather take global stream value */
+	
 	conn_data->fabric = NULL;
 
 	fabric_section = mysqlnd_ms_config_json_sub_section(group_section, SECT_FABRIC_NAME, sizeof(SECT_FABRIC_NAME)-1, &value_exists TSRMLS_CC);
@@ -956,9 +957,8 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] exists but is empty. This is needed for MySQL Fabric");
 				}
-			} /* TODO 
-				 else if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
-				int timeout = mysqlnd_ms_config_json_int_from_section(fabric_section, current_subsection_name,
+			} else if (!strncmp(current_subsection_name, SECT_FABRIC_TIMEOUT, current_subsection_name_len)) {
+				int new_timeout = mysqlnd_ms_config_json_int_from_section(fabric_section, current_subsection_name,
 														 current_subsection_name_len, 0,
 														 &value_exists, &is_list_value TSRMLS_CC);
 
@@ -968,10 +968,10 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 							E_ERROR TSRMLS_CC,
 							MYSQLND_MS_ERROR_PREFIX " Invalid value '%i' for [" SECT_FABRIC_TIMEOUT "]. Stopping", timeout);
 					} else {
-						fabric->timeout = (unsigned int)timeout;
+						timeout = (unsigned int)new_timeout;
 					}
 				}
-			} else if (!strncmp(current_subsection_name, SECT_FABRIC_TRX_BOUNDARY_WARNING, current_subsection_name_len)) {
+			} /* else if (!strncmp(current_subsection_name, SECT_FABRIC_TRX_BOUNDARY_WARNING, current_subsection_name_len)) {
 				char * trx_warn;
 				trx_warn = mysqlnd_ms_config_json_string_from_section(fabric_section, current_subsection_name,
 														current_subsection_name_len, 0,
@@ -1007,7 +1007,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		return FAIL;
 	}
         
-	fabric = mysqlnd_fabric_init(strategy);
+	fabric = mysqlnd_fabric_init(strategy, timeout);
 	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
 		char *url = mysqlnd_ms_config_json_string_from_section(host, "url", sizeof("url")-1, 0, NULL, NULL TSRMLS_CC);
 		if (!url) {
