@@ -237,8 +237,8 @@ int fill_shard_mapping_entry(void *pDest TSRMLS_DC, int num_args, va_list args, 
 	return ZEND_HASH_APPLY_KEEP;
 }
 
-int fill_shard_index_entry(void *pDest, void *argument TSRMLS_DC);
-int fill_server_entry(void *pDest, void *argument TSRMLS_DC);
+int fill_shard_index_entry(void *pDest, void *argument TSRMLS_DC) {}
+int fill_server_entry(void *pDest, void *argument TSRMLS_DC) {}
 
 void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	const char *shard_table_xml, size_t shard_table_len,
