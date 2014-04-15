@@ -26,7 +26,8 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
                   mysqlnd_ms_lb_weights.c mysqlnd_ms_filter_groups.c \
                   fabric/mysqlnd_fabric.c fabric/mysqlnd_fabric_parse_xml.c \
                   fabric/mysqlnd_fabric_strategy_direct.c \
-                  fabric/mysqlnd_fabric_strategy_dump.c"
+                  fabric/mysqlnd_fabric_strategy_dump.c \
+                  fabric/mysqlnd_fabric_php.c"
 
   if test "$PHP_MYSQLND_MS_TABLE_FILTER" && test "$PHP_MYSQLND_MS_TABLE_FILTER" != "no"; then
     AC_DEFINE([MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION], 1, [Enable table partition support])

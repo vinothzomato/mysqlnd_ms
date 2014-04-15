@@ -106,7 +106,8 @@ struct struct_mysqlnd_fabric {
 };
 
 
-mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(mysqlnd_fabric *fabric, char *xmlstr, int xmlstr_len);
+char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body, size_t request_body_len, size_t *response_len);
+mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
 
 #endif	/* MYSQLND_FABRIC_PRIV_H */
 
