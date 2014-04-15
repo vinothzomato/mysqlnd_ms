@@ -95,6 +95,7 @@ struct struct_mysqlnd_fabric {
 	int host_count;
 	mysqlnd_fabric_rpc_host hosts[10];
 	myslqnd_fabric_strategy strategy;
+	void *strategy_data;
 };
 
 
