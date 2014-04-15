@@ -22,8 +22,6 @@
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-#include <libxml2/libxml/tree.h>
 
 #include "zend.h"
 #include "zend_alloc.h"
@@ -79,18 +77,22 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 		return 1; \
 	}
 
-#define COPY_VALUE_IN_FIELD(target, field, value) \
-	(target)->field ## _len = strlen(value); \
+#define COPY_VALUE_IN_FIELDL(target, field, value, value_len) \
+	(target)->field ## _len = (value_len); \
 	if ((target)->field ## _len > sizeof(server->field) - 1) { \
 		xmlXPathFreeContext(xpathCtx); \
 		return 1; \
 	} \
-	strncpy((target)->field, (value), (target)->field ## _len)
+	strncpy((target)->field, (value), (target)->field ## _len); \
+	(target)->field[(target)->field ## _len] = '\0'
+
+#define COPY_VALUE_IN_FIELD(target, field, value) \
+	COPY_VALUE_IN_FIELDL(target, field, value, strlen(value))
 
 static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric_server *server)
 {
 	xmlXPathContextPtr xpathCtx = xmlXPathNewContext((xmlDocPtr)node);
-	char *tmp;
+	char *tmp, *port;
 
 	if (xpathCtx == NULL) {
 		return 1;
@@ -100,11 +102,12 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	COPY_VALUE_IN_FIELD(server, uuid, tmp);
 	
 	GET_VALUE(tmp, "//array/data/value[2]/string", xpathCtx);
-	COPY_VALUE_IN_FIELD(server, hostname, tmp);
+	port = strchr(tmp, ':');
+	*port = '\0';
+	port++;
 
-	tmp = strchr(server->hostname, ':');
-	*tmp = '\0';
-	server->port = atoi(&tmp[1]);
+	COPY_VALUE_IN_FIELDL(server, hostname, tmp, (port - tmp) - 1);
+	server->port = atoi(port);
 
 	GET_VALUE(tmp, "//array/data/value[3]/boolean", xpathCtx);
 

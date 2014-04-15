@@ -27,7 +27,7 @@
 
 #define FABRIC_GROUP_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
 			"<methodCall><methodName>sharding.lookup_servers</methodName><params>\n" \
-			"<param><!-- group --><value><string>%s</string></value></param>\n" \
+			"<param><!-- group --><value><string>%s</string></value></param></params>\n" \
 			"</methodCall>"
 
 #define FABRIC_SHARD_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \

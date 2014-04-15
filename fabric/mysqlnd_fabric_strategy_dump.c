@@ -22,9 +22,23 @@
 #include <alloca.h>
 #include <strings.h>
 
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
+
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
+#include "Zend/zend.h"
+#include "Zend/zend_alloc.h"
+
+/*
+    When allocated we allocate one buffer for all four tables so we have one
+    continues block of memory which can be cached easily, see commented
+    members and  tmp_fabric_dump as example for the full structure.
+    For accessing all elements fabric_dump_index is being used which points
+    at the actual elements. index->shard_table == raw.shard_table
+ */
 typedef struct {
 	int shard_table_count;
 	mysqlnd_fabric_shard_table shard_table[];
@@ -38,6 +52,7 @@ typedef struct {
 	*/
 } fabric_dump_raw;
 
+/* This variable is a sample and has no further sense */
 static const struct {
 	int shard_table_count;
 	mysqlnd_fabric_shard_table shard_table[2];
@@ -105,7 +120,7 @@ typedef struct {
  *******************/
 
 
-static fabric_create_index(fabric_dump_index *index, const fabric_dump_raw *fabric_dump)
+static void fabric_create_index(fabric_dump_index *index, const fabric_dump_raw *fabric_dump)
 {
 	size_t pos;
 	index->shard_table_count = fabric_dump->shard_table_count;
@@ -138,7 +153,50 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 	fabric_create_index(&dump_data->index, dump_data->raw);
 }
 
-static void fabric_set_raw_data_for_gdb(mysqlnd_fabric *fabric) {
+#define XML_PARSE_OR_RETURN(name) \
+	do { \
+		name = xmlParseMemory(name ## _xml, name ## _len);\
+		if (!name) { \
+			return; \
+		} \
+	} while(0)
+
+void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
+	const char *shard_table_xml, size_t shard_table_len,
+	const char *shard_mapping_xml, size_t shard_mapping_len,
+	const char *shard_index_xml, size_t shard_index_len,
+	const char *server_xml, size_t server_len)
+{
+	xmlDocPtr shard_table, shard_mapping, shard_index, server;
+	LIBXML_TEST_VERSION
+	
+	/* 1. Load all XML files */
+		
+	XML_PARSE_OR_RETURN(shard_table);
+	XML_PARSE_OR_RETURN(shard_mapping);
+	XML_PARSE_OR_RETURN(shard_index);
+	XML_PARSE_OR_RETURN(server);
+	
+	/* 2. Check all files for their number of elements */
+	
+	/* 3. Allocate buffer and create index */
+	
+	/* 4. fill buffer */
+}
+
+#define FABRIC_LOOKUP_XML "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" \
+			"<methodCall><methodName>%s</methodName><params></params></methodCall>"
+
+void fabric_set_raw_data_from_fabric(mysqlnd_fabric *fabric)
+{
+	char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body, size_t request_body_len, size_t *response_len);
+	
+	char *request;
+	size_t request_len;
+}
+
+static void fabric_set_raw_data_for_gdb(mysqlnd_fabric *fabric)
+{
 	/* TODO: Remove me. I'm only used during development from inside gdb sessions */
 	fabric_set_raw_data(fabric, (char *)&tmp_fabric_dump, sizeof(tmp_fabric_dump));
 }
