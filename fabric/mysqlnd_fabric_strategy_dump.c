@@ -218,8 +218,67 @@ DECLARE_FILL_ENTRY_BEGIN(fill_shard_mapping_entry, mysqlnd_fabric_shard_mapping)
 	CHECK_AND_COPY_STRING(data, target->global_group);
 } DECLARE_FILL_ENTRY_END()
 
-int fill_shard_index_entry(void *pDest, void *argument TSRMLS_DC) {}
-int fill_server_entry(void *pDest, void *argument TSRMLS_DC) {}
+DECLARE_FILL_ENTRY_BEGIN(fill_shard_index_entry, mysqlnd_fabric_shard_index)
+{
+	zend_hash_internal_pointer_reset(source);
+	zend_hash_get_current_data(source, (void**)&data);
+	convert_to_long(data);
+	target->lower_bound = Z_LVAL_P(data);
+
+	zend_hash_move_forward(source);
+	zend_hash_get_current_data(source, (void**)&data);
+	convert_to_long(data);
+	target->shard_mapping_id = Z_LVAL_P(data);
+
+	zend_hash_move_forward(source);
+	zend_hash_get_current_data(source, (void**)&data);
+	convert_to_long(data);
+	target->shard_id = Z_LVAL_P(data);
+
+	zend_hash_move_forward(source);
+	CHECK_AND_COPY_STRING(data, target->group);
+} DECLARE_FILL_ENTRY_END()
+
+DECLARE_FILL_ENTRY_BEGIN(fill_server_entry, mysqlnd_fabric_server)
+{
+	zend_hash_internal_pointer_reset(source);
+	CHECK_AND_COPY_STRING(data, target->uuid);
+	target->uuid_len = Z_STRLEN_P(data);
+
+	zend_hash_move_forward(source);
+	CHECK_AND_COPY_STRING(data, target->group);
+	target->group_len = Z_STRLEN_P(data);
+
+	zend_hash_move_forward(source);
+	CHECK_AND_COPY_STRING(data, target->hostname);
+	target->hostname_len = Z_STRLEN_P(data);
+
+	zend_hash_move_forward(source);
+	zend_hash_get_current_data(source, (void**)&data);
+	convert_to_long(data);
+	target->port = Z_LVAL_P(data);
+
+	zend_hash_move_forward(source);
+	zend_hash_get_current_data(source, (void**)&data);
+	convert_to_long(data);
+	switch (Z_LVAL_P(data)) {
+	case 0: target->mode = OFFLINE; break;
+	case 1: target->mode = READ_ONLY; break;
+	case 3: target->mode = READ_WRITE; break;
+	default: return ZEND_HASH_APPLY_STOP;
+	}
+
+	zend_hash_move_forward(source);
+	zend_hash_get_current_data(source, (void**)&data);
+	convert_to_long(data);
+	switch (Z_LVAL_P(data)) {
+	case 0: target->role = SPARE; break;
+	case 1: target->role = SCALE; break;
+	case 2: target->role = SECONDARY; break;
+	case 3: target->role = PRIMARY; break;
+	default: return ZEND_HASH_APPLY_STOP;
+	}
+} DECLARE_FILL_ENTRY_END()
 
 void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	const char *shard_table_xml, size_t shard_table_len,
