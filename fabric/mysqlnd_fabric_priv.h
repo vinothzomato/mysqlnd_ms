@@ -88,8 +88,7 @@ typedef struct {
 } myslqnd_fabric_strategy;
 
 typedef struct {
-	char *hostname;
-	int port;
+	char *url;
 } mysqlnd_fabric_rpc_host;
 
 #define MYSQLND_MS_ERRMSG_SIZE 1024

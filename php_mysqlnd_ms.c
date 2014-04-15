@@ -859,23 +859,21 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 }
 /* }}} */
 
-static void mysqlnd_ms_dump_fabric_hosts_cb(const char *hostname, unsigned int port, void *data) /* {{{ */
+static void mysqlnd_ms_dump_fabric_hosts_cb(const char *url, void *data) /* {{{ */
 {
 	zval *item;
 	zval *return_value = (zval*)data;
 
 	MAKE_STD_ZVAL(item);
 	array_init(item);
-	add_assoc_string(item, "hostname", (char *)hostname, 1);
-	add_assoc_long(item, "port", port);
-
+	add_assoc_string(item, "url", (char*)url, 1);
 	add_next_index_zval(return_value,  item);
 }
 /* }}} */
 
-/* {{{ proto long mysqlnd_ms_dump_fabric_hosts(mixed connection)
+/* {{{ proto long mysqlnd_ms_dump_fabric_rpc_hosts(mixed connection)
    Dump configured master and slave servers */
-static PHP_FUNCTION(mysqlnd_ms_dump_fabric_hosts)
+static PHP_FUNCTION(mysqlnd_ms_dump_fabric_rpc_hosts)
 {
 	zval *conn_zv;
 	MYSQLND *conn;
@@ -969,7 +967,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_fabric_select_shard, arginfo_mysqlnd_ms_fabric_select_shard)
 	PHP_FE(mysqlnd_ms_fabric_select_global, arginfo_mysqlnd_ms_fabric_select_global)
 	PHP_FE(mysqlnd_ms_dump_servers, arginfo_mysqlnd_ms_dump_servers)
-	PHP_FE(mysqlnd_ms_dump_fabric_hosts, arginfo_mysqlnd_ms_dump_servers)
+	PHP_FE(mysqlnd_ms_dump_fabric_rpc_hosts, arginfo_mysqlnd_ms_dump_servers)
 #ifdef PHP_DEBUG
 	PHP_FE(mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous, NULL)
 #endif

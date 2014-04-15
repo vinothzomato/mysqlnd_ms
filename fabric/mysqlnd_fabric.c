@@ -72,22 +72,21 @@ void mysqlnd_fabric_free(mysqlnd_fabric *fabric)
 		fabric->strategy.deinit(fabric);
 	}
 	for (i = 0; i < fabric->host_count ; ++i) {
-		efree(fabric->hosts[i].hostname);
+		efree(fabric->hosts[i].url);
 	}
 	efree(fabric);
 }
 
-int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port TSRMLS_DC)
+int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)
 {
 	if (fabric->host_count >= 10) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Please report a bug: no more than 10 Fabric hosts allowed");
 		return 1;
 	}
-
-	fabric->hosts[fabric->host_count].hostname = estrdup(hostname);
-	fabric->hosts[fabric->host_count].port = port;
-	fabric->host_count++;
-
+	
+	fabric->hosts[fabric->host_count].url = estrdup(url);
+	fabric->host_count++;	
+	
 	return 0;
 }
 
@@ -95,7 +94,7 @@ int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_
 {
 	int i;
 	for (i = 0; i < fabric->host_count; ++i) {
-		cb(fabric->hosts[i].hostname, fabric->hosts[i].port, data);
+		cb(fabric->hosts[i].url, data);
 	}
 	return i;
 }

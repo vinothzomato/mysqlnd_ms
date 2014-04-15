@@ -40,9 +40,9 @@ enum mysqlnd_fabric_strategy {
  */
 mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy);
 void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
-int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port);
+int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url);
 
-typedef void(*mysqlnd_fabric_apply_func)(const char *hostname, unsigned int port, void *data);
+typedef void(*mysqlnd_fabric_apply_func)(const char *url, void *data);
 
 int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_apply_func cb, void *data);
 

@@ -1009,13 +1009,21 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
         
 	fabric = mysqlnd_fabric_init(strategy);
 	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
-		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
-		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
+		char *url = mysqlnd_ms_config_json_string_from_section(host, "url", sizeof("url")-1, 0, NULL, NULL TSRMLS_CC);
+		if (!url) {
+			/* Fallback for 1.6.0-alpha compatibility */
+			char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
+			int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
 		
-		if (hostname) {
-			mysqlnd_fabric_add_host(fabric, hostname, port);
+			if (!hostname) {
+				continue;
+			}
+
+			spprintf(&url, 0, "http://%s:%d/", hostname, port);
 			efree(hostname);
 		}
+		mysqlnd_fabric_add_rpc_host(fabric, url);
+		efree(url);
 	}
 	
 	conn_data->fabric = fabric;

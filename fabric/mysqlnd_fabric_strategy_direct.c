@@ -84,13 +84,8 @@ static php_stream *mysqlnd_fabric_open_stream(mysqlnd_fabric *fabric,char *reque
 
 	mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count);
 	for (server = fabric->hosts; !stream && server < fabric->hosts  + fabric->host_count; server++) {
-		char *url = NULL;
-		
-		spprintf(&url, 0, "http://%s:%d/", server->hostname, server->port);
-	
 		/* TODO: Switch to quiet mode */
-		stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
-		efree(url);
+		stream = php_stream_open_wrapper_ex(server->url, "rb", REPORT_ERRORS, NULL, ctxt);
 	};
 	
 	return stream;
