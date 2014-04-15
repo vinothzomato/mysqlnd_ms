@@ -39,7 +39,66 @@
 	} \
 }
 
-MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_parse_xml(MYSQLND_MS_FABRIC * fabric, char *xmlstr, int xmlstr_len);
+enum mysqlnd_fabric_state {
+	DISABLED,
+	ENABLED
+};
+
+/*static const char *mysqlnd_fabric_state_values[] = {
+	"DISABLED",
+	"ENABLED"
+};*/
+
+enum mysqlnd_fabric_map_type_name {
+	RANGE,
+	HASH
+};
+
+/*static const char *mysqlnd_fabric_map_type_name_values[] = {
+	"RANGE",
+	"HASH"
+};*/
+
+typedef struct {
+	int shard_mapping_id;
+	char schema_name[65];
+	char table_name[65];
+	char column_name[65];
+} mysqlnd_fabric_shard_table;
+
+typedef struct {
+	int shard_mapping_id;
+	enum mysqlnd_fabric_map_type_name type_name;
+	char global_group[65];
+} mysqlnd_fabric_shard_mapping;
+
+typedef struct {
+	int shard_mapping_id;
+	int lower_bound; /* FIXME - RANGE sharding only */
+	int shard_id;
+	char group[65];
+} mysqlnd_fabric_shard_index;
+
+
+typedef struct {
+	void (*init)(mysqlnd_fabric *fabric);
+	void (*deinit)(mysqlnd_fabric *fabric);
+	mysqlnd_fabric_server *(*get_shard_servers)(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint);
+} myslqnd_fabric_strategy;
+
+typedef struct {
+	char *hostname;
+	int port;
+} mysqlnd_fabric_rpc_host;
+
+struct struct_mysqlnd_fabric {
+	int host_count;
+	mysqlnd_fabric_rpc_host hosts[10];
+	myslqnd_fabric_strategy strategy;
+};
+
+
+mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len);
 
 #endif	/* MYSQLND_FABRIC_PRIV_H */
 

@@ -21,16 +21,64 @@
 #ifndef MYSQLND_FABRIC_H
 #define MYSQLND_FABRIC_H
 
-MYSQLND_MS_FABRIC *mysqlnd_fabric_init();
-void mysqlnd_fabric_free(MYSQLND_MS_FABRIC *fabric);
-int mysqlnd_fabric_add_host(MYSQLND_MS_FABRIC *fabric, char *hostname, int port TSRMLS_DC);
+/* Consumers should only use opaque mysqlnd_fabric pointers via accessor functions */
+struct struct_mysqlnd_fabric;
+typedef struct struct_mysqlnd_fabric mysqlnd_fabric;
+
+enum mysqlnd_fabric_strategy {
+	DIRECT,
+	DUMP
+};
+
+/**
+ * Create a new Fabric handle
+ * 
+ * If DIRECT strategy is used lookups will be mapped directly to Fabric RPC calls
+ * (i.e. sharding.lookup_servers). This causes a lot of requests.
+ * If DUMP strategy is used an initial dump will be fetched from Fabric. This
+ * dump will eventually be cached. All further lookups will use this cache.
+ */
+mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy);
+void mysqlnd_fabric_free(mysqlnd_fabric *fabric);
+int mysqlnd_fabric_add_host(mysqlnd_fabric *fabric, char *hostname, int port);
 
 typedef void(*mysqlnd_fabric_apply_func)(const char *hostname, unsigned int port, void *data);
 
-int mysqlnd_fabric_host_list_apply(const MYSQLND_MS_FABRIC *fabric, mysqlnd_fabric_apply_func cb, void *data);
+int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_apply_func cb, void *data);
 
-MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_get_shard_servers(MYSQLND_MS_FABRIC *fabric, const char *table, const char *key, enum mysqlnd_ms_fabric_hint hint TSRMLS_DC);
-void mysqlnd_fabric_free_server_list(MYSQLND_MS_FABRIC_SERVER *servers);
+enum mysqlnd_fabric_server_mode {
+	OFFLINE = 0,
+	READ_ONLY = 1,
+	READ_WRITE = 3
+};
+
+enum mysqlnd_fabric_server_role {
+	SPARE = 0,
+	SCALE = 1,
+	SECONDARY = 2,
+	PRIMARY = 3
+};
+
+typedef struct {
+	size_t uuid_len;
+	char uuid[41];
+	size_t group_len;
+	char group[65];
+	size_t hostname_len;
+	char hostname[65];
+	unsigned int port;
+	enum mysqlnd_fabric_server_mode mode;
+	enum mysqlnd_fabric_server_role role;
+	double weight;
+} mysqlnd_fabric_server;
+
+enum mysqlnd_fabric_hint {
+	LOCAL,
+	GLOBAL
+};
+
+mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC);
+void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers);
 
 #endif	/* MYSQLND_FABRIC_H */
 

@@ -664,12 +664,12 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 }
 /* }}} */
 
-static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_ms_fabric_hint hint TSRMLS_DC) /* {{{ */
+static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC) /* {{{ */
 {
 	MYSQLND *proxy_conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
-	MYSQLND_MS_FABRIC_SERVER *servers, *tofree;
-	MYSQLND_MS_FABRIC *fabric;
+	mysqlnd_fabric_server *servers, *tofree;
+	mysqlnd_fabric *fabric;
 	DBG_ENTER("mysqlnd_ms_fabric_select_servers");
 
 	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
@@ -691,15 +691,18 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	}
 	fabric = (*conn_data)->fabric;
 
+/* TODO: This can't see into mysqlnd_fabric, probably we have to move the warn_serverlistchanges flag */
+/*
 	if ((fabric->trx_warn_serverlist_changes) && ((*conn_data)->stgy.trx_stop_switching))  {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
+*/
 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
 
 	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint TSRMLS_CC);
-	if (fabric->error_no > 0) {
+	if (0 /* fabric->error_no > 0  --- We need etter error handling */) {
 		/*
 		TODO - should be bubble this up to the connection?
 		MYSQLND_ERROR_INFO * error_info = &MYSQLND_MS_ERROR_INFO(proxy_conn->data);
@@ -707,7 +710,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 			SET_CLIENT_ERROR((*error_info), fabric->error_no, fabric->sqlstate, fabric->error);
 		}
 		*/
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s %s", MYSQLND_MS_ERROR_PREFIX, fabric->error);
+/*		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s %s", MYSQLND_MS_ERROR_PREFIX, fabric->error);*/
 		RETVAL_FALSE;
 		DBG_VOID_RETURN;
 	}
@@ -723,7 +726,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 #else
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
 #endif
-		if (servers->master) {
+		if (servers->mode == READ_WRITE) {
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);

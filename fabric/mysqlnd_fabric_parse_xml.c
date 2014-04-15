@@ -72,7 +72,15 @@ static char *myslqnd_fabric_get_actual_value(char *xpath, xmlXPathContextPtr xpa
 	return retval;
 }
 
-static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, MYSQLND_MS_FABRIC_SERVER *server)
+#define COPY_VALUE_IN_FIELD(target, field, value) \
+	(target)->field ## _len = strlen(value); \
+	if ((target)->field ## _len > sizeof(server->field) - 1) { \
+		xmlXPathFreeContext(xpathCtx); \
+		return 1; \
+	} \
+	strncpy((target)->field, (value), (target)->field ## _len);
+
+static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric_server *server)
 {
 	xmlXPathContextPtr xpathCtx = xmlXPathNewContext((xmlDocPtr)node);
 	char *tmp;
@@ -87,15 +95,15 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, MYSQLND_MS_FAB
 		return 1;
 	}
 
-	server->uuid = estrdup(tmp);
-
+	COPY_VALUE_IN_FIELD(server, uuid, tmp);
+	
 	tmp = myslqnd_fabric_get_actual_value("//array/data/value[2]/string", xpathCtx);
 	if (!tmp) {
 		xmlXPathFreeContext(xpathCtx);
 		return 1;
 	}
 
-	server->hostname = estrdup(tmp);
+	COPY_VALUE_IN_FIELD(server, hostname, tmp);
 
 	tmp = strchr(server->hostname, ':');
 	*tmp = '\0';
@@ -108,21 +116,24 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, MYSQLND_MS_FAB
 	}
 
 	switch (tmp[0]) {
-	case '0': server->master = 0; break;
-	case '1': server->master = 1; break;
+	case '0': server->mode = READ_ONLY; break;
+	case '1': server->mode = READ_WRITE; break;
 	default:
 		xmlXPathFreeContext(xpathCtx);
 		return 1;
 	}
+	
+	server->role = SPARE; /* FIXME - currently role is ignored */
+	server->weight = 1.0;
 
 	xmlXPathFreeContext(xpathCtx);
 
 	return 0;
 }
 
-MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_parse_xml(MYSQLND_MS_FABRIC * fabric, char *xmlstr, int xmlstr_len)
+mysqlnd_fabric_SERVER *mysqlnd_fabric_parse_xml(mysqlnd_fabric * fabric, char *xmlstr, int xmlstr_len)
 {
-	MYSQLND_MS_FABRIC_SERVER *retval;
+	mysqlnd_fabric_SERVER *retval;
 	xmlDocPtr doc;
 	xmlXPathObjectPtr xpathObj1;
 	int i;
@@ -150,7 +161,7 @@ MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_parse_xml(MYSQLND_MS_FABRIC * fabric, c
 		return NULL;
 	}
 
-	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(MYSQLND_MS_FABRIC_SERVER), 0);
+	retval = safe_emalloc(xpathObj1->nodesetval->nodeNr+1, sizeof(mysqlnd_fabric_SERVER), 0);
 	for (i = 0; i < xpathObj1->nodesetval->nodeNr; i++) {
 		if (mysqlnd_fabric_fill_server_from_value(xpathObj1->nodesetval->nodeTab[i], &retval[i])) {
 			xmlXPathFreeObject(xpathObj1);
@@ -160,7 +171,8 @@ MYSQLND_MS_FABRIC_SERVER *mysqlnd_fabric_parse_xml(MYSQLND_MS_FABRIC * fabric, c
 		}
 	}
 
-	retval[i].hostname = NULL;
+	retval[i].hostname_len = 0;
+	retval[i].hostname[0] = '\0';
 	retval[i].port = 0;
 
 	xmlXPathFreeObject(xpathObj1);

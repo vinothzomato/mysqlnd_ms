@@ -27,6 +27,8 @@
 #include "sys/time.h"
 #endif
 
+#include "fabric/mysqlnd_fabric.h"
+
 #if MYSQLND_VERSION_ID < 50010 && !defined(MYSQLND_CONN_DATA_DEFINED)
 typedef MYSQLND MYSQLND_CONN_DATA;
 #endif
@@ -547,47 +549,22 @@ typedef struct st_mysqlnd_ms_filter_groups_data_group
 } MYSQLND_MS_FILTER_GROUPS_DATA_GROUP;
 
 
-/* Fabric host from config we connect to */
-typedef struct st_mysqlnd_ms_fabric_host
-{
-	char *hostname;
-	int port;
-} MYSQLND_MS_FABRIC_HOST;
-
-/* Fabric handle */
 #define MYSQLND_MS_ERRMSG_SIZE 1024
 #define MYSQLND_MS_SQLSTATE_LENGTH 5
-typedef struct st_mysqlnd_fabric
-{
-	int host_count;
-	MYSQLND_MS_FABRIC_HOST hosts[10];
+//typedef struct st_mysqlnd_fabric
+//{
+//	int host_count;
 
 	/* timeout connect + read, see PHP stream wrapper */
-	unsigned int timeout;
+//	unsigned int timeout;
 	/* warn about switching to other servers in the middle of a transaction */
-	zend_bool trx_warn_serverlist_changes;
+//	zend_bool trx_warn_serverlist_changes;
 
 	/* error information to be bubbled up to the SQL level - use MYSQLND_ERROR_INFO? */
-	char error[MYSQLND_MS_ERRMSG_SIZE+1];
-	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];
-	unsigned int error_no;
-} MYSQLND_MS_FABRIC;
-
-/* MySQL server/node returned by Fabric */
-typedef struct st_mysqlnd_fabric_server {
-	char *hostname;
-	unsigned int port;
-	char *uuid;
-	int master;
-} MYSQLND_MS_FABRIC_SERVER;
-
-/* MySQL server/node hint returned by Fabric */
-enum mysqlnd_ms_fabric_hint
-{
-	LOCAL,
-	GLOBAL
-};
-
+//	char error[MYSQLND_MS_ERRMSG_SIZE+1];
+//	char sqlstate[MYSQLND_MS_SQLSTATE_LENGTH + 1];
+//	unsigned int error_no;
+//} mysqlnd_fabric;
 
 /*
  NOTE: Some elements are available with every connection, some
@@ -676,7 +653,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool report_error;
 	} global_trx;
 #endif
-	MYSQLND_MS_FABRIC *fabric;
+	mysqlnd_fabric *fabric;
 } MYSQLND_MS_CONN_DATA;
 
 

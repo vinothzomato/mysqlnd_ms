@@ -876,7 +876,7 @@ static enum_func_status
 mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data TSRMLS_DC)
 {
 	unsigned int host_entry_counter = 0;
-	MYSQLND_MS_FABRIC *fabric;
+	mysqlnd_fabric *fabric;
 	zend_bool value_exists = FALSE, is_list_value = FALSE;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section;
 
@@ -992,7 +992,20 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	if (FAIL == mysqlnd_ms_connect_load_charset(&conn_data, group_section, &MYSQLND_MS_ERROR_INFO(conn) TSRMLS_CC)) {
 		return FAIL;
 	}
-
+        
+	fabric = mysqlnd_fabric_init(DIRECT);
+	while (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC)) {
+		char *hostname = mysqlnd_ms_config_json_string_from_section(host, "host", sizeof("host")-1, 0, NULL, NULL TSRMLS_CC);
+		int port = mysqlnd_ms_config_json_int_from_section(host, "port", sizeof("port")-1, 0, NULL, NULL TSRMLS_CC);
+		
+		if (hostname) {
+			mysqlnd_fabric_add_host(fabric, hostname, port);
+			efree(hostname);
+		}
+	}
+	
+	conn_data->fabric = fabric;
+ 
 	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(group_section, &MYSQLND_MS_ERROR_INFO(conn),
 																	 &conn_data->master_connections,
 																	 &conn_data->slave_connections,
