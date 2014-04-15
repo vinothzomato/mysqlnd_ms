@@ -9,7 +9,7 @@ file_put_contents("fabric_and_master.json", <<<EOT
 {
 	"testfabric" : {
 		"fabric":{
-			"hosts": []
+			"hosts": [ {"url":"http://example.com"} ]
 		},
 		"master": {
 		}
