@@ -70,7 +70,7 @@ typedef struct {
 	int shard_mapping_id;
 	enum mysqlnd_fabric_map_type_name type_name;
 	char global_group[65];
-} mysqlnd_fabric_shard_mapping;
+}   mysqlnd_fabric_shard_mapping;
 
 typedef struct {
 	int shard_mapping_id;
