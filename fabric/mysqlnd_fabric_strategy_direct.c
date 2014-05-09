@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include "zend.h"
 #include "zend_alloc.h"
+#include "main/php.h"
 
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"

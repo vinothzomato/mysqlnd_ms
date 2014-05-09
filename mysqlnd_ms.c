@@ -955,7 +955,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 		} while (1);
 	}
 	
-	strategy_str = mysqlnd_ms_config_json_string_from_section(fabric_section, "strategy", sizeof("strategy")-1, 0, &value_exists, NULL);
+	strategy_str = mysqlnd_ms_config_json_string_from_section(fabric_section, "strategy", sizeof("strategy")-1, 0, &value_exists, NULL TSRMLS_CC);
 	if (value_exists) {
 		if (!strcmp(strategy_str, "dump")) {
 			strategy = DUMP;
@@ -989,7 +989,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 			spprintf(&url, 0, "http://%s:%d/", hostname, port);
 			efree(hostname);
 		}
-		mysqlnd_fabric_add_rpc_host(fabric, url);
+		mysqlnd_fabric_add_rpc_host(fabric, url TSRMLS_CC);
 		efree(url);
 	}
 	

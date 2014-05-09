@@ -698,7 +698,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	zend_llist_clean(&(*conn_data)->master_connections);
 	zend_llist_clean(&(*conn_data)->slave_connections);
 
-	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint TSRMLS_CC);
+	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint);
 	if (mysqlnd_fabric_get_error_no(fabric) > 0) {
 		/*
 		TODO - should be bubble this up to the connection?
