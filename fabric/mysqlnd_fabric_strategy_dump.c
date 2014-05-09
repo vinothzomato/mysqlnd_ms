@@ -594,7 +594,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 	}
 
 	if (!group) {
-		return;
+		return NULL;
 	}
 	
 	return mysqlnd_fabric_get_server_for_group(fabric, group);
