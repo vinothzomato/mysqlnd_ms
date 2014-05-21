@@ -286,7 +286,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	const char *shard_index_xml, size_t shard_index_len,
 	const char *server_xml, size_t server_len)
 {
-	zend_function *func_cache;
+	zend_function *func_cache = NULL;
 	zval *z_shard_table, *z_shard_mapping, *z_shard_index, *z_server;
 	zval arg;
 	zval *tmp;
