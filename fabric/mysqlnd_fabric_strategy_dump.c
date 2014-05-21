@@ -298,6 +298,8 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	long pos;
 	void *vpos;
 	zend_bool success = 0;
+
+	TSRMLS_FETCH();
 	
 	fabric_dump_data *dump_data = (fabric_dump_data*)fabric->strategy_data;
 	
