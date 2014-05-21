@@ -989,7 +989,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 			spprintf(&url, 0, "http://%s:%d/", hostname, port);
 			efree(hostname);
 		}
-		mysqlnd_fabric_add_rpc_host(fabric, url TSRMLS_CC);
+		mysqlnd_fabric_add_rpc_host(fabric, url);
 		efree(url);
 	}
 	

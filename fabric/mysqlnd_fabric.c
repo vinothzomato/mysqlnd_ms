@@ -96,7 +96,7 @@ char *mysqlnd_fabric_get_error(mysqlnd_fabric *fabric)
 	return fabric->error;
 }
 
-int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url TSRMLS_DC)
+int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)
 {
 	if (fabric->host_count >= 10) {
 		TSRMLS_FETCH();
