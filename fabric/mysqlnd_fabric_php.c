@@ -54,6 +54,10 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 
     /* TODO: Switch to quiet mode? */
 	stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
+	if (!stream) {
+		*response_len = 0;
+		return NULL;
+	}
 	
 	*response_len = php_stream_copy_to_mem(stream, &retval, PHP_STREAM_COPY_ALL, 0);
     php_stream_close(stream);
