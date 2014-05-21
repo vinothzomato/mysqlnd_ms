@@ -589,7 +589,6 @@ static mysqlnd_fabric_server *mysqlnd_fabric_get_server_for_group(mysqlnd_fabric
 static void fabric_dump_init(mysqlnd_fabric *fabric)
 {
 	fabric->strategy_data = ecalloc(sizeof(fabric_dump_data), 1);
-	fabric_set_raw_data_from_fabric(fabric);
 }
 
 static void fabric_dump_deinit(mysqlnd_fabric *fabric)
@@ -603,17 +602,36 @@ static void fabric_dump_deinit(mysqlnd_fabric *fabric)
 
 static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_group_servers(mysqlnd_fabric *fabric, const char *group)
 {
+	if (!((fabric_dump_data*)fabric->strategy_data)->raw) {
+		/* TODO: Once we know where/how we cache this information we should use the cache here
+		         instead of going out to fabric directly */
+		fabric_set_raw_data_from_fabric(fabric);
+	}
 	return mysqlnd_fabric_get_server_for_group(fabric, group);
 }
 
 static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
 	const char *group = NULL;
-	int shard_mapping_id = mysqlnd_fabric_get_shard_for_table(fabric, table, strlen(table));
+	int shard_mapping_id;
+		
+	if (!((fabric_dump_data*)fabric->strategy_data)->raw) {
+		/* TODO: Once we know where/how we cache this information we should use the cache here
+		         instead of going out to fabric directly */
+		fabric_set_raw_data_from_fabric(fabric);
+	}
+
+	shard_mapping_id = mysqlnd_fabric_get_shard_for_table(fabric, table, strlen(table));
 	if (!shard_mapping_id) {
 		return NULL;
 	}
 	
+	if (!((fabric_dump_data*)fabric->strategy_data)->raw) {
+		/* TODO: Once we know where/how we cache this information we should use the cache here
+		         instead of going out to fabric directly */
+		fabric_set_raw_data_from_fabric(fabric);
+	}
+
 	switch (hint) {
 	case GLOBAL:
 		group = mysqlnd_fabric_get_global_group(fabric, shard_mapping_id);
