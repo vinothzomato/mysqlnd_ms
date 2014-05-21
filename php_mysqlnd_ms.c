@@ -901,8 +901,57 @@ static PHP_FUNCTION(mysqlnd_ms_dump_fabric_rpc_hosts)
 /* }}} */
 
 #ifdef PHP_DEBUG
+/* {{{ proto long mysqlnd_ms_debug_set_fabric_raw_dump_data_xml(mixed connection, string data)
+   Set raw binary dump data for Fabric using XML. This is supposed to be used by testing
+   so we don't have to use complex stream wrappers in all tests.
+   This function is only available in debug builds so we assume the user knows what he does
+   i.e. wedon't check whether dumpstrategy is actually used (-> buffer overflow etc. on misuse) */
+static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_xml)
+{
+	zval *conn_zv;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+	char *shard_table_xml; size_t shard_table_len;
+	char *shard_mapping_xml; size_t shard_mapping_len;
+	char *shard_index_xml; size_t shard_index_len;
+	char *server_xml; size_t server_len;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zssss", &conn_zv, &shard_table_xml, &shard_table_len,
+			&shard_mapping_xml, &shard_mapping_len, &shard_index_xml, &shard_index_len, &server_xml, &server_len) == FAILURE) {
+		return;
+	}
+
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(conn->data, mysqlnd_ms_plugin_id);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+	
+	if (!(*conn_data)->fabric) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No MySQL Fabric connection");
+		RETURN_FALSE;
+	}
+	
+	void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
+		const char *shard_table_xml, size_t shard_table_len,
+		const char *shard_mapping_xml, size_t shard_mapping_len,
+		const char *shard_index_xml, size_t shard_index_len,
+		const char *server_xml, size_t server_len);
+	fabric_set_raw_data_from_xmlstr((*conn_data)->fabric, shard_table_xml, shard_table_len, shard_mapping_xml, 
+			shard_mapping_len, shard_index_xml, shard_index_len, server_xml, server_len);
+
+}
+/* }}} */
 /* {{{ proto long mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous(mixed connection, string data)
-   Set raw binary dump data for Fabric. Be careful data isn't really checked */
+   Set raw binary dump data for Fabric. Be careful data isn't really checked.
+   The data has to match the architecture of the system (sizes, endianess, padding, ...)
+   This function should not be used by new tests, use the XML version instead, it might be
+   used for debugging, but more likely will be removed.
+   */
 static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous)
 {
 	zval *conn_zv;
@@ -966,6 +1015,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_dump_servers, arginfo_mysqlnd_ms_dump_servers)
 	PHP_FE(mysqlnd_ms_dump_fabric_rpc_hosts, arginfo_mysqlnd_ms_dump_servers)
 #ifdef PHP_DEBUG
+	PHP_FE(mysqlnd_ms_debug_set_fabric_raw_dump_data_xml, NULL)
 	PHP_FE(mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous, NULL)
 #endif
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
