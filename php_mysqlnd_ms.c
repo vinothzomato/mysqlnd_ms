@@ -901,7 +901,7 @@ static PHP_FUNCTION(mysqlnd_ms_dump_fabric_rpc_hosts)
 /* }}} */
 
 #ifdef PHP_DEBUG
-/* {{{ proto long mysqlnd_ms_debug_set_fabric_raw_dump_data_xml(mixed connection, string data)
+/* {{{ proto void mysqlnd_ms_debug_set_fabric_raw_dump_data_xml(mixed connection, string shard_table, string shard_mapping_xml, string shard_index, string server)
    Set raw binary dump data for Fabric using XML. This is supposed to be used by testing
    so we don't have to use complex stream wrappers in all tests.
    This function is only available in debug builds so we assume the user knows what he does
