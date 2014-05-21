@@ -120,7 +120,6 @@ typedef struct {
  * Data processing *
  *******************/
 
-
 static void fabric_create_index(fabric_dump_index *index, const fabric_dump_raw *fabric_dump)
 {
 	size_t pos;
@@ -459,10 +458,43 @@ cleanup:
 
 void fabric_set_raw_data_from_fabric(mysqlnd_fabric *fabric)
 {
-	char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body, size_t request_body_len, size_t *response_len);
-	
-	char *request;
+	char *servers_xml, *shard_index_xml, *shard_mapping_xml, *shard_table_xml;
+	size_t servers_len, shard_index_len, shard_mapping_len, shard_table_len;
+
+	char request[sizeof(FABRIC_LOOKUP_XML) + 200];
 	size_t request_len;
+
+	/* TODO: Currently Fabric itself isn't HA, we only have one instance, in the direct strategy we have this:
+	         mysqlnd_fabric_host_shuffle(fabric->hosts, fabric->host_count); */
+
+	request_len = sprintf(request, FABRIC_LOOKUP_XML, "dump.servers");
+	servers_xml = mysqlnd_fabric_http(fabric, fabric->hosts->url, request, request_len, &servers_len);
+	if (!servers_len) {
+		/* TODO: We silently leave here, this will keep the serverlist unchanged in case of error
+		         currently mysqlnd_fabric_http will emitt a warning with an error message */
+		return;
+	}
+
+	request_len = sprintf(request, FABRIC_LOOKUP_XML, "dump.shard_index");
+	shard_index_xml = mysqlnd_fabric_http(fabric, fabric->hosts->url, request, request_len, &shard_index_len);
+	if (!shard_index_len) {
+		return;
+	}
+
+	request_len = sprintf(request, FABRIC_LOOKUP_XML, "dump.shard_maps");
+	shard_mapping_xml = mysqlnd_fabric_http(fabric, fabric->hosts->url, request, request_len, &shard_mapping_len);
+	if (!shard_mapping_len) {
+		return;
+	}
+	
+	request_len = sprintf(request, FABRIC_LOOKUP_XML, "dump.shard_table");
+	shard_table_xml = mysqlnd_fabric_http(fabric, fabric->hosts->url, request, request_len, &shard_table_len);
+	if (!shard_table_len) {
+		return;
+	}
+
+    fabric_set_raw_data_from_xmlstr(fabric, shard_table_xml, shard_table_len, shard_mapping_xml, shard_mapping_len,
+			shard_index_xml, shard_index_len, servers_xml, servers_len);
 }
 
 static void fabric_set_raw_data_for_gdb(mysqlnd_fabric *fabric)
@@ -557,6 +589,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_get_server_for_group(mysqlnd_fabric
 static void fabric_dump_init(mysqlnd_fabric *fabric)
 {
 	fabric->strategy_data = ecalloc(sizeof(fabric_dump_data), 1);
+	fabric_set_raw_data_from_fabric(fabric);
 }
 
 static void fabric_dump_deinit(mysqlnd_fabric *fabric)
