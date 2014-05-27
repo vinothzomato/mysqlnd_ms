@@ -524,7 +524,7 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 	
 	table = strstr(schema, ".");
 	if (!table) {
-		return 0;
+		return -1;
 	}
 	
 	*table = '\0';
@@ -540,7 +540,7 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 		}
 	}
 	
-	return 0;
+	return -1;
 }
 
 static const char *mysqlnd_fabric_get_global_group(const mysqlnd_fabric *fabric, int shard_mapping_id)
@@ -629,7 +629,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 	}
 
 	shard_mapping_id = mysqlnd_fabric_get_shard_for_table(fabric, table, strlen(table));
-	if (!shard_mapping_id) {
+	if (shard_mapping_id == -1) {
 		return NULL;
 	}
 	
