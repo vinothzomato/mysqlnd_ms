@@ -158,7 +158,7 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 	{ \
 		zval **data; \
 		HashTable *source = Z_ARRVAL_PP((zval**)pDest); \
-		target_type *target; \
+		target_type **target; \
 		zend_bool *success; \
 		\
 		if (num_args != 2) { \
@@ -166,7 +166,7 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Wrong number of arguments to internal fill_shard_mapping_entry from zend_hash_apply call"); \
 		} \
 		\
-		target =  va_arg(args, target_type *); \
+		target =  va_arg(args, target_type **); \
 		success = va_arg(args, zend_bool *); /* Will be false by default, only change on success */ \
 		do
 
@@ -174,6 +174,7 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 		while(0); \
 		\
 		*success = 1; \
+		*target += 1; \
 		return ZEND_HASH_APPLY_KEEP; \
 	}
 	
@@ -187,17 +188,18 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 DECLARE_FILL_ENTRY_BEGIN(fill_shard_table_entry, mysqlnd_fabric_shard_table)
 {
 	zend_hash_internal_pointer_reset(source);
-	CHECK_AND_COPY_STRING(data, target->schema_name);
+	CHECK_AND_COPY_STRING(data, (*target)->schema_name);
 
 	zend_hash_move_forward(source);
-	CHECK_AND_COPY_STRING(data, target->table_name);
+	CHECK_AND_COPY_STRING(data, (*target)->table_name);
 
 	zend_hash_move_forward(source);
-	CHECK_AND_COPY_STRING(data, target->column_name);
+	CHECK_AND_COPY_STRING(data, (*target)->column_name);
 
 	zend_hash_move_forward(source);
+	zend_hash_get_current_data(source, (void**)&data); \
 	convert_to_long(*data);
-	target->shard_mapping_id = Z_LVAL_PP(data);
+	(*target)->shard_mapping_id = Z_LVAL_PP(data);
 } DECLARE_FILL_ENTRY_END()
 
 DECLARE_FILL_ENTRY_BEGIN(fill_shard_mapping_entry, mysqlnd_fabric_shard_mapping)
@@ -205,17 +207,17 @@ DECLARE_FILL_ENTRY_BEGIN(fill_shard_mapping_entry, mysqlnd_fabric_shard_mapping)
 	zend_hash_internal_pointer_reset(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
-	target->shard_mapping_id = Z_LVAL_PP(data);
+	(*target)->shard_mapping_id = Z_LVAL_PP(data);
 	
 	zend_hash_move_forward(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	if (Z_TYPE_PP(data) != IS_STRING || Z_STRLEN_PP(data) != sizeof("RANGE")-1 || strcmp("RANGE", Z_STRVAL_PP(data))) {
 		return ZEND_HASH_APPLY_STOP;
 	}
-	target->type_name = RANGE;
+	(*target)->type_name = RANGE;
 	
 	zend_hash_move_forward(source);
-	CHECK_AND_COPY_STRING(data, target->global_group);
+	CHECK_AND_COPY_STRING(data, (*target)->global_group);
 } DECLARE_FILL_ENTRY_END()
 
 DECLARE_FILL_ENTRY_BEGIN(fill_shard_index_entry, mysqlnd_fabric_shard_index)
@@ -223,48 +225,48 @@ DECLARE_FILL_ENTRY_BEGIN(fill_shard_index_entry, mysqlnd_fabric_shard_index)
 	zend_hash_internal_pointer_reset(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
-	target->lower_bound = Z_LVAL_PP(data);
+	(*target)->lower_bound = Z_LVAL_PP(data);
 
 	zend_hash_move_forward(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
-	target->shard_mapping_id = Z_LVAL_PP(data);
+	(*target)->shard_mapping_id = Z_LVAL_PP(data);
 
 	zend_hash_move_forward(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
-	target->shard_id = Z_LVAL_PP(data);
+	(*target)->shard_id = Z_LVAL_PP(data);
 
 	zend_hash_move_forward(source);
-	CHECK_AND_COPY_STRING(data, target->group);
+	CHECK_AND_COPY_STRING(data, (*target)->group);
 } DECLARE_FILL_ENTRY_END()
 
 DECLARE_FILL_ENTRY_BEGIN(fill_server_entry, mysqlnd_fabric_server)
 {
 	zend_hash_internal_pointer_reset(source);
-	CHECK_AND_COPY_STRING(data, target->uuid);
-	target->uuid_len = Z_STRLEN_PP(data);
+	CHECK_AND_COPY_STRING(data, (*target)->uuid);
+	(*target)->uuid_len = Z_STRLEN_PP(data);
 
 	zend_hash_move_forward(source);
-	CHECK_AND_COPY_STRING(data, target->group);
-	target->group_len = Z_STRLEN_PP(data);
+	CHECK_AND_COPY_STRING(data, (*target)->group);
+	(*target)->group_len = Z_STRLEN_PP(data);
 
 	zend_hash_move_forward(source);
-	CHECK_AND_COPY_STRING(data, target->hostname);
-	target->hostname_len = Z_STRLEN_PP(data);
+	CHECK_AND_COPY_STRING(data, (*target)->hostname);
+	(*target)->hostname_len = Z_STRLEN_PP(data);
 
 	zend_hash_move_forward(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
-	target->port = Z_LVAL_PP(data);
+	(*target)->port = Z_LVAL_PP(data);
 
 	zend_hash_move_forward(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
 	switch (Z_LVAL_PP(data)) {
-	case 0: target->mode = OFFLINE; break;
-	case 1: target->mode = READ_ONLY; break;
-	case 3: target->mode = READ_WRITE; break;
+	case 0: (*target)->mode = OFFLINE; break;
+	case 1: (*target)->mode = READ_ONLY; break;
+	case 3: (*target)->mode = READ_WRITE; break;
 	default: return ZEND_HASH_APPLY_STOP;
 	}
 
@@ -272,10 +274,10 @@ DECLARE_FILL_ENTRY_BEGIN(fill_server_entry, mysqlnd_fabric_server)
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
 	switch (Z_LVAL_PP(data)) {
-	case 0: target->role = SPARE; break;
-	case 1: target->role = SCALE; break;
-	case 2: target->role = SECONDARY; break;
-	case 3: target->role = PRIMARY; break;
+	case 0: (*target)->role = SPARE; break;
+	case 1: (*target)->role = SCALE; break;
+	case 2: (*target)->role = SECONDARY; break;
+	case 3: (*target)->role = PRIMARY; break;
 	default: return ZEND_HASH_APPLY_STOP;
 	}
 } DECLARE_FILL_ENTRY_END()
@@ -379,8 +381,6 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 		zval_dtor(z_shard_index);
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid response from XML-RPC while handling server list");
 	}
-	z_shard_mapping = *tmpp;
-	zend_hash_index_find(Z_ARRVAL_P(tmp), 3, (void**)&tmpp);
 	z_server = *tmpp;
 	Z_ADDREF_P(z_server);
 	zval_dtor(tmp);
@@ -394,10 +394,12 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	/* 3. Allocate buffer and create index */
 	
 	dump_data->raw = (fabric_dump_raw*)emalloc(
-		  shard_table_count * sizeof(mysqlnd_fabric_shard_table)
+		  4 * sizeof(int)
+		+ shard_table_count * sizeof(mysqlnd_fabric_shard_table)
 		+ shard_mapping_count * sizeof(mysqlnd_fabric_shard_mapping)
 		+ shard_index_count * sizeof(mysqlnd_fabric_shard_index)
 		+ server_count * sizeof(mysqlnd_fabric_server));
+
 	dump_data->raw->shard_table_count = shard_table_count;
 	
 	dump_data->index.shard_table_count = shard_table_count;
@@ -416,7 +418,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	dump_data->index.shard_index = (mysqlnd_fabric_shard_index *)pos;
 	
 	pos += shard_index_count * sizeof(mysqlnd_fabric_shard_index);
-	dump_data->index.server_count = *(int*)pos = shard_index_count;
+	dump_data->index.server_count = *(int*)pos = server_count;
 	
 	pos += sizeof(int);
 	dump_data->index.server = (mysqlnd_fabric_server *)pos;
@@ -424,25 +426,25 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	/* 4. fill buffer */
 	
 	vpos = (void*)dump_data->index.shard_table;
-	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_table) TSRMLS_CC, (apply_func_args_t)fill_shard_table_entry, 2, vpos, &success);
+	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_table) TSRMLS_CC, (apply_func_args_t)fill_shard_table_entry, 2, &vpos, &success);
 	if (success == 0) {
 		goto cleanup;
 	}
 
 	vpos = (void*)dump_data->index.shard_mapping;
-	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_mapping) TSRMLS_CC, (apply_func_args_t)fill_shard_mapping_entry, 2, vpos, &success);
+	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_mapping) TSRMLS_CC, (apply_func_args_t)fill_shard_mapping_entry, 2, &vpos, &success);
 	if (success == 0) {
 		goto cleanup;
 	}
 
 	vpos = (void*)dump_data->index.shard_index;
-	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_index) TSRMLS_CC, (apply_func_args_t)fill_shard_index_entry, 2, vpos, &success);
+	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_index) TSRMLS_CC, (apply_func_args_t)fill_shard_index_entry, 2, &vpos, &success);
 	if (success == 0) {
 		goto cleanup;
 	}
 
 	vpos = (void*)dump_data->index.server;
-	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_server) TSRMLS_CC, (apply_func_args_t)fill_server_entry, 2, vpos, &success);
+	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_server) TSRMLS_CC, (apply_func_args_t)fill_server_entry, 2, &vpos, &success);
 	if (success == 0) {
 		goto cleanup;
 	}
@@ -562,7 +564,7 @@ static const char *mysqlnd_fabric_get_shard_group_for_key(const mysqlnd_fabric *
 	const fabric_dump_index *index = &((const fabric_dump_data*)fabric->strategy_data)->index;
 	const char *retval = NULL;
 	for (i = 0; i < index->shard_index_count; ++i) {
-		if (index->shard_index[i].shard_mapping_id == shard_mapping_id) {
+          if (index->shard_index[i].shard_mapping_id == shard_mapping_id) {
 			/* This assumes we have our data sorted by shard key, this is guaranteed by fabric */
 			if (index->shard_index[i].lower_bound <= key) {
 				retval = index->shard_index[i].group;

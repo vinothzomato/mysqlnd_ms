@@ -717,7 +717,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		DBG_VOID_RETURN;
 	}
 
-	for (; servers->hostname; servers++) {
+	for (; servers->hostname && *servers->hostname; servers++) {
 #if PHP_VERSION_ID >= 50600
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->m->get_client_api_capabilities(proxy_conn->data TSRMLS_CC), proxy_conn->data->persistent);
 #else
