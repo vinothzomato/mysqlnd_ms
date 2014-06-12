@@ -12,6 +12,9 @@ class ms_emulated_fabric {
 		/* Fabric */
 		'sharding.lookup_servers' 	=> 'sharding_lookup_servers',
 		'dump.servers'			=> "dump_servers",
+		'dump.shard_index'		=> "dump_shard_index",
+		'dump.shard_maps'		=> "dump_shard_maps",
+		'dump.shard_tables'		=> "dump_shard_tables",
 	);
 
 	protected $server;
@@ -162,7 +165,7 @@ class ms_emulated_fabric {
 			return $reply;
 		}
 
-		* send proper reply */
+		/* send proper reply */
 			$reply = array(
 				true,
 				"",
@@ -178,13 +181,102 @@ class ms_emulated_fabric {
 					),
 					array(
 						"emulated slave",
-						"group2",
+						"group1",
 						$emulated_slave_host_only,
 						$emulated_slave_port,
 						1, /* mode: 0 = OFFFLINE, 1 = READ_ONLY, 2 = WRITE_ONLY, 3 = READ_WRITE */
 						2, /* status: 0 = SPARE, 1 = SCALE, 2 = SECONDARY, 3 = PRIMARY */
 						1.0
-					)
+					),
+					array(
+						"emulated master",
+						"group_global",
+						$emulated_master_host_only,
+						$emulated_master_port,
+						3, /* mode: 0 = OFFFLINE, 1 = READ_ONLY, 2 = WRITE_ONLY, 3 = READ_WRITE */
+						3, /* status: 0 = SPARE, 1 = SCALE, 2 = SECONDARY, 3 = PRIMARY */
+						1.0 /* weight */
+					),
+				)
+			);
+	}
+
+	public function dump_shard_index($method, $params, $data) {
+		/* hackish... one fine day... */
+		global $emulated_master_host_only, $emulated_master_port, $emulated_master_socket,
+				$emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket;
+
+		ms_emulated_fabric_server_log(sprintf("Request '%s': %s", $method, var_export($params, true)));
+
+		$reply = NULL;
+		if ($this->standard_defects($method, $reply)) {
+			return $reply;
+		}
+
+		/* send proper reply */
+			$reply = array(
+				true,
+				"",
+				array(
+					array(
+						"1", /* Bound - Lower bound */
+						"1", /* MapID - shard mapping */
+						"1", /* ShardID */,
+						"group1"
+					),
+				)
+			);
+	}
+
+	public function dump_shard_maps($method, $params, $data) {
+		/* hackish... one fine day... */
+		global $emulated_master_host_only, $emulated_master_port, $emulated_master_socket,
+				$emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket;
+
+		ms_emulated_fabric_server_log(sprintf("Request '%s': %s", $method, var_export($params, true)));
+
+		$reply = NULL;
+		if ($this->standard_defects($method, $reply)) {
+			return $reply;
+		}
+
+		/* send proper reply */
+			$reply = array(
+				true,
+				"",
+				array(
+					array(
+						"1", 		/* MapID */
+						"RANGE",	/* Type - was... 0=LIST, 1=RANGE, 2=MD5 HAsh, now real name */
+						"group_global"  /* Name of the global group */
+					),
+				)
+			);
+	}
+
+	public function dump_shard_tables($method, $params, $data) {
+		/* hackish... one fine day... */
+		global $emulated_master_host_only, $emulated_master_port, $emulated_master_socket,
+				$emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket;
+
+		ms_emulated_fabric_server_log(sprintf("Request '%s': %s", $method, var_export($params, true)));
+
+		$reply = NULL;
+		if ($this->standard_defects($method, $reply)) {
+			return $reply;
+		}
+
+		/* send proper reply */
+			$reply = array(
+				true,
+				"",
+				array(
+					array(
+						"database", 		/* Database */
+						"table",		/* Table */
+						"column" 		/* Column */
+						"1"			/* MapID */
+					),
 				)
 			);
 	}
