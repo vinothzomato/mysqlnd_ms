@@ -10,7 +10,8 @@ class ms_emulated_fabric {
 		/* Test */
 		'emulate_defect' => 'emulate_defect',
 		/* Fabric */
-		'sharding.lookup_servers' => 'sharding_lookup_servers',
+		'sharding.lookup_servers' 	=> 'sharding_lookup_servers',
+		'dump.servers'			=> "dump_servers",
 	);
 
 	protected $server;
@@ -147,6 +148,45 @@ class ms_emulated_fabric {
 			);
 		}
 		return $reply;
+	}
+
+	public function dump_servers($method, $params, $data) {
+		/* hackish... one fine day... */
+		global $emulated_master_host_only, $emulated_master_port, $emulated_master_socket,
+				$emulated_slave_host_only, $emulated_slave_port, $emulated_slave_socket;
+
+		ms_emulated_fabric_server_log(sprintf("Request '%s': %s", $method, var_export($params, true)));
+
+		$reply = NULL;
+		if ($this->standard_defects($method, $reply)) {
+			return $reply;
+		}
+
+		* send proper reply */
+			$reply = array(
+				true,
+				"",
+				array(
+					array(
+						"emulated master",
+						"group1",
+						$emulated_master_host_only,
+						$emulated_master_port,
+						3, /* mode: 0 = OFFFLINE, 1 = READ_ONLY, 2 = WRITE_ONLY, 3 = READ_WRITE */
+						3, /* status: 0 = SPARE, 1 = SCALE, 2 = SECONDARY, 3 = PRIMARY */
+						1.0 /* weight */
+					),
+					array(
+						"emulated slave",
+						"group2",
+						$emulated_slave_host_only,
+						$emulated_slave_port,
+						1, /* mode: 0 = OFFFLINE, 1 = READ_ONLY, 2 = WRITE_ONLY, 3 = READ_WRITE */
+						2, /* status: 0 = SPARE, 1 = SCALE, 2 = SECONDARY, 3 = PRIMARY */
+						1.0
+					)
+				)
+			);
 	}
 
 	protected function standard_defects($method, &$reply) {
