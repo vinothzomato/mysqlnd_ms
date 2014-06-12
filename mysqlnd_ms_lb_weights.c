@@ -40,10 +40,11 @@
 void
 mysqlnd_ms_filter_lb_weigth_dtor(void * pDest)
 {
-	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
 	TSRMLS_FETCH();
 	DBG_ENTER("mysqlnd_ms_filter_lb_weigth_dtor");
 /*
+ * 	MYSQLND_MS_FILTER_LB_WEIGHT * element = pDest? *(MYSQLND_MS_FILTER_LB_WEIGHT **) pDest : NULL;
+
 	if (element) {
 		mnd_pefree(element, element->persistent);
 	}

@@ -668,12 +668,13 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 
 /* {{{ mysqlnd_ms_pick_server_ex */
 MYSQLND_CONN_DATA *
-mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * query_len, zend_bool * free_query TSRMLS_DC)
+mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * query_len, zend_bool * free_query, zend_bool * switched_servers TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection = conn;
 	DBG_ENTER("mysqlnd_ms_pick_server_ex");
 	DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
+	*switched_servers = FALSE;
 
 	if (conn_data && *conn_data) {
 		zend_bool allow_master_for_slave = FALSE;
@@ -868,6 +869,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 				break;
 			}
 		}
+		*switched_servers = (conn == connection) ? FALSE : TRUE;
 		stgy->last_used_conn = connection;
 end:
 		if (selected_masters) {

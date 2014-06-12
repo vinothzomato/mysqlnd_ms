@@ -37,6 +37,11 @@ $settings = array(
 		'pick' => 'roundrobin',
 		'lazy_connections' => 1,
 	),
+	"myapp_non_lazy" => array(
+		'master' => array($emulated_master_host),
+		'slave' => array($emulated_slave_host),
+		'lazy_connections' => 0,
+	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_dump_servers.ini", $settings))
 	die(sprintf("SKIP %s\n", $error));
@@ -59,7 +64,12 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_dump_servers.ini
 	var_dump(mysqlnd_ms_dump_servers($link));
 
 	if (!($link = mst_mysqli_connect("myapp", 'gloabal_user', 'global_pass', 'global_db', 1234, 'global_socket')))
-		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		printf("[002] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+
+	var_dump(mysqlnd_ms_dump_servers($link));
+
+	if (!($link = mst_mysqli_connect("myapp_non_lazy", $user, $passwd, $db, $port, $socket)))
+		printf("[003] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	var_dump(mysqlnd_ms_dump_servers($link));
 
@@ -81,7 +91,7 @@ array(2) {
   ["masters"]=>
   array(1) {
     [0]=>
-    array(5) {
+    array(6) {
       ["name_from_config"]=>
       string(7) "master1"
       ["hostname"]=>
@@ -92,12 +102,14 @@ array(2) {
       int(3306)
       ["socket"]=>
       string(14) "master1_socket"
+      ["thread_id"]=>
+      NULL
     }
   }
   ["slaves"]=>
   array(2) {
     [0]=>
-    array(5) {
+    array(6) {
       ["name_from_config"]=>
       string(7) "slave_0"
       ["hostname"]=>
@@ -108,9 +120,11 @@ array(2) {
       int(3306)
       ["socket"]=>
       string(13) "slave0_socket"
+      ["thread_id"]=>
+      NULL
     }
     [1]=>
-    array(5) {
+    array(6) {
       ["name_from_config"]=>
       string(7) "slave_1"
       ["hostname"]=>
@@ -121,6 +135,46 @@ array(2) {
       int(1234)
       ["socket"]=>
       string(13) "global_socket"
+      ["thread_id"]=>
+      NULL
+    }
+  }
+}
+array(2) {
+  ["masters"]=>
+  array(1) {
+    [0]=>
+    array(6) {
+      ["name_from_config"]=>
+      string(%A
+      ["hostname"]=>
+      string(%A
+      ["user"]=>
+      string(%A
+      ["port"]=>
+      int(%d)
+      ["socket"]=>
+      string(%A
+      ["thread_id"]=>
+      int(%d)
+    }
+  }
+  ["slaves"]=>
+  array(1) {
+    [0]=>
+    array(6) {
+      ["name_from_config"]=>
+      string(%A
+      ["hostname"]=>
+      string(%A
+      ["user"]=>
+      string(%A
+      ["port"]=>
+      int(%d)
+      ["socket"]=>
+      string(%A
+      ["thread_id"]=>
+      int(%d)
     }
   }
 }

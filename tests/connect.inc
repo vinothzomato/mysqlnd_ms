@@ -347,6 +347,11 @@
 			foreach ($settings as $application => $config) {
 
 				$json[$application] = array();
+
+				if (isset($config['xa'])) {
+					$json[$application]['xa'] = $config['xa'];
+				}
+
 				if (isset($config['fabric'])) {
 					$json[$application]['fabric'] = $config['fabric'];
 

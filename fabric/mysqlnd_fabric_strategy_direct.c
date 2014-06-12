@@ -42,7 +42,7 @@
 static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_rpc_host *a, size_t n)
 {
 	size_t i;
-	
+
 	if (n == 1) {
 		return;
 	}
@@ -69,7 +69,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_direct_do_request(mysqlnd_fabric *f
 	};
 
 	efree(req);
-	
+
 	return mysqlnd_fabric_parse_xml(fabric, response, len);
 }
 
@@ -95,6 +95,41 @@ static mysqlnd_fabric_server *mysqlnd_fabric_direct_get_shard_servers(mysqlnd_fa
 	req_len = spprintf(&req, 0, FABRIC_SHARD_LOOKUP_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
 	retval = mysqlnd_fabric_direct_do_request(fabric, req, req_len);
 	efree(req);
+
+	/*
+	 spprintf(&req, 0, FABRIC_SHARDING_LOOKUP_SERVERS_XML, table, key ? key : "", hint == LOCAL ? "LOCAL" : "GLOBAL");
+	stream = mysqlnd_fabric_open_stream(fabric, req TSRMLS_CC);
+	if (!stream) {
+		DBG_INF("Failed to open stream");
+		efree(req);
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_FAILURE);
+		MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
+		SET_FABRIC_ERROR(*fabric, 2000, "HY000", "Failed to open stream to any configured Fabric host");
+		DBG_RETURN(NULL);
+	}
+
+	while ((len = php_stream_read(stream, buf, sizeof(buf))) > 0) {
+		smart_str_appendl(&xml_str, buf, len);
+	}
+	smart_str_appendc(&xml_str, '\0');
+	php_stream_close(stream);
+
+	MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_SUCCESS);
+	MYSQLND_MS_STATS_TIME_DIFF(fetch_time);
+	MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL, (uint64_t)fetch_time);
+	MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_BYTES_TOTAL, xml_str.len);
+	DBG_INF_FMT("Request %s", req);
+
+	retval = mysqlnd_fabric_parse_xml(fabric, (xml_str.c) ? xml_str.c : "", xml_str.len);
+	if (!retval) {
+		MYSQLND_MS_INC_STATISTIC(MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_XML_FAILURE);
+	}
+	DBG_INF_FMT("Reply %s", (xml_str.c) ? xml_str.c : "");
+
+	efree(req);
+	smart_str_free(&xml_str);
+*/
 
 	return retval;
 }

@@ -4,7 +4,7 @@ PHP_ARG_ENABLE(mysqlnd_ms, whether to enable mysqlnd_ms support,
 PHP_ARG_ENABLE(mysqlnd_ms_table_filter, whether to enable table filter in mysqlnd_ms,
 [  --enable-mysqlnd-ms-table-filter   Enable support for table filter in mysqlnd_ms (EXPERIMENTAL - do not use!)], no, no)
 PHP_ARG_ENABLE(mysqlnd_ms_cache_support, whether to query caching through mysqlnd_qc in mysqlnd_ms,
-[  --enable-mysqlnd-ms-cache-support   Enable query caching through mysqlnd_qc (BETA for mysqli - try!, EXPERIMENTAL for all other - do not use!)], no, 
+[  --enable-mysqlnd-ms-cache-support   Enable query caching through mysqlnd_qc (BETA for mysqli - try!, EXPERIMENTAL for all other - do not use!)], no,
 no)
 
 if test -z "$PHP_LIBXML_DIR"; then
@@ -27,7 +27,8 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
                   fabric/mysqlnd_fabric.c fabric/mysqlnd_fabric_parse_xml.c \
                   fabric/mysqlnd_fabric_strategy_direct.c \
                   fabric/mysqlnd_fabric_strategy_dump.c \
-                  fabric/mysqlnd_fabric_php.c"
+                  fabric/mysqlnd_fabric_php.c \
+                  mysqlnd_ms_xa.c mysqlnd_ms_xa_store_mysql.c"
 
   if test "$PHP_MYSQLND_MS_TABLE_FILTER" && test "$PHP_MYSQLND_MS_TABLE_FILTER" != "no"; then
     AC_DEFINE([MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION], 1, [Enable table partition support])

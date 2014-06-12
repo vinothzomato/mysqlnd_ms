@@ -32,7 +32,11 @@ zend_llist * mysqlnd_ms_load_section_filters(struct st_mysqlnd_ms_config_json_en
 
 void mysqlnd_ms_lb_strategy_setup(struct mysqlnd_ms_lb_strategies * strategies, struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
-MYSQLND_CONN_DATA * mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * query_len, zend_bool * free_query TSRMLS_DC);
+MYSQLND_CONN_DATA * mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn,
+											  char ** query,
+											  size_t * query_len,
+											  zend_bool * free_query,
+											  zend_bool * switched_servers TSRMLS_DC);
 
 void mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC);
 void mysqlnd_ms_get_fingerprint_connection(smart_str * context, MYSQLND_MS_LIST_DATA ** d TSRMLS_DC);

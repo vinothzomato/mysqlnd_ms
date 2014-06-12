@@ -5,20 +5,33 @@
 	preserve and overwrite only selected ones ...
 	*/
 
-	putenv("MYSQL_TEST_HOST=127.0.0.1");
-	putenv("MYSQL_TEST_PORT=3306");
+	putenv("MYSQL_TEST_HOST=localhost");
+	putenv("MYSQL_TEST_PORT=3307");
 	putenv("MYSQL_TEST_USER=root");
 	putenv("MYSQL_TEST_PASSWD=root");
 	putenv("MYSQL_TEST_DB=test");
 	putenv("MYSQL_TEST_ENGINE=InnoDB");
-	putenv("MYSQL_TEST_SOCKET=/tmp/mysql.sock");
+	putenv("MYSQL_TEST_SOCKET=/tmp/mysql5610.sock");
 
 	putenv("MYSQL_TEST_SKIP_CONNECT_FAILURE=1");
 	putenv("MYSQL_TEST_CONNECT_FLAGS=0");
 	putenv("MYSQL_TEST_EXPERIMENTAL=0");
 
 	/* Whether to run Fabric related tests */
-	putenv("MYSQL_TEST_FABRIC=0");
+	putenv("MYSQL_TEST_FABRIC=1");
+	/* MySQL Fabric */
+	putenv("MYSQL_TEST_FABRIC_HOST=127.0.0.1");
+	putenv("MYSQL_TEST_FABRIC_PORT=8080");
+	/* MySQL Fabric emulator bind address */
+	putenv("MYSQL_TEST_FABRIC_EMULATOR_HOST=127.0.0.1");
+	putenv("MYSQL_TEST_FABRIC_EMULATOR_PORT=8082");
+	/* This PHP must support the xmlrpc extension */
+	putenv("MYSQL_TEST_FABRIC_EMULATOR_PHP_EXECUTABLE=/usr/local/bin/php");
+	/* Path calculations never go smooth, thus set ABSOLUTE path to server script */
+	putenv("MYSQL_TEST_FABRIC_EMULATOR_SERVER_SCRIPT=tests/util_fabric_server.inc");
+	/* If set, enabled emulated fabric server log */
+	putenv("MYSQL_TEST_FABRIC_EMULATOR_LOG=/tmp/fabric_emulator.log");
+
 
 	/*
 	Tests will automatically detect server roles and will be skipped if required.
@@ -32,7 +45,7 @@
 	/* emulated master - standalone MySQL, not part of a replication cluster */
 	putenv("MYSQL_TEST_EMULATED_MASTER_HOST=". getenv("MYSQL_TEST_HOST"));
 	/* emulated slave - standalone MySQL, not part of a replication cluster */
-	putenv("MYSQL_TEST_EMULATED_SLAVE_HOST=127.0.0.1:3307");
+	putenv("MYSQL_TEST_EMULATED_SLAVE_HOST=localhost:/tmp/mysql5616-1.sock");
 
 	/*
 	Some tests require real replication cluster.
@@ -44,11 +57,7 @@
 	*/
 
 	/* master - master of a replication cluster */
-	putenv("MYSQL_TEST_MASTER_HOST=127.0.0.1:11515");
+	putenv("MYSQL_TEST_MASTER_HOST=localhost:/tmp/mysql5616-m.sock");
 	/* slave - slave of the replication cluster using the above master */
-	putenv("MYSQL_TEST_SLAVE_HOST=127.0.0.1:11516");
-	/* master - master of a replication cluster */
-	putenv("MYSQL_TEST_MASTER_HOST=127.0.0.1:15650");
-	/* slave - slave of the replication cluster using the above master */
-	putenv("MYSQL_TEST_SLAVE_HOST=127.0.0.1:15651");
+	putenv("MYSQL_TEST_SLAVE_HOST=localhost:/tmp/mysql5616-s1.sock");
 ?>

@@ -50,7 +50,6 @@
 #include "ext/mysqlnd/mysqlnd_reverse_api.h"
 #endif
 
-
 #ifdef ZTS
 #include "TSRM.h"
 #endif

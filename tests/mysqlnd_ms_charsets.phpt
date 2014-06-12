@@ -4,6 +4,7 @@ Charsets - covered by plugin prototype
 <?php
 require_once('skipif.inc');
 require_once("connect.inc");
+require_once("util.inc");
 
 _skipif_check_extensions(array("mysqli"));
 
@@ -19,50 +20,18 @@ if ($error = mst_create_config("test_mysqlnd_ms_charsets.ini", $settings))
 _skipif_connect($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
 _skipif_connect($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
 
-function test_for_charset($host, $user, $passwd, $db, $port, $socket) {
-	if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket))
-		die(sprintf("skip Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error()));
 
-	if (!($res = mysqli_query($link, 'SELECT version() AS server_version')) ||
-			!($tmp = mysqli_fetch_assoc($res))) {
-		mysqli_close($link);
-		die(sprintf("skip Cannot check server version, [%d] %s\n",
-		mysqli_errno($link), mysqli_error($link)));
-	}
-	mysqli_free_result($res);
-	$version = explode('.', $tmp['server_version']);
-	if (empty($version)) {
-		mysqli_close($link);
-		die(sprintf("skip Cannot check server version, based on '%s'",
-			$tmp['server_version']));
-	}
+$tmp = mst_mysqli_test_for_charset($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
+if ($tmp['error'] != '')
+	die(sprintf("SKIP %s\n", $tmp['error']));
 
-	if ($version[0] <= 4 && $version[1] < 1) {
-		mysqli_close($link);
-		die(sprintf("skip Requires MySQL Server 4.1+\n"));
-	}
+$master_charset = $tmp['charset'];
 
-	if ((($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin1"', MYSQLI_STORE_RESULT)) &&
-			(mysqli_num_rows($res) == 1)) ||
-			(($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin2"', MYSQLI_STORE_RESULT)) &&
-			(mysqli_num_rows($res) == 1))
-			) {
-		// ok, required latin1 or latin2 are available
-	} else {
-		die(sprintf("skip Requires character set latin1 or latin2\n"));
-	}
+$tmp = mst_mysqli_test_for_charset($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+if ($tmp['error'] != '')
+	die(sprintf("SKIP %s\n", $tmp['error']));
 
-	if (!$res = mysqli_query($link, 'SELECT @@character_set_connection AS charset'))
-		die(sprintf("skip Cannot select current charset, [%d] %s\n", $link->errno, $link->error));
-
-	if (!$row = mysqli_fetch_assoc($res))
-		die(sprintf("skip Cannot detect current charset, [%d] %s\n", $link->errno, $link->error));
-
-	return $row['charset'];
-}
-
-$master_charset = test_for_charset($master_host_only, $user, $passwd, $db, $master_port, $master_socket);
-$slave_charset = test_for_charset($slave_host_only, $user, $passwd, $db, $slave_port, $slave_socket);
+$slave_charset = $tmp['charset'];
 
 if ($master_charset != $slave_charset) {
 	die(sprintf("skip Master (%s) and slave (%s) must use the same default charset.", $master_charset, $slave_charset));

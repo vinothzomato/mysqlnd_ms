@@ -51,7 +51,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_get_charset.ini
 	}
 
 	if (!($tmp = $link->get_charset()))
-		printf("[003] [%d] %s\n", $link->errno, $link->error);
+		printf("[003] [%d] '%s'\n", $link->errno, $link->error);
 	else
 		printf("[003] Charset is '%s'\n");
 
@@ -70,7 +70,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_get_charset.ini
 ?>
 --EXPECTF--
 Warning: mysqli::get_charset(): The connection has no charset associated in %s on line %d
-[003] [%d] 
+[003] [%d] ''
 array(1) {
   [1]=>
   string(1) "1"

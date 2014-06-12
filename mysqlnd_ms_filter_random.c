@@ -747,7 +747,6 @@ mysqlnd_ms_choose_connection_random(void * f_data, const char * const query, con
 	MYSQLND_MS_FILTER_RANDOM_DATA * filter = (MYSQLND_MS_FILTER_RANDOM_DATA *) f_data;
 	zend_bool forced;
 	enum enum_which_server tmp_which;
-	zend_bool forced_tx_master = FALSE;
 	MYSQLND_CONN_DATA * conn = NULL;
 	DBG_ENTER("mysqlnd_ms_choose_connection_random");
 

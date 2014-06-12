@@ -23,6 +23,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+/* TODO XA: move down */
+#include "mysqlnd_ms_xa.h"
 
 #include "php.h"
 #include "ext/standard/info.h"
@@ -46,6 +48,8 @@
 #include "mysqlnd_ms_switch.h"
 
 #include "fabric/mysqlnd_fabric.h"
+
+
 
 #if PHP_VERSION_ID < 50400
 #define mnd_vsprintf vspprintf
@@ -786,7 +790,7 @@ static enum_func_status
 mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_section, MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA *conn_data, const char * host TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
-        DBG_ENTER("mysqlnd_ms_init_without_fabric");
+	DBG_ENTER("mysqlnd_ms_init_without_fabric");
 
 	zend_bool use_lazy_connections = TRUE;
 	/* create master connection */
@@ -868,6 +872,9 @@ mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_sect
 	mysqlnd_ms_lb_strategy_setup(&conn_data->stgy, the_section, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
 	conn_data->fabric = NULL;
 
+
+	mysqlnd_ms_load_xa_config(the_section, conn_data->xa_trx, &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -881,11 +888,11 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 
 	char *strategy_str;
 	enum mysqlnd_fabric_strategy strategy = DUMP;
-	struct st_mysqlnd_ms_config_json_entry *hostlist_section, *host;
+	struct st_mysqlnd_ms_config_json_entry *hostlist_section = NULL, *host;
 	struct st_mysqlnd_ms_config_json_entry *fabric_section = mysqlnd_ms_config_json_sub_section(group_section, "fabric", sizeof("fabric")-1, &value_exists TSRMLS_CC);
 	unsigned int timeout = 5; /* TODO: Is this an acceptable default timeout? - We should rather take global stream value */
 	zend_bool trx_warn = 0;
-	
+
 	conn_data->fabric = NULL;
 
 	fabric_section = mysqlnd_ms_config_json_sub_section(group_section, SECT_FABRIC_NAME, sizeof(SECT_FABRIC_NAME)-1, &value_exists TSRMLS_CC);
@@ -954,9 +961,9 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 
 		} while (1);
 	}
-	
+
 	strategy_str = mysqlnd_ms_config_json_string_from_section(fabric_section, "strategy", sizeof("strategy")-1, 0, &value_exists, NULL TSRMLS_CC);
-	if (value_exists) {
+	if (value_exists && strategy_str) {
 		if (!strcmp(strategy_str, "dump")) {
 			strategy = DUMP;
 		} else if (!strcmp(strategy_str, "direct")) {
@@ -973,7 +980,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	}
 
 	fabric = mysqlnd_fabric_init(strategy, timeout, trx_warn);
-	while ((host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC))) {
+	while (hostlist_section && (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC))) {
 		host_entry_counter++;
 		char *url = mysqlnd_ms_config_json_string_from_section(host, "url", sizeof("url")-1, 0, NULL, NULL TSRMLS_CC);
 		if (!url) {
@@ -986,20 +993,24 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 					MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] lists contains an entry which has an empty [url] value. This is needed for MySQL Fabric");
 				continue;
 			}
+
 			spprintf(&url, 0, "http://%s:%d/", hostname, port);
-			efree(hostname);
+			mysqlnd_fabric_add_rpc_host(fabric, url);
+			mnd_efree(hostname);
+			efree(url);
+		} else {
+			mysqlnd_fabric_add_rpc_host(fabric, url);
+			mnd_efree(url);
 		}
-		mysqlnd_fabric_add_rpc_host(fabric, url);
-		efree(url);
 	}
-	
+
 	if (0 == host_entry_counter) {
 		mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 			MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] doesn't exist. This is needed for MySQL Fabric");
 	}
 
 	conn_data->fabric = fabric;
- 
+
 	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(group_section, &MYSQLND_MS_ERROR_INFO(conn),
 																	 &conn_data->master_connections,
 																	 &conn_data->slave_connections,
@@ -1011,6 +1022,7 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 
 	return SUCCESS;
 }
+
 
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
@@ -1092,6 +1104,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		mysqlnd_ms_init_trx_to_null(&(*conn_data)->global_trx TSRMLS_CC);
 #endif
+		(*conn_data)->xa_trx = mysqlnd_ms_xa_proxy_conn_init(conn->persistent TSRMLS_CC);
 		(*conn_data)->initialized = TRUE;
 
 		if (!hotloading) {
@@ -1137,7 +1150,7 @@ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, size_t qu
 	DBG_ENTER("mysqlnd_ms::do_send_query");
 
 	if (CONN_DATA_NOT_SET(conn_data)) {
-	} else if (pick_server) {
+	} else if (pick_server && (!(*conn_data)->skip_ms_calls)) {
 		DBG_INF("Must be async query, blocking and failing");
 		if (conn) {
 			mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
@@ -1168,7 +1181,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
 	MYSQLND_CONN_DATA * connection;
 	enum_func_status ret = FAIL;
-	zend_bool free_query = FALSE;
+	zend_bool free_query = FALSE, switched_servers = FALSE;
 	size_t query_len = q_len;
 	uint transient_error_no = 0, transient_error_retries = 0;
 #ifdef ALL_SERVER_DISPATCH
@@ -1181,12 +1194,8 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, q_len TSRMLS_CC);
 		DBG_RETURN(ret);
 	}
-	if ((*conn_data)->skip_ms_calls) {
-		ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(query)(conn, query, q_len TSRMLS_CC);
-		DBG_RETURN(ret);
-	}
 
-	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, &query_len, &free_query TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex(conn, (char**)&query, &query_len, &free_query, &switched_servers TSRMLS_CC);
 	DBG_INF_FMT("Connection %p error_no=%d", connection, connection? (MYSQLND_MS_ERROR_INFO(connection).error_no) : -1);
 	/*
 	  Beware : error_no is set to 0 in original->query. This, this might be a problem,
@@ -1199,6 +1208,11 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 		if (TRUE == free_query) {
 			efree((void *)query);
 		}
+		DBG_RETURN(ret);
+	}
+
+	ret = mysqlnd_ms_xa_inject_query(conn, connection, switched_servers TSRMLS_CC);
+	if (FAIL == ret) {
 		DBG_RETURN(ret);
 	}
 
@@ -1414,6 +1428,10 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 
 		if ((*data_pp)->fabric) {
 			mysqlnd_fabric_free((*data_pp)->fabric);
+		}
+
+		if ((*data_pp)->xa_trx) {
+			mysqlnd_ms_xa_proxy_conn_free((*data_pp)->xa_trx, conn->persistent TSRMLS_CC);
 		}
 
 		mnd_pefree(*data_pp, conn->persistent);
@@ -1764,7 +1782,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 	if (CONN_DATA_NOT_SET(conn_data)) {
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(proxy_conn, csname TSRMLS_CC));
 	} else {
-		const MYSQLND_CHARSET * new_charset = mysqlnd_find_charset_name(csname);
 		MYSQLND_MS_LIST_DATA * el;
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
 		{
@@ -2177,6 +2194,15 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 				}
 			}
 			END_ITERATE_OVER_SERVER_LISTS;
+
+			if ((!(*conn_data)->stgy.last_used_conn) && (CONN_GET_STATE(proxy_conn) == CONN_ALLOCED)) {
+				/*
+				 * Lazy connection and no connection has been opened yet.
+				 * If this was a regular/non-MS connection and there would have been no error during
+				 * set_autocommit(), then it any previous error code had been unset. Now, this is
+				 * like a regular connection and there was no error, hence we must unset */
+				SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(proxy_conn));
+			}
 		}
 	}
 
@@ -2565,7 +2591,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	MYSQLND_MS_CONN_DATA ** conn_data = NULL;
 	MYSQLND_CONN_DATA * connection = NULL;
 	enum_func_status ret = PASS;
-	zend_bool free_query = FALSE;
+	zend_bool free_query = FALSE, switched_servers = FALSE;
 	uint transient_error_no = 0, transient_error_retries = 0;
 	DBG_ENTER("mysqlnd_ms_stmt::prepare");
 	DBG_INF_FMT("query=%s", query);
@@ -2579,7 +2605,7 @@ MYSQLND_METHOD(mysqlnd_ms_stmt, prepare)(MYSQLND_STMT * const s, const char * co
 	}
 
 	/* this can possibly reroute us to another server */
-	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)&query, (size_t *)&query_len, &free_query TSRMLS_CC);
+	connection = mysqlnd_ms_pick_server_ex((*conn_data)->proxy_conn, (char **)&query, (size_t *)&query_len, &free_query, &switched_servers TSRMLS_CC);
 	DBG_INF_FMT("Connection %p, query=%s", connection, query);
 
 	if (connection != s->data->conn) {
@@ -2751,6 +2777,9 @@ MYSQLND_METHOD(mysqlnd_ms, close)(MYSQLND * conn, enum_connection_close_type clo
 	DBG_ENTER("mysqlnd_ms::close");
 
 	DBG_INF_FMT("Using thread "MYSQLND_LLU_SPEC, MS_GET_CONN_DATA_FROM_CONN(conn)->thread_id);
+
+	/* Let XA check for unfinished global transactions */
+	ret = mysqlnd_ms_xa_conn_close(MS_GET_CONN_DATA_FROM_CONN(conn) TSRMLS_CC);
 	/*
 	  Force cleaning of the master and slave lists.
 	  In the master list this connection is present and free_reference will be called, and later

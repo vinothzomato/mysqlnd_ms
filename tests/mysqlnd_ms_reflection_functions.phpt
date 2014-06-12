@@ -81,4 +81,29 @@ Functions:
     Accepted parameters: 1
     Required parameters: 1
       Parameter #0 [ <required> $query ]
+  mysqlnd_ms_xa_begin
+    Deprecated: no
+    Accepted parameters: 3
+    Required parameters: 2
+      Parameter #0 [ <required> $connection ]
+      Parameter #1 [ <required> $gtrid ]
+      Parameter #2 [ <optional> $timeout ]
+  mysqlnd_ms_xa_commit
+    Deprecated: no
+    Accepted parameters: 2
+    Required parameters: 2
+      Parameter #0 [ <required> $connection ]
+      Parameter #1 [ <required> $gtrid ]
+  mysqlnd_ms_xa_gc
+    Deprecated: no
+    Accepted parameters: 2
+    Required parameters: 1
+      Parameter #0 [ <required> $connection ]
+      Parameter #1 [ <optional> $gtrid ]
+  mysqlnd_ms_xa_rollback
+    Deprecated: no
+    Accepted parameters: 2
+    Required parameters: 2
+      Parameter #0 [ <required> $connection ]
+      Parameter #1 [ <required> $gtrid ]
 done!

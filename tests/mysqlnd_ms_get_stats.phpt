@@ -67,6 +67,13 @@ mysqlnd_ms.collect_statistics=1
 		$expected["fabric_sharding_lookup_servers_time_total"] = true;
 		$expected["fabric_sharding_lookup_servers_bytes_total"] = true;
 		$expected["fabric_sharding_lookup_servers_xml_failure"] = true;
+		$expected["xa_begin"] = true;
+		$expected["xa_commit_success"] = true;
+		$expected["xa_commit_failure"] = true;
+		$expected["xa_rollback_success"] = true;
+		$expected["xa_rollback_failure"] = true;
+		$expected["xa_participants"] = true;
+		$expected["xa_rollback_on_close"] = true;
 	}
 
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {

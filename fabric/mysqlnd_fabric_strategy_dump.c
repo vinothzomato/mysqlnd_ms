@@ -75,7 +75,7 @@ static const struct {
 		{ 2, RANGE, "global2" },
 	},
 	5,
-	{	
+	{
 		{ 1,     1, 1, "shard1_1" },
 		{ 1, 30000, 2, "shard1_2" },
 		{ 1, 40000, 2, "shard1_3" },
@@ -108,7 +108,7 @@ typedef struct {
 	int shard_index_count;
 	const mysqlnd_fabric_shard_index *shard_index;
 	int server_count;
-	const mysqlnd_fabric_server *server;	
+	const mysqlnd_fabric_server *server;
 } fabric_dump_index;
 
 typedef struct {
@@ -125,22 +125,22 @@ static void fabric_create_index(fabric_dump_index *index, const fabric_dump_raw 
 	size_t pos;
 	index->shard_table_count = fabric_dump->shard_table_count;
 	index->shard_table = fabric_dump->shard_table;
-	
+
 	pos = (size_t)fabric_dump->shard_table + (index->shard_table_count * sizeof(mysqlnd_fabric_shard_table));
 	index->shard_mapping_count = *(int*)pos;
-	
+
 	pos += sizeof(int);
 	index->shard_mapping = (mysqlnd_fabric_shard_mapping *)pos;
-	
+
 	pos += index->shard_mapping_count * sizeof(mysqlnd_fabric_shard_mapping);
 	index->shard_index_count = *(int*)pos;
-	
+
 	pos += sizeof(int);
 	index->shard_index = (mysqlnd_fabric_shard_index *)pos;
-	
+
 	pos += index->shard_index_count * sizeof(mysqlnd_fabric_shard_index);
 	index->server_count = *(int*)pos;
-	
+
 	pos += sizeof(int);
 	index->server = (mysqlnd_fabric_server *)pos;
 }
@@ -177,7 +177,7 @@ void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len)
 		*target += 1; \
 		return ZEND_HASH_APPLY_KEEP; \
 	}
-	
+
 #define CHECK_AND_COPY_STRING(zv, target_item) \
 	zend_hash_get_current_data(source, (void**)&zv); \
 	if (Z_TYPE_PP((zv)) != IS_STRING || Z_STRLEN_PP((zv)) + 1 > sizeof(target_item)) { \
@@ -208,14 +208,14 @@ DECLARE_FILL_ENTRY_BEGIN(fill_shard_mapping_entry, mysqlnd_fabric_shard_mapping)
 	zend_hash_get_current_data(source, (void**)&data);
 	convert_to_long(*data);
 	(*target)->shard_mapping_id = Z_LVAL_PP(data);
-	
+
 	zend_hash_move_forward(source);
 	zend_hash_get_current_data(source, (void**)&data);
 	if (Z_TYPE_PP(data) != IS_STRING || Z_STRLEN_PP(data) != sizeof("RANGE")-1 || strcmp("RANGE", Z_STRVAL_PP(data))) {
 		return ZEND_HASH_APPLY_STOP;
 	}
 	(*target)->type_name = RANGE;
-	
+
 	zend_hash_move_forward(source);
 	CHECK_AND_COPY_STRING(data, (*target)->global_group);
 } DECLARE_FILL_ENTRY_END()
@@ -292,7 +292,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zval *z_shard_table, *z_shard_mapping, *z_shard_index, *z_server;
 	zval arg;
 	zval *tmp, **tmpp;
-	
+
 	int shard_table_count;
 	int shard_mapping_count;
 	int shard_index_count;
@@ -302,16 +302,16 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zend_bool success = 0;
 
 	TSRMLS_FETCH();
-	
+
 	fabric_dump_data *dump_data = (fabric_dump_data*)fabric->strategy_data;
-	
+
 	/* TODO: We might be more graceful on errors instead of bailing out, with
 	 * this way a failing Fabric might shutdown everything */
-	
+
 	/* 1. Parse all XML files */
-		
+
 	ALLOC_INIT_ZVAL(tmp)
-		
+
 	INIT_ZVAL(arg);
 	ZVAL_STRINGL(&arg, shard_table_xml, shard_table_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
@@ -343,7 +343,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	z_shard_mapping = *tmpp;
 	Z_ADDREF_P(z_shard_mapping);
 	zval_dtor(tmp);
-	
+
 	INIT_ZVAL(arg);
 	ZVAL_STRINGL(&arg, shard_index_xml, shard_index_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
@@ -384,15 +384,15 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	z_server = *tmpp;
 	Z_ADDREF_P(z_server);
 	zval_dtor(tmp);
-	
+
 	/* 2. Check all files for their number of elements */
 	shard_table_count = zend_hash_num_elements(Z_ARRVAL_P(z_shard_table));
 	shard_mapping_count = zend_hash_num_elements(Z_ARRVAL_P(z_shard_mapping));
 	shard_index_count = zend_hash_num_elements(Z_ARRVAL_P(z_shard_index));
 	server_count = zend_hash_num_elements(Z_ARRVAL_P(z_server));
-	
+
 	/* 3. Allocate buffer and create index */
-	
+
 	dump_data->raw = (fabric_dump_raw*)emalloc(
 		  4 * sizeof(int)
 		+ shard_table_count * sizeof(mysqlnd_fabric_shard_table)
@@ -401,30 +401,30 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 		+ server_count * sizeof(mysqlnd_fabric_server));
 
 	dump_data->raw->shard_table_count = shard_table_count;
-	
+
 	dump_data->index.shard_table_count = shard_table_count;
 	dump_data->index.shard_table = dump_data->raw->shard_table;
-	
+
 	pos = (size_t)dump_data->raw->shard_table + (shard_table_count * sizeof(mysqlnd_fabric_shard_table));
 	dump_data->index.shard_mapping_count = *(int*)pos = shard_mapping_count;
-	
+
 	pos += sizeof(int);
 	dump_data->index.shard_mapping = (mysqlnd_fabric_shard_mapping *)pos;
-	
+
 	pos += shard_mapping_count * sizeof(mysqlnd_fabric_shard_mapping);
 	dump_data->index.shard_index_count = *(int*)pos = shard_index_count;
-	
+
 	pos += sizeof(int);
 	dump_data->index.shard_index = (mysqlnd_fabric_shard_index *)pos;
-	
+
 	pos += shard_index_count * sizeof(mysqlnd_fabric_shard_index);
 	dump_data->index.server_count = *(int*)pos = server_count;
-	
+
 	pos += sizeof(int);
 	dump_data->index.server = (mysqlnd_fabric_server *)pos;
-	
+
 	/* 4. fill buffer */
-	
+
 	vpos = (void*)dump_data->index.shard_table;
 	zend_hash_apply_with_arguments(Z_ARRVAL_P(z_shard_table) TSRMLS_CC, (apply_func_args_t)fill_shard_table_entry, 2, &vpos, &success);
 	if (success == 0) {
@@ -449,14 +449,14 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 		goto cleanup;
 	}
 
-	
+
 	/* 5. clean up */
-cleanup:	
+cleanup:
 	zval_ptr_dtor(&z_shard_table);
 	zval_ptr_dtor(&z_shard_mapping);
 	zval_ptr_dtor(&z_shard_index);
 	zval_ptr_dtor(&z_server);
-	
+
 	if (success == 0) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Received invalid data from Fabric");
 	}
@@ -495,7 +495,7 @@ void fabric_set_raw_data_from_fabric(mysqlnd_fabric *fabric)
 	if (!shard_mapping_len) {
 		return;
 	}
-	
+
 	request_len = sprintf(request, FABRIC_LOOKUP_XML, "dump.shard_tables");
 	shard_table_xml = mysqlnd_fabric_http(fabric, fabric->hosts->url, request, request_len, &shard_table_len);
 	if (!shard_table_len) {
@@ -523,15 +523,15 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 	const fabric_dump_index *index = &((const fabric_dump_data*)fabric->strategy_data)->index;
 	char *schema = alloca(table_len+1);
 	strlcpy(schema, table_i, table_len+1);
-	
+
 	table = strstr(schema, ".");
 	if (!table) {
 		return -1;
 	}
-	
+
 	*table = '\0';
 	table++;
-	
+
 	for (i = 0; i < index->shard_table_count; ++i) {
 		if (   strlen(index->shard_table[i].schema_name) == table-schema-1
 			&& strlen(index->shard_table[i].table_name) == table_len - (table-schema)
@@ -541,7 +541,7 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 			return index->shard_table[i].shard_mapping_id;
 		}
 	}
-	
+
 	return -1;
 }
 
@@ -549,7 +549,7 @@ static const char *mysqlnd_fabric_get_global_group(const mysqlnd_fabric *fabric,
 {
 	int i;
 	const fabric_dump_index *index = &((const fabric_dump_data*)fabric->strategy_data)->index;
-	
+
 	for (i = 0; i < index->shard_mapping_count; ++i) {
 		if (index->shard_mapping[i].shard_mapping_id == shard_mapping_id) {
 			return index->shard_mapping[i].global_group;
@@ -571,7 +571,7 @@ static const char *mysqlnd_fabric_get_shard_group_for_key(const mysqlnd_fabric *
 			}
 		}
 	}
-	return retval;	
+	return retval;
 }
 
 static mysqlnd_fabric_server *mysqlnd_fabric_get_server_for_group(mysqlnd_fabric *fabric, const char *group)
@@ -581,13 +581,13 @@ static mysqlnd_fabric_server *mysqlnd_fabric_get_server_for_group(mysqlnd_fabric
 	const fabric_dump_index *index = &((const fabric_dump_data*)fabric->strategy_data)->index;
 	mysqlnd_fabric_server *retval = safe_emalloc(10, sizeof(mysqlnd_fabric_server), 0); /* FIXME!!!!! */
 	memset(retval, 0, 10 * sizeof(mysqlnd_fabric_server));
-	
+
 	for (i = 0; i < index->server_count; ++i) {
 		if (index->server[i].group_len == group_len && !strcmp(index->server[i].group, group)) {
 			memcpy(&retval[count++], &index->server[i], sizeof(mysqlnd_fabric_server));
 		}
 	}
-	
+
 	return retval;
 }
 
@@ -623,7 +623,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 {
 	const char *group = NULL;
 	int shard_mapping_id;
-		
+
 	if (!((fabric_dump_data*)fabric->strategy_data)->raw) {
 		/* TODO: Once we know where/how we cache this information we should use the cache here
 		         instead of going out to fabric directly */
@@ -634,7 +634,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 	if (shard_mapping_id == -1) {
 		return NULL;
 	}
-	
+
 	switch (hint) {
 	case GLOBAL:
 		group = mysqlnd_fabric_get_global_group(fabric, shard_mapping_id);
@@ -650,7 +650,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 	if (!group) {
 		return NULL;
 	}
-	
+
 	return mysqlnd_fabric_get_server_for_group(fabric, group);
 }
 

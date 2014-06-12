@@ -185,6 +185,98 @@
 		$last_stats = $stats;
 	}
 
+	function mst_mysqli_setup_xa_tables($host, $user, $passwd, $db, $port, $socket,
+					$global_table = 'mysqlnd_ms_xa_trx',
+					$participant_table = 'mysqlnd_ms_xa_participants',
+					$gc_table = 'mysqlnd_ms_xa_gc') {
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+		/* gtrid -> binary(64) */
+		if (!$link->query(sprintf("CREATE TABLE IF NOT EXISTS %s (
+  store_trx_id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  gtrid INT NOT NULL,
+  format_id int(10) unsigned NOT NULL DEFAULT '1',
+  state enum('XA_NON_EXISTING','XA_ACTIVE','XA_IDLE','XA_PREPARED','XA_COMMIT','XA_ROLLBACK') NOT NULL DEFAULT 'XA_NON_EXISTING',
+  intend enum('XA_NON_EXISTING','XA_ACTIVE','XA_IDLE','XA_PREPARED','XA_COMMIT','XA_ROLLBACK') DEFAULT 'XA_NON_EXISTING',
+  finished enum('NO', 'SUCCESS', 'FAILURE') NOT NULL DEFAULT 'NO',
+  modified timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  started datetime DEFAULT NULL,
+  timeout datetime DEFAULT NULL,
+  KEY idx_xa_id (gtrid,format_id,finished),
+  KEY idx_state (state)
+) ENGINE=InnoDB", $global_table)) ||
+			!$link->query(sprintf("CREATE TABLE IF NOT EXISTS %s (
+  fk_store_trx_id INT NOT NULL,
+  bqual varbinary(64) NOT NULL DEFAULT '',
+  participant_id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  server_uuid varchar(127) DEFAULT NULL,
+  scheme varchar(1024) NOT NULL,
+  host varchar(127) DEFAULT NULL,
+  port smallint(5) unsigned DEFAULT NULL,
+  socket varchar(127) DEFAULT NULL,
+  user varchar(127) DEFAULT NULL,
+  password varchar(127) DEFAULT NULL,
+  state enum('XA_NON_EXISTING','XA_ACTIVE','XA_IDLE','XA_PREPARED','XA_COMMIT','XA_ROLLBACK') NOT NULL DEFAULT 'XA_NON_EXISTING',
+  health enum('OK', 'GC_DONE', 'CLIENT ERROR','SERVER ERROR') NOT NULL DEFAULT 'OK',
+  connection_id int(10) unsigned DEFAULT NULL,
+  client_errno smallint(5) unsigned DEFAULT NULL,
+  client_error varchar(1024) DEFAULT NULL,
+  modified timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (participant_id),
+  KEY idx_xa_bqual (bqual),
+  KEY idx_store_trx (fk_store_trx_id),
+  CONSTRAINT mysqlnd_ms_xa_participants_ibfk_1 FOREIGN KEY (fk_store_trx_id) REFERENCES %s (store_trx_id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB", $participant_table, $global_table)) ||
+		!$link->query(sprintf("CREATE TABLE IF NOT EXISTS %s (
+  gc_id int(10) unsigned NOT NULL AUTO_INCREMENT,
+  gtrid int(11) NOT NULL,
+  format_id int(10) unsigned NOT NULL DEFAULT '1',
+  fk_store_trx_id INT,
+  modified timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  attempts smallint(5) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (gc_id),
+  KEY idx_store_trx (gtrid, format_id, fk_store_trx_id)
+) ENGINE=InnoDB", $gc_table, $global_table))) {
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
+		}
+
+
+		return "";
+	}
+
+	function mst_mysqli_flush_xa_tables($host, $user, $passwd, $db, $port, $socket,
+				$global_table = 'mysqlnd_ms_xa_trx', $participant_table = 'mysqlnd_ms_xa_participants',
+				$gc_table = 'mysqlnd_ms_xa_gc') {
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+		if (!$link->query(sprintf("DELETE FROM %s", $participant_table)) ||
+			!$link->query(sprintf("DELETE FROM %s", $gc_table)) ||
+			!$link->query(sprintf("DELETE FROM %s", $global_table))) {
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
+		}
+		return "";
+	}
+
+	function mst_mysqli_drop_xa_tables($host, $user, $passwd, $db, $port, $socket,
+				$global_table = 'mysqlnd_ms_xa_trx', $participant_table = 'mysqlnd_ms_xa_participants',
+				$gc_table = 'mysqlnd_ms_xa_gc') {
+		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
+		if (mysqli_connect_errno()) {
+			return sprintf("[%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		}
+
+		if (!$link->query(sprintf("DROP TABLE IF EXISTS %s", $participant_table)) ||
+			!$link->query(sprintf("DROP TABLE IF EXISTS %s", $gc_table)) ||
+			!$link->query(sprintf("DROP TABLE IF EXISTS %s", $global_table))) {
+			return sprintf("[%d] %s\n", $link->errno, $link->error);
+		}
+		return "";
+	}
+
 	function mst_mysqli_create_test_table($host, $user, $passwd, $db, $port, $socket, $tablename = "test") {
 		$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket);
 		if (mysqli_connect_errno()) {
@@ -412,5 +504,158 @@
 			return 'Failed to extract Seconds_Behind_Master';
 
 		return (int)$row['Seconds_Behind_Master'];
+	}
+
+	function mst_mysqli_test_for_charset($host, $user, $passwd, $db, $port, $socket) {
+		$ret = array('charset' => '', 'error' => '');
+
+		if (!$link = mst_mysqli_connect($host, $user, $passwd, $db, $port, $socket)) {
+			$ret['error'] = sprintf("Cannot connect, [%d] %s", mysqli_connect_errno(), mysqli_connect_error());
+			return $ret;
+		}
+
+		if ((($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin1"', MYSQLI_STORE_RESULT)) &&
+				(mysqli_num_rows($res) == 1)) &&
+				(($res = mysqli_query($link, 'SHOW CHARACTER SET LIKE "latin2"', MYSQLI_STORE_RESULT)) &&
+				(mysqli_num_rows($res) == 1))
+				) {
+			// ok, required latin1 AND latin2 are available
+		} else {
+			$ret['error'] = sprintf("Requires character set latin1 and latin2");
+			return $ret;
+		}
+
+		if (!$res = mysqli_query($link, 'SELECT @@character_set_connection AS charset')) {
+			$ret['error'] = sprintf("Cannot select current charset, [%d] %s", $link->errno, $link->error);
+			return $ret;
+		}
+
+		if (!$row = mysqli_fetch_assoc($res)) {
+			$ret['error'] = sprintf("skip Cannot detect current charset, [%d] %s", $link->errno, $link->error);
+			return $ret;
+		}
+
+		$ret['charset'] = $row['charset'];
+		return $ret;
+	}
+
+
+	function ms_emulated_fabric_server_log($msg) {
+		$log = getenv("MYSQL_TEST_FABRIC_EMULATOR_LOG");
+		if (!$log)
+			return true;
+
+		$fp = fopen($log, "a");
+		if (!$fp)
+			return false;
+		$ok = fwrite($fp, $msg . "\n");
+		fclose($fp);
+		return (bool)$ok;
+	}
+
+	function ms_emulated_fabric_server_shutdown($process) {
+		if (!$process)
+			return false;
+
+		$status = proc_get_status($process);
+		ms_emulated_fabric_server_log(sprintf("Shuting down process %d\n", $status['pid']));
+
+		return proc_terminate($process, 15) && proc_close($process);
+	}
+
+	function ms_emulated_fabric_server_defect($method, $params) {
+		$request = xmlrpc_encode_request('emulate_defect', array($method, $params));
+		$context = stream_context_create(array('http' => array(
+			'method' => "POST",
+			'header' => "Content-Type: text/xml",
+			'content' => $request
+		)));
+		$server = sprintf("http://%s:%d",
+			getenv("MYSQL_TEST_FABRIC_EMULATOR_HOST"),
+			getenv("MYSQL_TEST_FABRIC_EMULATOR_PORT"));
+
+		$file = file_get_contents($server, false, $context);
+		$response = xmlrpc_decode($file);
+		if ($response && xmlrpc_is_fault($response)) {
+			var_dump($response);
+			return false;
+		}
+		return true;
+	}
+
+	function ms_fork_emulated_fabric_server() {
+		/* Does the PHP have xmlrpc support? */
+		$error_log = tempnam(sys_get_temp_dir(), sprintf('emulated_fabric_%d', getmypid()));
+		$descriptors = array(
+			0 => array("pipe", "r"),
+			1 => array("pipe", "w"),
+			2 => array("file", $error_log, "a")
+		);
+		$pipes = array();
+		$process = proc_open(getenv("MYSQL_TEST_FABRIC_EMULATOR_PHP_EXECUTABLE"), $descriptors, $pipes, NULL, NULL);
+		if (!$process || !is_resource($process)) {
+			$msg = sprintf("Failed to check XMLRPC support in '%s'", getenv("MYSQL_TEST_FABRIC_EMULATOR_PHP_EXECUTABLE"));
+			ms_emulated_fabric_server_log($msg);
+			return $msg;
+		}
+
+		fwrite($pipes[0], "<?php echo (int)extension_loaded('xmlrpc'); ?>");
+		fclose($pipes[0]);
+		$loaded = stream_get_contents($pipes[1]);
+		fclose($pipes[1]);
+		proc_close($process);
+
+		if (1 != trim($loaded)) {
+			$msg = sprintf("PHP '%s' seems not to support XMLRPC", getenv("MYSQL_TEST_FABRIC_EMULATOR_PHP_EXECUTABLE"));
+			ms_emulated_fabric_server_log($msg);
+			return $msg;
+		}
+		/* Try to start the XMLRPC server */
+		$descriptors = array(
+			0 => array("pipe", "r"),
+			1 => array("pipe", "w"),
+			2 => array("file", $error_log, "a")
+		);
+		$php_cmd = sprintf("%s -d always_populate_raw_post_data=-1 -S %s:%s %s",
+			getenv("MYSQL_TEST_FABRIC_EMULATOR_PHP_EXECUTABLE"),
+			getenv("MYSQL_TEST_FABRIC_EMULATOR_HOST"),
+			getenv("MYSQL_TEST_FABRIC_EMULATOR_PORT"),
+			getenv("MYSQL_TEST_FABRIC_EMULATOR_SERVER_SCRIPT"));
+		$process = proc_open($php_cmd, $descriptors, $pipes, NULL, NULL);
+		if (!$process || !is_resource($process)) {
+			$msg = sprintf("%s Failed to fork PHP XMLRPC server using '%s'. Error log '%s' may or may not have details.", var_export($process, true), $php_cmd, $error_log);
+			ms_emulated_fabric_server_log($msg);
+			return $msg;
+		}
+
+		$status = proc_get_status($process);
+		if (false == $status) {
+			proc_close($process);
+			$msg = sprintf("Forked PHP XMLRPC server seems faulty. Error log '%s' may or may not have details.", $error_log);
+			ms_emulated_fabric_server_log($msg);
+			return $msg;
+		}
+
+		if (!isset($status['running']) || !$status['running']) {
+			$msg = sprintf("Forked PHP XMLRPC server seems not to be running. Error log '%s' may or may not have details.", $error_log);
+			ms_emulated_fabric_server_log($msg);
+			return $msg;
+		}
+		ms_emulated_fabric_server_log(sprintf("Server started pid=%d", $status['pid']));
+		return $process;
+	}
+
+	function mst_stats_diff($offset, $now) {
+		static $before = NULL;
+		if ($before == NULL) {
+			$before = $now;
+			return;
+		}
+		foreach ($now as $k => $v) {
+			if (isset($before[$k]) && ($before[$k] != $v)) {
+				printf("[%03d] %s: %s -> %s\n", $offset, $k, $before[$k], $v);
+			}
+		}
+		$before = $now;
 	}
 ?>

@@ -43,9 +43,6 @@
 #include "mysqlnd_ms_enum_n_def.h"
 #include "mysqlnd_ms_switch.h"
 
-
-
-
 /* {{{ qos_filter_dtor */
 static void
 qos_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)

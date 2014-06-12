@@ -87,4 +87,8 @@ Functions:
   mysqlnd_ms_get_stats
   mysqlnd_ms_match_wild
   mysqlnd_ms_query_is_select
+  mysqlnd_ms_xa_begin
+  mysqlnd_ms_xa_commit
+  mysqlnd_ms_xa_gc
+  mysqlnd_ms_xa_rollback
 done!

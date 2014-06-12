@@ -268,6 +268,18 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_FABRIC_HOSTS					"hosts"
 #define SECT_FABRIC_TIMEOUT					"timeout"
 #define SECT_FABRIC_TRX_BOUNDARY_WARNING    "trx_warn_serverlist_changes"
+#define SECT_XA_NAME						"xa"
+#define SECT_XA_ROLLBACK_ON_CLOSE			"rollback_on_close"
+#define SECT_XA_STATE_STORE					"state_store"
+#define SECT_XA_STORE_MYSQL					"mysql"
+#define SECT_XA_STORE_PARTICIPANT_CRED 		"record_participant_credentials"
+#define SECT_XA_STORE_GLOBAL_TRX_TABLE		"global_trx_table"
+#define SECT_XA_STORE_PARTICIPANT_TABLE		"participant_table"
+#define SECT_XA_STORE_GC_TABLE				"garbage_collection_table"
+#define SECT_XA_STORE_PARTICIPANT_LOCALHOST "participant_localhost_ip"
+#define SECT_XA_GC_NAME 					"garbage_collection"
+#define SECT_XA_GC_MAX_RETRIES				"max_retries"
+#define SECT_XA_GC_PROBABILITY				"probability"
 #define TRANSIENT_ERROR_NAME				"transient_error"
 #define TRANSIENT_ERROR_MAX_RETRIES			"max_retries"
 #define TRANSIENT_ERROR_USLEEP_RETRY		"usleep_retry"
@@ -376,6 +388,13 @@ typedef enum mysqlnd_ms_collected_stats
 	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_TIME_TOTAL,
 	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_BYTES_TOTAL,
 	MS_STAT_FABRIC_SHARDING_LOOKUP_SERVERS_XML_FAILURE,
+	MS_STAT_XA_BEGIN,
+	MS_STAT_XA_COMMIT_SUCCESS,
+	MS_STAT_XA_COMMIT_FAILURE,
+	MS_STAT_XA_ROLLBACK_SUCCESS,
+	MS_STAT_XA_ROLLBACK_FAILURE,
+	MS_STAT_XA_PARTICIPANTS,
+	MS_STAT_XA_ROLLBACK_ON_CLOSE,
 	MS_STAT_LAST /* Should be always the last */
 } enum_mysqlnd_ms_collected_stats;
 
@@ -548,6 +567,96 @@ typedef struct st_mysqlnd_ms_filter_groups_data_group
 	HashTable slave_context;
 } MYSQLND_MS_FILTER_GROUPS_DATA_GROUP;
 
+/* XA transaction tracking */
+
+enum mysqlnd_ms_xa_state
+{
+	XA_NON_EXISTING, /* initial state: not started */
+	XA_ACTIVE, 		/* XA begin */
+	XA_IDLE,		/* XA end */
+	XA_PREPARED,	/* XA prepare */
+	XA_COMMIT,		/* XA commit */
+	XA_ROLLBACK		/* XA rollback */
+};
+
+/* Participant in the current XA trx */
+typedef struct st_mysqlnd_ms_xa_participant {
+	zend_bool persistent;
+	MYSQLND_CONN_DATA * conn;
+	enum mysqlnd_ms_xa_state state;
+	int id;
+} MYSQLND_MS_XA_PARTICIPANT_LIST_DATA;
+
+struct st_mysqlnd_ms_config_json_entry;
+
+typedef struct st_mysqlnd_xa_id {
+	char * store_id;
+	unsigned int gtrid;
+	unsigned int format_id;
+} MYSQLND_MS_XA_ID;
+
+typedef struct st_mysqlnd_ms_xa_trx_state_store {
+	char * name;
+	void * data;
+							/* Parse JSON config */
+	void					(*load_config)(struct st_mysqlnd_ms_config_json_entry * section, void * data,
+											MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
+	/* mysqlnd_ms_xa_begin() call, expand xa_id by store record id/pk */
+	enum_func_status (*begin)(void * data, MYSQLND_ERROR_INFO * error_info, MYSQLND_MS_XA_ID * xa_id,
+							  unsigned int timeout TSRMLS_DC);
+	/* Switch global/monitor state */
+	enum_func_status (*monitor_change_state)(void * data, MYSQLND_ERROR_INFO * error_info, MYSQLND_MS_XA_ID * xa_id,
+											 enum mysqlnd_ms_xa_state to, enum mysqlnd_ms_xa_state intend TSRMLS_DC);
+	/* Record failure on global level.
+	   Called to inform the store of our intend (should be rollback or commit).
+	   Any failure is reported, including a failure to switch RMs/servers to XA END in
+	   which case - likely - no follow up action is required. Getting notified of
+	   a failure does not always mean that GC can be applied.
+	 */
+	enum_func_status (*monitor_failure)(void * data, MYSQLND_ERROR_INFO * error_info, MYSQLND_MS_XA_ID * xa_id,
+						   enum mysqlnd_ms_xa_state intend TSRMLS_DC);
+	/* Mark a global transaction for garbage collection: either its finished or it failed (and we gave up) */
+	enum_func_status (*monitor_finish)(void * data, MYSQLND_ERROR_INFO * error_info,
+											MYSQLND_MS_XA_ID * xa_id, zend_bool failure TSRMLS_DC);
+	/* Add participant to previously started XA trx */
+	enum_func_status (*add_participant)(void * data, MYSQLND_ERROR_INFO * error_info, MYSQLND_MS_XA_ID * xa_id,
+										const MYSQLND_MS_XA_PARTICIPANT_LIST_DATA * const participant,
+										zend_bool record_cred, const char * localhost_ip TSRMLS_DC);
+	/* Switch participant state */
+	enum_func_status (*participant_change_state)(void * data, MYSQLND_ERROR_INFO * error_info, MYSQLND_MS_XA_ID * xa_id,
+												const MYSQLND_MS_XA_PARTICIPANT_LIST_DATA * const participant,
+												enum mysqlnd_ms_xa_state from, enum mysqlnd_ms_xa_state to TSRMLS_DC);
+	/* Record participant failure, called if core experiences an issue with participant */
+	enum_func_status (*participant_failure)(void * data, MYSQLND_ERROR_INFO *error_info, MYSQLND_MS_XA_ID * xa_id,
+											const MYSQLND_MS_XA_PARTICIPANT_LIST_DATA * const participant,
+											const MYSQLND_ERROR_INFO * const participant_error_info TSRMLS_DC);
+	/* GC for one specific trx */
+	enum_func_status (*garbage_collect_one)(void * data, MYSQLND_ERROR_INFO *error_info, MYSQLND_MS_XA_ID * xa_id,
+											unsigned int gc_max_retries TSRMLS_DC);
+	/* GC anything you can find... */
+	enum_func_status (*garbage_collect_all)(void * data, MYSQLND_ERROR_INFO *error_info, unsigned int gc_max_retries TSRMLS_DC);
+	/* Destructor */
+	void (*dtor)(void * data, zend_bool persistent TSRMLS_DC);
+} MYSQLND_MS_XA_STATE_STORE;
+
+/* Main XA struct for proxy connection */
+typedef struct st_mysqlnd_ms_xa_trx {
+	zend_bool on;
+	zend_bool in_transaction;
+	zend_bool rollback_on_close;
+	enum mysqlnd_ms_xa_state finish_transaction_intend;
+	unsigned int gc_max_retries;
+	unsigned int gc_probability;
+	MYSQLND_MS_XA_ID id;
+	unsigned int timeout;
+	zend_llist participants;
+	char * participant_localhost_ip;
+	zend_bool record_participant_cred;
+	enum mysqlnd_ms_xa_state state;
+	MYSQLND_MS_XA_STATE_STORE * store;
+} MYSQLND_MS_XA_TRX;
+
+
 /*
  NOTE: Some elements are available with every connection, some
  are set for the global/proxy connection only. The global/proxy connection
@@ -589,6 +698,7 @@ typedef struct st_mysqlnd_ms_conn_data
 		char *		 	trx_begin_name;
 
 		zend_bool in_transaction;
+		zend_bool in_xa_transaction;
 
 		MYSQLND_CONN_DATA * last_used_conn;
 		MYSQLND_CONN_DATA * random_once_slave;
@@ -636,6 +746,10 @@ typedef struct st_mysqlnd_ms_conn_data
 	} global_trx;
 #endif
 	mysqlnd_fabric *fabric;
+
+	/* TODO XA: proxy connection only */
+	MYSQLND_MS_XA_TRX *xa_trx;
+
 } MYSQLND_MS_CONN_DATA;
 
 

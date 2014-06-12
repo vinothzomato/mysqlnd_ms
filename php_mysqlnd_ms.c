@@ -37,6 +37,7 @@
 #include "mysqlnd_ms_filter_qos.h"
 #include "mysqlnd_ms_switch.h"
 #include "fabric/mysqlnd_fabric.h"
+#include "mysqlnd_ms_xa.h"
 
 #ifndef mnd_sprintf
 #define mnd_sprintf spprintf
@@ -82,6 +83,13 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("fabric_sharding_lookup_servers_time_total") },
 	{ STR_W_LEN("fabric_sharding_lookup_servers_bytes_total") },
 	{ STR_W_LEN("fabric_sharding_lookup_servers_xml_failure") },
+	{ STR_W_LEN("xa_begin") },
+	{ STR_W_LEN("xa_commit_success") },
+	{ STR_W_LEN("xa_commit_failure") },
+	{ STR_W_LEN("xa_rollback_success") },
+	{ STR_W_LEN("xa_rollback_failure") },
+	{ STR_W_LEN("xa_participants") },
+	{ STR_W_LEN("xa_rollback_on_close") },
 };
 /* }}} */
 
@@ -813,6 +821,12 @@ static void mysqlnd_ms_add_server_to_array(void *data, void *arg TSRMLS_DC) /* {
 	}
 
 	add_next_index_zval(array, host);
+
+	if (((*element)->conn) && (CONN_GET_STATE((*element)->conn) > CONN_ALLOCED)) {
+		add_assoc_long(host, "thread_id", (*element)->conn->thread_id);
+	} else {
+		add_assoc_null(host, "thread_id");
+	}
 }
 /* }}} */
 
@@ -915,7 +929,7 @@ static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_xml)
 	char *shard_mapping_xml; size_t shard_mapping_len;
 	char *shard_index_xml; size_t shard_index_len;
 	char *server_xml; size_t server_len;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zssss", &conn_zv, &shard_table_xml, &shard_table_len,
 			&shard_mapping_xml, &shard_mapping_len, &shard_index_xml, &shard_index_len, &server_xml, &server_len) == FAILURE) {
 		return;
@@ -930,18 +944,18 @@ static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_xml)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
 	}
-	
+
 	if (!(*conn_data)->fabric) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No MySQL Fabric connection");
 		RETURN_FALSE;
 	}
-	
+
 	void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 		const char *shard_table_xml, size_t shard_table_len,
 		const char *shard_mapping_xml, size_t shard_mapping_len,
 		const char *shard_index_xml, size_t shard_index_len,
 		const char *server_xml, size_t server_len);
-	fabric_set_raw_data_from_xmlstr((*conn_data)->fabric, shard_table_xml, shard_table_len, shard_mapping_xml, 
+	fabric_set_raw_data_from_xmlstr((*conn_data)->fabric, shard_table_xml, shard_table_len, shard_mapping_xml,
 			shard_mapping_len, shard_index_xml, shard_index_len, server_xml, server_len);
 
 }
@@ -959,7 +973,7 @@ static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous)
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
 	char *data;
 	int data_len;
-	
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs", &conn_zv, &data, &data_len) == FAILURE) {
 		return;
 	}
@@ -973,17 +987,210 @@ static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 		RETURN_FALSE;
 	}
-	
+
 	if (!(*conn_data)->fabric) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No MySQL Fabric connection");
 		RETURN_FALSE;
 	}
-	
+
 	void fabric_set_raw_data(mysqlnd_fabric *fabric, char *data, size_t data_len);
 	fabric_set_raw_data((*conn_data)->fabric, data, data_len);
 }
 /* }}} */
 #endif
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_xa_begin, 0, 0, 2)
+	ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, gtrid)
+	ZEND_ARG_INFO(0, timeout)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto book mysqlnd_ms_xa_begin(mixed connection, int gtrid [, int timeout]) */
+static PHP_FUNCTION(mysqlnd_ms_xa_begin)
+{
+	zval *conn_zv;
+	double gtrid;
+	/* TODO XA: have the default in the PHP part only? */
+	double timeout = 60;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd|d", &conn_zv, &gtrid, &timeout) == FAILURE) {
+		return;
+	}
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	MS_LOAD_CONN_DATA(conn_data, conn->data);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+	/* TODO XA: Range */
+	if (gtrid < 0 || gtrid > 1000) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " gtrid must be in the range of 0 - 1000");
+		RETURN_FALSE;
+	}
+	if (timeout < 0 || timeout > 100) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " timeout must be in the range of 0 - 1000 seconds");
+		RETURN_FALSE;
+	}
+
+	if (PASS != mysqlnd_ms_xa_monitor_begin(conn->data, *conn_data, (unsigned int)gtrid, (unsigned int)timeout TSRMLS_CC)) {
+		RETURN_FALSE;
+	}
+	RETURN_TRUE;
+}
+/* }}} */
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_xa_commit, 0, 0, 2)
+	ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, gtrid)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto book mysqlnd_ms_xa_commit(mixed connection, int gtrid) */
+static PHP_FUNCTION(mysqlnd_ms_xa_commit)
+{
+	zval *conn_zv;
+	double gtrid;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	/* TODO XA
+	 * THe user is not given fine grained control over XA
+	 * stages at this point, For now th user will not be able to
+	 * go through the individual steps of 2PC at the time of his
+	 * liking. This decision is driven a) by simplicity and lazyness and
+	 * b) by the belief MS should make using clusters of any kind
+	 * simpler. If a user would want to handle 2PC state transitions itself
+	 * then he would need to track server changes. This is only of
+	 * value if the user aims to send XA END early. This in turn requires
+	 * planning of how servers are accessed which implies application
+	 * knowledge of the data distribution in the cluster. This is where
+	 * an abstraction doing hardly more than wrapping the SQL commands
+	 * is useless. To allow power users to do this all we needed to do
+	 * is provide a function to track connection switches and to reference
+	 * connections opened by the load balancer. Then power users could build
+	 * the tiny SQL wrappers on top. Thus, for now, begin -> commit/rollback.
+	 * End of the story. Simplistic API comes at the price that we may
+	 * keep an XA trx longer in END/PREPARED state than needed.
+	 * ... there's also a ton of mysqlnd/mysqlnd_ms refactoring needed. Step by step.
+	 */
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd", &conn_zv, &gtrid) == FAILURE) {
+		return;
+	}
+
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	MS_LOAD_CONN_DATA(conn_data, conn->data);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+	/* TODO XA: Range */
+	if (gtrid < 0 || gtrid > 1000) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " gtrid must be in the range of 0 - 1000");
+		RETURN_FALSE;
+	}
+
+	if (PASS == mysqlnd_ms_xa_monitor_direct_commit(conn->data, *conn_data, (unsigned int)gtrid TSRMLS_CC)) {
+		RETVAL_TRUE;
+	} else {
+		RETVAL_FALSE;
+	}
+}
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_xa_rollback, 0, 0, 2)
+	ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, gtrid)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto book mysqlnd_ms_xa_rollback(mixed connection, int gtrid) */
+static PHP_FUNCTION(mysqlnd_ms_xa_rollback)
+{
+	zval *conn_zv;
+	double gtrid;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zd", &conn_zv, &gtrid) == FAILURE) {
+		return;
+	}
+
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	MS_LOAD_CONN_DATA(conn_data, conn->data);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+	/* TODO XA: Range */
+	if (gtrid < 0 || gtrid > 1000) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " gtrid must be in the range of 0 - 1000");
+		RETURN_FALSE;
+	}
+
+	if (PASS == mysqlnd_ms_xa_monitor_direct_rollback(conn->data, *conn_data, (unsigned int)gtrid TSRMLS_CC)) {
+		RETVAL_TRUE;
+	} else {
+		RETVAL_FALSE;
+	}
+}
+
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_xa_gc, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
+    ZEND_ARG_INFO(0, gtrid)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto book mysqlnd_ms_xa_gc(mixed connection, [int gtrid]) */
+static PHP_FUNCTION(mysqlnd_ms_xa_gc)
+{
+	zval *conn_zv;
+	double gtrid = 0;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|d", &conn_zv, &gtrid) == FAILURE) {
+		return;
+	}
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	MS_LOAD_CONN_DATA(conn_data, conn->data);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+	if (1 == ZEND_NUM_ARGS()) {
+		/* TODO XA: gc all */
+	} else {
+		/* TODO XA: Range */
+		if (gtrid < 0 || gtrid > 1000) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " gtrid must be in the range of 0 - 1000");
+			RETURN_FALSE;
+		}
+
+		if (PASS != mysqlnd_ms_xa_gc_one(conn->data, *conn_data, (unsigned int)gtrid TSRMLS_CC)) {
+			RETURN_FALSE;
+		}
+	}
+
+	RETURN_TRUE;
+}
+/* }}} */
+
 
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
@@ -1018,6 +1225,10 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_debug_set_fabric_raw_dump_data_xml, NULL)
 	PHP_FE(mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous, NULL)
 #endif
+	PHP_FE(mysqlnd_ms_xa_begin, arginfo_mysqlnd_ms_xa_begin)
+	PHP_FE(mysqlnd_ms_xa_commit, arginfo_mysqlnd_ms_xa_commit)
+	PHP_FE(mysqlnd_ms_xa_rollback, arginfo_mysqlnd_ms_xa_rollback)
+	PHP_FE(mysqlnd_ms_xa_gc, arginfo_mysqlnd_ms_xa_gc)
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */

@@ -85,21 +85,21 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_lazy_autocommit.ini
 
 	$link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket);
 	if (mysqli_connect_errno()) {
-		printf("[001] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
+		printf("[008] [%d] %s\n", mysqli_connect_errno(), mysqli_connect_error());
 	}
 
 	/* establish master connection */
-	if ($res = mst_mysqli_query(2, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_MASTER_SWITCH))
+	if ($res = mst_mysqli_query(9, $link, "SELECT 1 FROM DUAL", MYSQLND_MS_MASTER_SWITCH))
 		var_dump($res->fetch_assoc());
 
 	if (!mysqli_autocommit($link, !$master_default))
-		printf("[003] Failed to change autocommit setting\n");
+		printf("[010] Failed to change autocommit setting\n");
 
-	if ($master_default == ($tmp = get_autocommit_setting(4, $link)))
-		printf("[005] Autocommit should be %d, got %d\n", !$master_default, $tmp);
+	if ($master_default == ($tmp = get_autocommit_setting(11, $link)))
+		printf("[012] Autocommit should be %d, got %d\n", !$master_default, $tmp);
 
-	if ($master_default == ($tmp = get_autocommit_setting(6, $link, MYSQLND_MS_MASTER_SWITCH)))
-		printf("[007] Autocommit should be %d, got %d\n", !$master_default, $tmp);
+	if ($master_default == ($tmp = get_autocommit_setting(13, $link, MYSQLND_MS_MASTER_SWITCH)))
+		printf("[014] Autocommit should be %d, got %d\n", !$master_default, $tmp);
 
 	$link->close();
 

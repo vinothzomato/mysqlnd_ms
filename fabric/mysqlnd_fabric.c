@@ -103,10 +103,10 @@ int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Please report a bug: no more than 10 Fabric hosts allowed");
 		return 1;
 	}
-	
+
 	fabric->hosts[fabric->host_count].url = estrdup(url);
-	fabric->host_count++;	
-	
+	fabric->host_count++;
+
 	return 0;
 }
 
