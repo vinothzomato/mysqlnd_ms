@@ -124,7 +124,6 @@ class ms_emulated_fabric {
 			return $reply;
 		}
 
-
 		if ($params[0] == 'fabric_sharding.test') {
 			/* send proper reply */
 			$reply = array(
@@ -168,7 +167,7 @@ class ms_emulated_fabric {
 		/* send proper reply */
 			$reply = array(
 				true,
-				"",
+				0, 0, "",
 				array(
 					array(
 						"emulated master",
@@ -199,6 +198,7 @@ class ms_emulated_fabric {
 					),
 				)
 			);
+		return $reply;
 	}
 
 	public function dump_shard_index($method, $params, $data) {
@@ -216,16 +216,17 @@ class ms_emulated_fabric {
 		/* send proper reply */
 			$reply = array(
 				true,
-				"",
+				0, 0, "",
 				array(
 					array(
 						"1", /* Bound - Lower bound */
 						"1", /* MapID - shard mapping */
-						"1", /* ShardID */,
+						"1", /* ShardID */
 						"group1"
 					),
 				)
 			);
+		return $reply;
 	}
 
 	public function dump_shard_maps($method, $params, $data) {
@@ -243,7 +244,7 @@ class ms_emulated_fabric {
 		/* send proper reply */
 			$reply = array(
 				true,
-				"",
+				0, 0, "",
 				array(
 					array(
 						"1", 		/* MapID */
@@ -252,6 +253,7 @@ class ms_emulated_fabric {
 					),
 				)
 			);
+		return $reply;
 	}
 
 	public function dump_shard_tables($method, $params, $data) {
@@ -269,16 +271,17 @@ class ms_emulated_fabric {
 		/* send proper reply */
 			$reply = array(
 				true,
-				"",
+				0, 0, "",
 				array(
 					array(
 						"database", 		/* Database */
 						"table",		/* Table */
-						"column" 		/* Column */
+						"column", 		/* Column */
 						"1"			/* MapID */
 					),
 				)
 			);
+		return $reply;
 	}
 
 	protected function standard_defects($method, &$reply) {
