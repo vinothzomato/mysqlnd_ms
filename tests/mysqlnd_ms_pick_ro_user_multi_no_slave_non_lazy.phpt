@@ -59,4 +59,4 @@ Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate slave conne
 Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
 [002] [2000] (mysqlnd_ms) No connection selected by the last filter
 
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line 16
+Fatal error: Call to a member function fetch_assoc() %s on line %d

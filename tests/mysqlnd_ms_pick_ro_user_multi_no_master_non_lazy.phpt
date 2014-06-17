@@ -58,4 +58,4 @@ pick_server('myapp', '/*ms=master*//*2*/SELECT 1 FROM DUAL, '')
 [E_WARNING] mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong in %s on line %d
 [002] [2000] (mysqlnd_ms) Couldn't find the appropriate master connection. Something is wrong
 
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line %d
+Fatal error: Call to a member function fetch_assoc() %s on line %d

@@ -60,4 +60,4 @@ Warning: mysqli::query(): (mysqlnd_ms) Couldn't find the appropriate master conn
 Warning: mysqli::query(): (mysqlnd_ms) No connection selected by the last filter in %s on line %d
 [002] [2000] (mysqlnd_ms) No connection selected by the last filter
 
-Fatal error: Call to a member function fetch_assoc() on a non-object in %s on line %d
+Fatal error: Call to a member function fetch_assoc() %s on line %d

@@ -47,4 +47,4 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_settings_ini_file_faulty.ini
 %A
 [001] [%d] %s
 
-Fatal error: Call to a member function query() on a non-object in %s on line %d
+Fatal error: Call to a member function query() %s on line %d
