@@ -1,6 +1,13 @@
 1.6.0 alpha
 
-  Motto/theme: maintenance and initial MySQL Fabric
+  Motto/theme: maintenance and initial MySQL Fabric support
+
+  * Added a basic XA transaction abstractions. XA transactions can
+    be used ever since using standard SQL calls when manually managing
+    servers. PECL/mysqlnd_ms lets you control XA transaction among MySQL
+    servers using API calls. PECL/mysqlnd_ms acts as a transaction manager
+    for all servers you query between begin and end. Appropriate SQL statements
+    are issued on all XA participants by the plugin.
 
   * Added trx_warn_serverlist_changes option to Fabric configuration. PHP shall
     warn if server list changes (e.g. loading list of shards for key) happen
