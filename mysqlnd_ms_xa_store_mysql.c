@@ -35,6 +35,10 @@
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
 
+#define MYSQL_STORE_DEFAULT_GC_TABLE "mysqlnd_ms_xa_gc"
+#define MYSQL_STORE_DEFAULT_TRX_TABLE "mysqlnd_ms_xa_trx"
+#define MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE "mysqlnd_ms_xa_participants"
+
 #define COPY_SQL_ERROR(from_conn, to_error_info) \
 	if ((to_error_info)) { \
 		mysqlnd_ms_client_n_php_error((to_error_info), \
@@ -240,21 +244,21 @@ mysqlnd_ms_xa_store_mysql_load_config(struct st_mysqlnd_ms_config_json_entry * s
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string. Using default", SECT_XA_STORE_GLOBAL_TRX_TABLE, SECT_XA_NAME);
 			/* Fallback to default to avoid further checks for empty string */
-			store_data->global_table = mnd_pestrndup("mysqlnd_ms_xa_trx", strlen("mysqlnd_ms_xa_trx"), persistent);
+			store_data->global_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_TRX_TABLE, strlen(MYSQL_STORE_DEFAULT_TRX_TABLE), persistent);
 		} else {
 			json_value_len = strlen(json_value);
 			if (0 == json_value_len) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " Empty string not allowed for '%s' from '%s'. Using default", SECT_XA_STORE_GLOBAL_TRX_TABLE, SECT_XA_NAME);
 				/* Fallback to default to avoid further checks for empty string */
-				store_data->global_table = mnd_pestrndup("mysqlnd_ms_xa_trx", strlen("mysqlnd_ms_xa_trx"), persistent);
+				store_data->global_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_TRX_TABLE, strlen(MYSQL_STORE_DEFAULT_TRX_TABLE), persistent);
 			} else {
 				store_data->global_table = mnd_pestrndup(json_value, json_value_len, persistent);
 			}
 		}
 		mnd_efree(json_value);
 	} else {
-		store_data->global_table = mnd_pestrndup("mysqlnd_ms_xa_trx", strlen("mysqlnd_ms_xa_trx"), persistent);
+		store_data->global_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_TRX_TABLE, strlen(MYSQL_STORE_DEFAULT_TRX_TABLE), persistent);
 	}
 
 	json_value = mysqlnd_ms_config_json_string_from_section(section, SECT_XA_STORE_PARTICIPANT_TABLE, sizeof(SECT_XA_STORE_PARTICIPANT_TABLE) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
@@ -263,21 +267,21 @@ mysqlnd_ms_xa_store_mysql_load_config(struct st_mysqlnd_ms_config_json_entry * s
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string. Using default", SECT_XA_STORE_PARTICIPANT_TABLE, SECT_XA_NAME);
 			/* Fallback to default to avoid further checks for empty string */
-			store_data->participant_table = mnd_pestrndup("mysqlnd_ms_xa_participants", strlen("mysqlnd_ms_xa_participants"), persistent);
+			store_data->participant_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE, strlen(MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE), persistent);
 		} else {
 			json_value_len = strlen(json_value);
 			if (0 == json_value_len) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " Empty string not allowed for '%s' from '%s'. Using default", SECT_XA_STORE_PARTICIPANT_TABLE, SECT_XA_NAME);
 				/* Fallback to default to avoid further checks for empty string */
-				store_data->participant_table = mnd_pestrndup("mysqlnd_ms_xa_participants", strlen("mysqlnd_ms_xa_participants"), persistent);
+				store_data->participant_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE, strlen(MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE), persistent);
 			} else {
 				store_data->participant_table = mnd_pestrndup(json_value, json_value_len, persistent);
 			}
 		}
 		mnd_efree(json_value);
 	} else {
-		store_data->participant_table = mnd_pestrndup("mysqlnd_ms_xa_participants", strlen("mysqlnd_ms_xa_participants"), persistent);
+		store_data->participant_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE, strlen(MYSQL_STORE_DEFAULT_PARTICIPANTS_TABLE), persistent);
 	}
 
 	json_value = mysqlnd_ms_config_json_string_from_section(section, SECT_XA_STORE_GC_TABLE, sizeof(SECT_XA_STORE_GC_TABLE) - 1, 0, &entry_exists, &entry_is_list TSRMLS_CC);
@@ -286,21 +290,21 @@ mysqlnd_ms_xa_store_mysql_load_config(struct st_mysqlnd_ms_config_json_entry * s
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a string. Using default", SECT_XA_STORE_GC_TABLE, SECT_XA_NAME);
 			/* Fallback to default to avoid further checks for empty string */
-			store_data->gc_table = mnd_pestrndup("mysqlnd_ms_xa_participants", strlen("mysqlnd_ms_xa_participants"), persistent);
+			store_data->gc_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_GC_TABLE, strlen(MYSQL_STORE_DEFAULT_GC_TABLE), persistent);
 		} else {
 			json_value_len = strlen(json_value);
 			if (0 == json_value_len) {
 				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
 										  MYSQLND_MS_ERROR_PREFIX " Empty string not allowed for '%s' from '%s'. Using default", SECT_XA_STORE_GC_TABLE, SECT_XA_NAME);
 				/* Fallback to default to avoid further checks for empty string */
-				store_data->gc_table = mnd_pestrndup("mysqlnd_ms_xa_gc", strlen("mysqlnd_ms_xa_gc"), persistent);
+				store_data->gc_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_GC_TABLE, strlen(MYSQL_STORE_DEFAULT_GC_TABLE), persistent);
 			} else {
 				store_data->gc_table = mnd_pestrndup(json_value, json_value_len, persistent);
 			}
 		}
 		mnd_efree(json_value);
 	} else {
-		store_data->gc_table = mnd_pestrndup("mysqlnd_ms_xa_gc", strlen("mysqlnd_ms_xa_gc"), persistent);
+		store_data->gc_table = mnd_pestrndup(MYSQL_STORE_DEFAULT_GC_TABLE, strlen(MYSQL_STORE_DEFAULT_GC_TABLE), persistent);
 	}
 
 	DBG_VOID_RETURN;

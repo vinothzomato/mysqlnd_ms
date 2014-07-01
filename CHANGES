@@ -2,10 +2,10 @@
 
   Motto/theme: maintenance and initial MySQL Fabric support
 
-  * Added a basic XA transaction abstractions. XA transactions can
+  * Added a basic XA transaction abstraction. XA transactions can
     be used ever since using standard SQL calls when manually managing
     servers. PECL/mysqlnd_ms lets you control XA transaction among MySQL
-    servers using API calls. PECL/mysqlnd_ms acts as a transaction manager
+    servers using API calls. PECL/mysqlnd_ms acts as a transaction coordinator
     for all servers you query between begin and end. Appropriate SQL statements
     are issued on all XA participants by the plugin.
 
