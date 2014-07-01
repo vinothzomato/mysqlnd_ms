@@ -951,7 +951,6 @@ mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_XA_TRX * trx, zend_bool persistent TSRM
 	}
 
 	if (trx->store) {
-
 		trx->store->dtor(trx->store->data, persistent TSRMLS_CC);
 		mnd_pefree(trx->store, persistent);
 		trx->store = NULL;

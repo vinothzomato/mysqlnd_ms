@@ -954,8 +954,7 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 		gc_id = (int)mysqlnd_insert_id(store_data->conn);
 	} else {
 		attempts++;
-		if (((0 != gc_max_retries) && (attempts > gc_max_retries)) || (attempts >= 1000)) {
-			/* TODO: meaningful error message */
+		if (((0 != gc_max_retries) && (attempts > gc_max_retries)) || (attempts >= 65535)) {
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 									  E_WARNING TSRMLS_CC,
 									  MYSQLND_MS_ERROR_PREFIX " MySQL XA state store error: Garbage collection failed. "
