@@ -1175,6 +1175,9 @@ static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 
 	if (1 == ZEND_NUM_ARGS()) {
 		/* TODO XA: gc all */
+		if (PASS != mysqlnd_ms_xa_gc_all(conn->data, *conn_data TSRMLS_CC)) {
+			RETURN_FALSE;
+		}
 	} else {
 		/* TODO XA: Range */
 		if (gtrid < 0 || gtrid > 1000) {

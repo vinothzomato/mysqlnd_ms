@@ -35,6 +35,13 @@
 #include "TSRM.h"
 #endif
 
+#define MYSQLND_MS_XA_ID_RESET(id) \
+{ \
+	 (id).gtrid = 0; \
+	 (id).format_id = 0; \
+	 (id).store_id = NULL; \
+}
+
 struct st_mysqlnd_ms_config_json_entry;
 
 extern unsigned int mysqlnd_ms_plugin_id;
@@ -45,6 +52,7 @@ enum_func_status mysqlnd_ms_xa_monitor_begin(MYSQLND_CONN_DATA * conn, MYSQLND_M
 enum_func_status mysqlnd_ms_xa_monitor_direct_commit(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA * conn_data, unsigned int gtrid TSRMLS_DC);
 enum_func_status mysqlnd_ms_xa_monitor_direct_rollback(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA * conn_data, unsigned int gtrid TSRMLS_DC);
 enum_func_status mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA * conn_data, unsigned int gtrid TSRMLS_DC);
+enum_func_status mysqlnd_ms_xa_gc_all(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA * conn_data TSRMLS_DC);
 
 void mysqlnd_ms_xa_state_to_string(enum mysqlnd_ms_xa_state state, smart_str * str);
 void mysqlnd_ms_load_xa_config(struct st_mysqlnd_ms_config_json_entry * main_section, MYSQLND_MS_XA_TRX * xa_trx, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);

@@ -62,12 +62,6 @@
 #define MYSQLND_MS_XA_PROXY_ERROR_INFO(proxy_conn, proxy_conn_data) \
   &(MYSQLND_MS_ERROR_INFO((((proxy_conn_data)->stgy.last_used_conn) ? (proxy_conn_data)->stgy.last_used_conn : (proxy_conn))))
 
-#define MYSQLND_MS_XA_ID_RESET(id) \
-{ \
-	 (id).gtrid = 0; \
-	 (id).format_id = 0; \
-	 (id).store_id = NULL; \
-}
 #define MYSQLND_MS_XA_GTRID_EQUALS_ID(gtrid, id) \
    ((id).gtrid == (gtrid))
 
@@ -881,7 +875,7 @@ mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * prox
 	enum_func_status ret = PASS;
 	MYSQLND_ERROR_INFO * error_info = MYSQLND_MS_XA_PROXY_ERROR_INFO(proxy_conn, proxy_conn_data);
 	MYSQLND_MS_XA_ID id;
-	DBG_ENTER("mysqlnd_ms_xa_gc");
+	DBG_ENTER("mysqlnd_ms_xa_gc_one");
 
 	SET_EMPTY_ERROR(*error_info);
 
@@ -905,6 +899,32 @@ mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * prox
 }
 /* }}} */
 
+/* {{{ mysqlnd_ms_xa_gc_all
+ Enforce garbage collection run for any XA trx
+ */
+enum_func_status
+mysqlnd_ms_xa_gc_all(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * proxy_conn_data TSRMLS_DC) {
+	enum_func_status ret = PASS;
+	MYSQLND_ERROR_INFO * error_info = MYSQLND_MS_XA_PROXY_ERROR_INFO(proxy_conn, proxy_conn_data);
+	DBG_ENTER("mysqlnd_ms_xa_gc_all");
+
+	SET_EMPTY_ERROR(*error_info);
+
+	if (!proxy_conn_data->xa_trx) {
+		/* Something is very wrong */
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection or connection has not been intitialized");
+		DBG_RETURN(ret);
+	}
+
+	if (proxy_conn_data->xa_trx->store && proxy_conn_data->xa_trx->store->garbage_collect_all) {
+		ret = proxy_conn_data->xa_trx->store->garbage_collect_all(
+			proxy_conn_data->xa_trx->store->data, error_info,
+			proxy_conn_data->xa_trx->gc_max_retries TSRMLS_CC);
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
 
 /* {{{ mysqlnd_ms_xa_proxy_conn_init
  Initialize CONN_DATA struct

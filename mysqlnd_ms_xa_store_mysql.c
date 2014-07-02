@@ -49,15 +49,6 @@
 									  MYSQLND_MS_ERROR_INFO((from_conn)->data).error); \
 	}
 
-
-#define QUERY_OR_RETURN(conn, sql, sql_len, error_info, ret) \
-	(ret) = mysqlnd_query((conn), (sql), (sql_len)); \
-	efree((sql)); \
-	if (PASS != (ret)) { \
-		COPY_SQL_ERROR((conn), (error_info)); \
-		DBG_RETURN(ret); \
-	}
-
 #define GET_ZVAL_STRING_FROM_HASH(pprow, pstring) \
 	if ((zend_hash_has_more_elements(Z_ARRVAL_PP((pprow))) != SUCCESS) || \
 		(zend_hash_get_current_data(Z_ARRVAL_PP((pprow)), (void **)&(pstring)) != SUCCESS)) { \
@@ -66,7 +57,13 @@
 	convert_to_string_ex((pstring)) \
 	zend_hash_move_forward(Z_ARRVAL_PP((pprow)));
 
-
+#define GET_ZVAL_LONG_FROM_HASH(pprow, plong) \
+	if ((zend_hash_has_more_elements(Z_ARRVAL_PP((pprow))) != SUCCESS) || \
+		(zend_hash_get_current_data(Z_ARRVAL_PP((pprow)), (void **)&(plong)) != SUCCESS)) { \
+		continue; \
+	} \
+	convert_to_long_ex((plong)) \
+	zend_hash_move_forward(Z_ARRVAL_PP((pprow)));
 
 typedef struct st_mysqlnd_ms_xa_trx_state_store_mysql {
 	char * host;
@@ -360,6 +357,10 @@ mysqlnd_ms_xa_store_mysql_begin(void * data, MYSQLND_ERROR_INFO * error_info,
 	} else {
 		/* Don't set if the call fails! We won't get an opportunity to free later on */
 		spprintf(&(xa_id->store_id), 0, MYSQLND_LLU_SPEC, mysqlnd_insert_id(store_data->conn));
+		if (1 != mysqlnd_affected_rows(store_data->conn)) {
+			SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to add an entry to the state store transaction table, affected_rows != 1.");
+			ret = FAIL;
+		}
 	}
 
 	DBG_RETURN(ret);
@@ -379,8 +380,6 @@ mysqlnd_ms_xa_store_mysql_monitor_change_state(void * data,
 	int sql_len;
 	smart_str state_to = {0, 0, 0};
 	smart_str state_intend = {0, 0, 0};
-
-	/* uint64_t affected; */
 	MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data = (MYSQLND_MS_XA_STATE_STORE_MYSQL *)data;
 
 	DBG_ENTER("mysqlnd_ms_xa_store_mysql_monitor_change_state");
@@ -388,6 +387,11 @@ mysqlnd_ms_xa_store_mysql_monitor_change_state(void * data,
 		DBG_RETURN(ret);
 	}
 	assert(store_data->conn);
+
+	if (XA_NON_EXISTING == to) {
+		/* Skip it - no participant, no trx record */
+		DBG_RETURN(ret);
+	}
 
 	mysqlnd_ms_xa_state_to_string(to, &state_to);
 	mysqlnd_ms_xa_state_to_string(intend, &state_intend);
@@ -405,6 +409,9 @@ mysqlnd_ms_xa_store_mysql_monitor_change_state(void * data,
 
 	if (PASS != ret) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
+	} else if (1 != mysqlnd_affected_rows(store_data->conn)) {
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to update the state store transaction table, affected_rows != 1. Did you delete any records?");
+		ret = FAIL;
 	}
 
 	DBG_RETURN(ret);
@@ -491,6 +498,9 @@ mysqlnd_ms_xa_store_mysql_add_participant(void * data, MYSQLND_ERROR_INFO * erro
 
 	if (PASS != ret) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
+	} else if (1 != mysqlnd_affected_rows(store_data->conn)) {
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to create participant table entry, affected_rows != 1.");
+		ret = FAIL;
 	}
 
 	DBG_RETURN(ret);
@@ -534,6 +544,9 @@ mysqlnd_ms_xa_store_mysql_participant_change_state(void * data, MYSQLND_ERROR_IN
 
 	if (PASS != ret) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
+	} else if (1 != mysqlnd_affected_rows(store_data->conn)) {
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to update the state store participant table. Did you delete records of the table");
+		ret = FAIL;
 	}
 	DBG_RETURN(ret);
 }
@@ -566,8 +579,15 @@ mysqlnd_ms_xa_store_mysql_participant_failure(void * data,  MYSQLND_ERROR_INFO *
 								participant_error_info->error,
 								xa_id->store_id,
 								participant->id);
-	/* autocommit */
-	QUERY_OR_RETURN(store_data->conn, sql, sql_len, error_info, ret);
+
+	ret = mysqlnd_query(store_data->conn, sql, sql_len);
+	efree(sql);
+	if (PASS != ret) {
+		COPY_SQL_ERROR(store_data->conn, error_info);
+	} else if (1 != mysqlnd_affected_rows(store_data->conn)) {
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to update the state store participant table. Did you delete records of the table");
+		ret = FAIL;
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -603,6 +623,9 @@ mysqlnd_ms_xa_store_mysql_monitor_failure(void * data, MYSQLND_ERROR_INFO * erro
 
 	if (PASS != ret) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
+	} else if (1 != mysqlnd_affected_rows(store_data->conn)) {
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to update the state store transaction table. Did you delete records of the table");
+		ret = FAIL;
 	}
 
 	DBG_RETURN(ret);
@@ -642,6 +665,9 @@ mysqlnd_ms_xa_store_mysql_monitor_finish(void * data, MYSQLND_ERROR_INFO * error
 	efree(xa_id->store_id);
 	if (PASS != ret) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
+	} else if (1 != mysqlnd_affected_rows(store_data->conn)) {
+		SET_CLIENT_ERROR((*error_info), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, MYSQLND_MS_ERROR_PREFIX " Failed to update the state store transaction table. Did you delete records of the table");
+		ret = FAIL;
 	}
 
 	DBG_RETURN(ret);
@@ -660,9 +686,13 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 {
 	enum_func_status ret = FAIL, ok;
 	/* SELECT bqual, scheme, host, port, socket, user, password, state, health */
-	zval **bqual, **scheme, **host, **port, **socket, **user, **password, **state, **health;
+	zval **bqual = NULL, **scheme, **host, **port, **socket, **user, **password, **state, **health;
 	zval *xa_recover_list, **pprow;
 	zval **format_id, **bqual_length, **gtrid_length, **data;
+	char * sql, *tmp;
+	int sql_len, tmp_len;
+	uint64_t num_rows;
+	MYSQLND_RES * res = NULL;
 
 	DBG_ENTER("mysqlnd_ms_xa_store_gc_participants");
 
@@ -675,38 +705,59 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 			continue;
 		}
 		zend_hash_internal_pointer_reset(Z_ARRVAL_PP(pprow));
-		if (zend_hash_get_current_data(Z_ARRVAL_PP(pprow), (void **)&bqual) != SUCCESS) {
-			continue;
-		}
-		convert_to_long_ex(bqual);
-		zend_hash_move_forward(Z_ARRVAL_PP(pprow));
+		GET_ZVAL_LONG_FROM_HASH(pprow, bqual);
 		GET_ZVAL_STRING_FROM_HASH(pprow, scheme);
 		GET_ZVAL_STRING_FROM_HASH(pprow, host);
-		if (zend_hash_get_current_data(Z_ARRVAL_PP(pprow), (void **)&port) != SUCCESS) {
-			continue;
-		}
-		convert_to_long_ex(port);
-		zend_hash_move_forward(Z_ARRVAL_PP(pprow));
+		GET_ZVAL_LONG_FROM_HASH(pprow, port);
 		GET_ZVAL_STRING_FROM_HASH(pprow, socket);
 		GET_ZVAL_STRING_FROM_HASH(pprow, user);
 		GET_ZVAL_STRING_FROM_HASH(pprow, password);
 		GET_ZVAL_STRING_FROM_HASH(pprow, state);
 		GET_ZVAL_STRING_FROM_HASH(pprow, health);
-		if (strncasecmp(Z_STRVAL_PP(state), "XA_PREPARED", Z_STRLEN_PP(state))) {
-			/* either not prepared and hence forgotten, or commited/rolled back already */
-			DBG_INF_FMT("No GC required store_trx_id=%d, bqual=%d, state=%s",
-						Z_LVAL_PP(store_trx_id), Z_LVAL_PP(bqual), Z_STRVAL_PP(state));
+		DBG_INF_FMT("Checking store_trx_id=%d, bqual=%d, state=%s, health=%s", Z_LVAL_PP(store_trx_id), Z_LVAL_PP(bqual), Z_STRVAL_PP(state), Z_STRVAL_PP(health));
+
+		if (!strncasecmp(Z_STRVAL_PP(state), "XA_NON_EXISTING", Z_STRLEN_PP(state))) {
+		  DBG_FMT("No action has been carried out on the participant");
+		  continue;
+		}
+
+		if (strncasecmp(Z_STRVAL_PP(health), "OK", Z_STRLEN_PP(health)) &&
+			strncasecmp(Z_STRVAL_PP(state), "XA_PREPARED", Z_STRLEN_PP(state))) {
+			/*
+			 * Failed client or server and a XA trx for which is either:
+			 *
+			 *   - state < XA_PREPARED (= has been forgotten by the server)
+			 *   - state > XA_PREPARED (= has been comitted or been rolled back)
+			 */
+			DBG_INF("No GC required.");
+			sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
+							store_data->participant_table,
+							Z_LVAL_PP(store_trx_id),
+							Z_LVAL_PP(bqual));
+			ok = mysqlnd_query(store_data->conn, sql, sql_len);
+			efree(sql);
+			if (PASS != ok) {
+				COPY_SQL_ERROR(store_data->conn, error_info);
+				goto gc_participants_exit;
+			}
 			continue;
 		}
-		DBG_INF_FMT("GC required store_trx_id=%d, bqual=%d, state=%s",
-						Z_LVAL_PP(store_trx_id), Z_LVAL_PP(bqual), Z_STRVAL_PP(state));
+
+		DBG_INF("GC possibly required.");
+		/*
+		 * Failed client that has left servers behind in XA_PREPARED state OR
+		 * timed out client. In case of a timeout there are two cases to
+		 * consider:
+		 *
+		 *   1) client has disconnected (= it failed, treat like a failed one)
+		 *   2) client is still connected
+		 *
+		 * If the client is still connected, we cannot do anything but
+		 * wait for it to die.
+		 */
 
 		if (((Z_STRLEN_PP(scheme) > sizeof("tcp://")) && !memcmp(Z_STRVAL_PP(scheme), "tcp://", sizeof("tcp://") - 1)) ||
 			((Z_STRLEN_PP(scheme) > sizeof("unix://")) && !memcmp(Z_STRVAL_PP(scheme), "unix://", sizeof("unix://") - 1))) {
-			char * sql, *tmp;
-			int sql_len, tmp_len;
-			uint64_t num_rows;
-			MYSQLND_RES * res = NULL;
 
 			MYSQLND * conn = mysqlnd_init(MYSQLND_CLIENT_NO_FLAG, FALSE);
 			if (mysqlnd_connect(conn,
@@ -748,54 +799,82 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 			efree(sql);
 			if (PASS != ok) {
 				COPY_SQL_ERROR(conn, error_info);
+				mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
 				goto gc_participants_exit;
 			}
 			if (!(res = mysqlnd_store_result(conn))) {
 				COPY_SQL_ERROR(store_data->conn, error_info);
+				mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
 				goto gc_participants_exit;
 			}
 			num_rows = mysqlnd_num_rows(res);
-			if (num_rows) {
+
+			if (0 == num_rows) {
+				mysqlnd_free_result(res, TRUE);
+				/*
+				 * Nothing to do...? This may be a timed out XA trx that is still ongoing with
+				 * some clients still connected to the participants and state < XA_PREPARED.
+				 * We should be able to find out running XA START.
+				 */
+				ok = PASS;
+				if (!strncasecmp(Z_STRVAL_PP(health), "OK", Z_STRLEN_PP(health))) {
+					sql_len = spprintf(&sql, 0, "XA START '%d'", xa_id->gtrid);
+					ok = mysqlnd_query(conn, sql, sql_len);
+					efree(sql);
+					if (PASS != ok) {
+						if (1440 == mysqlnd_errno(conn)) {
+							/* ERROR 1440 (XAE08): XAER_DUPID: The XID already exists */
+							DBG_INF("This timed out XA trx is still active with state < XA_PREPARED.");
+						} else {
+							COPY_SQL_ERROR(conn, error_info);
+							mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
+							goto gc_participants_exit;
+						}
+					}
+					/* As we will disconnect immediately, a possibly started XA trx can be ignored. */
+				}
+
+				if (ok == PASS) {
+					DBG_INF("XA trx should not be active any more.");
+					sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
+									store_data->participant_table,
+									Z_LVAL_PP(store_trx_id),
+									Z_LVAL_PP(bqual));
+					ok = mysqlnd_query(store_data->conn, sql, sql_len);
+					efree(sql);
+					if (PASS != ok) {
+						COPY_SQL_ERROR(store_data->conn, error_info);
+						mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
+						goto gc_participants_exit;
+					}
+				}
+			} else {
+
 				MAKE_STD_ZVAL(xa_recover_list);
 				mysqlnd_fetch_all(res, MYSQLND_FETCH_NUM, xa_recover_list);
 				if (Z_TYPE_P(xa_recover_list) != IS_ARRAY) {
-					zval_ptr_dtor(&xa_recover_list);
 					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 									  E_WARNING TSRMLS_CC,
 									  MYSQLND_MS_ERROR_PREFIX " MySQL XA state store error: Garbage collection failed. "
 									  "Failed to fetch results for XA RECOVER");
+					zval_ptr_dtor(&xa_recover_list);
+					mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
 					goto gc_participants_exit;
 				}
-			}
-			mysqlnd_free_result(res, TRUE);
-			if (0 == num_rows) {
-				/* nothing to do... */
-				sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
-								   store_data->participant_table,
-								   Z_LVAL_PP(store_trx_id),
-								   Z_LVAL_PP(bqual));
-				ok = mysqlnd_query(store_data->conn, sql, sql_len);
-				efree(sql);
-				if (PASS != ok) {
-					COPY_SQL_ERROR(store_data->conn, error_info);
-					goto gc_participants_exit;
-				}
-				continue;
-			}
 
-			/* The initial version should hardly ever get here.
+				/* The initial version should hardly ever get here.
 			Server must have been shut down between prepare and commit during mysqlnd_ms_xa_commit(). */
-			for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(xa_recover_list));
-				zend_hash_has_more_elements(Z_ARRVAL_P(xa_recover_list)) == SUCCESS;
-				zend_hash_move_forward(Z_ARRVAL_P(xa_recover_list))) {
+				for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(xa_recover_list));
+					zend_hash_has_more_elements(Z_ARRVAL_P(xa_recover_list)) == SUCCESS;
+					zend_hash_move_forward(Z_ARRVAL_P(xa_recover_list))) {
 
-				if ((zend_hash_get_current_data(Z_ARRVAL_P(xa_recover_list), (void **)&pprow) != SUCCESS) ||
-					(Z_TYPE_PP(pprow) != IS_ARRAY)) {
+					if ((zend_hash_get_current_data(Z_ARRVAL_P(xa_recover_list), (void **)&pprow) != SUCCESS) ||
+						(Z_TYPE_PP(pprow) != IS_ARRAY)) {
 					continue;
 				}
-				zend_hash_internal_pointer_reset(Z_ARRVAL_PP(pprow));
+					zend_hash_internal_pointer_reset(Z_ARRVAL_PP(pprow));
 
-				/*
+					/*
 				mysql> XA RECOVER;
 				+----------+--------------+--------------+------+
 				| formatID | gtrid_length | bqual_length | data |
@@ -803,33 +882,55 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 				|        1 |            1 |            0 | 1    |
 				+----------+--------------+--------------+------+
 				*/
+					/* we can ignore this - its always 0 with the initial version */
+					GET_ZVAL_STRING_FROM_HASH(pprow, format_id);
+					/* we can ignore details - data is always gtrid only with the initial version */
+					GET_ZVAL_STRING_FROM_HASH(pprow, gtrid_length);
+					GET_ZVAL_STRING_FROM_HASH(pprow, bqual_length);
+					GET_ZVAL_STRING_FROM_HASH(pprow, data);
 
-				/* we can ignore this - its always 0 with the initial version */
-				GET_ZVAL_STRING_FROM_HASH(pprow, format_id);
-
-				/* we can ignore details - data is always gtrid only with the initial version */
-				GET_ZVAL_STRING_FROM_HASH(pprow, gtrid_length);
-				GET_ZVAL_STRING_FROM_HASH(pprow, bqual_length);
-				GET_ZVAL_STRING_FROM_HASH(pprow, data);
-
-				/* compare data = gtrid with unsigned int xa_id.gtrid */
-				if ((tmp_len = spprintf(&tmp, 0, "%d", xa_id->gtrid)) != 0) {
-					if (!strncasecmp(Z_STRVAL_PP(data), tmp, tmp_len - 1)) {
+					/* compare data = gtrid with unsigned int xa_id.gtrid */
+					if ((tmp_len = spprintf(&tmp, 0, "%d", xa_id->gtrid)) != 0) {
+						if (!strncasecmp(Z_STRVAL_PP(data), tmp, tmp_len - 1)) {
 						efree(tmp);
 						/* this is ours... */
 						sql_len = spprintf(&sql, 0, "XA ROLLBACK '%d'", xa_id->gtrid);
 						ok = mysqlnd_query(store_data->conn, sql, sql_len);
 						efree(sql);
 						if (PASS != ok) {
-							COPY_SQL_ERROR(store_data->conn, error_info);
-							goto gc_participants_exit;
+							if ((!strncasecmp(Z_STRVAL_PP(health), "OK", Z_STRLEN_PP(health))) &&
+								(1399 == mysqlnd_errno(conn))) {
+								/* Possibly a timed out client which is connected to the server still
+								ERROR 1399 (XAE07): XAER_RMFAIL: The command cannot be executed when global transaction is in the  NON-EXISTING state */
+								DBG_INF("This timed out XA trx is still active with state > XA_PREPARED.");
+							} else {
+								COPY_SQL_ERROR(store_data->conn, error_info);
+								zval_ptr_dtor(&xa_recover_list);
+								mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
+								goto gc_participants_exit;
+							}
+						} else {
+							/* GC done... */
+							sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
+								store_data->participant_table,
+								Z_LVAL_PP(store_trx_id),
+								Z_LVAL_PP(bqual));
+							ok = mysqlnd_query(store_data->conn, sql, sql_len);
+							efree(sql);
+							if (PASS != ok) {
+								COPY_SQL_ERROR(store_data->conn, error_info);
+								zval_ptr_dtor(&xa_recover_list);
+								mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
+								goto gc_participants_exit;
+							}
 						}
 					} else {
-						efree(tmp);
+							efree(tmp);
+						}
 					}
 				}
+				zval_ptr_dtor(&xa_recover_list);
 			}
-			zval_ptr_dtor(&xa_recover_list);
 			mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
 
 		} else if (Z_STRLEN_PP(scheme) > sizeof("pipe://") && !memcp(Z_STRVAL_PP(scheme), "pipe://", sizeof("pipe://") - 1)) {
@@ -847,16 +948,39 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 			goto gc_participants_exit;
 		}
 	}
-	ret = PASS;
+
+	if (bqual) {
+		/* All participants happy? */
+		sql_len = spprintf(&sql, 0, "SELECT bqual FROM %s WHERE health != 'GC_DONE' AND fk_store_trx_id = %d AND bqual = %d LIMIT 1",
+						store_data->participant_table,
+						Z_LVAL_PP(store_trx_id),
+						Z_LVAL_PP(bqual));
+		ret = mysqlnd_query(store_data->conn, sql, sql_len);
+		efree(sql);
+		if (PASS != ret) {
+			COPY_SQL_ERROR(store_data->conn, error_info);
+			goto gc_participants_exit;
+		}
+
+		if (!(res = mysqlnd_store_result(store_data->conn))) {
+			COPY_SQL_ERROR(store_data->conn, error_info);
+			goto gc_participants_exit;
+		}
+		num_rows = mysqlnd_num_rows(res);
+		mysqlnd_free_result(res, TRUE);
+		if (0 != num_rows) {
+			ret = FAIL;
+		}
+	}
 
 gc_participants_exit:
 	DBG_RETURN(ret);
 }
 /* }}} */
 
-/* {{{ mysqlnd_ms_xa_store_mysql_gc_one */
+/* {{{ mysqlnd_ms_xa_store_mysql_do_gc_one */
 static enum_func_status
-mysqlnd_ms_xa_store_mysql_gc_one(void * data,
+mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 								MYSQLND_ERROR_INFO *error_info,
 								MYSQLND_MS_XA_ID * xa_id,
 								unsigned int gc_max_retries TSRMLS_DC)
@@ -869,9 +993,7 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 	zval *row, **entry, *store_trx_id_list = NULL, **pprow;
 	MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data = (MYSQLND_MS_XA_STATE_STORE_MYSQL *)data;
 
-	DBG_ENTER("mysqlnd_ms_xa_store_mysql_gc_one");
-	DBG_INF_FMT("gtrid %d", xa_id->gtrid);
-
+	DBG_ENTER("mysqlnd_ms_xa_store_mysql_do_gc_one");
 	if (!store_data) {
 		DBG_RETURN(ret);
 	}
@@ -889,28 +1011,27 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 	/* There shall be only one GC run  at a time, lock the table */
 	/* SELECT * FROM store_data->gc_table WHERE fk_gtrid = ... FOR UPDATE */
 	if (xa_id->store_id) {
-		/* GC called during or immediately after processing, we know exectly which store_id to rollback */
+		/* We know exectly which store_id to rollback */
 		sql_len = spprintf(&sql, 0, "SELECT gc_id, attempts FROM %s WHERE "
-							"gtrid = '%d' AND format_id = '%d' AND fk_store_trx_id = %s AND attempts < %d FOR UPDATE",
+							"gtrid = '%d' AND format_id = '%d' AND fk_store_trx_id = %s FOR UPDATE",
 							store_data->gc_table,
 							xa_id->gtrid,
 							xa_id->format_id,
-							xa_id->store_id,
-							gc_max_retries
+							xa_id->store_id
   					);
 	} else {
 		/* there may be more than one record in the global trx records table with the gtrid we are given */
-		sql_len = spprintf(&sql, 0, "SELECT gc_id FROM %s WHERE "
-							"gtrid = '%d' AND format_id = '%d' AND attempts < %d FOR UPDATE",
+		sql_len = spprintf(&sql, 0, "SELECT gc_id, attempts FROM %s WHERE "
+							"gtrid = '%d' AND format_id = '%d' FOR UPDATE",
 							store_data->gc_table,
 							xa_id->gtrid,
-							xa_id->format_id,
-							gc_max_retries
+							xa_id->format_id
   					);
 	}
 
 	ok = mysqlnd_query(store_data->conn, sql, sql_len);
 	efree(sql);
+
 	if (PASS != ok) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
 		goto gc_one_exit;
@@ -925,12 +1046,19 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 	mysqlnd_fetch_into(res, MYSQLND_FETCH_NUM, row, MYSQLND_MYSQLI);
 	if (Z_TYPE_P(row) == IS_ARRAY) {
 		zend_hash_internal_pointer_reset(Z_ARRVAL_P(row));
-		zend_hash_get_current_data(Z_ARRVAL_P(row), (void **)&entry);
-		convert_to_long_ex(entry);
-		gc_id = Z_LVAL_PP(entry);
-		zend_hash_get_current_data(Z_ARRVAL_P(row), (void **)&entry);
-		convert_to_long_ex(entry);
-		attempts = Z_LVAL_PP(entry);
+		if (zend_hash_has_more_elements(Z_ARRVAL_P(row))) {
+			zend_hash_get_current_data(Z_ARRVAL_P(row), (void **)&entry);
+			convert_to_long_ex(entry);
+			gc_id = Z_LVAL_PP(entry);
+			DBG_INF_FMT("gc_id=%d", attempts);
+			zend_hash_move_forward(Z_ARRVAL_P((row)));
+		}
+		if (zend_hash_has_more_elements(Z_ARRVAL_P(row))) {
+			zend_hash_get_current_data(Z_ARRVAL_P(row), (void **)&entry);
+			convert_to_long_ex(entry);
+			attempts = Z_LVAL_PP(entry);
+			DBG_INF_FMT("attempts=%d", attempts);
+		}
 	}
 	zval_ptr_dtor(&row);
 
@@ -952,6 +1080,7 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 			goto gc_one_exit;
 		}
 		gc_id = (int)mysqlnd_insert_id(store_data->conn);
+
 	} else {
 		attempts++;
 		if (((0 != gc_max_retries) && (attempts > gc_max_retries)) || (attempts >= 65535)) {
@@ -979,15 +1108,15 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 	}
 	/* fetch store trx ids */
 	if (xa_id->store_id) {
-		sql_len = spprintf(&sql, 0, "SELECT store_trx_id, state, intend, finsihed, stated, timeout FROM %s WHERE "
-									"store_trx_id = %d",
+		sql_len = spprintf(&sql, 0, "SELECT store_trx_id, state, intend, finished, started, timeout FROM %s WHERE store_trx_id = %d AND "
+							"((finished != 'NO') OR ((timeout IS NOT NULL) AND (timeout < NOW())))",
+							store_data->global_table,
 							xa_id->store_id);
 	} else {
+		/* OR ((timeout IS NOT NULL) AND (timeout < NOW())) */
 		sql_len = spprintf(&sql, 0, "SELECT store_trx_id, state, intend, finished, started, timeout FROM %s WHERE "
-									"gtrid = '%d' AND format_id = '%d' AND ("
-									"(finished != 'OPEN') OR "
-									"((timeout IS NOT NULL) AND (timeout < NOW()))"
-									")",
+							"gtrid = '%d' AND format_id = '%d' AND "
+							"((finished != 'NO') OR ((timeout IS NOT NULL) AND (timeout < NOW())))",
 							store_data->global_table,
 							xa_id->gtrid,
 							xa_id->format_id);
@@ -1002,7 +1131,6 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 		COPY_SQL_ERROR(store_data->conn, error_info);
 		goto gc_one_exit;
 	}
-
 	MAKE_STD_ZVAL(store_trx_id_list);
 	mysqlnd_fetch_all(res, MYSQLND_FETCH_NUM, store_trx_id_list);
 	if (Z_TYPE_P(store_trx_id_list) != IS_ARRAY) {
@@ -1024,6 +1152,7 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 			continue;
 		}
 		zend_hash_internal_pointer_reset(Z_ARRVAL_PP(pprow));
+
 		if ((zend_hash_has_more_elements(Z_ARRVAL_PP(pprow)) != SUCCESS) ||
 			(zend_hash_get_current_data(Z_ARRVAL_PP(pprow), (void **)&store_trx_id) != SUCCESS)) {
 			continue;
@@ -1051,12 +1180,12 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 				goto gc_one_exit;
 			}
 			continue;
-		} else if (!strncasecmp(Z_STRVAL_PP(finished), "FAILURE", Z_STRLEN_PP(finished))) {
+		} else if (!strncasecmp(Z_STRVAL_PP(finished), "FAILURE", Z_STRLEN_PP(finished)) ||
+			!strncasecmp(Z_STRVAL_PP(finished), "NO", Z_STRLEN_PP(finished))) {
+		  	/* Note: transaction could be still ongoing but we have reached the timeout */
 			zval *failed_participant_list;
-
-			/* contact host and check if xa is still open */
 			sql_len = spprintf(&sql, 0, "SELECT bqual, scheme, host, port, socket, user, password, state, health "
-										"FROM %s WHERE fk_store_trx_id = %d AND health != 'OK' AND health != 'GC_DONE'",
+										"FROM %s WHERE fk_store_trx_id = %d AND health != 'GC_DONE'",
 								store_data->participant_table,
 								Z_LVAL_PP(store_trx_id));
 			ok = mysqlnd_query(store_data->conn, sql, sql_len);
@@ -1072,40 +1201,39 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 			}
 			num_rows = mysqlnd_num_rows(res);
 			if (0 == num_rows) {
-				/* TODO - no failed participant - weird! */
+				ok = PASS;
+				mysqlnd_free_result(res, TRUE);
+				/* TODO - no failed participant - weird? */
 				DBG_INF_FMT("%s shows a failure for trx %d but lists no failed participants.",
 							store_data->participant_table,
 							Z_LVAL_PP(store_trx_id));
-				continue;
-			}
+			} else {
 
-			MAKE_STD_ZVAL(failed_participant_list);
-			mysqlnd_fetch_all(res, MYSQLND_FETCH_NUM, failed_participant_list);
-			if (Z_TYPE_P(failed_participant_list) != IS_ARRAY) {
+				MAKE_STD_ZVAL(failed_participant_list);
+				mysqlnd_fetch_all(res, MYSQLND_FETCH_NUM, failed_participant_list);
+				if (Z_TYPE_P(failed_participant_list) != IS_ARRAY) {
+					zval_ptr_dtor(&failed_participant_list);
+					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+									E_WARNING TSRMLS_CC,
+									MYSQLND_MS_ERROR_PREFIX " MySQL XA state store error: Garbage collection failed. "
+									"Failed to fetch list of failed participants");
+					goto gc_one_exit;
+				}
+				mysqlnd_free_result(res, TRUE);
+				ok = mysqlnd_ms_xa_store_gc_participants(store_data, error_info, xa_id, store_trx_id, failed_participant_list TSRMLS_CC);
 				zval_ptr_dtor(&failed_participant_list);
-				mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-								  E_WARNING TSRMLS_CC,
-								  MYSQLND_MS_ERROR_PREFIX " MySQL XA state store error: Garbage collection failed. "
-								  "Failed to fetch list of failed participants");
-				goto gc_one_exit;
 			}
-			mysqlnd_free_result(res, TRUE);
-			ok = mysqlnd_ms_xa_store_gc_participants(store_data, error_info, xa_id, store_trx_id, failed_participant_list TSRMLS_CC);
-			zval_ptr_dtor(&failed_participant_list);
-			if (PASS != ok) {
-				goto gc_one_exit;
+			if (ok == PASS) {
+				sql_len = spprintf(&sql, 0, "DELETE FROM %s WHERE store_trx_id = %d",
+								store_data->global_table,
+								Z_LVAL_PP(store_trx_id));
+				ok = mysqlnd_query(store_data->conn, sql, sql_len);
+				efree(sql);
+				if (PASS != ok) {
+					COPY_SQL_ERROR(store_data->conn, error_info);
+					goto gc_one_exit;
+				}
 			}
-			sql_len = spprintf(&sql, 0, "DELETE FROM %s WHERE store_trx_id = %d",
-							store_data->global_table,
-							Z_LVAL_PP(store_trx_id));
-			ok = mysqlnd_query(store_data->conn, sql, sql_len);
-			efree(sql);
-			if (PASS != ok) {
-				COPY_SQL_ERROR(store_data->conn, error_info);
-				goto gc_one_exit;
-			}
-		} else if (!strncasecmp(Z_STRVAL_PP(finished), "NO", Z_STRLEN_PP(finished))) {
-			/* transaction could be still ongoing but we have reached the timeout */
 		} else {
 			/* bark: unknown finished state */
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
@@ -1139,6 +1267,100 @@ gc_one_exit:
 		ret = FAIL;
 	}
 
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+/* {{{ mysqlnd_ms_xa_store_mysql_gc_one */
+static enum_func_status
+mysqlnd_ms_xa_store_mysql_gc_one(void * data,
+								MYSQLND_ERROR_INFO *error_info,
+								MYSQLND_MS_XA_ID * xa_id,
+								unsigned int gc_max_retries TSRMLS_DC)
+{
+	enum_func_status ret = FAIL;
+	DBG_ENTER("mysqlnd_ms_xa_store_mysql_gc_one");
+	DBG_INF_FMT("gtrid %d", xa_id->gtrid);
+	ret = mysqlnd_ms_xa_store_mysql_do_gc_one(data, error_info, xa_id, gc_max_retries TSRMLS_CC);
+	DBG_RETURN(ret);
+}
+
+/* {{{ mysqlnd_ms_xa_store_mysql_gc_all */
+static enum_func_status
+mysqlnd_ms_xa_store_mysql_gc_all(void * data,
+								MYSQLND_ERROR_INFO *error_info,
+								unsigned int gc_max_retries TSRMLS_DC)
+{
+	enum_func_status ret = FAIL, ok;
+	char * sql;
+	int sql_len;
+	MYSQLND_RES * res = NULL;
+	zval *store_trx_id_list = NULL, **pprow;
+	MYSQLND_MS_XA_ID id;
+
+	MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data = (MYSQLND_MS_XA_STATE_STORE_MYSQL *)data;
+
+	DBG_ENTER("mysqlnd_ms_xa_store_mysql_gc_all");
+	if (!store_data) {
+		DBG_RETURN(ret);
+	}
+
+	if (!store_data->conn && (PASS != mysqlnd_ms_xa_store_mysql_connect(data, error_info TSRMLS_CC))) {
+		DBG_INF("Connect failed");
+		DBG_RETURN(ret);
+	}
+
+	sql_len = spprintf(&sql, 0, "SELECT store_trx_id, gtrid, format_id FROM %s WHERE "
+		"((finished = 'SUCCESS') OR (finished = 'FAILURE') OR ((timeout IS NOT NULL) AND (timeout < NOW())))",	store_data->global_table);
+	ok = mysqlnd_query(store_data->conn, sql, sql_len);
+	efree(sql);
+
+	if ((PASS != ok) || (!(res = mysqlnd_store_result(store_data->conn)))) {
+		COPY_SQL_ERROR(store_data->conn, error_info);
+		DBG_RETURN(ret);
+	}
+	MAKE_STD_ZVAL(store_trx_id_list);
+	mysqlnd_fetch_all(res, MYSQLND_FETCH_NUM, store_trx_id_list);
+	if (Z_TYPE_P(store_trx_id_list) != IS_ARRAY) {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+							  E_WARNING TSRMLS_CC,
+							  MYSQLND_MS_ERROR_PREFIX " MySQL XA state store error: Garbage collection failed. "
+							  "Failed to fetch list of store transaction ids.");
+		mysqlnd_free_result(res, TRUE);
+		zval_ptr_dtor(&store_trx_id_list);
+		DBG_RETURN(ret);
+	}
+	mysqlnd_free_result(res, TRUE);
+
+	for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(store_trx_id_list));
+			zend_hash_has_more_elements(Z_ARRVAL_P(store_trx_id_list)) == SUCCESS;
+			zend_hash_move_forward(Z_ARRVAL_P(store_trx_id_list))) {
+		zval **store_trx_id, **gtrid, **format_id;
+
+		if ((zend_hash_get_current_data(Z_ARRVAL_P(store_trx_id_list), (void **)&pprow) != SUCCESS) ||
+			(Z_TYPE_PP(pprow) != IS_ARRAY)) {
+			continue;
+		}
+		zend_hash_internal_pointer_reset(Z_ARRVAL_PP(pprow));
+		if ((zend_hash_has_more_elements(Z_ARRVAL_PP(pprow)) != SUCCESS) ||
+			(zend_hash_get_current_data(Z_ARRVAL_PP(pprow), (void **)&store_trx_id) != SUCCESS)) {
+			continue;
+		}
+		/* NOTE: the hash gets modified */
+		GET_ZVAL_STRING_FROM_HASH(pprow, store_trx_id);
+		GET_ZVAL_LONG_FROM_HASH(pprow, gtrid);
+		GET_ZVAL_LONG_FROM_HASH(pprow, format_id);
+		DBG_INF_FMT("store_trx_id=%s, gtrid=%d, format_id=%d", Z_STRVAL_PP(store_trx_id), Z_LVAL_PP(gtrid), Z_LVAL_PP(format_id));
+		MYSQLND_MS_XA_ID_RESET(id);
+	//	id.store_id = Z_STRVAL_PP(store_trx_id);
+		id.gtrid = Z_LVAL_PP(gtrid);
+		id.format_id = Z_LVAL_PP(format_id);
+
+		ok = mysqlnd_ms_xa_store_mysql_do_gc_one(data, error_info, &id, gc_max_retries TSRMLS_CC);
+	}
+	zval_ptr_dtor(&store_trx_id_list);
+
+	ret = PASS;
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1214,7 +1436,7 @@ mysqlnd_ms_xa_store_mysql_ctor(MYSQLND_MS_XA_STATE_STORE * store, zend_bool pers
 	store->participant_change_state = mysqlnd_ms_xa_store_mysql_participant_change_state;
 	store->participant_failure = mysqlnd_ms_xa_store_mysql_participant_failure;
 	store->garbage_collect_one = mysqlnd_ms_xa_store_mysql_gc_one;
-	store->garbage_collect_all = NULL;
+	store->garbage_collect_all = mysqlnd_ms_xa_store_mysql_gc_all;
 	store->dtor = mysqlnd_ms_xa_store_mysql_dtor;
 
 	ret = PASS;
