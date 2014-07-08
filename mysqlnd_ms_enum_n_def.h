@@ -280,6 +280,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 #define SECT_XA_GC_NAME 					"garbage_collection"
 #define SECT_XA_GC_MAX_RETRIES				"max_retries"
 #define SECT_XA_GC_PROBABILITY				"probability"
+#define SECT_XA_GC_MAX_TRX_PER_RUN			"max_transactions_per_run"
 #define TRANSIENT_ERROR_NAME				"transient_error"
 #define TRANSIENT_ERROR_MAX_RETRIES			"max_retries"
 #define TRANSIENT_ERROR_USLEEP_RETRY		"usleep_retry"
@@ -634,26 +635,36 @@ typedef struct st_mysqlnd_ms_xa_trx_state_store {
 	enum_func_status (*garbage_collect_one)(void * data, MYSQLND_ERROR_INFO *error_info, MYSQLND_MS_XA_ID * xa_id,
 											unsigned int gc_max_retries TSRMLS_DC);
 	/* GC anything you can find... */
-	enum_func_status (*garbage_collect_all)(void * data, MYSQLND_ERROR_INFO *error_info, unsigned int gc_max_retries TSRMLS_DC);
+	enum_func_status (*garbage_collect_all)(void * data, MYSQLND_ERROR_INFO *error_info, unsigned int gc_max_retries, unsigned int gc_max_trx_per_run TSRMLS_DC);
 	/* Destructor */
-	void (*dtor)(void * data, zend_bool persistent TSRMLS_DC);
+	void (*dtor)(void ** data, zend_bool persistent TSRMLS_DC);
+	void (*dtor_conn_close)(void ** data, zend_bool persistent TSRMLS_DC);
 } MYSQLND_MS_XA_STATE_STORE;
+
+/* GC details store in a global variables hash table */
+typedef struct st_mysqlnd_ms_xa_gc {
+	unsigned int gc_max_retries;
+	unsigned int gc_probability;
+	unsigned int gc_max_trx_per_run;
+	MYSQLND_MS_XA_STATE_STORE store;
+} MYSQLND_MS_XA_GC;
 
 /* Main XA struct for proxy connection */
 typedef struct st_mysqlnd_ms_xa_trx {
+	/* Plugin section name */
+	char * host;
+	size_t host_len;
 	zend_bool on;
 	zend_bool in_transaction;
 	zend_bool rollback_on_close;
 	enum mysqlnd_ms_xa_state finish_transaction_intend;
-	unsigned int gc_max_retries;
-	unsigned int gc_probability;
+	MYSQLND_MS_XA_GC * gc;
 	MYSQLND_MS_XA_ID id;
 	unsigned int timeout;
 	zend_llist participants;
 	char * participant_localhost_ip;
 	zend_bool record_participant_cred;
 	enum mysqlnd_ms_xa_state state;
-	MYSQLND_MS_XA_STATE_STORE * store;
 } MYSQLND_MS_XA_TRX;
 
 

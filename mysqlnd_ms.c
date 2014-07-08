@@ -1104,7 +1104,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		mysqlnd_ms_init_trx_to_null(&(*conn_data)->global_trx TSRMLS_CC);
 #endif
-		(*conn_data)->xa_trx = mysqlnd_ms_xa_proxy_conn_init(conn->persistent TSRMLS_CC);
+		(*conn_data)->xa_trx = mysqlnd_ms_xa_proxy_conn_init(host, host_len, conn->persistent TSRMLS_CC);
 		(*conn_data)->initialized = TRUE;
 
 		if (!hotloading) {

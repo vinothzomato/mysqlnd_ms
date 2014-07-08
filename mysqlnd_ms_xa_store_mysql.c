@@ -717,7 +717,7 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 		DBG_INF_FMT("Checking store_trx_id=%d, bqual=%d, state=%s, health=%s", Z_LVAL_PP(store_trx_id), Z_LVAL_PP(bqual), Z_STRVAL_PP(state), Z_STRVAL_PP(health));
 
 		if (!strncasecmp(Z_STRVAL_PP(state), "XA_NON_EXISTING", Z_STRLEN_PP(state))) {
-		  DBG_FMT("No action has been carried out on the participant");
+		  DBG_INF("No action has been carried out on the participant");
 		  continue;
 		}
 
@@ -933,7 +933,7 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 			}
 			mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
 
-		} else if (Z_STRLEN_PP(scheme) > sizeof("pipe://") && !memcp(Z_STRVAL_PP(scheme), "pipe://", sizeof("pipe://") - 1)) {
+		} else if (Z_STRLEN_PP(scheme) > sizeof("pipe://") && !memcmp(Z_STRVAL_PP(scheme), "pipe://", sizeof("pipe://") - 1)) {
 			/* XA TODO */
 			mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 									  E_WARNING TSRMLS_CC,
@@ -1289,7 +1289,8 @@ mysqlnd_ms_xa_store_mysql_gc_one(void * data,
 static enum_func_status
 mysqlnd_ms_xa_store_mysql_gc_all(void * data,
 								MYSQLND_ERROR_INFO *error_info,
-								unsigned int gc_max_retries TSRMLS_DC)
+								unsigned int gc_max_retries,
+								unsigned int gc_max_trx_per_run TSRMLS_DC)
 {
 	enum_func_status ret = FAIL, ok;
 	char * sql;
@@ -1311,7 +1312,7 @@ mysqlnd_ms_xa_store_mysql_gc_all(void * data,
 	}
 
 	sql_len = spprintf(&sql, 0, "SELECT store_trx_id, gtrid, format_id FROM %s WHERE "
-		"((finished = 'SUCCESS') OR (finished = 'FAILURE') OR ((timeout IS NOT NULL) AND (timeout < NOW())))",	store_data->global_table);
+		"((finished = 'SUCCESS') OR (finished = 'FAILURE') OR ((timeout IS NOT NULL) AND (timeout < NOW()))) LIMIT %d",	store_data->global_table, gc_max_trx_per_run);
 	ok = mysqlnd_query(store_data->conn, sql, sql_len);
 	efree(sql);
 
@@ -1368,11 +1369,14 @@ mysqlnd_ms_xa_store_mysql_gc_all(void * data,
 
 /* {{{ mysqlnd_ms_xa_store_mysql_dtor */
 static void
-mysqlnd_ms_xa_store_mysql_dtor(void * data, zend_bool persistent TSRMLS_DC)
+mysqlnd_ms_xa_store_mysql_dtor(void ** data, zend_bool persistent TSRMLS_DC)
 {
-	MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data = (MYSQLND_MS_XA_STATE_STORE_MYSQL *)data;
+	MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data;
 	DBG_ENTER("mysqlnd_ms_xa_store_mysql_dtor");
 
+	if (data && *data) {
+		store_data = (MYSQLND_MS_XA_STATE_STORE_MYSQL *)*data;
+	}
 	if (store_data) {
 		if (store_data->host) {
 			mnd_pefree(store_data->host, persistent);
@@ -1391,7 +1395,6 @@ mysqlnd_ms_xa_store_mysql_dtor(void * data, zend_bool persistent TSRMLS_DC)
 			mnd_pefree(store_data->db, persistent);
 			store_data->db_len = 0;
 		}
-
 		if (store_data->conn) {
 			mysqlnd_close(store_data->conn, MYSQLND_CLOSE_DISCONNECTED);
 			store_data->conn = NULL;
@@ -1410,11 +1413,29 @@ mysqlnd_ms_xa_store_mysql_dtor(void * data, zend_bool persistent TSRMLS_DC)
 		mnd_pefree(store_data, persistent);
 		store_data = NULL;
 	}
+
 	DBG_VOID_RETURN;
 }
 /* }}} */
 
-/* {{{ mysqlnd_ms_xa_store_mysql_ctor */
+/* {{{ mysqlnd_ms_xa_store_mysql_dtor */
+static void
+mysqlnd_ms_xa_store_mysql_dtor_conn_close(void ** data, zend_bool persistent TSRMLS_DC)
+{
+	MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data;
+	DBG_ENTER("mysqlnd_ms_xa_store_mysql_dtor_conn_close");
+
+	if (data && *data) {
+		 store_data = (MYSQLND_MS_XA_STATE_STORE_MYSQL *)*data;
+	}
+
+	if (store_data && store_data->conn) {
+		mysqlnd_close(store_data->conn, MYSQLND_CLOSE_DISCONNECTED);
+		store_data->conn = NULL;
+	}
+	DBG_VOID_RETURN;
+}
+	/* {{{ mysqlnd_ms_xa_store_mysql_ctor */
 enum_func_status
 mysqlnd_ms_xa_store_mysql_ctor(MYSQLND_MS_XA_STATE_STORE * store, zend_bool persistent TSRMLS_DC)
 {
@@ -1438,6 +1459,7 @@ mysqlnd_ms_xa_store_mysql_ctor(MYSQLND_MS_XA_STATE_STORE * store, zend_bool pers
 	store->garbage_collect_one = mysqlnd_ms_xa_store_mysql_gc_one;
 	store->garbage_collect_all = mysqlnd_ms_xa_store_mysql_gc_all;
 	store->dtor = mysqlnd_ms_xa_store_mysql_dtor;
+	store->dtor_conn_close = mysqlnd_ms_xa_store_mysql_dtor_conn_close;
 
 	ret = PASS;
 	DBG_RETURN(ret);

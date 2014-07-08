@@ -65,6 +65,7 @@ ZEND_BEGIN_MODULE_GLOBALS(mysqlnd_ms)
 	zend_bool multi_master;
 	zend_bool disable_rw_split;
 	char * config_startup_error;
+	HashTable xa_state_stores;
 ZEND_END_MODULE_GLOBALS(mysqlnd_ms)
 
 
