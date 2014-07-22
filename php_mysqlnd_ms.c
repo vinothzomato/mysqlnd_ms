@@ -102,9 +102,9 @@ static zend_bool mysqlnd_ms_global_config_loaded = FALSE;
 struct st_mysqlnd_ms_json_config * mysqlnd_ms_json_config = NULL;
 
 
-/* {{{ php_mysqlnd_ms_config_init_globals */
+/* {{{ php_mysqlnd_ms_config_globals_ctor */
 static void
-php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
+mysqlnd_ms_globals_ctor(zend_mysqlnd_ms_globals * mysqlnd_ms_globals TSRMLS_DC)
 {
 	mysqlnd_ms_globals->enable = FALSE;
 	mysqlnd_ms_globals->force_config_usage = FALSE;
@@ -114,25 +114,13 @@ php_mysqlnd_ms_config_init_globals(zend_mysqlnd_ms_globals * mysqlnd_ms_globals)
 	mysqlnd_ms_globals->disable_rw_split = FALSE;
 	mysqlnd_ms_globals->config_startup_error = NULL;
 	zend_hash_init(&mysqlnd_ms_globals->xa_state_stores, 0, NULL, mysqlnd_ms_xa_gc_hash_dtor, 1);
-
 }
 /* }}} */
 
-
-/* {{{ PHP_GINIT_FUNCTION */
-static PHP_GINIT_FUNCTION(mysqlnd_ms)
-{
-	php_mysqlnd_ms_config_init_globals(mysqlnd_ms_globals);
-}
-/* }}} */
-
-/* {{{ PHP_GINIT_FUNCTION */
-static PHP_GSHUTDOWN_FUNCTION(mysqlnd_ms)
+static void mysqlnd_ms_globals_dtor(zend_mysqlnd_ms_globals * mysqlnd_ms_globals TSRMLS_DC)
 {
 	zend_hash_destroy(&mysqlnd_ms_globals->xa_state_stores);
 }
-/* }}} */
-
 
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION(mysqlnd_ms)
@@ -176,7 +164,13 @@ PHP_INI_END()
 /* {{{ PHP_MINIT_FUNCTION */
 PHP_MINIT_FUNCTION(mysqlnd_ms)
 {
-	ZEND_INIT_MODULE_GLOBALS(mysqlnd_ms, php_mysqlnd_ms_config_init_globals, NULL);
+
+#ifdef ZTS
+	ts_allocate_id(&mysqlnd_ms_globals_id, sizeof(zend_mysqlnd_ms_globals), (ts_allocate_ctor) mysqlnd_ms_globals_ctor, (ts_allocate_dtor) mysqlnd_ms_globals_dtor);
+#else
+	mysqlnd_ms_globals_ctor(&mysqlnd_ms_globals TSRMLS_CC);
+#endif
+
 	REGISTER_INI_ENTRIES();
 
 	if (MYSQLND_MS_G(enable)) {
@@ -225,6 +219,10 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
  */
 PHP_MSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
+#ifndef ZTS
+	mysqlnd_ms_globals_dtor(&mysqlnd_ms_globals TSRMLS_CC);
+#endif
+
 	UNREGISTER_INI_ENTRIES();
 	if (MYSQLND_MS_G(enable)) {
 		mysqlnd_stats_end(mysqlnd_ms_stats);
@@ -1260,8 +1258,8 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	PHP_MINFO(mysqlnd_ms),
 	PHP_MYSQLND_MS_VERSION,
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
-	PHP_GINIT(mysqlnd_ms),
-	PHP_GSHUTDOWN(mysqlnd_ms),
+	NULL,
+	NULL,
 	NULL,
 	STANDARD_MODULE_PROPERTIES_EX
 };
