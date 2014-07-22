@@ -1041,13 +1041,13 @@ mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_XA_TRX * trx, zend_bool persistent TSRM
 void
 mysqlnd_ms_xa_gc_hash_dtor(void *pDest) {
 	MYSQLND_MS_XA_GC * gc = *(MYSQLND_MS_XA_GC **)pDest;
+	TSRMLS_FETCH();
 	if (gc) {
 		if (gc->store.data) {
 			gc->store.dtor(&(gc->store.data), TRUE TSRMLS_CC);
 		}
 		mnd_pefree(gc, TRUE);
 	}
-
 }
 
 /* {{{ mysqlnd_ms_xa_add_participant */
