@@ -270,11 +270,11 @@ void mysqlnd_ms_load_xa_config(struct st_mysqlnd_ms_config_json_entry * main_sec
 				if (entry_exists) {
 					if (entry_is_list) {
 						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
-													MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a number (0...100)", SECT_XA_GC_PROBABILITY, SECT_XA_GC_NAME);
+													MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a number (0...1000)", SECT_XA_GC_PROBABILITY, SECT_XA_GC_NAME);
 					} else {
-						if (json_int < 0 || json_int > 100) {
+						if (json_int < 0 || json_int > 1000) {
 							mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
-													MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a number between 0 and 100", SECT_XA_GC_PROBABILITY, SECT_XA_GC_NAME);
+													MYSQLND_MS_ERROR_PREFIX " '%s' from '%s' must be a number between 0 and 1000", SECT_XA_GC_PROBABILITY, SECT_XA_GC_NAME);
 						} else {
 							xa_trx->gc->gc_probability = json_int;
 						}
@@ -1060,7 +1060,7 @@ mysqlnd_ms_xa_gc_hash_dtor(void *pDest) {
 
 	if (gc && gc->store.data) {
 		rnd_idx = php_rand(TSRMLS_C);
-		RAND_RANGE(rnd_idx, 1, 100, PHP_RAND_MAX);
+		RAND_RANGE(rnd_idx, 1, 1000, PHP_RAND_MAX);
 		if (gc->gc_probability >= rnd_idx) {
 			gc->store.garbage_collect_all(gc->store.data, NULL, gc->gc_max_retries, gc->gc_max_trx_per_run TSRMLS_CC);
 		}

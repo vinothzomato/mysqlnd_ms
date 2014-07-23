@@ -89,7 +89,7 @@ $settings = array(
 		'slave' => array($emulated_slave_host),
 		'xa' => array(
 			"garbage_collection" => array(
-				"probability" => 101,
+				"probability" => 1001,
 			),
 		),
 	),
@@ -269,9 +269,9 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_xa_gc_config.ini
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'max_retries' from 'garbage_collection' must be a number (0...100) in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'max_retries' from 'garbage_collection' must be a number between 0 and 100 in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'max_retries' from 'garbage_collection' must be a number between 0 and 100 in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'probability' from 'garbage_collection' must be a number (0...100) in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'probability' from 'garbage_collection' must be a number between 0 and 100 in %s on line %d
-[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'probability' from 'garbage_collection' must be a number between 0 and 100 in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'probability' from 'garbage_collection' must be a number (0...1000) in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'probability' from 'garbage_collection' must be a number between 0 and 1000 in %s on line %d
+[E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'probability' from 'garbage_collection' must be a number between 0 and 1000 in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'max_transactions_per_run' from 'garbage_collection' must be a number (1...32768) in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'max_transactions_per_run' from 'garbage_collection' must be a number between 1 and 32768 in %s on line %d
 [E_RECOVERABLE_ERROR] mysqli_real_connect(): (mysqlnd_ms) 'max_transactions_per_run' from 'garbage_collection' must be a number between 1 and 32768 in %s on line %d

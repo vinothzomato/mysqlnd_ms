@@ -95,8 +95,8 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_xa_mysql_gc_one.ini
 	}
 
 	mysqlnd_ms_xa_commit($link, $xa_id);
-			$xa_id++;
 
+	$xa_id++;
 	if (true !== mysqlnd_ms_xa_begin($link, $xa_id)) {
 		printf("[009] [%d] %s\n", $link->errno, $link->error);
 	}
