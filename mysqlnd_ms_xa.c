@@ -36,6 +36,8 @@
 #include "ext/mysqlnd/mysqlnd_alloc.h"
 #endif
 
+#include "ext/standard/php_rand.h"
+
 #define BEGIN_ITERATE_OVER_PARTICIPANT_LIST(el, participants) \
 { \
 	DBG_INF_FMT("pariticipants(%p) has %d", \
@@ -136,6 +138,7 @@ void mysqlnd_ms_load_xa_config(struct st_mysqlnd_ms_config_json_entry * main_sec
 					xa_trx->gc->gc_max_retries = 5;
 					xa_trx->gc->gc_probability = 5;
 					xa_trx->gc->gc_max_trx_per_run = 100;
+					xa_trx->gc->added_to_module_globals = FALSE;
 				}
 
 				if (!xa_trx->gc) {
@@ -164,13 +167,17 @@ void mysqlnd_ms_load_xa_config(struct st_mysqlnd_ms_config_json_entry * main_sec
 				xa_trx->gc = NULL;
 			}
 			if (xa_trx->gc) {
-				/* register in global list of garbage collection settings */
-				if (zend_hash_add(&MYSQLND_MS_G(xa_state_stores), xa_trx->host, xa_trx->host_len + 1, &xa_trx->gc, sizeof(MYSQLND_MS_XA_GC *), NULL)) {
-					mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
-											MYSQLND_MS_ERROR_PREFIX " Failed to setup garbage collection");
-						xa_trx->gc->store.dtor(&(xa_trx->gc->store.data), TRUE TSRMLS_CC);
-						mnd_pefree(xa_trx->gc, TRUE);
-						xa_trx->gc = NULL;
+				/* register in global list of garbage collection settings, if no GC has been registered for the host (= cluster/config section) already */
+				if (!zend_hash_exists(&MYSQLND_MS_G(xa_state_stores), xa_trx->host, xa_trx->host_len + 1)) {
+					if (zend_hash_add(&MYSQLND_MS_G(xa_state_stores), xa_trx->host, xa_trx->host_len + 1, &xa_trx->gc, sizeof(MYSQLND_MS_XA_GC *), NULL)) {
+						mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_RECOVERABLE_ERROR TSRMLS_CC,
+												MYSQLND_MS_ERROR_PREFIX " Failed to setup garbage collection %s", xa_trx->host);
+							xa_trx->gc->store.dtor(&(xa_trx->gc->store.data), TRUE TSRMLS_CC);
+							mnd_pefree(xa_trx->gc, TRUE);
+							xa_trx->gc = NULL;
+					} else {
+						xa_trx->gc->added_to_module_globals = TRUE;
+					}
 				}
 			}
 
@@ -1027,7 +1034,13 @@ mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_XA_TRX * trx, zend_bool persistent TSRM
 	}
 
 	if (trx->gc) {
-		 trx->gc->store.dtor_conn_close(&(trx->gc->store.data), TRUE TSRMLS_CC);
+		if (trx->gc->added_to_module_globals) {
+			/* must not free the store settings yet, but can close the store conns */
+			trx->gc->store.dtor_conn_close(&(trx->gc->store.data), TRUE TSRMLS_CC);
+		} else {
+			/* don't need the store anymore, no background GC coming */
+			trx->gc->store.dtor(&(trx->gc->store.data), TRUE TSRMLS_CC);
+		}
 	}
 
 	mnd_pefree(trx, persistent);
@@ -1040,12 +1053,19 @@ mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_XA_TRX * trx, zend_bool persistent TSRM
  */
 void
 mysqlnd_ms_xa_gc_hash_dtor(void *pDest) {
+	unsigned long rnd_idx;
 	MYSQLND_MS_XA_GC * gc = *(MYSQLND_MS_XA_GC **)pDest;
+
 	TSRMLS_FETCH();
-	if (gc) {
-		if (gc->store.data) {
-			gc->store.dtor(&(gc->store.data), TRUE TSRMLS_CC);
+
+	if (gc && gc->store.data) {
+		rnd_idx = php_rand(TSRMLS_C);
+		RAND_RANGE(rnd_idx, 1, 100, PHP_RAND_MAX);
+		if (gc->gc_probability >= rnd_idx) {
+			gc->store.garbage_collect_all(gc->store.data, NULL, gc->gc_max_retries, gc->gc_max_trx_per_run TSRMLS_CC);
 		}
+
+		gc->store.dtor(&(gc->store.data), TRUE TSRMLS_CC);
 		mnd_pefree(gc, TRUE);
 	}
 }

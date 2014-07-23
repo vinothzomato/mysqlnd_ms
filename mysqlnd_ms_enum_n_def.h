@@ -641,11 +641,12 @@ typedef struct st_mysqlnd_ms_xa_trx_state_store {
 	void (*dtor_conn_close)(void ** data, zend_bool persistent TSRMLS_DC);
 } MYSQLND_MS_XA_STATE_STORE;
 
-/* GC details store in a global variables hash table */
+/* GC details, stored in a global variables hash table */
 typedef struct st_mysqlnd_ms_xa_gc {
 	unsigned int gc_max_retries;
 	unsigned int gc_probability;
 	unsigned int gc_max_trx_per_run;
+	zend_bool added_to_module_globals;
 	MYSQLND_MS_XA_STATE_STORE store;
 } MYSQLND_MS_XA_GC;
 

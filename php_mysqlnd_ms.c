@@ -113,19 +113,20 @@ mysqlnd_ms_globals_ctor(zend_mysqlnd_ms_globals * mysqlnd_ms_globals TSRMLS_DC)
 	mysqlnd_ms_globals->multi_master = FALSE;
 	mysqlnd_ms_globals->disable_rw_split = FALSE;
 	mysqlnd_ms_globals->config_startup_error = NULL;
-	zend_hash_init(&mysqlnd_ms_globals->xa_state_stores, 0, NULL, mysqlnd_ms_xa_gc_hash_dtor, 1);
 }
 /* }}} */
 
-static void mysqlnd_ms_globals_dtor(zend_mysqlnd_ms_globals * mysqlnd_ms_globals TSRMLS_DC)
-{
-	zend_hash_destroy(&mysqlnd_ms_globals->xa_state_stores);
+PHP_GINIT_FUNCTION(mysqlnd_ms) {
+	mysqlnd_ms_globals_ctor(mysqlnd_ms_globals TSRMLS_CC);
 }
 
 /* {{{ PHP_RINIT_FUNCTION */
 PHP_RINIT_FUNCTION(mysqlnd_ms)
 {
 	if (MYSQLND_MS_G(enable)) {
+
+		zend_hash_init(&MYSQLND_MS_G(xa_state_stores), 0, NULL, mysqlnd_ms_xa_gc_hash_dtor, 1);
+
 		MYSQLND_MS_CONFIG_JSON_LOCK(mysqlnd_ms_json_config);
 		if (FALSE == mysqlnd_ms_global_config_loaded) {
 			mysqlnd_ms_config_json_load_configuration(mysqlnd_ms_json_config TSRMLS_CC);
@@ -140,9 +141,15 @@ PHP_RINIT_FUNCTION(mysqlnd_ms)
 /* {{{ PHP_RSHUTDOWN_FUNCTION */
 PHP_RSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
-	if (MYSQLND_MS_G(enable) && MYSQLND_MS_G(config_startup_error)) {
-		mnd_sprintf_free(MYSQLND_MS_G(config_startup_error));
+	if (MYSQLND_MS_G(enable)) {
+
+		zend_hash_destroy(&MYSQLND_MS_G(xa_state_stores));
+
+		if (MYSQLND_MS_G(config_startup_error)) {
+			mnd_sprintf_free(MYSQLND_MS_G(config_startup_error));
+		}
 	}
+
 	return SUCCESS;
 }
 /* }}} */
@@ -165,12 +172,7 @@ PHP_INI_END()
 PHP_MINIT_FUNCTION(mysqlnd_ms)
 {
 
-#ifdef ZTS
-	ts_allocate_id(&mysqlnd_ms_globals_id, sizeof(zend_mysqlnd_ms_globals), (ts_allocate_ctor) mysqlnd_ms_globals_ctor, (ts_allocate_dtor) mysqlnd_ms_globals_dtor);
-#else
-	mysqlnd_ms_globals_ctor(&mysqlnd_ms_globals TSRMLS_CC);
-#endif
-
+	ZEND_INIT_MODULE_GLOBALS(mysqlnd_ms, mysqlnd_ms_globals_ctor, NULL);
 	REGISTER_INI_ENTRIES();
 
 	if (MYSQLND_MS_G(enable)) {
@@ -219,10 +221,6 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
  */
 PHP_MSHUTDOWN_FUNCTION(mysqlnd_ms)
 {
-#ifndef ZTS
-	mysqlnd_ms_globals_dtor(&mysqlnd_ms_globals TSRMLS_CC);
-#endif
-
 	UNREGISTER_INI_ENTRIES();
 	if (MYSQLND_MS_G(enable)) {
 		mysqlnd_stats_end(mysqlnd_ms_stats);
@@ -1258,7 +1256,7 @@ zend_module_entry mysqlnd_ms_module_entry = {
 	PHP_MINFO(mysqlnd_ms),
 	PHP_MYSQLND_MS_VERSION,
 	PHP_MODULE_GLOBALS(mysqlnd_ms),
-	NULL,
+	PHP_GINIT(mysqlnd_ms),
 	NULL,
 	NULL,
 	STANDARD_MODULE_PROPERTIES_EX

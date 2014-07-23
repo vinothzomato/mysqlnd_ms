@@ -1418,7 +1418,7 @@ mysqlnd_ms_xa_store_mysql_dtor(void ** data, zend_bool persistent TSRMLS_DC)
 }
 /* }}} */
 
-/* {{{ mysqlnd_ms_xa_store_mysql_dtor */
+/* {{{ mysqlnd_ms_xa_store_mysql_dtor_conn_close */
 static void
 mysqlnd_ms_xa_store_mysql_dtor_conn_close(void ** data, zend_bool persistent TSRMLS_DC)
 {
@@ -1435,7 +1435,9 @@ mysqlnd_ms_xa_store_mysql_dtor_conn_close(void ** data, zend_bool persistent TSR
 	}
 	DBG_VOID_RETURN;
 }
-	/* {{{ mysqlnd_ms_xa_store_mysql_ctor */
+/* }}} */
+
+/* {{{ mysqlnd_ms_xa_store_mysql_ctor */
 enum_func_status
 mysqlnd_ms_xa_store_mysql_ctor(MYSQLND_MS_XA_STATE_STORE * store, zend_bool persistent TSRMLS_DC)
 {
