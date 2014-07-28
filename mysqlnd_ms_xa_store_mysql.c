@@ -682,7 +682,8 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 									MYSQLND_ERROR_INFO *error_info,
 									MYSQLND_MS_XA_ID * xa_id,
 									zval ** store_trx_id,
-									zval * failed_participant_list TSRMLS_DC)
+									zval * failed_participant_list,
+									zend_bool must_commit TSRMLS_DC)
 {
 	enum_func_status ret = FAIL, ok;
 	/* SELECT bqual, scheme, host, port, socket, user, password, state, health */
@@ -786,8 +787,10 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 			 our ID. If the client has disconnected (in PREPARE state)
 			 before finishing the XA trx, the server will rollback and forget.
 			 Should the server crash in PREPARE state, it may recover the
-			 trx but it must not be comitted to avoid problems with the
-			 binary log. Then, we must roll it back.
+			 trx but it SHOULD not be comitted to avoid problems with the
+			 binary log. Then, we SHOULD roll it back. However, if there is a single
+			 participant in XA_COMMIT state already, we MUST commit.
+
 			 The worst case scenario is that we have one fresh, active
 			 XA trx while the GC is run and tries to wrap up a failed
 			 XA trx of the same ID (gtrid + bqual). The GC may then interrupt
@@ -894,7 +897,13 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 						if (!strncasecmp(Z_STRVAL_PP(data), tmp, tmp_len - 1)) {
 						efree(tmp);
 						/* this is ours... */
-						sql_len = spprintf(&sql, 0, "XA ROLLBACK '%d'", xa_id->gtrid);
+						if (must_commit) {
+							DBG_INF("There is at least one participant in XA_COMMIT state, we MUST commit");
+							sql_len = spprintf(&sql, 0, "XA COMMIT '%d'", xa_id->gtrid);
+						} else {
+							DBG_INF("No participant reached XA_COMMIT before, we can and SHOULD rollback");
+							sql_len = spprintf(&sql, 0, "XA ROLLBACK '%d'", xa_id->gtrid);
+						}
 						ok = mysqlnd_query(store_data->conn, sql, sql_len);
 						efree(sql);
 						if (PASS != ok) {
@@ -1220,7 +1229,27 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 					goto gc_one_exit;
 				}
 				mysqlnd_free_result(res, TRUE);
-				ok = mysqlnd_ms_xa_store_gc_participants(store_data, error_info, xa_id, store_trx_id, failed_participant_list TSRMLS_CC);
+
+				/* Is there any participant in COMMIT state? If so, we must try to commit the others! */
+				sql_len = spprintf(&sql, 0, "SELECT state "
+									"FROM %s WHERE fk_store_trx_id = %d AND health != 'GC_DONE' AND state = 'XA_COMMIT' ",
+							store_data->participant_table,
+							Z_LVAL_PP(store_trx_id));
+				ok = mysqlnd_query(store_data->conn, sql, sql_len);
+				efree(sql);
+				if (PASS != ok) {
+					COPY_SQL_ERROR(store_data->conn, error_info);
+					goto gc_one_exit;
+				}
+
+				if (!(res = mysqlnd_store_result(store_data->conn))) {
+					COPY_SQL_ERROR(store_data->conn, error_info);
+					goto gc_one_exit;
+				}
+				num_rows = mysqlnd_num_rows(res);
+				mysqlnd_free_result(res, TRUE);
+
+				ok = mysqlnd_ms_xa_store_gc_participants(store_data, error_info, xa_id, store_trx_id, failed_participant_list, (num_rows > 0) ? TRUE : FALSE TSRMLS_CC);
 				zval_ptr_dtor(&failed_participant_list);
 			}
 			if (ok == PASS) {
