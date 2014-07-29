@@ -747,7 +747,7 @@ mysqlnd_ms_xa_monitor_direct_commit(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_C
 					proxy_conn_data->xa_trx->gc->store.data,
 					error_info,
 					&proxy_conn_data->xa_trx->id,
-					/* leave tje rest to the GC */
+					/* leave the rest to the GC - a crashed server may come back in XA prepared state and we will roll back thereafter */
 					TRUE TSRMLS_CC);
 			}
 

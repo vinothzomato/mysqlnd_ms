@@ -24,6 +24,7 @@ $settings = array(
 		'master' => array($emulated_master_host),
 		'slave' => array($emulated_slave_host),
 		'xa' => array(
+		    'rollback_on_close' => 0,
 			'state_store' => array(
 				'participant_localhost_ip' => '127.0.0.1',
 				'mysql' =>
@@ -34,7 +35,14 @@ $settings = array(
 					'db'   => $db,
 					'port' => $emulated_master_port,
 					'socket' => $emulated_master_socket,
-			))),
+				)
+			),
+			"garbage_collection" => array(
+				"max_retries" => 3,
+				"probability" => 0,
+				"max_transactions_per_run" => 100
+			),
+		),
 	),
 );
 
@@ -119,7 +127,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_xa_mysql_gc_one.ini
 		printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_xa_mysql_gc_one.ini'.\n");
 	}
 
-	if (0 && ($error = mst_mysqli_drop_xa_tables($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))) {
+	if (($error = mst_mysqli_drop_xa_tables($emulated_master_host_only, $user, $passwd, $db, $emulated_master_port, $emulated_master_socket))) {
 		printf("[clean] %s\n", $error);
 	}
 ?>
