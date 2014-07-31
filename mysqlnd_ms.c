@@ -49,6 +49,7 @@
 
 #include "fabric/mysqlnd_fabric.h"
 
+#include "mysqlnd_ms_conn_pool.h"
 
 
 #if PHP_VERSION_ID < 50400
@@ -223,6 +224,10 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		element->emulated_scheme = NULL;
 	}
 
+	if (element->pool_hash_key.len) {
+		smart_str_free(&(element->pool_hash_key));
+	}
+
 	mnd_pefree(element, element->persistent);
 	DBG_VOID_RETURN;
 }
@@ -328,13 +333,14 @@ mysqlnd_ms_init_connection_global_trx(struct st_mysqlnd_ms_global_trx_injection 
 enum_func_status
 mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn, const char * name_from_config,
 							   zend_bool is_master,
-							   const char * host, unsigned int port, zend_llist * conn_list,
+							   const char * host, unsigned int port,
 							   struct st_mysqlnd_ms_conn_credentials * cred,
 							   struct st_mysqlnd_ms_global_trx_injection * global_trx,
 							   zend_bool lazy_connections,
 							   zend_bool persistent TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
+
 	MS_DECLARE_AND_LOAD_CONN_DATA(proxy_conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms_connect_to_host_aux");
@@ -390,7 +396,22 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 			new_element->emulated_scheme_len = mysqlnd_ms_get_scheme_from_list_data(new_element, &new_element->emulated_scheme,
 																						persistent TSRMLS_CC);
 
-			zend_llist_add_element(conn_list, &new_element);
+			(*proxy_conn_data)->pool->init_pool_hash_key(new_element);
+			if (is_master) {
+				if (SUCCESS != (*proxy_conn_data)->pool->add_master((*proxy_conn_data)->pool, &new_element->pool_hash_key,
+													 new_element, conn->persistent TSRMLS_CC)) {
+					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " Failed to add master to connection pool");
+					ret = FAIL;
+				}
+			} else {
+				if (SUCCESS != (*proxy_conn_data)->pool->add_slave((*proxy_conn_data)->pool, &new_element->pool_hash_key,
+													new_element, conn->persistent TSRMLS_CC)) {
+					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+						MYSQLND_MS_ERROR_PREFIX " Failed to add slave to connection pool");
+					ret = FAIL;
+				}
+			}
 
 			{
 				MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
@@ -422,7 +443,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 /* {{{ mysqlnd_ms_connect_to_host */
 static enum_func_status
 mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * conn,
-						   zend_llist * conn_list, zend_bool is_master,
+						   zend_bool is_master,
 						   struct st_mysqlnd_ms_conn_credentials * master_credentials,
 						   struct st_mysqlnd_ms_global_trx_injection * master_global_trx,
 						   struct st_mysqlnd_ms_config_json_entry * main_section,
@@ -579,7 +600,7 @@ mysqlnd_ms_connect_to_host(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * c
 #endif
 			if (tmp_conn) {
 				enum_func_status status =
-					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, is_master, host, cred.port, conn_list, &cred,
+					mysqlnd_ms_connect_to_host_aux(proxy_conn, tmp_conn, current_subsection_name, is_master, host, cred.port, &cred,
 												   master_global_trx, lazy_connections, persistent TSRMLS_CC);
 				if (status != PASS) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Cannot connect to %s", host);
@@ -829,7 +850,7 @@ mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_sect
 	}
 
 	DBG_INF("-------------------- MASTER CONNECTIONS ------------------");
-	ret = mysqlnd_ms_connect_to_host(conn, conn, &conn_data->master_connections,
+	ret = mysqlnd_ms_connect_to_host(conn, conn,
 									 TRUE, &conn_data->cred,
 									 &conn_data->global_trx, the_section,
 									 MASTER_NAME, sizeof(MASTER_NAME) - 1,
@@ -846,7 +867,7 @@ mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_sect
 	SET_EMPTY_ERROR(MYSQLND_MS_ERROR_INFO(conn));
 
 	DBG_INF("-------------------- SLAVE CONNECTIONS ------------------");
-	ret = mysqlnd_ms_connect_to_host(conn, NULL, &conn_data->slave_connections,
+	ret = mysqlnd_ms_connect_to_host(conn, NULL,
 									 FALSE, &conn_data->cred,
 									 &conn_data->global_trx, the_section,
 									 SLAVE_NAME, sizeof(SLAVE_NAME) - 1,
@@ -860,11 +881,16 @@ mysqlnd_ms_init_without_fabric(struct st_mysqlnd_ms_config_json_entry * the_sect
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Error while connecting to the slaves");
 		DBG_RETURN(ret);
 	}
-	DBG_INF_FMT("master_list=%p count=%d", &conn_data->master_connections, zend_llist_count(&conn_data->master_connections));
-	DBG_INF_FMT("slave_list=%p count=%d", &conn_data->slave_connections, zend_llist_count(&conn_data->slave_connections));
+	DBG_INF_FMT("master_list=%p count=%d",
+				conn_data->pool->get_active_masters(conn_data->pool TSRMLS_CC),
+				zend_llist_count(conn_data->pool->get_active_masters(conn_data->pool TSRMLS_CC)));
+	DBG_INF_FMT("slave_list=%p count=%d",
+				conn_data->pool->get_active_slaves(conn_data->pool TSRMLS_CC),
+				zend_llist_count(conn_data->pool->get_active_slaves(conn_data->pool TSRMLS_CC)));
+
 	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(the_section, &MYSQLND_MS_ERROR_INFO(conn),
-																	 &conn_data->master_connections,
-																	 &conn_data->slave_connections,
+																	 conn_data->pool->get_active_masters(conn_data->pool TSRMLS_CC),
+																	 conn_data->pool->get_active_slaves(conn_data->pool TSRMLS_CC),
 																	 TRUE /* load all config persistently */ TSRMLS_CC);
 	if (!conn_data->stgy.filters) {
 		DBG_RETURN(FAIL);
@@ -925,9 +951,6 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 			}
 
 			if (!strncmp(current_subsection_name, SECT_FABRIC_HOSTS, current_subsection_name_len)) {
-				struct st_mysqlnd_ms_config_json_entry *host_section;
-				const char * const sects_to_check[] = {SECT_HOST_NAME, SECT_PORT_NAME};
-
 				if ((FALSE == mysqlnd_ms_config_json_section_is_list(subsection TSRMLS_CC))) {
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Section [" SECT_FABRIC_HOSTS "] is not a list. This is needed for MySQL Fabric");
@@ -1012,9 +1035,9 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	conn_data->fabric = fabric;
 
 	conn_data->stgy.filters = mysqlnd_ms_load_section_filters(group_section, &MYSQLND_MS_ERROR_INFO(conn),
-																	 &conn_data->master_connections,
-																	 &conn_data->slave_connections,
-																	 TRUE /* load all config persistently */ TSRMLS_CC);
+																	conn_data->pool->get_active_masters(conn_data->pool TSRMLS_CC),
+																	conn_data->pool->get_active_slaves(conn_data->pool TSRMLS_CC),
+																	TRUE /* load all config persistently */ TSRMLS_CC);
 	if (!conn_data->stgy.filters) {
 		return FAIL;
 	}
@@ -1090,8 +1113,18 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			goto end_connect;
 		}
 
+		/* Initialize connection pool */
+		(*conn_data)->pool = mysqlnd_ms_pool_ctor((llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent TSRMLS_CC);
+		if (!(*conn_data)->pool) {
+			MYSQLND_MS_WARN_OOM();
+			ret = FALSE;
+			goto end_connect;
+		}
+
+		/* TODO POOL
 		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
 		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
+		*/
 
 		(*conn_data)->cred.user = user? mnd_pestrdup(user, conn->persistent) : NULL;
 		(*conn_data)->cred.passwd_len = passwd_len;
@@ -1402,8 +1435,9 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 		}
 #endif
 		DBG_INF_FMT("cleaning the llists");
-		zend_llist_clean(&(*data_pp)->master_connections);
-		zend_llist_clean(&(*data_pp)->slave_connections);
+		if ((*data_pp)->pool) {
+			mysqlnd_ms_pool_dtor((*data_pp)->pool TSRMLS_CC);
+		}
 
 		DBG_INF_FMT("cleaning the section filters");
 		if ((*data_pp)->stgy.filters) {
@@ -1528,7 +1562,7 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND_CONN_DATA * const proxy_conn,
 #endif
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
 			if (el_conn_data && *el_conn_data) {
@@ -1650,7 +1684,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND_CONN_DATA * const proxy_conn, con
 	if (conn_data && *conn_data) {
 		MYSQLND_MS_LIST_DATA * el;
 		array_init(ret);
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
 			zval * row = NULL;
@@ -1706,7 +1740,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(select_db)(proxy_conn, db, db_len TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
@@ -1783,7 +1817,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(proxy_conn, csname TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
 
@@ -1869,7 +1903,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(proxy_conn, option TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
@@ -1937,7 +1971,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND_CONN_DATA * const proxy_co
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(proxy_conn, option, value TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
 
@@ -2149,7 +2183,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		 connect options through the transient error retry logic. in sum:
 		 set_autocommit() handled transient errors if connected, otherwise not.
 		*/
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 				MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(el->conn, mysqlnd_ms_plugin_id);
@@ -2176,7 +2210,7 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 			detection status. The user is supposed to handle the failed autocommit mode switching
 			function call.
 			*/
-			BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+			BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 			{
 				if (CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
 					MYSQLND_MS_CONN_DATA ** el_conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(el->conn, mysqlnd_ms_plugin_id);
@@ -2756,7 +2790,7 @@ MYSQLND_METHOD(mysqlnd_ms, ssl_set)(MYSQLND_CONN_DATA * const proxy_conn, const 
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(ssl_set)(proxy_conn, key, cert, ca, capath, cipher TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
-		BEGIN_ITERATE_OVER_SERVER_LISTS(el, &(*conn_data)->master_connections, &(*conn_data)->slave_connections);
+		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(ssl_set)(el->conn, key, cert, ca, capath, cipher TSRMLS_CC)) {
 				ret = FAIL;
