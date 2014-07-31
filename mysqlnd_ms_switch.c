@@ -52,6 +52,8 @@
 #include "mysqlnd_ms_filter_qos.h"
 #include "mysqlnd_ms_filter_groups.h"
 
+#include "mysqlnd_ms_conn_pool.h"
+
 #include "mysqlnd_ms_switch.h"
 
 typedef MYSQLND_MS_FILTER_DATA * (*func_filter_ctor)(struct st_mysqlnd_ms_config_json_entry * section,
@@ -619,8 +621,8 @@ MYSQLND_CONN_DATA *
 mysqlnd_ms_pick_first_master_or_slave(const MYSQLND_CONN_DATA * const conn TSRMLS_DC)
 {
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
-	zend_llist * master_list = &(*conn_data)->master_connections;
-	zend_llist * slave_list = &(*conn_data)->slave_connections;
+	zend_llist * master_list = (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC);
+	zend_llist * slave_list = (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC);
 	struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 	MYSQLND_MS_LIST_DATA * el;
 	DBG_ENTER("mysqlnd_ms_pick_first_master_or_slave");
@@ -680,8 +682,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 		zend_bool allow_master_for_slave = FALSE;
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		zend_llist * filters = stgy->filters;
-		zend_llist * master_list = &(*conn_data)->master_connections;
-		zend_llist * slave_list = &(*conn_data)->slave_connections;
+		zend_llist * master_list = (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC);
+		zend_llist * slave_list = (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC);
 		zend_llist * selected_masters = NULL, * selected_slaves = NULL;
 		zend_llist * output_masters = NULL, * output_slaves = NULL;
 		MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;

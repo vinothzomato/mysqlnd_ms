@@ -88,7 +88,7 @@ extern struct st_mysqlnd_conn_methods * ms_orig_mysqlnd_conn_methods;
 		(masters), zend_llist_count((zend_llist *) (masters)), (slaves), zend_llist_count((zend_llist *) (slaves))); \
 	{ \
 		MYSQLND_MS_LIST_DATA ** el_pp;\
-		zend_llist * lists[] = {NULL, (masters), (zend_llist *) (slaves), NULL}; \
+		zend_llist * lists[] = {NULL, (zend_llist * ) (masters), (zend_llist *) (slaves), NULL}; \
 		zend_llist ** list = lists; \
 		while (*++list) { \
 			zend_llist_position	pos; \
@@ -424,6 +424,10 @@ typedef enum mysqlnd_ms_collected_stats
 
 typedef struct st_mysqlnd_ms_list_data
 {
+	/* hash_key should be the only case where we break
+	 * encapsulation between core and pool */
+	smart_str pool_hash_key;
+
 	char * name_from_config;
 	MYSQLND_CONN_DATA * conn;
 	char * host;
@@ -635,7 +639,8 @@ typedef struct st_mysqlnd_ms_xa_trx_state_store {
 	enum_func_status (*garbage_collect_one)(void * data, MYSQLND_ERROR_INFO *error_info, MYSQLND_MS_XA_ID * xa_id,
 											unsigned int gc_max_retries TSRMLS_DC);
 	/* GC anything you can find... */
-	enum_func_status (*garbage_collect_all)(void * data, MYSQLND_ERROR_INFO *error_info, unsigned int gc_max_retries, unsigned int gc_max_trx_per_run TSRMLS_DC);
+	enum_func_status (*garbage_collect_all)(void * data, MYSQLND_ERROR_INFO *error_info, unsigned int gc_max_retries,
+											unsigned int gc_max_trx_per_run TSRMLS_DC);
 	/* Destructor */
 	void (*dtor)(void ** data, zend_bool persistent TSRMLS_DC);
 	void (*dtor_conn_close)(void ** data, zend_bool persistent TSRMLS_DC);
@@ -681,8 +686,11 @@ typedef struct st_mysqlnd_ms_conn_data
 	zend_bool skip_ms_calls;
 	MYSQLND_CONN_DATA * proxy_conn;
 	char * connect_host;
+	/* TODO POOL - remove
 	zend_llist master_connections;
 	zend_llist slave_connections;
+	*/
+	struct st_mysqlnd_pool * pool;
 
 	const MYSQLND_CHARSET * server_charset;
 

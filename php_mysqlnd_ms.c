@@ -38,6 +38,7 @@
 #include "mysqlnd_ms_switch.h"
 #include "fabric/mysqlnd_fabric.h"
 #include "mysqlnd_ms_xa.h"
+#include "mysqlnd_ms_conn_pool.h"
 
 #ifndef mnd_sprintf
 #define mnd_sprintf spprintf
@@ -708,8 +709,9 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
 
-	zend_llist_clean(&(*conn_data)->master_connections);
-	zend_llist_clean(&(*conn_data)->slave_connections);
+	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
+	}
 
 	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint);
 	if (mysqlnd_fabric_get_error_no(fabric) > 0) {
@@ -737,9 +739,13 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
 #endif
 		if (servers->mode == READ_WRITE) {
-			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
+			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,
+										   servers->hostname, servers->port, &(*conn_data)->cred, &(*conn_data)->global_trx,
+										   TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
-			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
+			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE,
+										   servers->hostname, servers->port,  &(*conn_data)->cred, &(*conn_data)->global_trx,
+										   TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		}
 
 		conn->m->dtor(conn TSRMLS_CC);
@@ -866,8 +872,10 @@ static PHP_FUNCTION(mysqlnd_ms_dump_servers)
 	array_init(masters);
 	array_init(slaves);
 
-	zend_llist_apply_with_argument(&(*conn_data)->master_connections, mysqlnd_ms_add_server_to_array, masters TSRMLS_CC);
-	zend_llist_apply_with_argument(&(*conn_data)->slave_connections, mysqlnd_ms_add_server_to_array, slaves TSRMLS_CC);
+	zend_llist_apply_with_argument((*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC),
+								   mysqlnd_ms_add_server_to_array, masters TSRMLS_CC);
+	zend_llist_apply_with_argument((*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC),
+								   mysqlnd_ms_add_server_to_array, slaves TSRMLS_CC);
 
 	array_init(return_value);
 	add_assoc_zval(return_value, "masters", masters);
@@ -965,6 +973,8 @@ static PHP_FUNCTION(mysqlnd_ms_debug_set_fabric_raw_dump_data_xml)
 
 }
 /* }}} */
+
+
 /* {{{ proto long mysqlnd_ms_debug_set_fabric_raw_dump_data_dangerous(mixed connection, string data)
    Set raw binary dump data for Fabric. Be careful data isn't really checked.
    The data has to match the architecture of the system (sizes, endianess, padding, ...)
@@ -1155,17 +1165,19 @@ static PHP_FUNCTION(mysqlnd_ms_xa_rollback)
 ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_xa_gc, 0, 0, 1)
 	ZEND_ARG_INFO(0, connection)
     ZEND_ARG_INFO(0, gtrid)
+	ZEND_ARG_INFO(0, ignore_max_retries)
 ZEND_END_ARG_INFO()
 
-/* {{{ proto book mysqlnd_ms_xa_gc(mixed connection, [int gtrid]) */
+/* {{{ proto book mysqlnd_ms_xa_gc(mixed connection, [int gtrid, bool ignore_max_retries]) */
 static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 {
 	zval *conn_zv;
 	double gtrid = 0;
+	zend_bool ignore_max_retries = FALSE;
 	MYSQLND *conn;
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|d", &conn_zv, &gtrid) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|db", &conn_zv, &gtrid, &ignore_max_retries) == FAILURE) {
 		return;
 	}
 	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
@@ -1180,7 +1192,7 @@ static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 
 	if (1 == ZEND_NUM_ARGS()) {
 		/* TODO XA: gc all */
-		if (PASS != mysqlnd_ms_xa_gc_all(conn->data, *conn_data TSRMLS_CC)) {
+		if (PASS != mysqlnd_ms_xa_gc_all(conn->data, *conn_data, ignore_max_retries TSRMLS_CC)) {
 			RETURN_FALSE;
 		}
 	} else {
@@ -1190,7 +1202,7 @@ static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 			RETURN_FALSE;
 		}
 
-		if (PASS != mysqlnd_ms_xa_gc_one(conn->data, *conn_data, (unsigned int)gtrid TSRMLS_CC)) {
+		if (PASS != mysqlnd_ms_xa_gc_one(conn->data, *conn_data, (unsigned int)gtrid, ignore_max_retries TSRMLS_CC)) {
 			RETURN_FALSE;
 		}
 	}

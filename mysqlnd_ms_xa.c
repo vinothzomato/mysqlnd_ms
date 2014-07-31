@@ -919,11 +919,13 @@ end_direct_rollback:
  Enforce garbage collection run for a particular trx
  */
 enum_func_status
-mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * proxy_conn_data, unsigned int gtrid TSRMLS_DC) {
+mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * proxy_conn_data,
+					 unsigned int gtrid, zend_bool ignore_max_retries TSRMLS_DC) {
 	enum_func_status ret = PASS;
 	MYSQLND_ERROR_INFO * error_info = MYSQLND_MS_XA_PROXY_ERROR_INFO(proxy_conn, proxy_conn_data);
 	MYSQLND_MS_XA_ID id;
 	DBG_ENTER("mysqlnd_ms_xa_gc_one");
+	DBG_INF_FMT("ignore_max_retries=%d", ignore_max_retries);
 
 	SET_EMPTY_ERROR(*error_info);
 
@@ -940,7 +942,8 @@ mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * prox
 		ret = proxy_conn_data->xa_trx->gc->store.garbage_collect_one(
 			proxy_conn_data->xa_trx->gc->store.data, error_info,
 			&id,
-			proxy_conn_data->xa_trx->gc->gc_max_retries TSRMLS_CC);
+			((ignore_max_retries) ? 0 : proxy_conn_data->xa_trx->gc->gc_max_retries)
+			TSRMLS_CC);
 	}
 
 	DBG_RETURN(ret);
@@ -951,10 +954,12 @@ mysqlnd_ms_xa_gc_one(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * prox
  Enforce garbage collection run for any XA trx
  */
 enum_func_status
-mysqlnd_ms_xa_gc_all(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * proxy_conn_data TSRMLS_DC) {
+mysqlnd_ms_xa_gc_all(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * proxy_conn_data,
+					 zend_bool ignore_max_retries TSRMLS_DC) {
 	enum_func_status ret = PASS;
 	MYSQLND_ERROR_INFO * error_info = MYSQLND_MS_XA_PROXY_ERROR_INFO(proxy_conn, proxy_conn_data);
 	DBG_ENTER("mysqlnd_ms_xa_gc_all");
+	DBG_INF_FMT("ignore_max_retries=%d", ignore_max_retries);
 
 	SET_EMPTY_ERROR(*error_info);
 
@@ -967,7 +972,7 @@ mysqlnd_ms_xa_gc_all(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_MS_CONN_DATA * prox
 	if (proxy_conn_data->xa_trx->gc &&  proxy_conn_data->xa_trx->gc->store.garbage_collect_all) {
 		ret = proxy_conn_data->xa_trx->gc->store.garbage_collect_all(
 			proxy_conn_data->xa_trx->gc->store.data, error_info,
-			proxy_conn_data->xa_trx->gc->gc_max_retries,
+			(ignore_max_retries) ? 0 : proxy_conn_data->xa_trx->gc->gc_max_retries,
 			proxy_conn_data->xa_trx->gc->gc_max_trx_per_run TSRMLS_CC);
 	}
 
