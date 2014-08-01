@@ -719,7 +719,6 @@ typedef struct st_mysqlnd_ms_conn_data
 		zend_bool in_xa_transaction;
 
 		MYSQLND_CONN_DATA * last_used_conn;
-		MYSQLND_CONN_DATA * random_once_slave;
 
 		zend_llist * filters;
 
