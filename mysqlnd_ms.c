@@ -1071,6 +1071,10 @@ static void mysqlnd_ms_filter_notify_pool_update(MYSQLND_MS_POOL * pool, void * 
 				}
 			}
 
+			/* After switching from one shard group to another,
+			 * there's no valid last used connection */
+			stgy->last_used_conn = NULL;
+
 			/* TODO: last used connection */
 		}
 	}

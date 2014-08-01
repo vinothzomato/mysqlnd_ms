@@ -1230,6 +1230,9 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 	MYSQLND_MS_LIST_DATA * data;
 	zend_bool fool = FALSE;
 	void * listener_data = &fool;
+	smart_str hash_key = {0};
+	smart_str hash_key_slave0 = {0};
+	smart_str hash_key_slave1 = {0};
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
 		return;
@@ -1247,73 +1250,107 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 	php_printf("swim listener pool=%p data=%p\n", (*conn_data)->pool, listener_data);
 	(*conn_data)->pool->register_replace_listener((*conn_data)->pool, my_pool_replace_listener, listener_data TSRMLS_CC);
 
-	{
-		smart_str hash_key = {0};
-		(*conn_data)->pool->get_conn_hash_key(&hash_key,
-											"master_0",
-											"127.0.0.1", "root",
-											"", 0,
-											0, "/tmp/mysql574m14.sock",
-											"test", strlen("test"),  131072,
-											FALSE);
+	(*conn_data)->pool->get_conn_hash_key(&hash_key_slave0,
+										"slave_0",
+										"127.0.0.1", "root",
+										"", 0,
+										3311, "/tmp/mysql574m14.sock",
+										"test", strlen("test"),  131072,
+										FALSE);
+
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
+		&data, &is_master, &is_active TSRMLS_CC)))) {
+		php_printf("swim slave0 exists, is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown slave0 hash_key %s\n", hash_key_slave0.c);
+	}
+
+	(*conn_data)->pool->get_conn_hash_key(&hash_key,
+										"master_0",
+										"127.0.0.1", "root",
+										"", 0,
+										3310, "/tmp/mysql574m14.sock",
+										"test", strlen("test"),  131072,
+										FALSE);
 
 
-		php_printf("swim key=%s(%d, %p)\n", hash_key.c, hash_key.len, hash_key.c);
-		if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
+	php_printf("swim master key=%s(%d, %p)\n", hash_key.c, hash_key.len, hash_key.c);
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
 				&data, &is_master, &is_active TSRMLS_CC)))) {
-			php_printf("is_master=%d is_active=%d\n", is_master, is_active);
-		} else {
-			php_printf("unknown hash_key\n");
-		}
-		smart_str_free(&hash_key);
+		php_printf("is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown master hash_key %s\n");
 	}
 
 	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
-
 	php_printf("swim pool flushed\n");
+
 	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 	php_printf("swim pool flushed\n");
 
-	{
-		smart_str hash_key = {0};
-		(*conn_data)->pool->get_conn_hash_key(&hash_key,
-											"master_0",
-											"127.0.0.1", "root",
-											"", 0,
-											0, "/tmp/mysql574m14.sock",
-											"test", strlen("test"),  131072,
-											FALSE);
-		php_printf("swim key=%s(%d, %p)\n", hash_key.c, hash_key.len, hash_key.c);
-
-		if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
-			&data, &is_master, &is_active TSRMLS_CC)))) {
-			php_printf("swim exists, is_master=%d is_active=%d\n", is_master, is_active);
-		} else {
-			php_printf("unknown hash_key\n");
-		}
-
-
-		if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
-			php_printf("swim reactivated\n");
-		}
-
-		if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
-			&data, &is_master, &is_active TSRMLS_CC)))) {
-			php_printf("swim exists, is_master=%d is_active=%d\n", is_master, is_active);
-		} else {
-			php_printf("unknown hash_key\n");
-		}
-
-		smart_str_free(&hash_key);
-
-		/* Done with our changes, notify the world... */
-		(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
-
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
+		&data, &is_master, &is_active TSRMLS_CC)))) {
+		php_printf("swim slave0 exists, is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown slave0 hash_key %s\n", hash_key_slave0.c);
 	}
+
+	(*conn_data)->pool->get_conn_hash_key(&hash_key_slave1,
+										"slave_1",
+										"127.0.0.1", "root",
+										"", 0,
+										3312, "/tmp/mysql574m14.sock",
+										"test", strlen("test"),  131072,
+										FALSE);
+
+
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
+		&data, &is_master, &is_active TSRMLS_CC)))) {
+		php_printf("swim exists, is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown hash_key\n");
+	}
+
+	if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
+		php_printf("swim master reactivated\n");
+	}
+
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,	&data, &is_master, &is_active TSRMLS_CC)))) {
+		php_printf("swim master exists, is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown master hash_key\n");
+	}
+
+	if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave0, FALSE TSRMLS_CC))) {
+		php_printf("swim slave0 reactivated\n");
+	}
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
+			&data, &is_master, &is_active TSRMLS_CC)))) {
+		php_printf("swim slave0 exists, is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown slave0 hash_key\n");
+	}
+
+	if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave1, FALSE TSRMLS_CC))) {
+		php_printf("swim slave1 reactivated\n");
+	}
+	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave1,
+		&data, &is_master, &is_active TSRMLS_CC)))) {
+		php_printf("swim slave1 exists, is_master=%d is_active=%d\n", is_master, is_active);
+	} else {
+		php_printf("unknown slave1 hash_key\n");
+	}
+
+	smart_str_free(&hash_key);
+	smart_str_free(&hash_key_slave0);
+	smart_str_free(&hash_key_slave1);
+
+	/* Done with our changes, notify the world... */
+	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
 
 	RETURN_TRUE;
 }

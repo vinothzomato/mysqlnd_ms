@@ -119,9 +119,8 @@ pool_get_conn_hash_key(smart_str * hash_key,
 	}
 	if (socket) {
 		smart_str_appendl(hash_key, socket, strlen(socket));
-	} else {
-		smart_str_append_unsigned(hash_key, port);
 	}
+	smart_str_append_unsigned(hash_key, port);
 	if (db_len) {
 		smart_str_appendl(hash_key, db, db_len);
 	}
@@ -237,7 +236,7 @@ pool_connection_exists(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 		*is_active = (*pool_element)->active;
 		*data = (*pool_element)->data;
 		ret = TRUE;
-	} else if (SUCCESS == zend_hash_find(&(pool->data.slave_list), hash_key->c, hash_key->len - 1, (void**)&pool_element)) {
+	} else if (SUCCESS == zend_hash_find(&(pool->data.slave_list), hash_key->c, hash_key->len, (void**)&pool_element)) {
 		*is_master = FALSE;
 		*is_active = (*pool_element)->active;
 		*data = (*pool_element)->data;
@@ -261,7 +260,7 @@ pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bo
 	ht = (is_master) ? &(pool->data.master_list) : &(pool->data.slave_list);
 	list = (is_master) ? &(pool->data.active_master_list) : &(pool->data.active_slave_list);
 
-	if (SUCCESS == zend_hash_find(&(pool->data.master_list), hash_key->c, hash_key->len, (void**)&pool_element)) {
+	if (SUCCESS == (ret = zend_hash_find(ht, hash_key->c, hash_key->len, (void**)&pool_element))) {
 
 		(*pool_element)->active = TRUE;
 		(*pool_element)->activation_counter++;
