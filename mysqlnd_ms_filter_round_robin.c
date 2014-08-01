@@ -76,13 +76,22 @@ mysqlnd_ms_filter_rr_reset_current_weight(void * data TSRMLS_DC)
 /* }}} */
 
 /* {{{ rr_filter_conn_pool_replaced */
-void rr_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * data, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+void rr_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * f_data, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
 {
+	MYSQLND_MS_FILTER_RR_DATA * filter = (MYSQLND_MS_FILTER_RR_DATA *) f_data;
+
 	DBG_ENTER("rr_filter_conn_pool_replaced");
 	/* Must be Fabric: weights? */
-	mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
-								E_WARNING TSRMLS_CC,
-								MYSQLND_MS_ERROR_PREFIX " Replacing the connection pool at runtime is not supported by the '%s' filter.", PICK_RROBIN);
+	if (zend_hash_num_elements(&filter->lb_weight)) {
+		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+									E_WARNING TSRMLS_CC,
+									MYSQLND_MS_ERROR_PREFIX " Replacing the connection pool at runtime is not supported by the '%s' filter: server weights can't be used.", PICK_RROBIN);
+	} else {
+		DBG_INF("Resetting context");
+		zend_hash_clean(&filter->master_context);
+		zend_hash_clean(&filter->slave_context);
+	}
+
 	DBG_VOID_RETURN;
 }
 

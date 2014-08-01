@@ -67,7 +67,7 @@ random_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * f_data, zend
 	if (zend_hash_num_elements(&filter->lb_weight)) {
 		mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
 								E_ERROR TSRMLS_CC,
-								MYSQLND_MS_ERROR_PREFIX " Replacing the connection pool at runtime is not supported by the '%s' filter: serer weights can't be used.", PICK_RANDOM);
+								MYSQLND_MS_ERROR_PREFIX " Replacing the connection pool at runtime is not supported by the '%s' filter: server weights can't be used.", PICK_RANDOM);
 	} else {
 		DBG_INF("Resetting sticky context");
 		zend_hash_clean(&filter->sticky.master_context);
