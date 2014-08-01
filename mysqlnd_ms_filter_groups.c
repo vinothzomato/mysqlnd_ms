@@ -77,6 +77,19 @@ mysqlnd_ms_filter_groups_ht_dtor(void * pDest)
 /* }}} */
 
 
+/* {{{ mysqlnd_ms_groups_filter_conn_pool_replaced */
+static void
+groups_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * data, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	DBG_ENTER("mysqlnd_ms_groups_filter_conn_pool_replaced");
+	/* Must be Fabric: filter using master and slave context for something...  */
+	mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+								E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Replacing the connection pool at runtime is not supported by the '%s' filter.", PICK_GROUPS);
+	DBG_VOID_RETURN;
+}
+/* }}} */
+
 /* {{{ mysqlnd_ms_groups_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
 mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
@@ -90,7 +103,10 @@ mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 	if (section) {
 		ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_GROUPS_DATA), persistent);
 		if (ret) {
+
 			ret->parent.filter_dtor = groups_filter_dtor;
+			ret->parent.filter_conn_pool_replaced = groups_filter_conn_pool_replaced;
+
 			zend_hash_init(&ret->groups, 4, NULL/*hash*/, mysqlnd_ms_filter_groups_ht_dtor, persistent);
 
 			if ((TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&

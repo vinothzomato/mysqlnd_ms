@@ -56,6 +56,8 @@ typedef struct st_mysqlnd_pool {
 		/* Dtor from MS for master and slave list entries */
 		llist_dtor_func_t ms_list_data_dtor;
 
+		zend_llist replace_listener;
+
 		/* _All_ connection (currently used and inactive) - list of POOL_ENTRY */
 		HashTable master_list;
 		HashTable slave_list;
@@ -97,9 +99,35 @@ typedef struct st_mysqlnd_pool {
 	enum_func_status (*add_master)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
 								   MYSQLND_MS_LIST_DATA * data, zend_bool persistent TSRMLS_DC);
 
-	/* Test whether a connection is already in the pool */
+	/* Test whether a connection is already in the pool
+	 * data, is_master, is_active are out parameters
+	 */
 	zend_bool (*connection_exists)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
+								  MYSQLND_MS_LIST_DATA **data,
 								  zend_bool * is_master, zend_bool * is_active TSRMLS_DC);
+
+	/* Reactivate a connection: move it from the inactive to the active list
+	 *
+	 * Assume you are replacing the active list frequently, e.g. because the user
+	 * switches from Fabric shard group A to B and back all the time. To
+	 * replace the currently active server list, say A's, with a new one, say B's,
+	 * do flush(). Then, before opening new connections to B, use connection_exists()
+	 * to see whether the pool already has a connection open to the desired server.
+	 * If so, call connection_reactivate() to put it from the pool into the active
+	 * list again. add_*() will fail for hash_keys that already exist. Don't open
+	 * new connections for the same key...
+	 * Note: roles (master/slave) cannot change - saw no need, change if you like...
+	 */
+	enum_func_status (*connection_reactivate)(struct st_mysqlnd_pool * pool,
+									  smart_str * hash_key, zend_bool is_master TSRMLS_DC);
+
+
+	enum_func_status (*register_replace_listener)(struct st_mysqlnd_pool * pool,
+												void (*f)(struct st_mysqlnd_pool * pool, void * data TSRMLS_DC),
+												void * data TSRMLS_DC);
+
+	enum_func_status (*notify_replace_listener)(struct st_mysqlnd_pool * pool TSRMLS_DC);
+
 
 	/* Get list of active connections. Active connections belong to the
 	 * currently selected cluster (e.g. shard group).
@@ -114,12 +142,20 @@ typedef struct st_mysqlnd_pool {
 	enum_func_status (*free_reference)(struct st_mysqlnd_pool * pool,
 										 MYSQLND_MS_CONN_DATA * conn TSRMLS_DC);
 
+	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);
+
+
 } MYSQLND_MS_POOL;
 
 
-MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend_bool persistent TSRMLS_DC);
-void mysqlnd_ms_pool_dtor(MYSQLND_MS_POOL * pool TSRMLS_DC);
+typedef void (*func_pool_replace_listener)(MYSQLND_MS_POOL * pool, void * data TSRMLS_DC);
+typedef struct st_mysqlnd_pool_listener {
+	func_pool_replace_listener listener;
+	void * data;
+} MYSQLND_MS_POOL_LISTENER;
 
+
+MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend_bool persistent TSRMLS_DC);
 
 typedef struct st_mysqlnd_pool_entry {
 	/* This is the data we keep on behalf of the MS core */

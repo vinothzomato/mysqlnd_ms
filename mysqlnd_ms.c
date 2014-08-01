@@ -1046,6 +1046,37 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	return SUCCESS;
 }
 
+/* FIXME Pool update callback */
+static void mysqlnd_ms_filter_notify_pool_update(MYSQLND_MS_POOL * pool, void * data TSRMLS_DC) {
+	DBG_ENTER("mysqlnd_ms_filter_notify_pool_update");
+	if (data) {
+		MYSQLND_CONN_DATA * conn = (MYSQLND_CONN_DATA *)data;
+		MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, conn);
+		DBG_INF_FMT("conn_data=%p *conn_data=%p", conn_data, conn_data? *conn_data : NULL);
+		if (conn_data && *conn_data) {
+			struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
+			zend_llist * filters = stgy->filters;
+			MYSQLND_MS_FILTER_DATA * filter, ** filter_pp;
+			zend_llist_position	pos;
+
+			for (filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_first_ex(filters, &pos);
+				filter_pp && (filter = *filter_pp);
+				filter_pp = (MYSQLND_MS_FILTER_DATA **) zend_llist_get_next_ex(filters, &pos))
+			{
+				if (filter->filter_conn_pool_replaced) {
+					filter->filter_conn_pool_replaced(filter,
+													  pool->get_active_masters(pool TSRMLS_CC),
+													  pool->get_active_slaves(pool TSRMLS_CC),
+													  &MYSQLND_MS_ERROR_INFO(conn), conn->persistent TSRMLS_CC);
+				}
+			}
+
+			/* TODO: last used connection */
+		}
+	}
+	DBG_VOID_RETURN;
+}
+
 
 /* {{{ mysqlnd_ms::connect */
 static enum_func_status
@@ -1120,11 +1151,8 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 			ret = FALSE;
 			goto end_connect;
 		}
-
-		/* TODO POOL
-		zend_llist_init(&(*conn_data)->master_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-		zend_llist_init(&(*conn_data)->slave_connections, sizeof(MYSQLND_MS_LIST_DATA *), (llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent);
-		*/
+		/* FIXME could be too early, prior to filter setup may cause issues */
+		(*conn_data)->pool->register_replace_listener((*conn_data)->pool, mysqlnd_ms_filter_notify_pool_update, (void *)conn TSRMLS_CC);
 
 		(*conn_data)->cred.user = user? mnd_pestrdup(user, conn->persistent) : NULL;
 		(*conn_data)->cred.passwd_len = passwd_len;
@@ -1436,7 +1464,7 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 #endif
 		DBG_INF_FMT("cleaning the llists");
 		if ((*data_pp)->pool) {
-			mysqlnd_ms_pool_dtor((*data_pp)->pool TSRMLS_CC);
+			(*data_pp)->pool->dtor((*data_pp)->pool TSRMLS_CC);
 		}
 
 		DBG_INF_FMT("cleaning the section filters");

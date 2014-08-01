@@ -57,6 +57,16 @@ table_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 }
 /* }}} */
 
+/* {{{ table_filter_conn_pool_replaced */
+void table_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * data, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	DBG_ENTER("table_filter_conn_pool_replaced");
+	/* Must be Fabric: weights? */
+	mysqlnd_ms_client_n_php_error(error_info, CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE,
+								E_WARNING TSRMLS_CC,
+								MYSQLND_MS_ERROR_PREFIX " Replacing the connection pool at runtime is not supported by the '%s' filter.", PICK_TABLE);
+	DBG_VOID_RETURN;
+}
 
 /* {{{ mysqlnd_ms_table_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
@@ -68,7 +78,10 @@ mysqlnd_ms_table_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, z
 	ret = mnd_pecalloc(1, sizeof(MYSQLND_MS_FILTER_TABLE_DATA), persistent);
 	if (ret) {
 		do {
+
 			ret->parent.filter_dtor = table_filter_dtor;
+			ret->parent.filter_conn_pool_replaced = table_filter_conn_pool_replaced;
+
 			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
 			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
 			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, error_info, persistent TSRMLS_CC)) {

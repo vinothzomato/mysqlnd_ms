@@ -37,7 +37,6 @@ mysqlnd_ms_choose_connection_table_filter(void * f_data, const char * query, siz
 									 TSRMLS_DC);
 void mysqlnd_ms_filter_ht_dtor(void * data);
 
-
 MYSQLND_MS_FILTER_DATA * mysqlnd_ms_table_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section,
 													  zend_llist * master_connections, zend_llist * slave_connections,
 													  MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);

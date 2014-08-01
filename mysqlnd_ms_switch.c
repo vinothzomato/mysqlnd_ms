@@ -667,7 +667,6 @@ mysqlnd_ms_select_servers_all(zend_llist * master_list, zend_llist * slave_list,
 }
 /* }}} */
 
-
 /* {{{ mysqlnd_ms_pick_server_ex */
 MYSQLND_CONN_DATA *
 mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * query_len, zend_bool * free_query, zend_bool * switched_servers TSRMLS_DC)

@@ -74,6 +74,12 @@ user_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 }
 /* }}} */
 
+/* {{{ user_filter_conn_pool_replaced */
+void user_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * data, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	DBG_ENTER("user_filter_conn_pool_replaced");
+	DBG_VOID_RETURN;
+}
 
 /* {{{ mysqlnd_ms_user_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
@@ -90,6 +96,7 @@ mysqlnd_ms_user_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, ze
 			char * callback;
 
 			ret->parent.filter_dtor = user_filter_dtor;
+			ret->parent.filter_conn_pool_replaced = user_filter_conn_pool_replaced;
 
 			callback = mysqlnd_ms_config_json_string_from_section(section, SECT_USER_CALLBACK, sizeof(SECT_USER_CALLBACK) - 1, 0,
 																  &value_exists, &is_list_value TSRMLS_CC);

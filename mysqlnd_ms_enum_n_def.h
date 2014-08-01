@@ -448,6 +448,7 @@ typedef struct st_mysqlnd_ms_list_data
 typedef struct st_mysqlnd_ms_filter_data
 {
 	void (*filter_dtor)(struct st_mysqlnd_ms_filter_data * TSRMLS_DC);
+	void (*filter_conn_pool_replaced)(struct st_mysqlnd_ms_filter_data *, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 	char * name;
 	size_t name_len;
 	enum mysqlnd_ms_server_pick_strategy pick_type;
@@ -686,10 +687,7 @@ typedef struct st_mysqlnd_ms_conn_data
 	zend_bool skip_ms_calls;
 	MYSQLND_CONN_DATA * proxy_conn;
 	char * connect_host;
-	/* TODO POOL - remove
-	zend_llist master_connections;
-	zend_llist slave_connections;
-	*/
+
 	struct st_mysqlnd_pool * pool;
 
 	const MYSQLND_CHARSET * server_charset;

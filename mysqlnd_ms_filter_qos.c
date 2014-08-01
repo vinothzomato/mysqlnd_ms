@@ -59,6 +59,13 @@ qos_filter_dtor(struct st_mysqlnd_ms_filter_data * pDest TSRMLS_DC)
 }
 /* }}} */
 
+/* {{{ qos_filter_conn_pool_replaced */
+static void
+qos_filter_conn_pool_replaced(struct st_mysqlnd_ms_filter_data * data, zend_llist * master_connections, zend_llist * slave_connections, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC)
+{
+	DBG_ENTER("qos_filter_conn_pool_replaced");
+	DBG_VOID_RETURN;
+}
 
 /* {{{ mysqlnd_ms_qos_filter_ctor */
 MYSQLND_MS_FILTER_DATA *
@@ -75,6 +82,8 @@ mysqlnd_ms_qos_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zen
 			char * service;
 
 			ret->parent.filter_dtor = qos_filter_dtor;
+			ret->parent.filter_conn_pool_replaced = qos_filter_conn_pool_replaced;
+
 			ret->consistency = CONSISTENCY_LAST_ENUM_ENTRY;
 
 			service = mysqlnd_ms_config_json_string_from_section(section, SECT_QOS_STRONG, sizeof(SECT_QOS_STRONG) - 1, 0,

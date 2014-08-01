@@ -1211,6 +1211,114 @@ static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 }
 /* }}} */
 
+#ifdef ULF_0
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_swim, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
+ZEND_END_ARG_INFO()
+
+static void my_pool_replace_listener(MYSQLND_MS_POOL * pool, void * data TSRMLS_DC) {
+	php_printf("swim replace listener pool=%p, data=%p\n", pool, data);
+}
+
+/* {{{ proto book mysqlnd_ms_swim(mixed connection) */
+static PHP_FUNCTION(mysqlnd_ms_swim)
+{
+	zval *conn_zv;
+	MYSQLND *conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+	zend_bool exists = FALSE, is_master = FALSE, is_active = FALSE;
+	MYSQLND_MS_LIST_DATA * data;
+	zend_bool fool = FALSE;
+	void * listener_data = &fool;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
+		return;
+	}
+	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	MS_LOAD_CONN_DATA(conn_data, conn->data);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+	php_printf("swim listener pool=%p data=%p\n", (*conn_data)->pool, listener_data);
+	(*conn_data)->pool->register_replace_listener((*conn_data)->pool, my_pool_replace_listener, listener_data TSRMLS_CC);
+
+	{
+		smart_str hash_key = {0};
+		(*conn_data)->pool->get_conn_hash_key(&hash_key,
+											"master_0",
+											"127.0.0.1", "root",
+											"", 0,
+											0, "/tmp/mysql574m14.sock",
+											"test", strlen("test"),  131072,
+											FALSE);
+
+
+		php_printf("swim key=%s(%d, %p)\n", hash_key.c, hash_key.len, hash_key.c);
+		if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
+				&data, &is_master, &is_active TSRMLS_CC)))) {
+			php_printf("is_master=%d is_active=%d\n", is_master, is_active);
+		} else {
+			php_printf("unknown hash_key\n");
+		}
+		smart_str_free(&hash_key);
+	}
+
+	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
+	}
+
+	php_printf("swim pool flushed\n");
+	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
+	}
+	php_printf("swim pool flushed\n");
+
+	{
+		smart_str hash_key = {0};
+		(*conn_data)->pool->get_conn_hash_key(&hash_key,
+											"master_0",
+											"127.0.0.1", "root",
+											"", 0,
+											0, "/tmp/mysql574m14.sock",
+											"test", strlen("test"),  131072,
+											FALSE);
+		php_printf("swim key=%s(%d, %p)\n", hash_key.c, hash_key.len, hash_key.c);
+
+		if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
+			&data, &is_master, &is_active TSRMLS_CC)))) {
+			php_printf("swim exists, is_master=%d is_active=%d\n", is_master, is_active);
+		} else {
+			php_printf("unknown hash_key\n");
+		}
+
+
+		if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
+			php_printf("swim reactivated\n");
+		}
+
+		if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
+			&data, &is_master, &is_active TSRMLS_CC)))) {
+			php_printf("swim exists, is_master=%d is_active=%d\n", is_master, is_active);
+		} else {
+			php_printf("unknown hash_key\n");
+		}
+
+		smart_str_free(&hash_key);
+
+		/* Done with our changes, notify the world... */
+		(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
+
+	}
+
+	RETURN_TRUE;
+}
+/* }}} */
+#endif
 
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
@@ -1249,6 +1357,9 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_xa_commit, arginfo_mysqlnd_ms_xa_commit)
 	PHP_FE(mysqlnd_ms_xa_rollback, arginfo_mysqlnd_ms_xa_rollback)
 	PHP_FE(mysqlnd_ms_xa_gc, arginfo_mysqlnd_ms_xa_gc)
+#ifdef ULF_0
+	PHP_FE(mysqlnd_ms_swim, NULL)
+#endif
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
