@@ -78,6 +78,7 @@ pool_flush(MYSQLND_MS_POOL * pool TSRMLS_DC)
 	}
 	END_ITERATE_OVER_SERVER_LIST;
 	zend_llist_clean(&(pool->data.active_master_list));
+	MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_POOL_MASTERS_ACTIVE, 0);
 
 	BEGIN_ITERATE_OVER_SERVER_LIST(el, &(pool->data.active_slave_list))
 	{
@@ -91,6 +92,7 @@ pool_flush(MYSQLND_MS_POOL * pool TSRMLS_DC)
 	}
 	END_ITERATE_OVER_SERVER_LIST;
 	zend_llist_clean(&(pool->data.active_slave_list));
+	MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_POOL_SLAVES_ACTIVE, 0);
 
 	DBG_RETURN(ret);
 }
@@ -177,6 +179,9 @@ pool_add_slave(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 			ret = FAIL;
 		}
 		zend_llist_add_element(&(pool->data.active_slave_list), &pool_element->data);
+
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_POOL_SLAVES_TOTAL, zend_hash_num_elements(&(pool->data.slave_list)));
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_POOL_SLAVES_ACTIVE, zend_llist_count(&(pool->data.active_slave_list)));
 	}
 
 	DBG_RETURN(ret);
@@ -215,6 +220,9 @@ pool_add_master(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 			ret = FAIL;
 		}
 		zend_llist_add_element(&(pool->data.active_master_list), &pool_element->data);
+
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_POOL_MASTERS_TOTAL, zend_hash_num_elements(&(pool->data.master_list)));
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(MS_STAT_POOL_MASTERS_ACTIVE, zend_llist_count(&(pool->data.active_master_list)));
 	}
 
 	DBG_RETURN(ret);
@@ -252,6 +260,7 @@ static enum_func_status
 pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bool is_master TSRMLS_DC) {
 	enum_func_status ret = FAIL;
 	MYSQLND_MS_POOL_ENTRY ** pool_element;
+	enum_mysqlnd_ms_collected_stats stat;
 	HashTable * ht;
 	zend_llist * list;
 
@@ -259,6 +268,7 @@ pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bo
 
 	ht = (is_master) ? &(pool->data.master_list) : &(pool->data.slave_list);
 	list = (is_master) ? &(pool->data.active_master_list) : &(pool->data.active_slave_list);
+	stat = (is_master) ? MS_STAT_POOL_MASTERS_ACTIVE : MS_STAT_POOL_SLAVES_ACTIVE;
 
 	if (SUCCESS == (ret = zend_hash_find(ht, hash_key->c, hash_key->len, (void**)&pool_element))) {
 
@@ -266,6 +276,7 @@ pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bo
 		(*pool_element)->activation_counter++;
 
 		zend_llist_add_element(list, &(*pool_element)->data);
+		MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, zend_llist_count(list));
 
 	} else {
 		DBG_INF_FMT("not found");

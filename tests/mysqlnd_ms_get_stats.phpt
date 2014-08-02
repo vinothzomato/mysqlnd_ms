@@ -74,6 +74,13 @@ mysqlnd_ms.collect_statistics=1
 		$expected["xa_rollback_failure"] = true;
 		$expected["xa_participants"] = true;
 		$expected["xa_rollback_on_close"] = true;
+		$expected["pool_masters_total"] = true;
+		$expected["pool_slaves_total"] = true;
+		$expected["pool_slaves_active"] = true;
+		$expected["pool_masters_active"] = true;
+		$expected["pool_updates"] = true;
+		$expected["pool_master_reactivated"] = true;
+		$expected["pool_slave_reactivated"] = true;
 	}
 
 	if (NULL !== ($ret = @mysqlnd_ms_get_stats(123))) {
@@ -100,6 +107,10 @@ mysqlnd_ms.collect_statistics=1
 
 	$exp_stats['non_lazy_connections_slave_success']++;
 	$exp_stats['non_lazy_connections_master_success']++;
+	$exp_stats['pool_masters_total']++;
+	$exp_stats['pool_slaves_total']++;
+	$exp_stats['pool_masters_active']++;
+	$exp_stats['pool_slaves_active']++;
 
 	mst_mysqli_query(5, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$exp_stats['use_master_sql_hint']++;

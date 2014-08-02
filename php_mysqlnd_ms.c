@@ -91,6 +91,13 @@ const MYSQLND_STRING mysqlnd_ms_stats_values_names[MS_STAT_LAST] =
 	{ STR_W_LEN("xa_rollback_failure") },
 	{ STR_W_LEN("xa_participants") },
 	{ STR_W_LEN("xa_rollback_on_close") },
+	{ STR_W_LEN("pool_masters_total") },
+	{ STR_W_LEN("pool_slaves_total") },
+	{ STR_W_LEN("pool_masters_active") },
+	{ STR_W_LEN("pool_slaves_active") },
+	{ STR_W_LEN("pool_updates") },
+	{ STR_W_LEN("pool_master_reactivated") },
+	{ STR_W_LEN("pool_slave_reactivated") }
 };
 /* }}} */
 

@@ -66,6 +66,10 @@ mysqlnd_ms.collect_statistics=1
 		"trx_autocommit_on"						=> true,
 		"trx_autocommit_off"					=> true,
 		"trx_master_forced"						=> true,
+		"pool_masters_total"					=> true,
+		"pool_slaves_total"						=> true,
+		"pool_masters_active"					=> true,
+		"pool_slaves_active"					=> true,
 	);
 	$stats = mysqlnd_ms_get_stats();
 	$exp_stats = $stats;
@@ -75,6 +79,10 @@ mysqlnd_ms.collect_statistics=1
 
 	$exp_stats['non_lazy_connections_slave_success']++;
 	$exp_stats['non_lazy_connections_master_success']++;
+	$exp_stats['pool_masters_total']++;
+	$exp_stats['pool_slaves_total']++;
+	$exp_stats['pool_masters_active']++;
+	$exp_stats['pool_slaves_active']++;
 
 	mst_mysqli_query(2, $link, "SET @myrole='master'", MYSQLND_MS_MASTER_SWITCH);
 	$exp_stats['use_master_sql_hint']++;

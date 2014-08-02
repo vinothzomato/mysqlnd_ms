@@ -53,22 +53,27 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_xa_gc.ini
 		printf("[004] Expecting NULL, got %s\n", var_export($ret, true));
 	}
 
-	if (NULL !== ($ret = @mysqlnd_ms_xa_gc($link, $xa_id, "too_many"))) {
+	if (NULL !== ($ret = @mysqlnd_ms_xa_gc($link, $xa_id, array()))) {
 		printf("[005] Expecting NULL, got %s\n", var_export($ret, true));
+	}
+
+	if (NULL !== ($ret = @mysqlnd_ms_xa_gc($link, $xa_id, true, "too_many"))) {
+		printf("[006] Expecting NULL, got %s\n", var_export($ret, true));
 	}
 
 	$link->close();
 	if (false !== ($ret = @mysqlnd_ms_xa_begin($link, $xa_id))) {
-		printf("[006] Expecting false, got %s\n", var_export($ret, true));
+		printf("[007] Expecting false, got %s\n", var_export($ret, true));
 	}
 	/* Basics */
 
 	if (!($link = mst_mysqli_connect("myapp", $user, $passwd, $db, $port, $socket)))
-		printf("[007] [%d] '%s'\n", mysqli_connect_errno(), mysqli_connect_error());
+		printf("[008] [%d] '%s'\n", mysqli_connect_errno(), mysqli_connect_error());
 
 	/* Without a state store, nothing happens... */
 	var_dump(mysqlnd_ms_xa_gc($link));
 	var_dump(mysqlnd_ms_xa_gc($link, $xa_id));
+	var_dump(mysqlnd_ms_xa_gc($link, $xa_id, true));
 
 	print "done!";
 ?>
@@ -78,6 +83,7 @@ mysqlnd_ms.config_file=test_mysqlnd_ms_xa_gc.ini
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_xa_gc.ini'.\n");
 ?>
 --EXPECTF--
+bool(true)
 bool(true)
 bool(true)
 done!

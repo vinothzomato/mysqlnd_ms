@@ -71,6 +71,10 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --EXPECTF--
 [003] xa_begin: 0 -> 1
+[003] pool_masters_total: 0 -> 1
+[003] pool_slaves_total: 0 -> 1
+[003] pool_masters_active: 0 -> 1
+[003] pool_slaves_active: 0 -> 1
 [004] xa_begin: 1 -> 2
 [004] xa_commit_success: 0 -> 1
 [005] xa_commit_success: 1 -> 2

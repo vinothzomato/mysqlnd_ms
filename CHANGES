@@ -2,6 +2,33 @@
 
   Motto/theme: maintenance and initial MySQL Fabric support
 
+  * Added internal connection pool statistics (TODO: document):
+    pool_masters_total (total # of masters in the pool)
+    pool_slaves_total,
+    pool_masters_active (# of masters currently used for load balancing)
+    pool_slaves_active
+    pool_updates (how often all active servers have been replaced)
+    pool_master_reactivated (how often a master connection has been reused after flushing the pool)
+    pool_slaves_reactivated
+
+  * Introduced internal connection pool abstraction. In our first attempt
+    to support MySQL Fabric, we are replacing the lists of slaves and masters
+    associated with a connection when the user switches from shard group A to
+    shard group B. This break connecion state alignment and troubles filters.
+    For example, the filters may need to refresh cached information associated
+    with a list of slaves. The pool abstraction can notify filter when
+    connection lists are replaced. Also, when the user is constantly
+    switching from shard group A to shard group B, we can keep connections
+    open and hold them in the pool for reuse instead of reopening. There are
+    some statistics to monitor the pool but no way to configure it. So far, it
+    is an internal abstraction layer and not an end user feature.
+
+  * Addded statistics related to XA (see manual):
+    xa_begin, xa_commit_success, xa_commit_failure,
+    xa_rollback_failure, xa_commit_success,
+    xa_participants, xa_rollback_on_close.
+
+
   * Added a basic XA transaction abstraction. XA transactions can
     be used ever since using standard SQL calls when manually managing
     servers. PECL/mysqlnd_ms lets you control XA transaction among MySQL

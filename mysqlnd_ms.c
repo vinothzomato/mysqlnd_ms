@@ -1906,8 +1906,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 
 				} while (transient_error_no);
 
-
-
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
@@ -1975,8 +1973,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 					}
 
 				} while (transient_error_no);
-
-
 
 				if (el_conn_data && *el_conn_data) {
 					(*el_conn_data)->skip_ms_calls = FALSE;

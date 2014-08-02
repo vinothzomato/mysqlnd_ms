@@ -96,10 +96,11 @@ Functions:
       Parameter #1 [ <required> $gtrid ]
   mysqlnd_ms_xa_gc
     Deprecated: no
-    Accepted parameters: 2
+    Accepted parameters: 3
     Required parameters: 1
       Parameter #0 [ <required> $connection ]
       Parameter #1 [ <optional> $gtrid ]
+      Parameter #2 [ <optional> $ignore_max_retries ]
   mysqlnd_ms_xa_rollback
     Deprecated: no
     Accepted parameters: 2

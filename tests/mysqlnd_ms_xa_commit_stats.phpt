@@ -76,6 +76,10 @@ mysqlnd_ms.collect_statistics=1
 	  printf("[clean] Cannot unlink ini file 'test_mysqlnd_ms_xa_commit_stats.ini'.\n");
 ?>
 --EXPECTF--
+[003] pool_masters_total: 0 -> 1
+[003] pool_slaves_total: 0 -> 1
+[003] pool_masters_active: 0 -> 1
+[003] pool_slaves_active: 0 -> 1
 [004] xa_begin: 0 -> 1
 [005] xa_commit_success: 0 -> 1
 
