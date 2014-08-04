@@ -95,6 +95,10 @@ mysqlnd_ms.collect_statistics=1
 [007] lazy_connections_slave_success: 0 -> 1
 [007] xa_begin: 0 -> 1
 [007] xa_participants: 0 -> 1
+[007] pool_masters_total: 0 -> 1
+[007] pool_slaves_total: 0 -> 1
+[007] pool_masters_active: 0 -> 1
+[007] pool_slaves_active: 0 -> 1
 done!
 Warning: Unknown: (mysqlnd_ms) MySQL XA state store error: %s in Unknown on line 0
 

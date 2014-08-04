@@ -716,7 +716,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
 
-	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
+	if (SUCCESS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 
@@ -1240,6 +1240,7 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 	smart_str hash_key = {0};
 	smart_str hash_key_slave0 = {0};
 	smart_str hash_key_slave1 = {0};
+	unsigned int referenced = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
 		return;
@@ -1289,12 +1290,12 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 		php_printf("unknown master hash_key %s\n");
 	}
 
-	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
+	if (SUCCESS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 	php_printf("swim pool flushed\n");
 
-	if (SUCCESS != ((*conn_data)->pool->flush((*conn_data)->pool TSRMLS_CC))) {
+	if (SUCCESS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 	php_printf("swim pool flushed\n");
@@ -1358,6 +1359,14 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 
 	/* Done with our changes, notify the world... */
 	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
+
+	
+	if (SUCCESS == (*conn_data)->pool->clear_all((*conn_data)->pool, &referenced TSRMLS_CC)) {
+		php_printf("swim cleared all - still referenced: %d\n", referenced);
+	} else {
+		php_printf("swim clear all failed - still referenced: %d\n", referenced);
+	}
+
 
 	RETURN_TRUE;
 }

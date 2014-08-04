@@ -80,7 +80,15 @@ typedef struct st_mysqlnd_pool {
 	 * Or, let there be an XA transaction going on and Fabric flushes all connections
 	 * including the ones of the XA transaction...
 	 */
-	enum_func_status (*flush)(struct st_mysqlnd_pool * pool TSRMLS_DC);
+	enum_func_status (*flush_active)(struct st_mysqlnd_pool * pool TSRMLS_DC);
+
+	/* Clear all connections: active (see flush_active) and inactive. But only those
+	 * which have a reference counter of zero. After the call the active list will always
+	 * be empty but the inactive list may still hold some connections.
+	 * Returns the number of connections not cleared and still in the pool (for use)
+	 * because the reference counter was not zero.
+	 */
+	enum_func_status (*clear_all)(struct st_mysqlnd_pool * pool, unsigned int * referenced TSRMLS_DC);
 
 	/* Creating a hash key for a pooled connection */
 	/* Note: this is the only place where MYSQLND_MS_LIST_DATA is inspected and modified */
@@ -136,11 +144,16 @@ typedef struct st_mysqlnd_pool {
 	zend_llist * (*get_active_slaves)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 
 	/* Reference counting for connections. Should a module require a
-	 * connection to stay open, it can set a reference */
+	 * connection to stay open, it can set a reference.
+	 *
+	 * TODO See implementation - semantics are a bit unclear
+	 */
 	enum_func_status (*add_reference)(struct st_mysqlnd_pool * pool,
-									  MYSQLND_MS_CONN_DATA * conn TSRMLS_DC);
+									  MYSQLND_CONN_DATA * conn TSRMLS_DC);
 	enum_func_status (*free_reference)(struct st_mysqlnd_pool * pool,
-										 MYSQLND_MS_CONN_DATA * conn TSRMLS_DC);
+										 MYSQLND_CONN_DATA * conn TSRMLS_DC);
+
+
 
 	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 

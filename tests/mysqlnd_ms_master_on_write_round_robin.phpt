@@ -130,6 +130,10 @@ Stats use_master_guess: 1
 Stats use_slave_sql_hint: 2
 Stats lazy_connections_slave_success: 2
 Stats lazy_connections_master_success: 1
+Stats pool_masters_total: 1
+Stats pool_slaves_total: 3
+Stats pool_masters_active: 1
+Stats pool_slaves_active: 3
 ----
 This is 'Slave 2 %d' speaking
 This is 'Master %d' speaking

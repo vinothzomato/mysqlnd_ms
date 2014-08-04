@@ -58,13 +58,13 @@ mysqlnd_ms_pool_all_list_dtor(void * pDest)
 
 /* {{{ pool_flush */
 static enum_func_status
-pool_flush(MYSQLND_MS_POOL * pool TSRMLS_DC)
+pool_flush_active(MYSQLND_MS_POOL * pool TSRMLS_DC)
 {
 	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_POOL_ENTRY ** pool_element = NULL;
 	enum_func_status ret = SUCCESS;
 
-	DBG_ENTER("mysqlnd_ms::pool_flush");
+	DBG_ENTER("mysqlnd_ms::pool_flush_active");
 
 	BEGIN_ITERATE_OVER_SERVER_LIST(el, &(pool->data.active_master_list))
 	{
@@ -97,6 +97,47 @@ pool_flush(MYSQLND_MS_POOL * pool TSRMLS_DC)
 	DBG_RETURN(ret);
 }
 /* }}} */
+
+static int
+pool_clear_all_ht_apply_func(void *pDest, void * argument TSRMLS_DC)
+{
+	int ret = ZEND_HASH_APPLY_REMOVE;
+	MYSQLND_MS_POOL_ENTRY * pool_element = (MYSQLND_MS_POOL_ENTRY *)pDest;
+	unsigned int * referenced = (unsigned int *)argument;
+
+	if (pool_element->ref_counter > 1) {
+		*referenced++;
+		ret = ZEND_HASH_APPLY_KEEP;
+	} else {
+		pool_element->active = FALSE;
+	}
+	return ret;
+}
+
+/* {{{ pool_clear_all */
+static enum_func_status
+pool_clear_all(MYSQLND_MS_POOL *pool, unsigned int * referenced TSRMLS_DC)
+{
+	enum_func_status ret = SUCCESS;
+	HashPosition pos;
+	HashTable *ht[2];
+	int i;
+	MYSQLND_MS_POOL_ENTRY ** pool_element = NULL;
+
+	DBG_ENTER("pool_clear_all");
+	*referenced = 0;
+
+	/* Active list will always be flushed */
+	zend_llist_clean(&(pool->data.active_master_list));
+	zend_llist_clean(&(pool->data.active_slave_list));
+
+	zend_hash_apply_with_argument(&(pool->data.master_list), pool_clear_all_ht_apply_func, (void *)referenced TSRMLS_CC);
+	zend_hash_apply_with_argument(&(pool->data.slave_list), pool_clear_all_ht_apply_func, (void *)referenced TSRMLS_CC);
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
 
 /* {{{ pool_get_conn_hash_key */
 static void
@@ -322,12 +363,48 @@ pool_notify_replace_listener(MYSQLND_MS_POOL * pool TSRMLS_DC) {
 }
 /* }}} */
 
+static int
+pool_add_reference_ht_apply_func(void *pDest, void * argument TSRMLS_DC)
+{
+	int ret = ZEND_HASH_APPLY_REMOVE;
+	MYSQLND_MS_POOL_ENTRY * pool_element = (MYSQLND_MS_POOL_ENTRY *)pDest;
+	unsigned int * referenced = (unsigned int *)argument;
+
+	if (pool_element->ref_counter > 1) {
+		*referenced++;
+		ret = ZEND_HASH_APPLY_KEEP;
+	} else {
+		pool_element->active = FALSE;
+	}
+	return ret;
+}
+
 /* {{{ pool_add_reference */
 static enum_func_status
-pool_add_reference(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA * conn TSRMLS_DC)
+pool_add_reference(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * conn TSRMLS_DC)
 {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = FAIL;
+	MYSQLND_MS_POOL_ENTRY ** pool_element;
+	HashTable * ht[2];
+	unsigned int i;
 	DBG_ENTER("mysqlnd_ms::pool_add_reference");
+
+	ht[0] = &(pool->data.master_list);
+	ht[1] = &(pool->data.slave_list);
+
+	for (i = 0; i < 2; i++) {
+		for (zend_hash_internal_pointer_reset(ht[i]);
+			 (zend_hash_has_more_elements(ht[i]) == SUCCESS) && (zend_hash_get_current_data(ht[i], (void**)&pool_element) == SUCCESS);
+			zend_hash_move_forward(ht[i])) {
+			if ((*pool_element)->data->conn == conn) {
+				(*pool_element)->ref_counter++;
+				DBG_INF_FMT("%s ref_counter=%d", (0 == i) ? "master" : "slave", (*pool_element)->ref_counter);
+				ret = SUCCESS;
+				DBG_RETURN(ret);
+			}
+		}
+	}
+
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -335,10 +412,37 @@ pool_add_reference(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA * conn TSRMLS_DC
 
 /* {{{ pool_free_reference */
 static enum_func_status
-pool_free_reference(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA * data TSRMLS_DC)
+pool_free_reference(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * conn TSRMLS_DC)
 {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = FAIL;
+	MYSQLND_MS_POOL_ENTRY ** pool_element;
+	HashTable * ht[2];
+	unsigned int i;
 	DBG_ENTER("mysqlnd_ms::pool_free_reference");
+	DBG_RETURN(ret);
+
+	if (!conn || !pool) {
+		DBG_INF("No connection or pool given!");
+		DBG_RETURN(ret);
+	}
+
+	ht[0] = &(pool->data.master_list);
+	ht[1] = &(pool->data.slave_list);
+
+	for (i = 0; i < 2; i++) {
+		for (zend_hash_internal_pointer_reset(ht[i]);
+			 (zend_hash_has_more_elements(ht[i]) == SUCCESS) && (zend_hash_get_current_data(ht[i], (void**)&pool_element) == SUCCESS);
+			(zend_hash_move_forward(ht[i]) == SUCCESS)) {
+			ret = SUCCESS;
+			if ((*pool_element)->ref_counter > 1) {
+				(*pool_element)->ref_counter--;
+				DBG_INF_FMT("%s ref_counter=%d", (0 == i) ? "master" : "slave", (*pool_element)->ref_counter);
+			} else {
+				DBG_INF_FMT("%s double free", (0 == i) ? "master" : "slave");
+			}
+			DBG_RETURN(ret);
+		}
+	}
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -392,7 +496,8 @@ MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend
 	if (pool) {
 
 		/* methods */
-		pool->flush = pool_flush;
+		pool->flush_active = pool_flush_active;
+		pool->clear_all = pool_clear_all;
 		pool->init_pool_hash_key = pool_init_pool_hash_key;
 		pool->get_conn_hash_key = pool_get_conn_hash_key;
 		pool->add_slave = pool_add_slave;

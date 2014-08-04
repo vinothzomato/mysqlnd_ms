@@ -46,7 +46,6 @@ struct st_mysqlnd_ms_config_json_entry;
 
 extern unsigned int mysqlnd_ms_plugin_id;
 
-void mysqlnd_ms_xa_participant_list_dtor(void * pDest);
 void mysqlnd_ms_xa_gc_hash_dtor(void *pDest);
 
 enum_func_status mysqlnd_ms_xa_monitor_begin(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA * conn_data, unsigned int gtrid, unsigned int timeout TSRMLS_DC);
@@ -59,7 +58,7 @@ void mysqlnd_ms_xa_state_to_string(enum mysqlnd_ms_xa_state state, smart_str * s
 void mysqlnd_ms_load_xa_config(struct st_mysqlnd_ms_config_json_entry * main_section, MYSQLND_MS_XA_TRX * xa_trx, MYSQLND_ERROR_INFO * error_info, zend_bool persistent TSRMLS_DC);
 
 MYSQLND_MS_XA_TRX * mysqlnd_ms_xa_proxy_conn_init(const char * host, size_t host_len, zend_bool persistent TSRMLS_DC);
-void mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_XA_TRX * trx, zend_bool persistent TSRMLS_DC);
+void mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_CONN_DATA * proxy_conn_data, zend_bool persistent TSRMLS_DC);
 
 enum_func_status mysqlnd_ms_xa_inject_query(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA * next_conn, zend_bool switched_servers TSRMLS_DC);
 enum_func_status mysqlnd_ms_xa_conn_close(MYSQLND_CONN_DATA * proxy_conn TSRMLS_DC);

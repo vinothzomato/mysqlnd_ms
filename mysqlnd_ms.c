@@ -1466,11 +1466,6 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 			(*data_pp)->global_trx.check_for_gtid_len = (size_t)0;
 		}
 #endif
-		DBG_INF_FMT("cleaning the llists");
-		if ((*data_pp)->pool) {
-			(*data_pp)->pool->dtor((*data_pp)->pool TSRMLS_CC);
-		}
-
 		DBG_INF_FMT("cleaning the section filters");
 		if ((*data_pp)->stgy.filters) {
 			DBG_INF_FMT("%d loaded filters", zend_llist_count((*data_pp)->stgy.filters));
@@ -1497,8 +1492,14 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 		}
 
 		if ((*data_pp)->xa_trx) {
-			mysqlnd_ms_xa_proxy_conn_free((*data_pp)->xa_trx, conn->persistent TSRMLS_CC);
+			mysqlnd_ms_xa_proxy_conn_free((*data_pp), conn->persistent TSRMLS_CC);
 		}
+
+		/* XA is using the pool */
+		if ((*data_pp)->pool) {
+			(*data_pp)->pool->dtor((*data_pp)->pool TSRMLS_CC);
+		}
+
 
 		mnd_pefree(*data_pp, conn->persistent);
 		*data_pp = NULL;

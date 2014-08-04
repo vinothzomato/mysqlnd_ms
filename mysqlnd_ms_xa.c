@@ -28,6 +28,7 @@
 #include "mysqlnd_ms.h"
 #include "mysqlnd_ms_config_json.h"
 #include "mysqlnd_ms_xa_store_mysql.h"
+#include "mysqlnd_ms_conn_pool.h"
 
 #if PHP_VERSION_ID >= 50400
 #include "ext/mysqlnd/mysqlnd_ext_plugin.h"
@@ -290,7 +291,7 @@ void mysqlnd_ms_load_xa_config(struct st_mysqlnd_ms_config_json_entry * main_sec
 /* }}} */
 
 /* {{{ mysqlnd_ms_xa_participant_list_dtor */
-void
+static void
 mysqlnd_ms_xa_participant_list_dtor(void * pDest)
 {
 	MYSQLND_MS_XA_PARTICIPANT_LIST_DATA * element = pDest? *(MYSQLND_MS_XA_PARTICIPANT_LIST_DATA **) pDest : NULL;
@@ -304,6 +305,19 @@ mysqlnd_ms_xa_participant_list_dtor(void * pDest)
 	DBG_VOID_RETURN;
 }
 /* }}} */
+
+static void
+mysqlnd_ms_xa_participant_list_free_pool_ref(void *pDest, void *arg TSRMLS_DC)
+{
+	MYSQLND_MS_XA_PARTICIPANT_LIST_DATA * element = pDest? *(MYSQLND_MS_XA_PARTICIPANT_LIST_DATA **) pDest : NULL;
+	MYSQLND_MS_POOL * pool = (MYSQLND_MS_POOL *)arg;
+	DBG_ENTER("mysqlnd_ms_xa_participant_list_free_pool_ref")
+	if (element && element->conn && pool) {
+		pool->free_reference(pool, element->conn TSRMLS_CC);
+	}
+	DBG_VOID_RETURN;
+}
+
 
 /* {{{ mysqlnd_ms_xa_monitor_change_state */
 static enum_func_status
@@ -802,6 +816,8 @@ end_direct_commit:
 	proxy_conn_data->xa_trx->in_transaction = FALSE;
 	MYSQLND_MS_XA_ID_RESET(proxy_conn_data->xa_trx->id);
 	proxy_conn_data->xa_trx->timeout = 0;
+
+	zend_llist_apply_with_argument(&proxy_conn_data->xa_trx->participants, mysqlnd_ms_xa_participant_list_free_pool_ref, proxy_conn_data->pool TSRMLS_CC);
 	zend_llist_clean(&proxy_conn_data->xa_trx->participants);
 
 	DBG_RETURN(ret);
@@ -907,6 +923,8 @@ end_direct_rollback:
 	proxy_conn_data->xa_trx->in_transaction = FALSE;
 	MYSQLND_MS_XA_ID_RESET(proxy_conn_data->xa_trx->id);
 	proxy_conn_data->xa_trx->timeout = 0;
+
+	zend_llist_apply_with_argument(&proxy_conn_data->xa_trx->participants, mysqlnd_ms_xa_participant_list_free_pool_ref, proxy_conn_data->pool TSRMLS_CC);
 	zend_llist_clean(&proxy_conn_data->xa_trx->participants);
 
 	DBG_RETURN(ret);
@@ -1024,12 +1042,15 @@ mysqlnd_ms_xa_proxy_conn_init(const char * host, size_t host_len, zend_bool pers
  Free CONN_DATA struct during mysqlnd free plugin data
  */
 void
-mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_XA_TRX * trx, zend_bool persistent TSRMLS_DC)
+mysqlnd_ms_xa_proxy_conn_free(MYSQLND_MS_CONN_DATA * proxy_conn_data, zend_bool persistent TSRMLS_DC)
 {
+	MYSQLND_MS_XA_TRX * trx = proxy_conn_data->xa_trx;
 	DBG_ENTER("mysqlnd_ms_xa_free");
 	/* TODO XA: we may still have an open XA trx here, need to add cleanup code, likely rollback... */
 
+	zend_llist_apply_with_argument(&trx->participants, mysqlnd_ms_xa_participant_list_free_pool_ref, proxy_conn_data->pool TSRMLS_CC);
 	zend_llist_clean(&trx->participants);
+
 	if (trx->participant_localhost_ip) {
 		mnd_pefree(trx->participant_localhost_ip, persistent);
 	}
@@ -1094,8 +1115,6 @@ mysqlnd_ms_xa_add_participant(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA 
 
 		participant->state = XA_NON_EXISTING;
 		participant->persistent = proxy_conn->persistent;
-		/* TODO XA: We must refactor to allow such references. If Fabric simply swaps out
-		 * connections, as it currently does, those references will point to nirvana */
 		participant->conn = next_conn;
 
 		(*participant_conn_data)->skip_ms_calls = TRUE;
@@ -1134,6 +1153,10 @@ mysqlnd_ms_xa_add_participant(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA 
 		if (PASS == ret) {
 			zend_llist_add_element(&(*proxy_conn_data)->xa_trx->participants, &participant);
 			MYSQLND_MS_INC_STATISTIC(MS_STAT_XA_PARTICIPANTS);
+
+			/* Make sure this connection does not get closed before the XA trx is done */
+			(*proxy_conn_data)->pool->add_reference((*proxy_conn_data)->pool, participant->conn TSRMLS_CC);
+
 			DBG_INF_FMT("id=%d", participant->id);
 		} else {
 			mnd_pefree(participant, proxy_conn->persistent);

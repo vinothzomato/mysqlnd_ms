@@ -113,6 +113,10 @@ mysqlnd_ms.collect_statistics=1
 Stats use_slave: 1
 Stats use_slave_sql_hint: 1
 Stats lazy_connections_slave_success: 1
+Stats pool_masters_total: 1
+Stats pool_slaves_total: 3
+Stats pool_masters_active: 1
+Stats pool_slaves_active: 3
 ----
 This is 'Slave 1' speaking
 ----

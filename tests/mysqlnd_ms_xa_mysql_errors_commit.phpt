@@ -271,6 +271,10 @@ mysqlnd_ms.collect_statistics=1
 ?>
 --EXPECTF--
 [006] xa_begin: 0 -> 1
+[006] pool_masters_total: 0 -> 1
+[006] pool_slaves_total: 0 -> 1
+[006] pool_masters_active: 0 -> 1
+[006] pool_slaves_active: 0 -> 1
 [012] No participants recorded!
 [014] use_slave: 0 -> 1
 [014] use_slave_guess: 0 -> 1

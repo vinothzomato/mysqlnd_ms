@@ -107,6 +107,10 @@ mysqlnd_ms.collect_statistics=1
 [006] lazy_connections_slave_success: 0 -> 1
 [006] xa_begin: 0 -> 1
 [006] xa_participants: 0 -> 1
+[006] pool_masters_total: 0 -> 1
+[006] pool_slaves_total: 0 -> 1
+[006] pool_masters_active: 0 -> 1
+[006] pool_slaves_active: 0 -> 1
 [010] use_slave: 1 -> 2
 [010] use_slave_sql_hint: 1 -> 2
 [010] use_last_used_sql_hint: 2 -> 3
@@ -115,6 +119,10 @@ mysqlnd_ms.collect_statistics=1
 [010] xa_rollback_success: 0 -> 1
 [010] xa_participants: 1 -> 2
 [010] xa_rollback_on_close: 0 -> 1
+[010] pool_masters_total: 1 -> 2
+[010] pool_slaves_total: 1 -> 2
+[010] pool_masters_active: 1 -> 2
+[010] pool_slaves_active: 1 -> 2
 array(0) {
 }
 [015] use_slave: 2 -> 4
@@ -124,6 +132,10 @@ array(0) {
 [015] lazy_connections_slave_success: 2 -> 3
 [015] xa_begin: 2 -> 3
 [015] xa_participants: 2 -> 3
+[015] pool_masters_total: 2 -> 3
+[015] pool_slaves_total: 2 -> 3
+[015] pool_masters_active: 2 -> 3
+[015] pool_slaves_active: 2 -> 3
 [018] use_slave: 4 -> 104
 [018] use_slave_sql_hint: 3 -> 103
 [018] lazy_connections_slave_success: 3 -> 103
@@ -131,4 +143,8 @@ array(0) {
 [018] xa_rollback_success: 1 -> 101
 [018] xa_participants: 3 -> 103
 [018] xa_rollback_on_close: 1 -> 101
+[018] pool_masters_total: 3 -> 103
+[018] pool_slaves_total: 3 -> 103
+[018] pool_masters_active: 3 -> 103
+[018] pool_slaves_active: 3 -> 103
 done!

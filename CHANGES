@@ -2,7 +2,7 @@
 
   Motto/theme: maintenance and initial MySQL Fabric support
 
-  * Added internal connection pool statistics (TODO: document):
+  * Added internal connection pool statistics:
     pool_masters_total (total # of masters in the pool)
     pool_slaves_total,
     pool_masters_active (# of masters currently used for load balancing)
@@ -21,7 +21,9 @@
     switching from shard group A to shard group B, we can keep connections
     open and hold them in the pool for reuse instead of reopening. There are
     some statistics to monitor the pool but no way to configure it. So far, it
-    is an internal abstraction layer and not an end user feature.
+    is an internal abstraction layer and not an end user feature. Note, that every
+    user connection handle has its own pool. Should you open two handles, e.g. using
+    mysqli_connect(), there will be two pools.
 
   * Addded statistics related to XA (see manual):
     xa_begin, xa_commit_success, xa_commit_failure,
