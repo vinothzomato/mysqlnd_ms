@@ -51,8 +51,13 @@
 
 typedef enum
 {
+	/* CAUTION: Order matters! The pool will replay commands in the order given here.
+	 * It may be that we learn about use cases where the order is not perfect...
+	 */
 	SET_CHARSET = 0,
-	SELECT_DB = 1
+	SELECT_DB = 1,
+	SET_SERVER_OPTION = 2,
+	SET_CLIENT_OPTION = 3,
 } enum_mysqlnd_pool_cmd;
 
 typedef enum_func_status (*cb_pool_cmd_select_db)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
@@ -72,9 +77,26 @@ typedef struct st_mysqlnd_pool_cmd_set_charset {
 	char * csname;
 } MYSQLND_MS_POOL_CMD_SET_CHARSET;
 
+typedef enum_func_status (*cb_pool_cmd_set_server_option)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
+														  enum_mysqlnd_server_option option TSRMLS_DC);
+
+typedef struct st_mysqlnd_pool_cmd_set_server_option {
+	cb_pool_cmd_set_server_option cb;
+	enum_mysqlnd_server_option option;
+} MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION;
+
+typedef enum_func_status (*cb_pool_cmd_set_client_option)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
+														  enum_mysqlnd_option option, const char * const value TSRMLS_DC);
+
+typedef struct st_mysqlnd_pool_cmd_set_client_option {
+	cb_pool_cmd_set_client_option cb;
+	enum_mysqlnd_server_option option;
+	char * value;
+} MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION;
+
 typedef struct st_mysqlnd_pool_cmd {
 	enum_mysqlnd_pool_cmd cmd;
-	void * data;
+	void * data; /* MYSQLND_MS_POOL_CMD_SELECT_DB and friends */
 	zend_bool persistent;
 } MYSQLND_MS_POOL_CMD;
 
@@ -188,6 +210,17 @@ typedef struct st_mysqlnd_pool {
 										 MYSQLND_CONN_DATA * const conn TSRMLS_DC);
 
 
+	/* By default MS will align the state (charset, options, ...) of all servers
+	 * currently used. When the active server list is replaced (flush()),
+	 * the new connections/servers may be in a different state than the ones
+	 * that have been used before. MS lets the pool know which calls it has dispatched
+	 * to the currently active servers. Then, when the list of active servers
+	 * is replaced, it is up to the user of the pool to decide whether to
+	 * replay the previously dispatched commands (replay_cmds()).
+	 * The pool will not replay commands automatically and implicitly.
+	 * TODO: create a way to replay selected commands
+	 * FIXME: Likely, the order in which commands are replayed matters. It can't be set.
+	 */
 	enum_func_status (*dispatch_select_db)(struct st_mysqlnd_pool * pool,
 											cb_pool_cmd_select_db cb,
 											const char * db,
@@ -196,6 +229,15 @@ typedef struct st_mysqlnd_pool {
 	enum_func_status (*dispatch_set_charset)(struct st_mysqlnd_pool * pool,
 											cb_pool_cmd_set_charset cb,
 											const char * const csname TSRMLS_DC);
+
+	enum_func_status (*dispatch_set_server_option)(struct st_mysqlnd_pool * pool,
+												cb_pool_cmd_set_server_option cb,
+												enum_mysqlnd_server_option option TSRMLS_DC);
+
+	enum_func_status (*dispatch_set_client_option)(struct st_mysqlnd_pool *pool,
+												cb_pool_cmd_set_client_option cb,
+												enum_mysqlnd_option option,
+												const char * const value TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
 									MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC);

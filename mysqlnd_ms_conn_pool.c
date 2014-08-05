@@ -66,7 +66,7 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 	if (element) {
 		switch (element->cmd) {
 			case SET_CHARSET:
-				DBG_INF_FMT("pool_cmd=%p SET_CHARSET", element);
+				DBG_INF_FMT("pool_cmd=%p SET_CHARSET", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_SET_CHARSET * arg = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)element->data;
 					if (arg->csname) {
@@ -76,11 +76,27 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 				break;
 
 			case SELECT_DB:
-				DBG_INF_FMT("pool_cmd=%p SELECT DB", element);
+				DBG_INF_FMT("pool_cmd=%p SELECT_DB", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_SELECT_DB * arg = (MYSQLND_MS_POOL_CMD_SELECT_DB *)element->data;
 					if (arg->db) {
 						mnd_pefree(arg->db, element->persistent);
+					}
+					mnd_pefree(arg, element->persistent);
+				}
+				break;
+
+			case SET_SERVER_OPTION:
+				DBG_INF_FMT("pool_cmd=%p SET_SERVER_OPTION", element->data);
+				mnd_pefree(element->data, element->persistent);
+				break;
+
+			case SET_CLIENT_OPTION:
+				DBG_INF_FMT("pool_cmd=%p SET_CLIENT_OPTION", element->data);
+				{
+					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * arg = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)element->data;
+					if (arg->value) {
+						mnd_pefree(arg->value, element->persistent);
 					}
 					mnd_pefree(arg, element->persistent);
 				}
@@ -99,7 +115,7 @@ pool_flush_active(MYSQLND_MS_POOL * pool TSRMLS_DC)
 {
 	MYSQLND_MS_LIST_DATA * el;
 	MYSQLND_MS_POOL_ENTRY ** pool_element = NULL;
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 
 	DBG_ENTER("mysqlnd_ms::pool_flush_active");
 
@@ -155,7 +171,7 @@ pool_clear_all_ht_apply_func(void *pDest, void * argument TSRMLS_DC)
 static enum_func_status
 pool_clear_all(MYSQLND_MS_POOL *pool, unsigned int * referenced TSRMLS_DC)
 {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	HashPosition pos;
 	HashTable *ht[2];
 	int i;
@@ -232,7 +248,7 @@ static enum_func_status
 pool_add_slave(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 			   MYSQLND_MS_LIST_DATA * data, zend_bool persistent TSRMLS_DC)
 {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_ENTRY * pool_element;
 
 	DBG_ENTER("mysqlnd_ms::pool_add_slave");
@@ -272,7 +288,7 @@ static enum_func_status
 pool_add_master(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 				MYSQLND_MS_LIST_DATA * data, zend_bool persistent TSRMLS_DC)
 {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_ENTRY * pool_element;
 
 	DBG_ENTER("mysqlnd_ms::pool_add_master");
@@ -373,7 +389,7 @@ pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bo
 /* {{{ pool_register_replace_listener */
 static enum_func_status
 pool_register_replace_listener(MYSQLND_MS_POOL * pool, func_pool_replace_listener listener, void * data TSRMLS_DC) {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_LISTENER entry;
 
 	entry.listener = listener;
@@ -389,7 +405,7 @@ pool_register_replace_listener(MYSQLND_MS_POOL * pool, func_pool_replace_listene
 /* {{{ pool_notify_replace_listener */
 static enum_func_status
 pool_notify_replace_listener(MYSQLND_MS_POOL * pool TSRMLS_DC) {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_LISTENER * entry_p;
 	zend_llist_position	pos;
 
@@ -492,7 +508,7 @@ pool_free_reference(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const conn TSRML
 /* private */
 static enum_func_status
 pool_dispatch_cmd(MYSQLND_MS_POOL * pool, enum_mysqlnd_pool_cmd cmd, void ** cmd_data, size_t cmd_data_size TSRMLS_DC) {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_CMD * pool_cmd, ** pool_cmd_pp;
 	DBG_ENTER("mysqlnd_ms::pool_dispatch_cmd");
 
@@ -565,7 +581,7 @@ pool_dispatch_select_db(MYSQLND_MS_POOL * pool, cb_pool_cmd_select_db cb,
 static enum_func_status
 pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, cb_pool_cmd_set_charset cb,
 							const char * const csname TSRMLS_DC) {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	enum_mysqlnd_pool_cmd cmd = SET_CHARSET;
 	MYSQLND_MS_POOL_CMD_SET_CHARSET  * cmd_data;
 
@@ -586,11 +602,57 @@ pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, cb_pool_cmd_set_charset cb,
 /* }}} */
 
 
+/* {{{ pool_dispatch_set_server_option */
+static enum_func_status
+pool_dispatch_set_server_option(MYSQLND_MS_POOL * pool, cb_pool_cmd_set_server_option cb,
+								enum_mysqlnd_server_option option TSRMLS_DC) {
+	enum_func_status ret = PASS;
+	enum_mysqlnd_pool_cmd cmd = SET_SERVER_OPTION;
+	MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_server_option");
+
+	ret = pool_dispatch_cmd(pool, SET_SERVER_OPTION, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION) TSRMLS_CC);
+	if ((PASS == ret) && cmd_data) {
+		cmd_data->cb = cb;
+		cmd_data->option = option;
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ pool_dispatch_set_client_option */
+static enum_func_status
+pool_dispatch_set_client_option(MYSQLND_MS_POOL * pool, cb_pool_cmd_set_client_option cb,
+								enum_mysqlnd_option option,	const char * const value TSRMLS_DC) {
+	enum_func_status ret = PASS;
+	enum_mysqlnd_pool_cmd cmd = SET_CLIENT_OPTION;
+	MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_client_option");
+
+	ret = pool_dispatch_cmd(pool, SET_CLIENT_OPTION, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION) TSRMLS_CC);
+	if ((PASS == ret) && cmd_data) {
+		if (cmd_data->value) {
+			DBG_INF_FMT("free csname=%s\n", cmd_data->value);
+			mnf_pefree(cmd_data->value, pool->data.persistent);
+		}
+		cmd_data->cb = cb;
+		cmd_data->option = option;
+		cmd_data->value = (char *)mnd_pestrndup(value, strlen(value), pool->data.persistent);
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
 /* {{{ pool_replay_cmds */
 static enum_func_status
 pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC)
 {
-	enum_func_status ret = SUCCESS;
+	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_CMD ** pool_cmd;
 
 	DBG_ENTER("mysqlnd_ms::pool_replay_cmds");
@@ -608,13 +670,56 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA ** proxy_conn_data
 					MYSQLND_MS_LIST_DATA * el;
 					BEGIN_ITERATE_OVER_SERVER_LISTS(el, &((pool->data).active_master_list), (&(pool->data.active_slave_list)));
 					{
-						if (SUCCESS != (ret = args->cb(proxy_conn_data, el, args->db, args->db_len TSRMLS_CC))) {
-							break;
+						if (PASS != (ret = args->cb(proxy_conn_data, el, args->db, args->db_len TSRMLS_CC))) {
+							ret = FAIL;
 						}
 					}
 					END_ITERATE_OVER_SERVER_LISTS;
 				}
 				break;
+
+			case SET_CHARSET:
+				{
+					MYSQLND_MS_POOL_CMD_SET_CHARSET * args = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)(*pool_cmd)->data;
+					MYSQLND_MS_LIST_DATA * el;
+					BEGIN_ITERATE_OVER_SERVER_LISTS(el, &((pool->data).active_master_list), (&(pool->data.active_slave_list)));
+					{
+						if (PASS != (ret = args->cb(proxy_conn_data, el, args->csname TSRMLS_CC))) {
+							ret = FAIL;
+						}
+					}
+					END_ITERATE_OVER_SERVER_LISTS;
+				}
+				break;
+
+			case SET_SERVER_OPTION:
+				{
+					MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION * args = (MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION *)(*pool_cmd)->data;
+					MYSQLND_MS_LIST_DATA * el;
+					BEGIN_ITERATE_OVER_SERVER_LISTS(el, &((pool->data).active_master_list), (&(pool->data.active_slave_list)));
+					{
+						if (PASS != (ret = args->cb(proxy_conn_data, el, args->option TSRMLS_CC))) {
+							ret = FAIL;
+						}
+					}
+					END_ITERATE_OVER_SERVER_LISTS;
+				}
+				break;
+
+			case SET_CLIENT_OPTION:
+				{
+					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * args = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)(*pool_cmd)->data;
+					MYSQLND_MS_LIST_DATA * el;
+					BEGIN_ITERATE_OVER_SERVER_LISTS(el, &((pool->data).active_master_list), (&(pool->data.active_slave_list)));
+					{
+						if (PASS != (ret = args->cb(proxy_conn_data, el, args->option, args->value TSRMLS_CC))) {
+							ret = FAIL;
+						}
+					}
+					END_ITERATE_OVER_SERVER_LISTS;
+				}
+				break;
+
 			default:
 				DBG_INF("Unknown command");
 				break;
@@ -633,10 +738,6 @@ pool_get_active_masters(MYSQLND_MS_POOL * pool TSRMLS_DC)
 {
 	zend_llist * ret = &((pool->data).active_master_list);
 	return ret;
-	/*
-	DBG_ENTER("mysqlnd_ms::pool_get_active_masters");
-	DBG_RETURN(ret);
-	*/
 }
 /* }}} */
 
@@ -647,10 +748,6 @@ pool_get_active_slaves(MYSQLND_MS_POOL * pool TSRMLS_DC)
 {
 	zend_llist * ret = &((pool->data).active_slave_list);
 	return ret;
-	/*
-	DBG_ENTER("pool_get_active_slaves");
-	DBG_RETURN(ret);
-	*/
 }
 /* }}} */
 
@@ -703,6 +800,8 @@ MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend
 
 		pool->dispatch_select_db = pool_dispatch_select_db;
 		pool->dispatch_set_charset = pool_dispatch_set_charset;
+		pool->dispatch_set_server_option = pool_dispatch_set_server_option;
+		pool->dispatch_set_client_option = pool_dispatch_set_client_option;
 		pool->replay_cmds = pool_replay_cmds;
 
 		pool->dtor = pool_dtor;
