@@ -47,6 +47,28 @@
 #include "mysqlnd_ms_enum_n_def.h"
 
 
+/* Buffered commands for conection state alignment */
+
+typedef enum
+{
+	SELECT_DB = 0
+} enum_mysqlnd_pool_cmd;
+
+typedef enum_func_status (*cb_pool_cmd_select_db)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, const char * const db, unsigned int db_len TSRMLS_DC);
+
+typedef struct st_mysqlnd_pool_cmd_select_db {
+	cb_pool_cmd_select_db cb;
+	char * db;
+	unsigned int db_len;
+} MYSQLND_MS_POOL_CMD_SELECT_DB;
+
+typedef struct st_mysqlnd_pool_cmd {
+	enum_mysqlnd_pool_cmd cmd;
+	void * data;
+	zend_bool persistent;
+} MYSQLND_MS_POOL_CMD;
+
+
 typedef struct st_mysqlnd_pool {
 
 	/* private */
@@ -54,7 +76,7 @@ typedef struct st_mysqlnd_pool {
 		zend_bool persistent;
 
 		/* Dtor from MS for master and slave list entries */
-		llist_dtor_func_t ms_list_data_dtor;
+		dtor_func_t ms_list_data_dtor;
 
 		zend_llist replace_listener;
 
@@ -68,6 +90,8 @@ typedef struct st_mysqlnd_pool {
 		 */
 		zend_llist active_master_list;
 		zend_llist active_slave_list;
+
+		HashTable buffered_cmds;
 
 	} data;
 
@@ -149,11 +173,19 @@ typedef struct st_mysqlnd_pool {
 	 * TODO See implementation - semantics are a bit unclear
 	 */
 	enum_func_status (*add_reference)(struct st_mysqlnd_pool * pool,
-									  MYSQLND_CONN_DATA * conn TSRMLS_DC);
+									  MYSQLND_CONN_DATA * const conn TSRMLS_DC);
 	enum_func_status (*free_reference)(struct st_mysqlnd_pool * pool,
-										 MYSQLND_CONN_DATA * conn TSRMLS_DC);
+										 MYSQLND_CONN_DATA * const conn TSRMLS_DC);
 
 
+	enum_func_status (*dispatch_cmd)(struct st_mysqlnd_pool * pool,
+										enum_mysqlnd_pool_cmd cmd,
+										cb_pool_cmd_select_db cb,
+										const char * db,
+										unsigned int db_len TSRMLS_DC);
+
+	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
+									MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC);
 
 	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 
@@ -168,14 +200,14 @@ typedef struct st_mysqlnd_pool_listener {
 } MYSQLND_MS_POOL_LISTENER;
 
 
-MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend_bool persistent TSRMLS_DC);
+MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(dtor_func_t ms_list_data_dtor, zend_bool persistent TSRMLS_DC);
 
 typedef struct st_mysqlnd_pool_entry {
 	/* This is the data we keep on behalf of the MS core */
 	MYSQLND_MS_LIST_DATA * data;
 	/* dtor the MS core provides to free LIST_DATA member */
 	/* TODO: can we simplify the pointer logic, one level less? */
-	llist_dtor_func_t ms_list_data_dtor;
+	dtor_func_t ms_list_data_dtor;
 
 	/* Private entries that make the pool logic itself */
 
@@ -188,6 +220,7 @@ typedef struct st_mysqlnd_pool_entry {
 	/* How many MS components (e.g. XA, core) reference this connection */
 	unsigned int ref_counter;
 } MYSQLND_MS_POOL_ENTRY;
+
 
 #endif
 

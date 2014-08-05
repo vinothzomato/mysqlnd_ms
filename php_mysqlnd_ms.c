@@ -1358,9 +1358,10 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 	smart_str_free(&hash_key_slave1);
 
 	/* Done with our changes, notify the world... */
+	(*conn_data)->pool->replay_cmds((*conn_data)->pool, conn_data TSRMLS_CC);
 	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
 
-	
+
 	if (SUCCESS == (*conn_data)->pool->clear_all((*conn_data)->pool, &referenced TSRMLS_CC)) {
 		php_printf("swim cleared all - still referenced: %d\n", referenced);
 	} else {

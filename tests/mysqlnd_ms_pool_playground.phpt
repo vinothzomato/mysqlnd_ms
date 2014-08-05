@@ -44,6 +44,7 @@ mysqlnd_ms.collect_statistics=1
 			mst_mysqli_query(101, $link, "SELECT 1");
 			printf("BEFORE SLAVE %d\n", $link->thread_id);
 	}
+	$link->select_db("test");
 
 	mysqlnd_ms_swim($link);
 	mst_stats_diff(3, mysqlnd_ms_get_stats());
