@@ -51,16 +51,26 @@
 
 typedef enum
 {
-	SELECT_DB = 0
+	SET_CHARSET = 0,
+	SELECT_DB = 1
 } enum_mysqlnd_pool_cmd;
 
-typedef enum_func_status (*cb_pool_cmd_select_db)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, const char * const db, unsigned int db_len TSRMLS_DC);
+typedef enum_func_status (*cb_pool_cmd_select_db)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
+												  const char * const db, unsigned int db_len TSRMLS_DC);
 
 typedef struct st_mysqlnd_pool_cmd_select_db {
 	cb_pool_cmd_select_db cb;
 	char * db;
 	unsigned int db_len;
 } MYSQLND_MS_POOL_CMD_SELECT_DB;
+
+typedef enum_func_status (*cb_pool_cmd_set_charset)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
+													const char * const csname TSRMLS_DC);
+
+typedef struct st_mysqlnd_pool_cmd_set_charset {
+	cb_pool_cmd_set_charset cb;
+	char * csname;
+} MYSQLND_MS_POOL_CMD_SET_CHARSET;
 
 typedef struct st_mysqlnd_pool_cmd {
 	enum_mysqlnd_pool_cmd cmd;
@@ -178,11 +188,14 @@ typedef struct st_mysqlnd_pool {
 										 MYSQLND_CONN_DATA * const conn TSRMLS_DC);
 
 
-	enum_func_status (*dispatch_cmd)(struct st_mysqlnd_pool * pool,
-										enum_mysqlnd_pool_cmd cmd,
-										cb_pool_cmd_select_db cb,
-										const char * db,
-										unsigned int db_len TSRMLS_DC);
+	enum_func_status (*dispatch_select_db)(struct st_mysqlnd_pool * pool,
+											cb_pool_cmd_select_db cb,
+											const char * db,
+											unsigned int db_len TSRMLS_DC);
+
+	enum_func_status (*dispatch_set_charset)(struct st_mysqlnd_pool * pool,
+											cb_pool_cmd_set_charset cb,
+											const char * const csname TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
 									MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC);

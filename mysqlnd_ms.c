@@ -1837,7 +1837,7 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 
-		(*conn_data)->pool->dispatch_cmd((*conn_data)->pool, SELECT_DB, do_select_db, db, db_len TSRMLS_CC);
+		(*conn_data)->pool->dispatch_select_db((*conn_data)->pool, do_select_db, db, db_len TSRMLS_CC);
 
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
@@ -1850,12 +1850,78 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 }
 /* }}} */
 
+static enum_func_status do_set_charset(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, const char * const csname TSRMLS_DC) {
+	enum_func_status last = PASS, ret = PASS;
+	uint transient_error_no = 0, transient_error_retries = 0;
+	enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
+
+	DBG_ENTER("do_set_charset");
+
+	if (state != CONN_QUIT_SENT) {
+		MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
+
+		if (el_conn_data && *el_conn_data) {
+			(*el_conn_data)->skip_ms_calls = TRUE;
+		}
+
+		transient_error_retries = 0;
+		do {
+			if (state == CONN_ALLOCED) {
+				last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
+				if (PASS == last) {
+					(*el_conn_data)->server_charset = mysqlnd_find_charset_name(CONN_GET_OPTION(el->conn, charset_name));
+					if (!(*el_conn_data)->server_charset) {
+						mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(el->conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+							MYSQLND_MS_ERROR_PREFIX " unknown to the connector charset '%s'. Please report to the developers",
+								CONN_GET_OPTION(el->conn, charset_name));
+					}
+				}
+			} else {
+				last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(el->conn, csname TSRMLS_CC);
+			}
+
+			if (PASS == last) {
+				break;
+			}
+			MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+			if (transient_error_no) {
+				DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+				transient_error_retries++;
+				if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+					MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+					DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+								transient_error_retries,
+								(*conn_data)->stgy.transient_error_max_retries,
+								(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+					usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+				} else {
+					DBG_INF("No more transient error retries allowed");
+					ret = FAIL;
+					break;
+				}
+			} else {
+				/* an error that is not considered transient */
+				ret = FAIL;
+				break;
+			}
+
+		} while (transient_error_no);
+
+		if (el_conn_data && *el_conn_data) {
+			(*el_conn_data)->skip_ms_calls = FALSE;
+		}
+	}
+
+	DBG_RETURN(ret);
+}
+
 /* {{{ mysqlnd_ms::set_charset */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, const char * const csname TSRMLS_DC)
 {
-	enum_func_status last = PASS, ret = PASS;
-	uint transient_error_no = 0, transient_error_retries = 0;
+	enum_func_status ret = PASS;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms::set_charset");
@@ -1864,67 +1930,13 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(proxy_conn, csname TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
+
+		(*conn_data)->pool->dispatch_set_charset((*conn_data)->pool, do_set_charset, csname TSRMLS_CC);
+		
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
-			enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
 
-			if (state != CONN_QUIT_SENT) {
-				MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
-
-				if (el_conn_data && *el_conn_data) {
-					(*el_conn_data)->skip_ms_calls = TRUE;
-				}
-
-				transient_error_retries = 0;
-				do {
-
-					if (state == CONN_ALLOCED) {
-						last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
-						if (PASS == last) {
-							(*el_conn_data)->server_charset = mysqlnd_find_charset_name(CONN_GET_OPTION(el->conn, charset_name));
-							if (!(*el_conn_data)->server_charset) {
-								mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(el->conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-									MYSQLND_MS_ERROR_PREFIX " unknown to the connector charset '%s'. Please report to the developers",
-										CONN_GET_OPTION(el->conn, charset_name));
-							}
-						}
-					} else {
-						last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(el->conn, csname TSRMLS_CC);
-					}
-
-					if (PASS == last) {
-						break;
-					}
-					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
-					if (transient_error_no) {
-						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
-						transient_error_retries++;
-						if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
-							MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
-							DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
-								transient_error_retries,
-								(*conn_data)->stgy.transient_error_max_retries,
-								(*conn_data)->stgy.transient_error_usleep_before_retry);
-#if HAVE_USLEEP
-							usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
-#endif
-						} else {
-							DBG_INF("No more transient error retries allowed");
-							ret = FAIL;
-							break;
-						}
-					} else {
-						/* an error that is not considered transient */
-						ret = FAIL;
-						break;
-					}
-
-				} while (transient_error_no);
-
-				if (el_conn_data && *el_conn_data) {
-					(*el_conn_data)->skip_ms_calls = FALSE;
-				}
-			}
+			ret = do_set_charset(conn_data, el, csname TSRMLS_CC);
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}

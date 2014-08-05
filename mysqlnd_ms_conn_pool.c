@@ -65,16 +65,28 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 
 	if (element) {
 		switch (element->cmd) {
+			case SET_CHARSET:
+				DBG_INF_FMT("pool_cmd=%p SET_CHARSET", element);
+				{
+					MYSQLND_MS_POOL_CMD_SET_CHARSET * arg = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)element->data;
+					if (arg->csname) {
+						mnd_pefree(arg->csname, element->persistent);
+					}
+				}
+				break;
+
 			case SELECT_DB:
 				DBG_INF_FMT("pool_cmd=%p SELECT DB", element);
-				MYSQLND_MS_POOL_CMD_SELECT_DB * arg = (MYSQLND_MS_POOL_CMD_SELECT_DB *)element->data;
-				if (arg->db) {
-					mnd_pefree(arg->db, element->persistent);
+				{
+					MYSQLND_MS_POOL_CMD_SELECT_DB * arg = (MYSQLND_MS_POOL_CMD_SELECT_DB *)element->data;
+					if (arg->db) {
+						mnd_pefree(arg->db, element->persistent);
+					}
+					mnd_pefree(arg, element->persistent);
 				}
-				mnd_pefree(arg, element->persistent);
-				mnd_pefree(element, element->persistent);
 				break;
 		}
+		mnd_pefree(element, element->persistent);
 	}
 	DBG_VOID_RETURN;
 }
@@ -477,74 +489,104 @@ pool_free_reference(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const conn TSRML
 /* }}} */
 
 
+/* private */
 static enum_func_status
-pool_dispatch_cmd(MYSQLND_MS_POOL * pool,
-					enum_mysqlnd_pool_cmd cmd,
-					cb_pool_cmd_select_db cb,
-					const char * db,
-					unsigned int db_len TSRMLS_DC) {
-	enum_func_status ok = PASS;
-
+pool_dispatch_cmd(MYSQLND_MS_POOL * pool, enum_mysqlnd_pool_cmd cmd, void ** cmd_data, size_t cmd_data_size TSRMLS_DC) {
+	enum_func_status ret = SUCCESS;
+	MYSQLND_MS_POOL_CMD * pool_cmd, ** pool_cmd_pp;
 	DBG_ENTER("mysqlnd_ms::pool_dispatch_cmd");
-	DBG_INF_FMT("pool=%p active_slave_list=%p active_master_list=%p", pool,	&((pool->data).active_slave_list), &((pool->data).active_master_list));
 
-	switch (cmd)
-	{
-		case SELECT_DB:
-			{
-				MYSQLND_MS_POOL_CMD * pool_cmd, ** pool_cmd_pp;
-				MYSQLND_MS_POOL_CMD_SELECT_DB * args = NULL;
+	*cmd_data = NULL;
 
-				if (zend_hash_index_find(&(pool->data.buffered_cmds), cmd, (void **)&pool_cmd_pp) == SUCCESS) {
-					args = (MYSQLND_MS_POOL_CMD_SELECT_DB *)(*pool_cmd_pp)->data;
-					mnd_pefree(args->db, pool->data.persistent);
-				} else {
-					pool_cmd = mnd_pecalloc(1, sizeof(MYSQLND_MS_POOL_CMD), pool->data.persistent);
-					if (!pool_cmd) {
-						MYSQLND_MS_WARN_OOM();
-						ok = FAIL;
-						DBG_RETURN(ok);
-					}
+	if (zend_hash_index_find(&(pool->data.buffered_cmds), cmd, (void **)&pool_cmd_pp) == SUCCESS) {
+		cmd_data = (*pool_cmd_pp)->data;
+	} else {
+		pool_cmd = mnd_pecalloc(1, sizeof(MYSQLND_MS_POOL_CMD), pool->data.persistent);
+		if (!pool_cmd) {
+			MYSQLND_MS_WARN_OOM();
+			ret = FAIL;
+			DBG_RETURN(ret);
+		}
 
-					args = mnd_pecalloc(1, sizeof(MYSQLND_MS_POOL_CMD_SELECT_DB), pool->data.persistent);
-					if (!args) {
-						MYSQLND_MS_WARN_OOM();
-						ok = FAIL;
-						mnd_pefree(pool_cmd, pool->data.persistent);
-						DBG_RETURN(ok);
-					}
+		*cmd_data = mnd_pecalloc(1, cmd_data_size, pool->data.persistent);
+		if (!*cmd_data) {
+			MYSQLND_MS_WARN_OOM();
+			ret = FAIL;
+			mnd_pefree(pool_cmd, pool->data.persistent);
+			DBG_RETURN(ret);
+		}
 
-					pool_cmd->cmd = cmd;
-					pool_cmd->data = (void*)args;
-					pool_cmd->persistent = pool->data.persistent;
-					DBG_INF_FMT("pool_cmd=%p pool_cmd.data=%p", pool_cmd, pool_cmd->data);
+		pool_cmd->cmd = cmd;
+		pool_cmd->data = *cmd_data;
+		pool_cmd->persistent = pool->data.persistent;
+		DBG_INF_FMT("pool_cmd=%p pool_cmd.data=%p", pool_cmd, pool_cmd->data);
 
-					if (zend_hash_index_update(&(pool->data.buffered_cmds), cmd, (void *)&pool_cmd, sizeof(MYSQLND_MS_POOL_CMD *), NULL) != SUCCESS) {
-						DBG_INF("update failed\n");
-						ok = FAIL;
-						mnd_pefree(pool_cmd, pool->data.persistent);
-						mnd_pefree(args, pool->data.persistent);
-						DBG_RETURN(ok);
-					}
-				}
-				if (args) {
-					args->cb = cb;
-					args->db = (char *)mnd_pestrndup(db, db_len, pool->data.persistent);
-					args->db_len = db_len;
-				}
-			}
-			break;
-
-		default:
-			ok = FAIL;
-			DBG_INF("Unhandled command");
-			break;
+		if (zend_hash_index_update(&(pool->data.buffered_cmds), cmd, (void *)&pool_cmd, sizeof(MYSQLND_MS_POOL_CMD *), NULL) != SUCCESS) {
+			DBG_INF("update failed\n");
+			ret = FAIL;
+			mnd_pefree(pool_cmd, pool->data.persistent);
+			mnd_pefree(*cmd_data, pool->data.persistent);
+			DBG_RETURN(ret);
+		}
 	}
 
-	DBG_RETURN(ok);
+	DBG_RETURN(ret);
 }
+/* }}} */
 
 
+/* {{{ pool_dispatch_select_db */
+static enum_func_status
+pool_dispatch_select_db(MYSQLND_MS_POOL * pool, cb_pool_cmd_select_db cb,
+							const char * db, unsigned int db_len TSRMLS_DC) {
+	enum_func_status ret = SUCCESS;
+	enum_mysqlnd_pool_cmd cmd = SELECT_DB;
+	MYSQLND_MS_POOL_CMD_SELECT_DB  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_select_db");
+
+	ret = pool_dispatch_cmd(pool, SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SELECT_DB) TSRMLS_CC);
+	if ((SUCCESS == ret) && cmd_data) {
+		if (cmd_data->db) {
+			DBG_INF_FMT("free db=%s\n", cmd_data->db);
+			mnf_pefree(cmd_data->db, pool->data.persistent);
+		}
+		cmd_data->cb = cb;
+		cmd_data->db = (char *)mnd_pestrndup(db, db_len, pool->data.persistent);
+		cmd_data->db_len = db_len;
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ pool_dispatch_set_charset */
+static enum_func_status
+pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, cb_pool_cmd_set_charset cb,
+							const char * const csname TSRMLS_DC) {
+	enum_func_status ret = SUCCESS;
+	enum_mysqlnd_pool_cmd cmd = SET_CHARSET;
+	MYSQLND_MS_POOL_CMD_SET_CHARSET  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_charset");
+
+	ret = pool_dispatch_cmd(pool, SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CHARSET) TSRMLS_CC);
+	if ((SUCCESS == ret) && cmd_data) {
+		if (cmd_data->csname) {
+			DBG_INF_FMT("free csname=%s\n", cmd_data->csname);
+			mnf_pefree(cmd_data->csname, pool->data.persistent);
+		}
+		cmd_data->cb = cb;
+		cmd_data->csname = (char *)mnd_pestrndup(csname, strlen(csname), pool->data.persistent);
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ pool_replay_cmds */
 static enum_func_status
 pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC)
 {
@@ -557,6 +599,8 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA ** proxy_conn_data
 	for (zend_hash_internal_pointer_reset(&(pool->data.buffered_cmds));
 		 (zend_hash_has_more_elements(&(pool->data.buffered_cmds)) == SUCCESS) && (zend_hash_get_current_data(&(pool->data.buffered_cmds), (void **)&pool_cmd) == SUCCESS);
 		 zend_hash_move_forward(&(pool->data.buffered_cmds))) {
+		DBG_INF_FMT("pool_cmd=%p pool_cmd.data=%p", *pool_cmd, (*pool_cmd)->data);
+
 		switch ((*pool_cmd)->cmd) {
 			case SELECT_DB:
 				{
@@ -580,6 +624,7 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_MS_CONN_DATA ** proxy_conn_data
 
 	DBG_RETURN(ret)
 }
+/* }}} */
 
 
 /* {{{ pool_get_active_masters */
@@ -656,7 +701,8 @@ MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend
 		pool->add_reference = pool_add_reference;
 		pool->free_reference = pool_free_reference;
 
-		pool->dispatch_cmd = pool_dispatch_cmd;
+		pool->dispatch_select_db = pool_dispatch_select_db;
+		pool->dispatch_set_charset = pool_dispatch_set_charset;
 		pool->replay_cmds = pool_replay_cmds;
 
 		pool->dtor = pool_dtor;
