@@ -55,9 +55,12 @@ typedef enum
 	 * It may be that we learn about use cases where the order is not perfect...
 	 */
 	SET_CHARSET = 0,
-	SELECT_DB = 1,
-	SET_SERVER_OPTION = 2,
-	SET_CLIENT_OPTION = 3,
+	SET_AUTOCOMMIT = 1,
+	SELECT_DB = 2,
+	SET_SERVER_OPTION = 3,
+	SET_CLIENT_OPTION = 4,
+	CHANGE_USER = 5,
+	SSL_SET = 6
 } enum_mysqlnd_pool_cmd;
 
 typedef struct st_mysqlnd_pool_cmd_select_db {
@@ -81,6 +84,34 @@ typedef struct st_mysqlnd_pool_cmd_set_client_option {
 	enum_mysqlnd_server_option option;
 	char * value;
 } MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION;
+
+typedef struct st_mysqlnd_pool_cmd_change_user {
+	func_mysqlnd_conn_data__change_user cb;
+	char *user;
+	char *passwd;
+	char *db;
+	zend_bool silent;
+#if PHP_VERSION_ID >= 50399
+	size_t passwd_len;
+#endif
+} MYSQLND_MS_POOL_CMD_CHANGE_USER;
+
+#if MYSQLND_VERSION_ID >= 50009
+typedef struct st_mysqlnd_pool_cmd_set_autocommit {
+	func_mysqlnd_conn_data__set_autocommit cb;
+	unsigned int mode;
+} MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT;
+#endif
+
+typedef struct st_mysqlnd_pool_cmd_ssl_set {
+	func_mysqlnd_conn_data__ssl_set cb;
+	char * key;
+	char * cert;
+	char * ca;
+	char * capath;
+	char * cipher;
+} MYSQLND_MS_POOL_CMD_SSL_SET;
+
 
 typedef struct st_mysqlnd_pool_cmd {
 	enum_mysqlnd_pool_cmd cmd;
@@ -228,6 +259,27 @@ typedef struct st_mysqlnd_pool {
 												func_mysqlnd_conn_data__set_client_option cb,
 												enum_mysqlnd_option option,
 												const char * const value TSRMLS_DC);
+
+	enum_func_status (*dispatch_change_user)(struct st_mysqlnd_pool * pool,
+											func_mysqlnd_conn_data__change_user cb,
+											const char *user, const char * passwd,
+											const char * db, zend_bool silent
+#if PHP_VERSION_ID >= 50399
+											, size_t passwd_len
+#endif
+											TSRMLS_DC);
+
+#if MYSQLND_VERSION_ID >= 50009
+	enum_func_status (*dispatch_set_autocommit)(struct st_mysqlnd_pool * pool,
+												func_mysqlnd_conn_data__set_autocommit cb,
+												unsigned int mode TSRMLS_DC);
+#endif
+
+	enum_func_status (*dispatch_ssl_set)(struct st_mysqlnd_pool * pool,
+										func_mysqlnd_conn_data__ssl_set cb,
+										const char * key, const char * const cert,
+										const char * const ca, const char * const capath,
+										const char * const cipher TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
 									MYSQLND_CONN_DATA * const proxy_conn,

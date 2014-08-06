@@ -68,9 +68,9 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 			case SET_CHARSET:
 				DBG_INF_FMT("pool_cmd=%p SET_CHARSET", element->data);
 				{
-					MYSQLND_MS_POOL_CMD_SET_CHARSET * arg = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)element->data;
-					if (arg->csname) {
-						mnd_pefree(arg->csname, element->persistent);
+					MYSQLND_MS_POOL_CMD_SET_CHARSET * cmd_data = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)element->data;
+					if (cmd_data->csname) {
+						mnd_pefree(cmd_data->csname, element->persistent);
 					}
 				}
 				break;
@@ -78,11 +78,11 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 			case SELECT_DB:
 				DBG_INF_FMT("pool_cmd=%p SELECT_DB", element->data);
 				{
-					MYSQLND_MS_POOL_CMD_SELECT_DB * arg = (MYSQLND_MS_POOL_CMD_SELECT_DB *)element->data;
-					if (arg->db) {
-						mnd_pefree(arg->db, element->persistent);
+					MYSQLND_MS_POOL_CMD_SELECT_DB * cmd_data = (MYSQLND_MS_POOL_CMD_SELECT_DB *)element->data;
+					if (cmd_data->db) {
+						mnd_pefree(cmd_data->db, element->persistent);
 					}
-					mnd_pefree(arg, element->persistent);
+					mnd_pefree(cmd_data, element->persistent);
 				}
 				break;
 
@@ -94,12 +94,61 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 			case SET_CLIENT_OPTION:
 				DBG_INF_FMT("pool_cmd=%p SET_CLIENT_OPTION", element->data);
 				{
-					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * arg = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)element->data;
-					if (arg->value) {
-						mnd_pefree(arg->value, element->persistent);
+					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * cmd_data = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)element->data;
+					if (cmd_data->value) {
+						mnd_pefree(cmd_data->value, element->persistent);
 					}
-					mnd_pefree(arg, element->persistent);
+					mnd_pefree(cmd_data, element->persistent);
 				}
+				break;
+
+			case CHANGE_USER:
+				DBG_INF_FMT("pool_cmd=%p CHANGE_USER", element->data);
+				{
+					MYSQLND_MS_POOL_CMD_CHANGE_USER * cmd_data = (MYSQLND_MS_POOL_CMD_CHANGE_USER *)element->data;
+					if (cmd_data->user) {
+						mnd_pefree(cmd_data->user, element->persistent);
+					}
+					if (cmd_data->passwd) {
+						mnd_pefree(cmd_data->passwd, element->persistent);
+					}
+					if (cmd_data->db) {
+						mnd_pefree(cmd_data->db, element->persistent);
+					}
+					mnd_pefree(cmd_data, element->persistent);
+				}
+				break;
+
+#if MYSQLND_VERSION_ID >= 50009
+			case SET_AUTOCOMMIT:
+				DBG_INF_FMT("pool_cmd=%p SET_AUTOCOMMIT", element->data);
+
+				break;
+#endif
+			case SSL_SET:
+				DBG_INF_FMT("pool_cmd=%p SSL_SET", element->data);
+				{
+					MYSQLND_MS_POOL_CMD_SSL_SET * cmd_data = (MYSQLND_MS_POOL_CMD_SSL_SET *)element->data;
+					if (cmd_data->key) {
+						mnd_pefree(cmd_data->key, element->persistent);
+					}
+					if (cmd_data->cert) {
+						mnd_pefree(cmd_data->cert, element->persistent);
+					}
+					if (cmd_data->ca) {
+						mnd_pefree(cmd_data->ca, element->persistent);
+					}
+					if (cmd_data->capath) {
+						mnd_pefree(cmd_data->capath, element->persistent);
+					}
+					if (cmd_data->cipher) {
+						mnd_pefree(cmd_data->cipher, element->persistent);
+					}
+					mnd_pefree(cmd_data, element->persistent);
+				}
+				break;
+			default:
+				DBG_INF("unknown command");
 				break;
 		}
 		mnd_pefree(element, element->persistent);
@@ -567,10 +616,10 @@ pool_dispatch_select_db(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__select_d
 	if ((SUCCESS == ret) && cmd_data) {
 		if (cmd_data->db) {
 			DBG_INF_FMT("free db=%s\n", cmd_data->db);
-			mnf_pefree(cmd_data->db, pool->data.persistent);
+			mnd_pefree(cmd_data->db, pool->data.persistent);
 		}
 		cmd_data->cb = cb;
-		cmd_data->db = (char *)mnd_pestrndup(db, db_len, pool->data.persistent);
+		cmd_data->db = (db) ? mnd_pestrndup(db, db_len, pool->data.persistent) : NULL;
 		cmd_data->db_len = db_len;
 	}
 
@@ -584,7 +633,6 @@ static enum_func_status
 pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_charset cb,
 							const char * const csname TSRMLS_DC) {
 	enum_func_status ret = PASS;
-	enum_mysqlnd_pool_cmd cmd = SET_CHARSET;
 	MYSQLND_MS_POOL_CMD_SET_CHARSET  * cmd_data;
 
 	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_charset");
@@ -596,10 +644,10 @@ pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_ch
 	if ((SUCCESS == ret) && cmd_data) {
 		if (cmd_data->csname) {
 			DBG_INF_FMT("free csname=%s\n", cmd_data->csname);
-			mnf_pefree(cmd_data->csname, pool->data.persistent);
+			mnd_pefree(cmd_data->csname, pool->data.persistent);
 		}
 		cmd_data->cb = cb;
-		cmd_data->csname = (char *)mnd_pestrndup(csname, strlen(csname), pool->data.persistent);
+		cmd_data->csname = (csname) ? mnd_pestrndup(csname, strlen(csname), pool->data.persistent) : NULL;
 	}
 
 	DBG_RETURN(ret);
@@ -612,7 +660,6 @@ static enum_func_status
 pool_dispatch_set_server_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_server_option cb,
 								enum_mysqlnd_server_option option TSRMLS_DC) {
 	enum_func_status ret = PASS;
-	enum_mysqlnd_pool_cmd cmd = SET_SERVER_OPTION;
 	MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION  * cmd_data;
 
 	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_server_option");
@@ -636,7 +683,6 @@ static enum_func_status
 pool_dispatch_set_client_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_client_option cb,
 								enum_mysqlnd_option option,	const char * const value TSRMLS_DC) {
 	enum_func_status ret = PASS;
-	enum_mysqlnd_pool_cmd cmd = SET_CLIENT_OPTION;
 	MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION  * cmd_data;
 
 	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_client_option");
@@ -647,12 +693,130 @@ pool_dispatch_set_client_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 	ret = pool_dispatch_cmd(pool, SET_CLIENT_OPTION, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION) TSRMLS_CC);
 	if ((PASS == ret) && cmd_data) {
 		if (cmd_data->value) {
-			DBG_INF_FMT("free csname=%s\n", cmd_data->value);
-			mnf_pefree(cmd_data->value, pool->data.persistent);
+			DBG_INF_FMT("free value=%s\n", cmd_data->value);
+			mnd_pefree(cmd_data->value, pool->data.persistent);
 		}
 		cmd_data->cb = cb;
 		cmd_data->option = option;
-		cmd_data->value = (char *)mnd_pestrndup(value, strlen(value), pool->data.persistent);
+		cmd_data->value = (value) ? mnd_pestrndup(value, strlen(value), pool->data.persistent) : NULL;
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+
+/* {{{ pool_dispatch_change_user */
+static enum_func_status
+pool_dispatch_change_user(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__change_user cb,
+						const char *user, const char * passwd, const char * db,
+						zend_bool silent
+#if PHP_VERSION_ID >= 50399
+						, size_t passwd_len
+#endif
+						TSRMLS_DC) {
+	enum_func_status ret = PASS;
+	MYSQLND_MS_POOL_CMD_CHANGE_USER  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_change_user");
+
+	if (pool->data.in_buffered_replay) {
+		DBG_RETURN(ret)
+	}
+
+	ret = pool_dispatch_cmd(pool, CHANGE_USER, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_CHANGE_USER) TSRMLS_CC);
+	if ((PASS == ret) && cmd_data) {
+		if (cmd_data->user) {
+			mnd_pefree(cmd_data->user, pool->data.persistent);
+		}
+		if (cmd_data->passwd) {
+			mnd_pefree(cmd_data->passwd, pool->data.persistent);
+		}
+		if (cmd_data->db) {
+			mnd_pefree(cmd_data->db, pool->data.persistent);
+		}
+		cmd_data->cb = cb;
+		cmd_data->user = (user) ? mnd_pestrndup(user, strlen(user), pool->data.persistent) : NULL;
+		cmd_data->db = (db) ? mnd_pestrndup(db, strlen(db), pool->data.persistent) : NULL;
+		cmd_data->silent = silent;
+
+#if PHP_VERSION_ID >= 50399
+		cmd_data->passwd = (passwd) ? mnd_pestrndup(passwd, passwd_len, pool->data.persistent) : NULL;
+		cmd_data->passwd_len = passwd_len;
+#else
+		cmd_data->passwd = (passwd) ? mnd_pestrndup(passwd, strlen(passwd), pool->data.persistent) : NULL;
+#endif
+	}
+
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+#if MYSQLND_VERSION_ID >= 50009
+/* {{{ pool_dispatch_set_autocommit */
+static enum_func_status
+pool_dispatch_set_autocommit(MYSQLND_MS_POOL * pool,
+							func_mysqlnd_conn_data__set_autocommit cb,
+							unsigned int mode TSRMLS_DC) {
+	enum_func_status ret = PASS;
+	MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_autocommit");
+	if (pool->data.in_buffered_replay) {
+		DBG_RETURN(ret)
+	}
+
+	ret = pool_dispatch_cmd(pool, SET_AUTOCOMMIT, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT) TSRMLS_CC);
+	if ((PASS == ret) && cmd_data) {
+		cmd_data->cb = cb;
+		cmd_data->mode = mode;
+	}
+
+	DBG_RETURN(ret);
+}
+/* }}} */
+#endif
+
+/* {{{ pool_dispatch_ssl_set */
+static enum_func_status
+pool_dispatch_ssl_set(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__ssl_set cb,
+				const char * key, const char * const cert, const char * const ca,
+				const char * const capath, const char * const cipher TSRMLS_DC)
+{
+	enum_func_status ret = PASS;
+	MYSQLND_MS_POOL_CMD_SSL_SET  * cmd_data;
+
+	DBG_ENTER("mysqlnd_ms::pool_dispatch_set_ssl");
+
+	if (pool->data.in_buffered_replay) {
+		DBG_RETURN(ret)
+	}
+
+	ret = pool_dispatch_cmd(pool, SSL_SET, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SSL_SET) TSRMLS_CC);
+	if ((PASS == ret) && cmd_data) {
+		if (cmd_data->key) {
+			mnd_pefree(cmd_data->key, pool->data.persistent);
+		}
+		if (cmd_data->cert) {
+			mnd_pefree(cmd_data->cert, pool->data.persistent);
+		}
+		if (cmd_data->ca) {
+			mnd_pefree(cmd_data->ca, pool->data.persistent);
+		}
+		if (cmd_data->capath) {
+			mnd_pefree(cmd_data->capath, pool->data.persistent);
+		}
+		if (cmd_data->cipher) {
+			mnd_pefree(cmd_data->cipher, pool->data.persistent);
+		}
+
+		cmd_data->cb = cb;
+		cmd_data->key = (key) ? mnd_pestrndup(key, strlen(key), pool->data.persistent) : NULL;
+		cmd_data->cert = (cert) ? mnd_pestrndup(cert, strlen(cert), pool->data.persistent) : NULL;
+		cmd_data->ca = (ca) ? mnd_pestrndup(ca, strlen(ca), pool->data.persistent) : NULL;
+		cmd_data->capath = (capath) ? mnd_pestrndup(capath, strlen(capath), pool->data.persistent) : NULL;
+		cmd_data->cipher = (cipher) ? mnd_pestrndup(cipher, strlen(cipher), pool->data.persistent) : NULL;
 	}
 
 	DBG_RETURN(ret);
@@ -701,6 +865,32 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const proxy_conn, M
 				{
 					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * args = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)(*pool_cmd)->data;
 					ret = args->cb(proxy_conn, args->option, args->value TSRMLS_CC);
+				}
+				break;
+
+			case CHANGE_USER:
+				{
+					MYSQLND_MS_POOL_CMD_CHANGE_USER * args = (MYSQLND_MS_POOL_CMD_CHANGE_USER *)(*pool_cmd)->data;
+					ret = args->cb(proxy_conn, args->user, args->passwd, args->db, args->silent
+#if PHP_VERSION_ID >= 50399
+								, args->passwd_len
+#endif
+								TSRMLS_CC);
+				}
+				break;
+
+#if MYSQLND_VERSION_ID >= 50009
+			case SET_AUTOCOMMIT:
+				{
+					MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT * args = (MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT *)(*pool_cmd)->data;
+					ret = args->cb(proxy_conn, args->mode TSRMLS_CC);
+				}
+				break;
+#endif
+			case SSL_SET:
+				{
+					MYSQLND_MS_POOL_CMD_SSL_SET * args = (MYSQLND_MS_POOL_CMD_SSL_SET *)(*pool_cmd)->data;
+					ret = args->cb(proxy_conn, args->key, args->cert, args->ca, args->capath, args->cipher TSRMLS_CC);
 				}
 				break;
 
@@ -787,6 +977,11 @@ MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend
 		pool->dispatch_set_charset = pool_dispatch_set_charset;
 		pool->dispatch_set_server_option = pool_dispatch_set_server_option;
 		pool->dispatch_set_client_option = pool_dispatch_set_client_option;
+		pool->dispatch_change_user = pool_dispatch_change_user;
+#if MYSQLND_VERSION_ID >= 50009
+		pool->dispatch_set_autocommit = pool_dispatch_set_autocommit;
+#endif
+		pool->dispatch_ssl_set = pool_dispatch_ssl_set;
 		pool->replay_cmds = pool_replay_cmds;
 
 		pool->dtor = pool_dtor;

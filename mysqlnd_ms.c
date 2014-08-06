@@ -1595,6 +1595,15 @@ MYSQLND_METHOD(mysqlnd_ms, change_user)(MYSQLND_CONN_DATA * const proxy_conn,
 #endif
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
+
+		ret = (*conn_data)->pool->dispatch_change_user((*conn_data)->pool,
+													MYSQLND_METHOD(mysqlnd_ms, change_user),
+													user, passwd, db, silent
+#if PHP_VERSION_ID >= 50399
+													, passwd_len
+#endif
+													TSRMLS_CC);
+
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
@@ -2183,16 +2192,6 @@ MYSQLND_METHOD(mysqlnd_ms, info)(const MYSQLND_CONN_DATA * const proxy_conn TSRM
 
 
 #if MYSQLND_VERSION_ID >= 50009
-/* {{{ do_set_autocommit */
-static enum_func_status
-do_set_autocommit(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, zend_bool * stop_loop, unsigned int mode TSRMLS_DC) {
-	enum_func_status ret = PASS;
-	DBG_ENTER("mysqlnd_ms::do_set_autocommit");
-
-	DBG_RETURN(ret);
-}
-
-
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, set_autocommit) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsigned int mode TSRMLS_DC)
@@ -2208,6 +2207,8 @@ MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsig
 		DBG_RETURN(ret);
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
+
+		ret = (*conn_data)->pool->dispatch_set_autocommit((*conn_data)->pool, MYSQLND_METHOD(mysqlnd_ms, set_autocommit), mode TSRMLS_CC);
 
 #ifndef MYSQLND_HAS_INJECTION_FEATURE
 		if (((TRUE == (*conn_data)->stgy.in_transaction) && mode) &&
@@ -2846,6 +2847,10 @@ MYSQLND_METHOD(mysqlnd_ms, ssl_set)(MYSQLND_CONN_DATA * const proxy_conn, const 
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(ssl_set)(proxy_conn, key, cert, ca, capath, cipher TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
+
+		ret = (*conn_data)->pool->dispatch_ssl_set((*conn_data)->pool, MYSQLND_METHOD(mysqlnd_ms, ssl_set),
+												   key, cert, ca, capath, cipher TSRMLS_CC);
+
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
 			if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(ssl_set)(el->conn, key, cert, ca, capath, cipher TSRMLS_CC)) {
