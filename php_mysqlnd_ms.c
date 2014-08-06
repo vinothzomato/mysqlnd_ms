@@ -1358,7 +1358,7 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 	smart_str_free(&hash_key_slave1);
 
 	/* Done with our changes, notify the world... */
-	(*conn_data)->pool->replay_cmds((*conn_data)->pool, conn_data TSRMLS_CC);
+	(*conn_data)->pool->replay_cmds((*conn_data)->pool, conn->data, conn_data TSRMLS_CC);
 	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
 
 

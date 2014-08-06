@@ -60,36 +60,24 @@ typedef enum
 	SET_CLIENT_OPTION = 3,
 } enum_mysqlnd_pool_cmd;
 
-typedef enum_func_status (*cb_pool_cmd_select_db)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
-												  const char * const db, unsigned int db_len TSRMLS_DC);
-
 typedef struct st_mysqlnd_pool_cmd_select_db {
-	cb_pool_cmd_select_db cb;
+	func_mysqlnd_conn_data__select_db cb;
 	char * db;
 	unsigned int db_len;
 } MYSQLND_MS_POOL_CMD_SELECT_DB;
 
-typedef enum_func_status (*cb_pool_cmd_set_charset)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
-													const char * const csname TSRMLS_DC);
-
 typedef struct st_mysqlnd_pool_cmd_set_charset {
-	cb_pool_cmd_set_charset cb;
+	func_mysqlnd_conn_data__set_charset cb;
 	char * csname;
 } MYSQLND_MS_POOL_CMD_SET_CHARSET;
 
-typedef enum_func_status (*cb_pool_cmd_set_server_option)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
-														  enum_mysqlnd_server_option option TSRMLS_DC);
-
 typedef struct st_mysqlnd_pool_cmd_set_server_option {
-	cb_pool_cmd_set_server_option cb;
+	func_mysqlnd_conn_data__set_server_option cb;
 	enum_mysqlnd_server_option option;
 } MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION;
 
-typedef enum_func_status (*cb_pool_cmd_set_client_option)(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el,
-														  enum_mysqlnd_option option, const char * const value TSRMLS_DC);
-
 typedef struct st_mysqlnd_pool_cmd_set_client_option {
-	cb_pool_cmd_set_client_option cb;
+	func_mysqlnd_conn_data__set_client_option cb;
 	enum_mysqlnd_server_option option;
 	char * value;
 } MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION;
@@ -124,6 +112,8 @@ typedef struct st_mysqlnd_pool {
 		zend_llist active_slave_list;
 
 		HashTable buffered_cmds;
+		/* Prevent recursion during repaly */
+		zend_bool in_buffered_replay;
 
 	} data;
 
@@ -222,24 +212,25 @@ typedef struct st_mysqlnd_pool {
 	 * FIXME: Likely, the order in which commands are replayed matters. It can't be set.
 	 */
 	enum_func_status (*dispatch_select_db)(struct st_mysqlnd_pool * pool,
-											cb_pool_cmd_select_db cb,
+											func_mysqlnd_conn_data__select_db cb,
 											const char * db,
 											unsigned int db_len TSRMLS_DC);
 
 	enum_func_status (*dispatch_set_charset)(struct st_mysqlnd_pool * pool,
-											cb_pool_cmd_set_charset cb,
+											func_mysqlnd_conn_data__set_charset cb,
 											const char * const csname TSRMLS_DC);
 
 	enum_func_status (*dispatch_set_server_option)(struct st_mysqlnd_pool * pool,
-												cb_pool_cmd_set_server_option cb,
+												func_mysqlnd_conn_data__set_server_option cb,
 												enum_mysqlnd_server_option option TSRMLS_DC);
 
 	enum_func_status (*dispatch_set_client_option)(struct st_mysqlnd_pool *pool,
-												cb_pool_cmd_set_client_option cb,
+												func_mysqlnd_conn_data__set_client_option cb,
 												enum_mysqlnd_option option,
 												const char * const value TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
+									MYSQLND_CONN_DATA * const proxy_conn,
 									MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC);
 
 	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);

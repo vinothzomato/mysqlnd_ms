@@ -1760,78 +1760,12 @@ MYSQLND_METHOD(mysqlnd_ms, get_errors)(MYSQLND_CONN_DATA * const proxy_conn, con
 #endif
 
 
-/* {{{ do_select_db */
-static enum_func_status
-do_select_db(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, const char * const db, unsigned int db_len TSRMLS_DC)
-{
-	enum_func_status last = PASS, ret = PASS;
-	uint transient_error_no = 0, transient_error_retries = 0;
-	DBG_ENTER("mysqlnd_ms::do_select_db");
-
-
-	if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
-		MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
-
-		if (el_conn_data && *el_conn_data) {
-			(*el_conn_data)->skip_ms_calls = TRUE;
-		}
-
-		/* reset retry counter for every connection */
-		transient_error_retries = 0;
-		do {
-			last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(select_db)(el->conn, db, db_len TSRMLS_CC);
-
-			if (PASS == last) {
-				break;
-			}
-			MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
-			if (transient_error_no) {
-				DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
-				transient_error_retries++;
-				if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
-					DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
-						transient_error_retries,
-						(*conn_data)->stgy.transient_error_max_retries,
-						(*conn_data)->stgy.transient_error_usleep_before_retry);
-#if HAVE_USLEEP
-					usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
-#endif
-				} else {
-					DBG_INF("No more transient error retries allowed");
-					ret = FAIL;
-					break;
-				}
-			} else {
-				/* an error that is not considered transient */
-				ret = FAIL;
-				break;
-			}
-
-		} while (transient_error_no);
-
-		if (el_conn_data && *el_conn_data) {
-			(*el_conn_data)->skip_ms_calls = FALSE;
-		}
-	} else if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
-		/* lazy connection */
-		if (el->db) {
-			mnd_pefree(el->db, el->persistent);
-		}
-		el->db_len = db_len;
-		el->db = db? mnd_pestrndup(db, db_len, el->persistent) : NULL;
-	}
-
-	DBG_RETURN(ret);
-}
-/* }}} */
-
-
 /* {{{ mysqlnd_ms::select_db */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, const char * const db, unsigned int db_len TSRMLS_DC)
 {
-	enum_func_status ret = PASS;
+	enum_func_status last = PASS, ret = PASS;
+	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms::select_db");
@@ -1841,86 +1775,65 @@ MYSQLND_METHOD(mysqlnd_ms, select_db)(MYSQLND_CONN_DATA * const proxy_conn, cons
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 
-		ret = (*conn_data)->pool->dispatch_select_db((*conn_data)->pool, do_select_db, db, db_len TSRMLS_CC);
+		ret = (*conn_data)->pool->dispatch_select_db((*conn_data)->pool, MYSQLND_METHOD(mysqlnd_ms, select_db), db, db_len TSRMLS_CC);
 
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
-			if (FAIL == do_select_db(conn_data, el, db, db_len TSRMLS_CC))
-				ret = FAIL;
-		}
-		END_ITERATE_OVER_SERVER_LISTS;
-	}
+			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
+				MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
 
-	DBG_RETURN(ret);
-}
-/* }}} */
-
-
-/* {{{ do_set_charset */
-static enum_func_status
-do_set_charset(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, const char * const csname TSRMLS_DC)
-{
-	enum_func_status last = PASS, ret = PASS;
-	uint transient_error_no = 0, transient_error_retries = 0;
-	enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
-
-	DBG_ENTER("do_set_charset");
-
-	if (state != CONN_QUIT_SENT) {
-		MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
-
-		if (el_conn_data && *el_conn_data) {
-			(*el_conn_data)->skip_ms_calls = TRUE;
-		}
-
-		transient_error_retries = 0;
-		do {
-			if (state == CONN_ALLOCED) {
-				last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
-				if (PASS == last) {
-					(*el_conn_data)->server_charset = mysqlnd_find_charset_name(CONN_GET_OPTION(el->conn, charset_name));
-					if (!(*el_conn_data)->server_charset) {
-						mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(el->conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
-							MYSQLND_MS_ERROR_PREFIX " unknown to the connector charset '%s'. Please report to the developers",
-								CONN_GET_OPTION(el->conn, charset_name));
-					}
+				if (el_conn_data && *el_conn_data) {
+					(*el_conn_data)->skip_ms_calls = TRUE;
 				}
-			} else {
-				last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(el->conn, csname TSRMLS_CC);
-			}
 
-			if (PASS == last) {
-				break;
-			}
-			MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
-			if (transient_error_no) {
-				DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
-				transient_error_retries++;
-				if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
-					DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+				/* reset retry counter for every connection */
+				transient_error_retries = 0;
+				do {
+					last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(select_db)(el->conn, db, db_len TSRMLS_CC);
+
+					if (PASS == last) {
+						break;
+					}
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					if (transient_error_no) {
+						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+						transient_error_retries++;
+						if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+							DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
 								transient_error_retries,
 								(*conn_data)->stgy.transient_error_max_retries,
 								(*conn_data)->stgy.transient_error_usleep_before_retry);
 #if HAVE_USLEEP
-					usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+							usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
 #endif
-				} else {
-					DBG_INF("No more transient error retries allowed");
-					ret = FAIL;
-					break;
+						} else {
+							DBG_INF("No more transient error retries allowed");
+							ret = FAIL;
+							break;
+						}
+					} else {
+						/* an error that is not considered transient */
+						ret = FAIL;
+						break;
+					}
+
+				} while (transient_error_no);
+
+				if (el_conn_data && *el_conn_data) {
+					(*el_conn_data)->skip_ms_calls = FALSE;
 				}
-			} else {
-				/* an error that is not considered transient */
-				ret = FAIL;
-				break;
+			} else if (CONN_GET_STATE(el->conn) == CONN_ALLOCED) {
+				/* lazy connection */
+				if (el->db) {
+					mnd_pefree(el->db, el->persistent);
+				}
+				el->db_len = db_len;
+				el->db = db? mnd_pestrndup(db, db_len, el->persistent) : NULL;
 			}
 
-		} while (transient_error_no);
-
-		if (el_conn_data && *el_conn_data) {
-			(*el_conn_data)->skip_ms_calls = FALSE;
 		}
+		END_ITERATE_OVER_SERVER_LISTS;
 	}
 
 	DBG_RETURN(ret);
@@ -1932,7 +1845,8 @@ do_set_charset(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, con
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, const char * const csname TSRMLS_DC)
 {
-	enum_func_status ret = PASS;
+	enum_func_status last = PASS, ret = PASS;
+	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms::set_charset");
@@ -1942,74 +1856,73 @@ MYSQLND_METHOD(mysqlnd_ms, set_charset)(MYSQLND_CONN_DATA * const proxy_conn, co
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 
-		ret = (*conn_data)->pool->dispatch_set_charset((*conn_data)->pool, do_set_charset, csname TSRMLS_CC);
+		ret = (*conn_data)->pool->dispatch_set_charset((*conn_data)->pool, MYSQLND_METHOD(mysqlnd_ms, set_charset), csname TSRMLS_CC);
 
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
-			if (FAIL == do_set_charset(conn_data, el, csname TSRMLS_CC))
-				ret = FAIL;
+			enum_mysqlnd_connection_state state = CONN_GET_STATE(el->conn);
+			if (state != CONN_QUIT_SENT) {
+				MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
+
+				if (el_conn_data && *el_conn_data) {
+					(*el_conn_data)->skip_ms_calls = TRUE;
+				}
+
+				transient_error_retries = 0;
+				do {
+					if (state == CONN_ALLOCED) {
+						last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, MYSQL_SET_CHARSET_NAME, csname TSRMLS_CC);
+						if (PASS == last) {
+							(*el_conn_data)->server_charset = mysqlnd_find_charset_name(CONN_GET_OPTION(el->conn, charset_name));
+							if (!(*el_conn_data)->server_charset) {
+								mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(el->conn), CR_UNKNOWN_ERROR,
+															UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
+															MYSQLND_MS_ERROR_PREFIX " unknown to the connector charset '%s'. Please report to the developers",
+															CONN_GET_OPTION(el->conn, charset_name));
+							}
+						}
+					} else {
+						last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_charset)(el->conn, csname TSRMLS_CC);
+					}
+
+					if (PASS == last) {
+						break;
+					}
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					if (transient_error_no) {
+						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+						transient_error_retries++;
+						if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+								MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+								DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+									transient_error_retries,
+									(*conn_data)->stgy.transient_error_max_retries,
+									(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+							usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+						} else {
+							DBG_INF("No more transient error retries allowed");
+							ret = FAIL;
+							break;
+						}
+					} else {
+						/* an error that is not considered transient */
+						ret = FAIL;
+						break;
+					}
+
+				} while (transient_error_no);
+
+				if (el_conn_data && *el_conn_data) {
+					(*el_conn_data)->skip_ms_calls = FALSE;
+				}
+			}
+
+
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
-
-	DBG_RETURN(ret);
-}
-/* }}} */
-
-
-/* {{{ mysqlnd_ms::get_errors */
-static enum_func_status
-do_set_server_option(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, enum_mysqlnd_server_option option TSRMLS_DC )
-{
-	enum_func_status last = PASS, ret = PASS;
-	uint transient_error_no = 0, transient_error_retries = 0;
-
-	DBG_ENTER("mysqlnd_ms::do_set_server_option");
-
-	if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
-		MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
-
-		if (el_conn_data && *el_conn_data) {
-			(*el_conn_data)->skip_ms_calls = TRUE;
-		}
-
-		transient_error_retries = 0;
-		do {
-			last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(el->conn, option TSRMLS_CC);
-			if (PASS == last) {
-				break;
-			}
-			MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
-			if (transient_error_no) {
-				DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
-				transient_error_retries++;
-				if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
-					MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
-					DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
-						transient_error_retries,
-						(*conn_data)->stgy.transient_error_max_retries,
-						(*conn_data)->stgy.transient_error_usleep_before_retry);
-#if HAVE_USLEEP
-					usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
-#endif
-				} else {
-					DBG_INF("No more transient error retries allowed");
-					ret = FAIL;
-					break;
-				}
-			} else {
-				/* an error that is not considered transient */
-				ret = FAIL;
-				break;
-			}
-
-		} while (transient_error_no);
-
-		if (el_conn_data && *el_conn_data) {
-			(*el_conn_data)->skip_ms_calls = FALSE;
-		}
-	}
-
 
 	DBG_RETURN(ret);
 }
@@ -2020,7 +1933,8 @@ do_set_server_option(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * e
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_conn, enum_mysqlnd_server_option option TSRMLS_DC)
 {
-	enum_func_status ret = PASS;
+	enum_func_status last = PASS, ret = PASS;
+	uint transient_error_no = 0, transient_error_retries = 0;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 
 	DBG_ENTER("mysqlnd_ms::set_server_option");
@@ -2030,12 +1944,55 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
 
-		ret = (*conn_data)->pool->dispatch_set_server_option((*conn_data)->pool, do_set_server_option, option TSRMLS_CC);
+		ret = (*conn_data)->pool->dispatch_set_server_option((*conn_data)->pool, MYSQLND_METHOD(mysqlnd_ms, set_server_option), option TSRMLS_CC);
 
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
-			if (FAIL == do_set_server_option(conn_data, el, option TSRMLS_CC))
-				ret = FAIL;
+
+			if (CONN_GET_STATE(el->conn) > CONN_ALLOCED && CONN_GET_STATE(el->conn) != CONN_QUIT_SENT) {
+				MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
+
+				if (el_conn_data && *el_conn_data) {
+					(*el_conn_data)->skip_ms_calls = TRUE;
+				}
+
+				transient_error_retries = 0;
+				do {
+					last = MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_server_option)(el->conn, option TSRMLS_CC);
+					if (PASS == last) {
+						break;
+					}
+					MS_CHECK_CONN_FOR_TRANSIENT_ERROR(el->conn, conn_data, transient_error_no);
+					if (transient_error_no) {
+						DBG_INF_FMT("Transient error "MYSQLND_LLU_SPEC, transient_error_no);
+						transient_error_retries++;
+						if (transient_error_retries <= (*conn_data)->stgy.transient_error_max_retries) {
+							MYSQLND_MS_INC_STATISTIC(MS_STAT_TRANSIENT_ERROR_RETRIES);
+							DBG_INF_FMT("Retry attempt %i/%i. Sleeping for "MYSQLND_LLU_SPEC" ms and retrying.",
+								transient_error_retries,
+								(*conn_data)->stgy.transient_error_max_retries,
+								(*conn_data)->stgy.transient_error_usleep_before_retry);
+#if HAVE_USLEEP
+							usleep((*conn_data)->stgy.transient_error_usleep_before_retry);
+#endif
+						} else {
+							DBG_INF("No more transient error retries allowed");
+							ret = FAIL;
+							break;
+						}
+					} else {
+						/* an error that is not considered transient */
+						ret = FAIL;
+						break;
+					}
+
+				} while (transient_error_no);
+
+				if (el_conn_data && *el_conn_data) {
+					(*el_conn_data)->skip_ms_calls = FALSE;
+				}
+			}
+
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
@@ -2044,31 +2001,6 @@ MYSQLND_METHOD(mysqlnd_ms, set_server_option)(MYSQLND_CONN_DATA * const proxy_co
 }
 /* }}} */
 
-
-/* {{{ do_set_client_option */
-static enum_func_status
-do_set_client_option(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, enum_mysqlnd_option option, const char * const value TSRMLS_DC) {
-	enum_func_status ret = PASS;
-	DBG_ENTER("mysqlnd_ms::do_set_client_option");
-
-	MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
-
-	if (el_conn_data && *el_conn_data) {
-		(*el_conn_data)->skip_ms_calls = TRUE;
-	}
-
-	/* This is buffered and replies come later, thus we cannot add transient error loop */
-	if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, option, value TSRMLS_CC)) {
-		ret = FAIL;
-	}
-
-	if (el_conn_data && *el_conn_data) {
-		(*el_conn_data)->skip_ms_calls = FALSE;
-	}
-
-	DBG_RETURN(ret);
-}
-/* }}} */
 
 /* {{{ mysqlnd_ms::set_client_option */
 static enum_func_status
@@ -2082,12 +2014,25 @@ MYSQLND_METHOD(mysqlnd_ms, set_client_option)(MYSQLND_CONN_DATA * const proxy_co
 		DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(proxy_conn, option, value TSRMLS_CC));
 	} else {
 		MYSQLND_MS_LIST_DATA * el;
+
+		ret = (*conn_data)->pool->dispatch_set_client_option((*conn_data)->pool, MYSQLND_METHOD(mysqlnd_ms, set_client_option), option, value TSRMLS_CC);
+
 		BEGIN_ITERATE_OVER_SERVER_LISTS(el, (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC), (*conn_data)->pool->get_active_slaves((*conn_data)->pool TSRMLS_CC));
 		{
-			ret = (*conn_data)->pool->dispatch_set_client_option((*conn_data)->pool, do_set_client_option, option, value TSRMLS_CC);
+			MS_DECLARE_AND_LOAD_CONN_DATA(el_conn_data, el->conn);
 
-			if (FAIL == do_set_client_option(conn_data, el, option, value TSRMLS_CC))
+			if (el_conn_data && *el_conn_data) {
+				(*el_conn_data)->skip_ms_calls = TRUE;
+			}
+
+			/* This is buffered and replies come later, thus we cannot add transient error loop */
+			if (PASS != MS_CALL_ORIGINAL_CONN_DATA_METHOD(set_client_option)(el->conn, option, value TSRMLS_CC)) {
 				ret = FAIL;
+			}
+
+			if (el_conn_data && *el_conn_data) {
+				(*el_conn_data)->skip_ms_calls = FALSE;
+			}
 		}
 		END_ITERATE_OVER_SERVER_LISTS;
 	}
@@ -2238,6 +2183,16 @@ MYSQLND_METHOD(mysqlnd_ms, info)(const MYSQLND_CONN_DATA * const proxy_conn TSRM
 
 
 #if MYSQLND_VERSION_ID >= 50009
+/* {{{ do_set_autocommit */
+static enum_func_status
+do_set_autocommit(MYSQLND_MS_CONN_DATA ** conn_data, MYSQLND_MS_LIST_DATA * el, zend_bool * stop_loop, unsigned int mode TSRMLS_DC) {
+	enum_func_status ret = PASS;
+	DBG_ENTER("mysqlnd_ms::do_set_autocommit");
+
+	DBG_RETURN(ret);
+}
+
+
 /* {{{ MYSQLND_METHOD(mysqlnd_ms, set_autocommit) */
 static enum_func_status
 MYSQLND_METHOD(mysqlnd_ms, set_autocommit)(MYSQLND_CONN_DATA * proxy_conn, unsigned int mode TSRMLS_DC)
