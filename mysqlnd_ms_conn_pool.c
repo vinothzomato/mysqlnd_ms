@@ -311,6 +311,7 @@ pool_add_slave(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 		pool_element->active = TRUE;
 		pool_element->activation_counter = 1;
 		pool_element->ref_counter = 1;
+		pool_element->removed = FALSE;
 
 		if (SUCCESS != zend_hash_add(&(pool->data.slave_list), hash_key->c, hash_key->len, &pool_element, sizeof(MYSQLND_MS_POOL_ENTRY *), NULL)) {
 			DBG_INF_FMT("Failed adding, duplicate hash key, added twice?");
@@ -352,6 +353,7 @@ pool_add_master(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 		pool_element->active = TRUE;
 		pool_element->activation_counter = 1;
 		pool_element->ref_counter = 1;
+		pool_element->removed = FALSE;
 
 		if (SUCCESS != zend_hash_add(&(pool->data.master_list), hash_key->c, hash_key->len, &pool_element, sizeof(MYSQLND_MS_POOL_ENTRY *), NULL)) {
 			DBG_INF_FMT("Failed adding, duplicate hash key, added twice?");
@@ -371,7 +373,8 @@ pool_add_master(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 static zend_bool
 pool_connection_exists(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 					   MYSQLND_MS_LIST_DATA ** data,
-					   zend_bool * is_master, zend_bool * is_active TSRMLS_DC) {
+					   zend_bool * is_master, zend_bool * is_active,
+					   zend_bool * is_removed TSRMLS_DC) {
 	zend_bool ret = FALSE;
 	MYSQLND_MS_POOL_ENTRY ** pool_element;
 
@@ -381,12 +384,14 @@ pool_connection_exists(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 	if (SUCCESS == zend_hash_find(&(pool->data.master_list), hash_key->c, hash_key->len, (void**)&pool_element)) {
 		*is_master = TRUE;
 		*is_active = (*pool_element)->active;
+		*is_removed = (*pool_element)->removed;
 		*data = (*pool_element)->data;
 		ret = TRUE;
 		DBG_INF_FMT("element=%p list=%p is_master=%d", *pool_element, &(pool->data.master_list), *is_master);
 	} else if (SUCCESS == zend_hash_find(&(pool->data.slave_list), hash_key->c, hash_key->len, (void**)&pool_element)) {
 		*is_master = FALSE;
 		*is_active = (*pool_element)->active;
+		*is_removed = (*pool_element)->removed;
 		*data = (*pool_element)->data;
 		DBG_INF_FMT("element=%p list=%p is_master=%d", *pool_element, &(pool->data.slave_list), *is_master);
 		ret = TRUE;
@@ -413,14 +418,47 @@ pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bo
 	stat = (is_master) ? MS_STAT_POOL_MASTERS_ACTIVE : MS_STAT_POOL_SLAVES_ACTIVE;
 
 	if (SUCCESS == zend_hash_find(ht, hash_key->c, hash_key->len, (void**)&pool_element)) {
-		ret = PASS;
-		(*pool_element)->active = TRUE;
-		(*pool_element)->activation_counter++;
+		DBG_INF_FMT("element=%p is_active=%d is_removed=%d", *pool_element, (*pool_element)->active, (*pool_element)->removed);
+		if (!(*pool_element)->active && !(*pool_element)->removed) {
+			ret = PASS;
+			(*pool_element)->active = TRUE;
+			(*pool_element)->activation_counter++;
 
-		zend_llist_add_element(list, &(*pool_element)->data);
-		DBG_INF_FMT("reactivating element=%p, list=%p, list_count=%d, is_master=%d", *pool_element, list, zend_llist_count(list), is_master);
-		MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, zend_llist_count(list));
+			zend_llist_add_element(list, &(*pool_element)->data);
+			DBG_INF_FMT("reactivating list=%p, list_count=%d, is_master=%d", *pool_element, list, zend_llist_count(list), is_master);
+			MYSQLND_MS_INC_STATISTIC_W_VALUE(stat, zend_llist_count(list));
+		}
+	} else {
+		DBG_INF_FMT("not found");
+	}
 
+	DBG_RETURN(ret);
+}
+/* }}} */
+
+/* {{{ pool_register_replace_listener */
+static enum_func_status
+pool_connection_remove(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bool is_master TSRMLS_DC)
+{
+	enum_func_status ret = FAIL;
+	MYSQLND_MS_POOL_ENTRY ** pool_element;
+	HashTable * ht;
+
+	DBG_ENTER("mysqlnd_ms::pool_connection_remove");
+	DBG_INF_FMT("pool=%p", pool);
+
+	ht = (is_master) ? &(pool->data.master_list) : &(pool->data.slave_list);
+
+	if (SUCCESS == zend_hash_find(ht, hash_key->c, hash_key->len, (void**)&pool_element)) {
+		DBG_INF_FMT("element=%p is_active=%d is_removed=%d ref_counter=%d", *pool_element, (*pool_element)->active, (*pool_element)->removed, (*pool_element)->ref_counter);
+		if (!(*pool_element)->active && !(*pool_element)->removed) {
+			if (1 == (*pool_element)->ref_counter) {
+				ret = (SUCCESS == zend_hash_del(ht, hash_key->c, hash_key->len)) ? PASS : FAIL;
+			} else {
+				ret = PASS;
+				(*pool_element)->removed = TRUE;
+			}
+		}
 	} else {
 		DBG_INF_FMT("not found");
 	}
@@ -803,7 +841,7 @@ pool_dispatch_ssl_set(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__ssl_set cb
 
 /* {{{ pool_replay_cmds */
 static enum_func_status
-pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const proxy_conn, MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC)
+pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const proxy_conn TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
 	MYSQLND_MS_POOL_CMD ** pool_cmd;
@@ -941,6 +979,7 @@ MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend
 		pool->add_master = pool_add_master;
 		pool->connection_exists = pool_connection_exists;
 		pool->connection_reactivate = pool_connection_reactivate;
+		pool->connection_remove = pool_connection_remove;
 
 		pool->register_replace_listener = pool_register_replace_listener;
 		pool->notify_replace_listener = pool_notify_replace_listener;

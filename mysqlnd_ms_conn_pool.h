@@ -170,6 +170,11 @@ typedef struct st_mysqlnd_pool {
 	/* Creating a hash key for a pooled connection */
 	/* Note: this is the only place where MYSQLND_MS_LIST_DATA is inspected and modified */
 	void (*init_pool_hash_key)(MYSQLND_MS_LIST_DATA * data);
+
+	/* NOTE: unique_name_from_config is MANDATORY! And, it should be unique. Otherwise
+	 * we risk identical hash keys if the same server is used for multiple roles.
+	 * The latter is not forbidden. In fact, it is a feature heavily used by the tests.
+	 */
 	void (*get_conn_hash_key)(smart_str * hash_key /* out */,
 							const char * unique_name_from_config,
 							const char * host, const char * user,
@@ -184,12 +189,15 @@ typedef struct st_mysqlnd_pool {
 	enum_func_status (*add_master)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
 								   MYSQLND_MS_LIST_DATA * data, zend_bool persistent TSRMLS_DC);
 
-	/* Test whether a connection is already in the pool
-	 * data, is_master, is_active are out parameters
+	/* Test whether a connection is already in the pool.
+	 * data, is_master, is_active, is_removed are out parameters
+	 * A connection can be reactivated if is_active = FALSE, is_removed = FALSE
 	 */
 	zend_bool (*connection_exists)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
-								  MYSQLND_MS_LIST_DATA **data,
-								  zend_bool * is_master, zend_bool * is_active TSRMLS_DC);
+									MYSQLND_MS_LIST_DATA **data,
+									zend_bool * is_master,
+									zend_bool * is_active,
+									zend_bool * is_removed TSRMLS_DC);
 
 	/* Reactivate a connection: move it from the inactive to the active list
 	 *
@@ -206,6 +214,21 @@ typedef struct st_mysqlnd_pool {
 	enum_func_status (*connection_reactivate)(struct st_mysqlnd_pool * pool,
 									  smart_str * hash_key, zend_bool is_master TSRMLS_DC);
 
+	/* Mark a connection as removed.
+	 *
+	 * In general you should stay away from this. Removing should only be required
+	 * if you change the role of a server: from master to slave and vice versa.
+	 * However, you can attempt to remove a connection. It is only actually removed
+	 * if it is inactive and the reference couter allows for it. Should it be inactive
+	 * but still have a reference, it is marked for removal. Marked for removal
+	 * means, it is still in the lists but won't be used. You may have success
+	 * adding a new connection under a different role using the same key.
+	 *
+	 * TODO: make add check whether a connection has been marked for removal and
+	 * can be actually removed prior to giving up.
+	 */
+	enum_func_status (*connection_remove)(struct st_mysqlnd_pool * pool,
+										  smart_str * hash_key, zend_bool is_master TSRMLS_DC);
 
 	enum_func_status (*register_replace_listener)(struct st_mysqlnd_pool * pool,
 												void (*f)(struct st_mysqlnd_pool * pool, void * data TSRMLS_DC),
@@ -282,8 +305,7 @@ typedef struct st_mysqlnd_pool {
 										const char * const cipher TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
-									MYSQLND_CONN_DATA * const proxy_conn,
-									MYSQLND_MS_CONN_DATA ** proxy_conn_data TSRMLS_DC);
+									MYSQLND_CONN_DATA * const proxy_conn TSRMLS_DC);
 
 	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 
@@ -317,6 +339,8 @@ typedef struct st_mysqlnd_pool_entry {
 	unsigned int activation_counter;
 	/* How many MS components (e.g. XA, core) reference this connection */
 	unsigned int ref_counter;
+	/* Whether the connection has been removed and must not be reactivated */
+	zend_bool removed;
 } MYSQLND_MS_POOL_ENTRY;
 
 

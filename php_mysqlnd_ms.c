@@ -691,6 +691,11 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	MYSQLND_MS_CONN_DATA **conn_data = NULL;
 	mysqlnd_fabric_server *servers, *tofree;
 	mysqlnd_fabric *fabric;
+	smart_str hash_key = {0};
+	unsigned int server_counter = 0;
+	zend_bool exists = FALSE, is_master = FALSE, is_active = FALSE, is_removed = FALSE;
+	MYSQLND_MS_LIST_DATA * data;
+
 	DBG_ENTER("mysqlnd_ms_fabric_select_servers");
 
 	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
@@ -716,6 +721,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
 
+	/* Can't be any active connection past this point, user has zero connections to choose from */
 	if (PASS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
@@ -739,26 +745,74 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		DBG_VOID_RETURN;
 	}
 
-	for (; servers->hostname && *servers->hostname; servers++) {
+	for (; servers->hostname && *servers->hostname; servers++, server_counter++) {
 #if PHP_VERSION_ID >= 50600
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->m->get_client_api_capabilities(proxy_conn->data TSRMLS_CC), proxy_conn->data->persistent);
 #else
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
 #endif
-		if (servers->mode == READ_WRITE) {
-			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,
-										   servers->hostname, servers->port, &(*conn_data)->cred, &(*conn_data)->global_trx,
-										   TRUE, proxy_conn->data->persistent TSRMLS_CC);
-		} else {
-			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE,
-										   servers->hostname, servers->port,  &(*conn_data)->cred, &(*conn_data)->global_trx,
-										   TRUE, proxy_conn->data->persistent TSRMLS_CC);
+		char * unique_name_from_config;
+
+		/* FIXME: This assumes we get servers always in the same order... worst case we don't and pool grows */
+		mnd_sprintf(&unique_name_from_config, 0, "%s%d", servers->hostname, server_counter);
+
+		/* TODO: Don't know whether Fabric is using cred.db or cred.mysql_flags */
+
+		(*conn_data)->pool->get_conn_hash_key(&hash_key, unique_name_from_config,
+											servers->hostname, (*conn_data)->cred.user,
+											(*conn_data)->cred.passwd, (*conn_data)->cred.passwd_len,
+											servers->port, NULL /* socket */,
+											NULL /* db */, 0 /* db_len */,
+											0 /* flags */,
+											proxy_conn->data->persistent);
+
+		exists = (*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key, &data, &is_master, &is_active, &is_removed TSRMLS_CC);
+		exists = (!is_active && !is_removed) ? TRUE : FALSE;
+		if (exists) {
+			/* Such a server has been added to the pool before */
+			if (is_master && (servers->mode == READ_WRITE)) {
+				/* ... and, the role has not changed */
+				if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
+					/* welcome back server */
+					exists = TRUE;
+				} else {
+					/* unlikely: unexplored territory */
+					mnd_sprintf_free(unique_name_from_config);
+					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to reactivate a server from the pool");
+					RETVAL_FALSE;
+					DBG_VOID_RETURN;
+				}
+			} else {
+				/* this is unexplored territory: we can't simply reuse, its in the wrong list */
+				if (PASS == ((*conn_data)->pool->connection_remove((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
+					/* TODO see conn_pool.h - it may or may not actually removed or just marked for removal */
+					exists = FALSE;
+				}
+			}
 		}
+
+		if (FALSE == exists) {
+			if (servers->mode == READ_WRITE) {
+				mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, unique_name_from_config, TRUE,
+											servers->hostname, servers->port, &(*conn_data)->cred, &(*conn_data)->global_trx,
+											TRUE, proxy_conn->data->persistent TSRMLS_CC);
+			} else {
+				mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, unique_name_from_config, FALSE,
+											servers->hostname, servers->port,  &(*conn_data)->cred, &(*conn_data)->global_trx,
+											TRUE, proxy_conn->data->persistent TSRMLS_CC);
+			}
+		}
+		mnd_sprintf_free(unique_name_from_config);
 
 		conn->m->dtor(conn TSRMLS_CC);
 	}
 
 	mysqlnd_fabric_free_server_list(tofree);
+	smart_str_free(&hash_key);
+
+	/* FIXME - this will, almost for sure, replay too many commands */
+	(*conn_data)->pool->replay_cmds((*conn_data)->pool, proxy_conn->data TSRMLS_CC);
+	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
 
 	RETVAL_TRUE;
 	DBG_VOID_RETURN;
@@ -1218,162 +1272,6 @@ static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 }
 /* }}} */
 
-#ifdef ULF_0
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_swim, 0, 0, 1)
-	ZEND_ARG_INFO(0, connection)
-ZEND_END_ARG_INFO()
-
-static void my_pool_replace_listener(MYSQLND_MS_POOL * pool, void * data TSRMLS_DC) {
-	php_printf("swim replace listener pool=%p, data=%p\n", pool, data);
-}
-
-/* {{{ proto book mysqlnd_ms_swim(mixed connection) */
-static PHP_FUNCTION(mysqlnd_ms_swim)
-{
-	zval *conn_zv;
-	MYSQLND *conn;
-	MYSQLND_MS_CONN_DATA **conn_data = NULL;
-	zend_bool exists = FALSE, is_master = FALSE, is_active = FALSE;
-	MYSQLND_MS_LIST_DATA * data;
-	zend_bool fool = FALSE;
-	void * listener_data = &fool;
-	smart_str hash_key = {0};
-	smart_str hash_key_slave0 = {0};
-	smart_str hash_key_slave1 = {0};
-	unsigned int referenced = 0;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
-		return;
-	}
-	if (!(conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
-		RETURN_FALSE;
-	}
-
-	MS_LOAD_CONN_DATA(conn_data, conn->data);
-	if (!conn_data || !(*conn_data)) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
-		RETURN_FALSE;
-	}
-
-	php_printf("swim listener pool=%p data=%p\n", (*conn_data)->pool, listener_data);
-	(*conn_data)->pool->register_replace_listener((*conn_data)->pool, my_pool_replace_listener, listener_data TSRMLS_CC);
-
-	(*conn_data)->pool->get_conn_hash_key(&hash_key_slave0,
-										"slave_0",
-										"127.0.0.1", "root",
-										"", 0,
-										3311, "/tmp/mysql574m14.sock",
-										"test", strlen("test"),  131072,
-										FALSE);
-
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
-		&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("swim slave0 exists, is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown slave0 hash_key %s\n", hash_key_slave0.c);
-	}
-
-	(*conn_data)->pool->get_conn_hash_key(&hash_key,
-										"master_0",
-										"127.0.0.1", "root",
-										"", 0,
-										3310, "/tmp/mysql574m14.sock",
-										"test", strlen("test"),  131072,
-										FALSE);
-
-
-	php_printf("swim master key=%s(%d, %p)\n", hash_key.c, (int)hash_key.len, hash_key.c);
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
-				&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown master hash_key %s\n", hash_key.c);
-	}
-
-	if (PASS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
-	}
-	php_printf("swim pool flushed\n");
-
-	if (PASS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
-	}
-	php_printf("swim pool flushed\n");
-
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
-		&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("swim slave0 exists, is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown slave0 hash_key %s\n", hash_key_slave0.c);
-	}
-
-	(*conn_data)->pool->get_conn_hash_key(&hash_key_slave1,
-										"slave_1",
-										"127.0.0.1", "root",
-										"", 0,
-										3312, "/tmp/mysql574m14.sock",
-										"test", strlen("test"),  131072,
-										FALSE);
-
-
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
-		&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("swim exists, is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown hash_key\n");
-	}
-
-	if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
-		php_printf("swim master reactivated\n");
-	}
-
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,	&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("swim master exists, is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown master hash_key\n");
-	}
-
-	if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave0, FALSE TSRMLS_CC))) {
-		php_printf("swim slave0 reactivated\n");
-	}
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
-			&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("swim slave0 exists, is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown slave0 hash_key\n");
-	}
-
-	if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave1, FALSE TSRMLS_CC))) {
-		php_printf("swim slave1 reactivated\n");
-	}
-	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave1,
-		&data, &is_master, &is_active TSRMLS_CC)))) {
-		php_printf("swim slave1 exists, is_master=%d is_active=%d\n", is_master, is_active);
-	} else {
-		php_printf("unknown slave1 hash_key\n");
-	}
-
-	smart_str_free(&hash_key);
-	smart_str_free(&hash_key_slave0);
-	smart_str_free(&hash_key_slave1);
-
-	/* Done with our changes, notify the world... */
-	(*conn_data)->pool->replay_cmds((*conn_data)->pool, conn->data, conn_data TSRMLS_CC);
-	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
-
-
-	if (PASS == (*conn_data)->pool->clear_all((*conn_data)->pool, &referenced TSRMLS_CC)) {
-		php_printf("swim cleared all - still referenced: %d\n", referenced);
-	} else {
-		php_printf("swim clear all failed - still referenced: %d\n", referenced);
-	}
-
-
-	RETURN_TRUE;
-}
-/* }}} */
-#endif
-
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
@@ -1411,9 +1309,6 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_xa_commit, arginfo_mysqlnd_ms_xa_commit)
 	PHP_FE(mysqlnd_ms_xa_rollback, arginfo_mysqlnd_ms_xa_rollback)
 	PHP_FE(mysqlnd_ms_xa_gc, arginfo_mysqlnd_ms_xa_gc)
-#ifdef ULF_0
-	PHP_FE(mysqlnd_ms_swim, NULL)
-#endif
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
