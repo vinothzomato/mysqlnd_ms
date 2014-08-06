@@ -205,10 +205,9 @@ pool_clear_all_ht_apply_func(void *pDest, void * argument TSRMLS_DC)
 {
 	int ret = ZEND_HASH_APPLY_REMOVE;
 	MYSQLND_MS_POOL_ENTRY * pool_element = (MYSQLND_MS_POOL_ENTRY *)pDest;
-	unsigned int * referenced = (unsigned int *)argument;
 
 	if (pool_element->ref_counter > 1) {
-		*referenced++;
+		(*(unsigned int *)argument)++;
 		ret = ZEND_HASH_APPLY_KEEP;
 	} else {
 		pool_element->active = FALSE;
@@ -221,10 +220,6 @@ static enum_func_status
 pool_clear_all(MYSQLND_MS_POOL *pool, unsigned int * referenced TSRMLS_DC)
 {
 	enum_func_status ret = PASS;
-	HashPosition pos;
-	HashTable *ht[2];
-	int i;
-	MYSQLND_MS_POOL_ENTRY ** pool_element = NULL;
 
 	DBG_ENTER("pool_clear_all");
 	*referenced = 0;
@@ -417,8 +412,8 @@ pool_connection_reactivate(MYSQLND_MS_POOL * pool, smart_str * hash_key, zend_bo
 	list = (is_master) ? &(pool->data.active_master_list) : &(pool->data.active_slave_list);
 	stat = (is_master) ? MS_STAT_POOL_MASTERS_ACTIVE : MS_STAT_POOL_SLAVES_ACTIVE;
 
-	if (SUCCESS == (ret = zend_hash_find(ht, hash_key->c, hash_key->len, (void**)&pool_element))) {
-
+	if (SUCCESS == zend_hash_find(ht, hash_key->c, hash_key->len, (void**)&pool_element)) {
+		ret = PASS;
 		(*pool_element)->active = TRUE;
 		(*pool_element)->activation_counter++;
 
@@ -469,22 +464,6 @@ pool_notify_replace_listener(MYSQLND_MS_POOL * pool TSRMLS_DC) {
 	DBG_RETURN(ret);
 }
 /* }}} */
-
-static int
-pool_add_reference_ht_apply_func(void *pDest, void * argument TSRMLS_DC)
-{
-	int ret = ZEND_HASH_APPLY_REMOVE;
-	MYSQLND_MS_POOL_ENTRY * pool_element = (MYSQLND_MS_POOL_ENTRY *)pDest;
-	unsigned int * referenced = (unsigned int *)argument;
-
-	if (pool_element->ref_counter > 1) {
-		*referenced++;
-		ret = ZEND_HASH_APPLY_KEEP;
-	} else {
-		pool_element->active = FALSE;
-	}
-	return ret;
-}
 
 /* {{{ pool_add_reference */
 static enum_func_status
@@ -538,8 +517,8 @@ pool_free_reference(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const conn TSRML
 	for (i = 0; i < 2; i++) {
 		for (zend_hash_internal_pointer_reset(ht[i]);
 			 (zend_hash_has_more_elements(ht[i]) == SUCCESS) && (zend_hash_get_current_data(ht[i], (void**)&pool_element) == SUCCESS);
-			(zend_hash_move_forward(ht[i]) == SUCCESS)) {
-			ret = SUCCESS;
+			zend_hash_move_forward(ht[i])) {
+			ret = PASS;
 			if ((*pool_element)->ref_counter > 1) {
 				(*pool_element)->ref_counter--;
 				DBG_INF_FMT("%s ref_counter=%d", (0 == i) ? "master" : "slave", (*pool_element)->ref_counter);
@@ -604,7 +583,6 @@ static enum_func_status
 pool_dispatch_select_db(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__select_db cb,
 							const char * db, unsigned int db_len TSRMLS_DC) {
 	enum_func_status ret = PASS;
-	enum_mysqlnd_pool_cmd cmd = SELECT_DB;
 	MYSQLND_MS_POOL_CMD_SELECT_DB  * cmd_data;
 
 	DBG_ENTER("mysqlnd_ms::pool_dispatch_select_db");
@@ -613,7 +591,7 @@ pool_dispatch_select_db(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__select_d
 	}
 
 	ret = pool_dispatch_cmd(pool, SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SELECT_DB) TSRMLS_CC);
-	if ((SUCCESS == ret) && cmd_data) {
+	if ((PASS == ret) && cmd_data) {
 		if (cmd_data->db) {
 			DBG_INF_FMT("free db=%s\n", cmd_data->db);
 			mnd_pefree(cmd_data->db, pool->data.persistent);
@@ -641,7 +619,7 @@ pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_ch
 	}
 
 	ret = pool_dispatch_cmd(pool, SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CHARSET) TSRMLS_CC);
-	if ((SUCCESS == ret) && cmd_data) {
+	if ((PASS == ret) && cmd_data) {
 		if (cmd_data->csname) {
 			DBG_INF_FMT("free csname=%s\n", cmd_data->csname);
 			mnd_pefree(cmd_data->csname, pool->data.persistent);

@@ -733,8 +733,8 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 			DBG_INF("No GC required.");
 			sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
 							store_data->participant_table,
-							Z_LVAL_PP(store_trx_id),
-							Z_LVAL_PP(bqual));
+							(int)Z_LVAL_PP(store_trx_id),
+							(int)Z_LVAL_PP(bqual));
 			ok = mysqlnd_query(store_data->conn, sql, sql_len);
 			efree(sql);
 			if (PASS != ok) {
@@ -841,8 +841,8 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 					DBG_INF("XA trx should not be active any more.");
 					sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
 									store_data->participant_table,
-									Z_LVAL_PP(store_trx_id),
-									Z_LVAL_PP(bqual));
+									(int)Z_LVAL_PP(store_trx_id),
+									(int)Z_LVAL_PP(bqual));
 					ok = mysqlnd_query(store_data->conn, sql, sql_len);
 					efree(sql);
 					if (PASS != ok) {
@@ -922,8 +922,8 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 							/* GC done... */
 							sql_len = spprintf(&sql, 0, "UPDATE %s SET health = 'GC_DONE' WHERE fk_store_trx_id = %d AND bqual = %d",
 								store_data->participant_table,
-								Z_LVAL_PP(store_trx_id),
-								Z_LVAL_PP(bqual));
+								(int)Z_LVAL_PP(store_trx_id),
+								(int)Z_LVAL_PP(bqual));
 							ok = mysqlnd_query(store_data->conn, sql, sql_len);
 							efree(sql);
 							if (PASS != ok) {
@@ -962,8 +962,8 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 		/* All participants happy? */
 		sql_len = spprintf(&sql, 0, "SELECT bqual FROM %s WHERE health != 'GC_DONE' AND fk_store_trx_id = %d AND bqual = %d LIMIT 1",
 						store_data->participant_table,
-						Z_LVAL_PP(store_trx_id),
-						Z_LVAL_PP(bqual));
+						(int)Z_LVAL_PP(store_trx_id),
+						(int)Z_LVAL_PP(bqual));
 		ret = mysqlnd_query(store_data->conn, sql, sql_len);
 		efree(sql);
 		if (PASS != ret) {
@@ -1117,10 +1117,10 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 	}
 	/* fetch store trx ids */
 	if (xa_id->store_id) {
-		sql_len = spprintf(&sql, 0, "SELECT store_trx_id, state, intend, finished, started, timeout FROM %s WHERE store_trx_id = %d AND "
+		sql_len = spprintf(&sql, 0, "SELECT store_trx_id, state, intend, finished, started, timeout FROM %s WHERE store_trx_id = %s AND "
 							"((finished != 'NO') OR ((timeout IS NOT NULL) AND (timeout < NOW())))",
 							store_data->global_table,
-							xa_id->store_id);
+							(xa_id->store_id) ? xa_id->store_id : "NULL");
 	} else {
 		/* OR ((timeout IS NOT NULL) AND (timeout < NOW())) */
 		sql_len = spprintf(&sql, 0, "SELECT store_trx_id, state, intend, finished, started, timeout FROM %s WHERE "
@@ -1181,7 +1181,7 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 
 			sql_len = spprintf(&sql, 0, "DELETE FROM %s WHERE store_trx_id = %d",
 							store_data->global_table,
-							Z_LVAL_PP(store_trx_id));
+							(int)Z_LVAL_PP(store_trx_id));
 			ok = mysqlnd_query(store_data->conn, sql, sql_len);
 			efree(sql);
 			if (PASS != ok) {
@@ -1196,7 +1196,7 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 			sql_len = spprintf(&sql, 0, "SELECT bqual, scheme, host, port, socket, user, password, state, health "
 										"FROM %s WHERE fk_store_trx_id = %d AND health != 'GC_DONE'",
 								store_data->participant_table,
-								Z_LVAL_PP(store_trx_id));
+								(int)Z_LVAL_PP(store_trx_id));
 			ok = mysqlnd_query(store_data->conn, sql, sql_len);
 			efree(sql);
 			if (PASS != ok) {
@@ -1234,7 +1234,7 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 				sql_len = spprintf(&sql, 0, "SELECT state "
 									"FROM %s WHERE fk_store_trx_id = %d AND health != 'GC_DONE' AND state = 'XA_COMMIT' ",
 							store_data->participant_table,
-							Z_LVAL_PP(store_trx_id));
+							(int)Z_LVAL_PP(store_trx_id));
 				ok = mysqlnd_query(store_data->conn, sql, sql_len);
 				efree(sql);
 				if (PASS != ok) {
@@ -1255,7 +1255,7 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 			if (ok == PASS) {
 				sql_len = spprintf(&sql, 0, "DELETE FROM %s WHERE store_trx_id = %d",
 								store_data->global_table,
-								Z_LVAL_PP(store_trx_id));
+								(int)Z_LVAL_PP(store_trx_id));
 				ok = mysqlnd_query(store_data->conn, sql, sql_len);
 				efree(sql);
 				if (PASS != ok) {

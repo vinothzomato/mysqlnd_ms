@@ -506,11 +506,6 @@ void fabric_set_raw_data_from_fabric(mysqlnd_fabric *fabric)
 			shard_index_xml, shard_index_len, servers_xml, servers_len);
 }
 
-static void fabric_set_raw_data_for_gdb(mysqlnd_fabric *fabric)
-{
-	/* TODO: Remove me. I'm only used during development from inside gdb sessions */
-	fabric_set_raw_data(fabric, (char *)&tmp_fabric_dump, sizeof(tmp_fabric_dump));
-}
 
 /**********
  * Lookup *

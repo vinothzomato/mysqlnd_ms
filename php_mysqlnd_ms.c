@@ -716,7 +716,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Fabric server exchange in the middle of a transaction");
 	}
 
-	if (SUCCESS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
+	if (PASS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 
@@ -1282,20 +1282,20 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 										FALSE);
 
 
-	php_printf("swim master key=%s(%d, %p)\n", hash_key.c, hash_key.len, hash_key.c);
+	php_printf("swim master key=%s(%d, %p)\n", hash_key.c, (int)hash_key.len, hash_key.c);
 	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key,
 				&data, &is_master, &is_active TSRMLS_CC)))) {
 		php_printf("is_master=%d is_active=%d\n", is_master, is_active);
 	} else {
-		php_printf("unknown master hash_key %s\n");
+		php_printf("unknown master hash_key %s\n", hash_key.c);
 	}
 
-	if (SUCCESS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
+	if (PASS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 	php_printf("swim pool flushed\n");
 
-	if (SUCCESS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
+	if (PASS != ((*conn_data)->pool->flush_active((*conn_data)->pool TSRMLS_CC))) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 	php_printf("swim pool flushed\n");
@@ -1323,7 +1323,7 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 		php_printf("unknown hash_key\n");
 	}
 
-	if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
+	if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
 		php_printf("swim master reactivated\n");
 	}
 
@@ -1333,7 +1333,7 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 		php_printf("unknown master hash_key\n");
 	}
 
-	if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave0, FALSE TSRMLS_CC))) {
+	if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave0, FALSE TSRMLS_CC))) {
 		php_printf("swim slave0 reactivated\n");
 	}
 	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave0,
@@ -1343,7 +1343,7 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 		php_printf("unknown slave0 hash_key\n");
 	}
 
-	if (SUCCESS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave1, FALSE TSRMLS_CC))) {
+	if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key_slave1, FALSE TSRMLS_CC))) {
 		php_printf("swim slave1 reactivated\n");
 	}
 	if (TRUE == (exists = ((*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key_slave1,
@@ -1362,7 +1362,7 @@ static PHP_FUNCTION(mysqlnd_ms_swim)
 	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
 
 
-	if (SUCCESS == (*conn_data)->pool->clear_all((*conn_data)->pool, &referenced TSRMLS_CC)) {
+	if (PASS == (*conn_data)->pool->clear_all((*conn_data)->pool, &referenced TSRMLS_CC)) {
 		php_printf("swim cleared all - still referenced: %d\n", referenced);
 	} else {
 		php_printf("swim clear all failed - still referenced: %d\n", referenced);

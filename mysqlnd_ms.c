@@ -398,14 +398,14 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 
 			(*proxy_conn_data)->pool->init_pool_hash_key(new_element);
 			if (is_master) {
-				if (SUCCESS != (*proxy_conn_data)->pool->add_master((*proxy_conn_data)->pool, &new_element->pool_hash_key,
+				if (PASS != (*proxy_conn_data)->pool->add_master((*proxy_conn_data)->pool, &new_element->pool_hash_key,
 													 new_element, conn->persistent TSRMLS_CC)) {
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Failed to add master to connection pool");
 					ret = FAIL;
 				}
 			} else {
-				if (SUCCESS != (*proxy_conn_data)->pool->add_slave((*proxy_conn_data)->pool, &new_element->pool_hash_key,
+				if (PASS != (*proxy_conn_data)->pool->add_slave((*proxy_conn_data)->pool, &new_element->pool_hash_key,
 													new_element, conn->persistent TSRMLS_CC)) {
 					mysqlnd_ms_client_n_php_error(&MYSQLND_MS_ERROR_INFO(conn), CR_UNKNOWN_ERROR, UNKNOWN_SQLSTATE, E_ERROR TSRMLS_CC,
 						MYSQLND_MS_ERROR_PREFIX " Failed to add slave to connection pool");
