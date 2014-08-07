@@ -274,6 +274,13 @@ typedef struct st_mysqlnd_pool {
 											func_mysqlnd_conn_data__set_charset cb,
 											const char * const csname TSRMLS_DC);
 
+	/* FIXME: The _option calls fail to replay commands properly.
+	 * Trouble is, the replay hash list is indexed by the command type: SET_CLIENT_OPTION,
+	 * SET_SERVER_OPTION. And, for each entry in the list we store the latest
+	 * arguments only. That means two subsequent SET_CLIENT_OPTION calls will
+	 * overwrite each other and the first ist lost. Hence, state is not properly
+	 * restored. The data structure must be changed.
+	 */
 	enum_func_status (*dispatch_set_server_option)(struct st_mysqlnd_pool * pool,
 												func_mysqlnd_conn_data__set_server_option cb,
 												enum_mysqlnd_server_option option TSRMLS_DC);
