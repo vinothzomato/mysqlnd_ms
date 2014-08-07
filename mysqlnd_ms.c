@@ -1046,7 +1046,6 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	return SUCCESS;
 }
 
-/* FIXME Pool update callback */
 static void mysqlnd_ms_filter_notify_pool_update(MYSQLND_MS_POOL * pool, void * data TSRMLS_DC) {
 	DBG_ENTER("mysqlnd_ms_filter_notify_pool_update");
 	if (data) {

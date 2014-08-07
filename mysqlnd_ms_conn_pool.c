@@ -245,26 +245,41 @@ pool_get_conn_hash_key(smart_str * hash_key,
 						char * socket, char * db, size_t db_len, unsigned long connect_flags,
 						zend_bool persistent)
 {
+	/* TODO: Check whether we could use MYSQLND_MS_LIST_DATA * as a hash key.
+	 * This may be quite tricky when we ask a question like "do we already have a
+	 * connection to server A open or do we need to create a new MYSQLND_MS_LIST_DATA * object
+	 * with a new connection Hence, to get started, trying this approach without the
+	 * pointer address first. It has shortcomings too as it requires a unique name.
+	 * We need to get started...
+	 */
 	if (unique_name_from_config) {
 		smart_str_appendl(hash_key, unique_name_from_config, strlen(unique_name_from_config));
 	}
+	smart_str_appendc(hash_key, '/');
 	if (host) {
 		smart_str_appendl(hash_key, host, strlen(host));
 	}
+	smart_str_appendc(hash_key, '/');
 	if (user) {
 		smart_str_appendl(hash_key, user, strlen(user));
 	}
+	smart_str_appendc(hash_key, '/');
 	if (passwd_len) {
 		smart_str_appendl(hash_key, passwd, passwd_len);
 	}
+	smart_str_appendc(hash_key, '/');
 	if (socket) {
 		smart_str_appendl(hash_key, socket, strlen(socket));
 	}
+	smart_str_appendc(hash_key, '/');
 	smart_str_append_unsigned(hash_key, port);
+	smart_str_appendc(hash_key, '/');
 	if (db_len) {
 		smart_str_appendl(hash_key, db, db_len);
 	}
+	smart_str_appendc(hash_key, '/');
 	smart_str_append_unsigned(hash_key, connect_flags);
+	smart_str_appendc(hash_key, '/');
 	smart_str_appendc(hash_key, '\0');
 }
 /* }}} */
