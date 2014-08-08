@@ -606,7 +606,7 @@ pool_get_buffered_entry(MYSQLND_MS_POOL * pool,
 			pool_cmd_pp && (pool_cmd = *pool_cmd_pp) && pool_cmd->data ;
 			pool_cmd_pp = (MYSQLND_MS_POOL_CMD **) zend_llist_get_next_ex(&(pool->data.buffered_cmds), &pos)) {
 		if (cmp) {
-			if (TRUE == cmp(pool_cmd, cmp_arg1, cmp_arg2)) {
+			if (TRUE == cmp(pool_cmd, cmp_arg1, cmp_arg2 TSRMLS_CC)) {
 				cmd_data = (void**)pool_cmd_pp;
 				break;
 			}
