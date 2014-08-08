@@ -25,25 +25,25 @@ if (true == $ret)
 $settings = array(
 	"myapp" => array(
 		'slave' => array(
-			"master1" => array(
+			"s1" => array(
 				'host' 	=> $emulated_master_host_only,
 				'port'	=> (int)$emulated_master_port,
 				'socket' => $emulated_master_socket
 			),
 		),
 		'master' => array(
-			"slave1" => array(
+			"m1" => array(
 				'host' 	=> $emulated_slave_host_only,
 				'port' 	=> (int)$emulated_slave_port,
 				'socket' => $emulated_slave_socket
 			),
-			"slave2" =>  array(
+			"m2" =>  array(
 				'host' 	=> $emulated_slave_host_only,
 				'port' 	=> (int)$emulated_slave_port,
 				'socket' => $emulated_slave_socket
 			),
 		),
-		'pick' => array('roundrobin' => array("weights" => array("slave1" => 1, "slave2" => 4, "master1" => 3))),
+		'pick' => array('roundrobin' => array("weights" => array("m1" => 1, "m2" => 4, "s1" => 3))),
 	),
 );
 if ($error = mst_create_config("test_mysqlnd_ms_pick_round_robin_weight_master.ini", $settings))
