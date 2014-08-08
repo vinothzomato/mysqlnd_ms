@@ -51,8 +51,8 @@
 
 typedef enum
 {
-	/* CAUTION: Order matters! The pool will replay commands in the order given here.
-	 * It may be that we learn about use cases where the order is not perfect...
+	/* CAUTION: The pool will replay commands in "random" order.
+	 * We might try to use the values to establish an order
 	 */
 	SET_CHARSET = 0,
 	SET_AUTOCOMMIT = 1,
@@ -81,7 +81,7 @@ typedef struct st_mysqlnd_pool_cmd_set_server_option {
 
 typedef struct st_mysqlnd_pool_cmd_set_client_option {
 	func_mysqlnd_conn_data__set_client_option cb;
-	enum_mysqlnd_server_option option;
+	enum_mysqlnd_option option;
 	char * value;
 } MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION;
 
@@ -120,6 +120,10 @@ typedef struct st_mysqlnd_pool_cmd {
 } MYSQLND_MS_POOL_CMD;
 
 
+/* Return FALSE if the command shall not be replayed */
+typedef zend_bool (*func_replay_filter)(MYSQLND_MS_POOL_CMD * pool TSRMLS_DC);
+
+
 typedef struct st_mysqlnd_pool {
 
 	/* private */
@@ -142,7 +146,8 @@ typedef struct st_mysqlnd_pool {
 		zend_llist active_master_list;
 		zend_llist active_slave_list;
 
-		HashTable buffered_cmds;
+		zend_llist buffered_cmds;
+
 		/* Prevent recursion during repaly */
 		zend_bool in_buffered_replay;
 
@@ -263,7 +268,8 @@ typedef struct st_mysqlnd_pool {
 	 * replay the previously dispatched commands (replay_cmds()).
 	 * The pool will not replay commands automatically and implicitly.
 	 * TODO: create a way to replay selected commands
-	 * FIXME: Likely, the order in which commands are replayed matters. It can't be set.
+	 * FIXME: Likely, the order in which commands are replayed matters. It can't be set, you
+	 * get random replay order...
 	 */
 	enum_func_status (*dispatch_select_db)(struct st_mysqlnd_pool * pool,
 											func_mysqlnd_conn_data__select_db cb,
@@ -274,13 +280,6 @@ typedef struct st_mysqlnd_pool {
 											func_mysqlnd_conn_data__set_charset cb,
 											const char * const csname TSRMLS_DC);
 
-	/* FIXME: The _option calls fail to replay commands properly.
-	 * Trouble is, the replay hash list is indexed by the command type: SET_CLIENT_OPTION,
-	 * SET_SERVER_OPTION. And, for each entry in the list we store the latest
-	 * arguments only. That means two subsequent SET_CLIENT_OPTION calls will
-	 * overwrite each other and the first ist lost. Hence, state is not properly
-	 * restored. The data structure must be changed.
-	 */
 	enum_func_status (*dispatch_set_server_option)(struct st_mysqlnd_pool * pool,
 												func_mysqlnd_conn_data__set_server_option cb,
 												enum_mysqlnd_server_option option TSRMLS_DC);
@@ -312,7 +311,9 @@ typedef struct st_mysqlnd_pool {
 										const char * const cipher TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
-									MYSQLND_CONN_DATA * const proxy_conn TSRMLS_DC);
+									MYSQLND_CONN_DATA * const proxy_conn,
+									func_replay_filter cb
+									TSRMLS_DC);
 
 	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 

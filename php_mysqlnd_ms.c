@@ -810,8 +810,8 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	mysqlnd_fabric_free_server_list(tofree);
 	smart_str_free(&hash_key);
 
-	/* FIXME - this will, almost for sure, replay too many commands */
-	(*conn_data)->pool->replay_cmds((*conn_data)->pool, proxy_conn->data TSRMLS_CC);
+	/* FIXME - this will, almost for sure, replay too many commands. Note the filter argument */
+	(*conn_data)->pool->replay_cmds((*conn_data)->pool, proxy_conn->data, NULL /* filter */ TSRMLS_CC);
 	(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
 
 	RETVAL_TRUE;
@@ -1272,6 +1272,50 @@ static PHP_FUNCTION(mysqlnd_ms_xa_gc)
 }
 /* }}} */
 
+#ifdef ULF_0
+/* {{{ proto book mysqlnd_ms_swim() */
+static PHP_FUNCTION(mysqlnd_ms_swim)
+{
+	zval *conn_zv;
+	MYSQLND *proxy_conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv) == FAILURE) {
+		return;
+	}
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_FALSE;
+	}
+
+	MS_LOAD_CONN_DATA(conn_data, proxy_conn->data);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETURN_FALSE;
+	}
+
+
+	{
+#if PHP_VERSION_ID >= 50600
+		MYSQLND *conn = mysqlnd_init(proxy_conn->data->m->get_client_api_capabilities(proxy_conn->data TSRMLS_CC), proxy_conn->data->persistent);
+#else
+		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
+#endif
+
+		mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, "slave_1", FALSE,
+											"127.0.0.1", 3312,  &(*conn_data)->cred, &(*conn_data)->global_trx,
+											TRUE, proxy_conn->data->persistent TSRMLS_CC);
+
+		(*conn_data)->pool->replay_cmds((*conn_data)->pool, proxy_conn->data, NULL TSRMLS_CC);
+		(*conn_data)->pool->notify_replace_listener((*conn_data)->pool TSRMLS_CC);
+
+		conn->m->dtor(conn TSRMLS_CC);
+	}
+
+	RETURN_TRUE;
+}
+/* }}} */
+#endif
+
 /* {{{ mysqlnd_ms_deps[] */
 static const zend_module_dep mysqlnd_ms_deps[] = {
 	ZEND_MOD_REQUIRED("mysqlnd")
@@ -1309,6 +1353,9 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_xa_commit, arginfo_mysqlnd_ms_xa_commit)
 	PHP_FE(mysqlnd_ms_xa_rollback, arginfo_mysqlnd_ms_xa_rollback)
 	PHP_FE(mysqlnd_ms_xa_gc, arginfo_mysqlnd_ms_xa_gc)
+#ifdef ULF_0
+	PHP_FE(mysqlnd_ms_swim, NULL)
+#endif
 	{NULL, NULL, NULL}	/* Must be the last line in mysqlnd_ms_functions[] */
 };
 /* }}} */
