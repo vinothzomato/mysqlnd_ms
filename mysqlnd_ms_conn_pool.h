@@ -54,13 +54,13 @@ typedef enum
 	/* CAUTION: The pool will replay commands in "random" order.
 	 * We might try to use the values to establish an order
 	 */
-	SET_CHARSET = 0,
-	SET_AUTOCOMMIT = 1,
-	SELECT_DB = 2,
-	SET_SERVER_OPTION = 3,
-	SET_CLIENT_OPTION = 4,
-	CHANGE_USER = 5,
-	SSL_SET = 6
+	POOL_CMD_SET_CHARSET = 0,
+	POOL_CMD_SET_AUTOCOMMIT = 1,
+	POOL_CMD_SELECT_DB = 2,
+	POOL_CMD_SET_SERVER_OPTION = 3,
+	POOL_CMD_SET_CLIENT_OPTION = 4,
+	POOL_CMD_CHANGE_USER = 5,
+	POOL_CMD_SSL_SET = 6
 } enum_mysqlnd_pool_cmd;
 
 typedef struct st_mysqlnd_pool_cmd_select_db {
@@ -83,6 +83,7 @@ typedef struct st_mysqlnd_pool_cmd_set_client_option {
 	func_mysqlnd_conn_data__set_client_option cb;
 	enum_mysqlnd_option option;
 	char * value;
+	unsigned int value_int;
 } MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION;
 
 typedef struct st_mysqlnd_pool_cmd_change_user {
@@ -121,7 +122,8 @@ typedef struct st_mysqlnd_pool_cmd {
 
 
 /* Return FALSE if the command shall not be replayed */
-typedef zend_bool (*func_replay_filter)(MYSQLND_MS_POOL_CMD * pool TSRMLS_DC);
+typedef zend_bool (*func_replay_filter)(MYSQLND_CONN_DATA * const proxy_conn,
+										MYSQLND_MS_POOL_CMD * pool_cmd TSRMLS_DC);
 
 
 typedef struct st_mysqlnd_pool {

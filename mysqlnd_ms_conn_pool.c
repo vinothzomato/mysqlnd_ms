@@ -65,7 +65,7 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 
 	if (element) {
 		switch (element->cmd) {
-			case SET_CHARSET:
+			case POOL_CMD_SET_CHARSET:
 				DBG_INF_FMT("pool_cmd=%p SET_CHARSET", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_SET_CHARSET * cmd_data = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)element->data;
@@ -75,7 +75,7 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 				}
 				break;
 
-			case SELECT_DB:
+			case POOL_CMD_SELECT_DB:
 				DBG_INF_FMT("pool_cmd=%p SELECT_DB", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_SELECT_DB * cmd_data = (MYSQLND_MS_POOL_CMD_SELECT_DB *)element->data;
@@ -86,12 +86,12 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 				}
 				break;
 
-			case SET_SERVER_OPTION:
+			case POOL_CMD_SET_SERVER_OPTION:
 				DBG_INF_FMT("pool_cmd=%p SET_SERVER_OPTION", element->data);
 				mnd_pefree(element->data, element->persistent);
 				break;
 
-			case SET_CLIENT_OPTION:
+			case POOL_CMD_SET_CLIENT_OPTION:
 				DBG_INF_FMT("pool_cmd=%p SET_CLIENT_OPTION", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * cmd_data = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)element->data;
@@ -102,7 +102,7 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 				}
 				break;
 
-			case CHANGE_USER:
+			case POOL_CMD_CHANGE_USER:
 				DBG_INF_FMT("pool_cmd=%p CHANGE_USER", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_CHANGE_USER * cmd_data = (MYSQLND_MS_POOL_CMD_CHANGE_USER *)element->data;
@@ -120,12 +120,12 @@ mysqlnd_ms_pool_cmd_dtor(void *pDest) {
 				break;
 
 #if MYSQLND_VERSION_ID >= 50009
-			case SET_AUTOCOMMIT:
+			case POOL_CMD_SET_AUTOCOMMIT:
 				DBG_INF_FMT("pool_cmd=%p SET_AUTOCOMMIT", element->data);
 
 				break;
 #endif
-			case SSL_SET:
+			case POOL_CMD_SSL_SET:
 				DBG_INF_FMT("pool_cmd=%p SSL_SET", element->data);
 				{
 					MYSQLND_MS_POOL_CMD_SSL_SET * cmd_data = (MYSQLND_MS_POOL_CMD_SSL_SET *)element->data;
@@ -636,7 +636,7 @@ pool_get_buffered_entry(MYSQLND_MS_POOL * pool,
 		pool_cmd->cmd = cmd;
 		pool_cmd->data = *cmd_data;
 		pool_cmd->persistent = pool->data.persistent;
-		DBG_INF_FMT("pool_cmd=%p pool_cmd.data=%p", pool_cmd, pool_cmd->data);
+		DBG_INF_FMT("new pool_cmd=%p pool_cmd.data=%p", pool_cmd, pool_cmd->data);
 
 		zend_llist_add_element(&(pool->data.buffered_cmds), &pool_cmd);
 		ret = PASS;
@@ -659,7 +659,7 @@ pool_dispatch_select_db(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__select_d
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SELECT_DB),
+	ret = pool_get_buffered_entry(pool, POOL_CMD_SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SELECT_DB),
 								  NULL, NULL, NULL TSRMLS_CC);
 	if ((PASS == ret) && cmd_data) {
 		if (cmd_data->db) {
@@ -688,7 +688,7 @@ pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_ch
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CHARSET),
+	ret = pool_get_buffered_entry(pool, POOL_CMD_SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CHARSET),
 								  NULL, NULL, NULL TSRMLS_CC);
 	if ((PASS == ret) && cmd_data) {
 		if (cmd_data->csname) {
@@ -708,7 +708,7 @@ static
 zend_bool buffer_search_server_option(MYSQLND_MS_POOL_CMD * pool_cmd, void * arg1, void * arg2 TSRMLS_DC) {
 	MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION  * cmd_data = (MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION  *)pool_cmd->data;
 
-	if ((pool_cmd->cmd == SET_SERVER_OPTION) &&
+	if ((pool_cmd->cmd == POOL_CMD_SET_SERVER_OPTION) &&
 		(cmd_data->option == *(enum_mysqlnd_server_option *)arg1)) {
 		return TRUE;
 	}
@@ -728,7 +728,7 @@ pool_dispatch_set_server_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, SET_SERVER_OPTION, (void *)&cmd_data,
+	ret = pool_get_buffered_entry(pool, POOL_CMD_SET_SERVER_OPTION, (void *)&cmd_data,
 									sizeof(MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION),
 									buffer_search_server_option,
 									(void*)&option,
@@ -742,24 +742,80 @@ pool_dispatch_set_server_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 }
 /* }}} */
 
+static
+zend_bool pool_client_option_is_char(enum_mysqlnd_option option) {
+
+	zend_bool ret = TRUE;
+
+	switch (option) {
+		/* WARNING: this list must be kept in sync with mysqlnd */
+		case MYSQLND_OPT_NET_CMD_BUFFER_SIZE:
+		case MYSQLND_OPT_NET_READ_BUFFER_SIZE:
+		case MYSQL_OPT_READ_TIMEOUT:
+		case MYSQL_OPT_WRITE_TIMEOUT:
+		case MYSQL_OPT_CONNECT_TIMEOUT:
+#ifdef MYSQLND_STRING_TO_INT_CONVERSION
+		case MYSQLND_OPT_INT_AND_FLOAT_NATIVE:
+#endif
+		case MYSQL_OPT_LOCAL_INFILE:
+		case MYSQL_OPT_PROTOCOL:
+		case MYSQLND_OPT_MAX_ALLOWED_PACKET:
+		case MYSQL_OPT_CAN_HANDLE_EXPIRED_PASSWORDS:
+			ret = FALSE;
+			break;
+		default:
+			break;
+	}
+
+	return ret;
+}
+
 /* {{{ buffer_search_client_option */
 static
 zend_bool buffer_search_client_option(MYSQLND_MS_POOL_CMD * pool_cmd, void * arg1, void * arg2 TSRMLS_DC) {
 
 	MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION  * cmd_data = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION  *)pool_cmd->data;
+	DBG_ENTER("buffer_search_client_option");
+	if ((pool_cmd->cmd == POOL_CMD_SET_CLIENT_OPTION) &&
+		(cmd_data->option == *(enum_mysqlnd_option *)arg1)) {
 
-	if ((pool_cmd->cmd == SET_CLIENT_OPTION) &&
-		(cmd_data->option == *(enum_mysqlnd_option *)arg1) &&
-		(
-			((arg1 && cmd_data->value) && (0 == strcmp(cmd_data->value,(char*)arg1))) ||
-			(!arg1 && !cmd_data->value)
-		)) {
-		return TRUE;
-	} else {
-		return FALSE;
+		/*
+		* FIXME: We keep the buffered commands in a list.
+		* Each set_charset(), set_*_option() call has to decide whether it wants to
+		* add an entry to the buffered command list or not.
+		* *
+		* Assume the user does:
+		*   option(INIT_COMMAND, "something");
+		*   option(INIT_COMMAND, "else");
+		*
+		* We certainly want to keep commands and replay both if requested.
+		*
+		* Assume the user does:
+		*   option(LOAD_DATA, 1);
+		*   option(LOAD_DATA, 0);
+		*
+		* Here we do not care about the first one. The below code will cause
+		* both LOAD_DATA entries to be stored because 1 != 0. I think, that's
+		* wrong. It should not harm as the order of commands should be preserved
+		* during replay but it's unnecessary work.
+		*/
+		if (TRUE == pool_client_option_is_char(cmd_data->option)) {
+			if (((arg1 && cmd_data->value) && (0 == strcmp(cmd_data->value,(char*)arg2))) ||
+				(!arg1 && !cmd_data->value)) {
+				DBG_INF_FMT("Found data=%p value=%s", cmd_data, (cmd_data->value) ? cmd_data->value : "n/a");
+				DBG_RETURN(TRUE);
+			}
+		} else {
+			if (cmd_data->value_int == *(unsigned int*)arg2) {
+				DBG_INF_FMT("Found data=%p value_int=%lu", cmd_data, cmd_data->value_int);
+				DBG_RETURN(TRUE);
+			}
+		}
 	}
+	DBG_RETURN(FALSE);
 }
 /* }}} */
+
 
 /* {{{ pool_dispatch_set_client_option */
 static enum_func_status
@@ -773,7 +829,7 @@ pool_dispatch_set_client_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, SET_CLIENT_OPTION, (void *)&cmd_data,
+	ret = pool_get_buffered_entry(pool, POOL_CMD_SET_CLIENT_OPTION, (void *)&cmd_data,
 									sizeof(MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION),
 									buffer_search_client_option,
 									(void *)&option,
@@ -785,9 +841,17 @@ pool_dispatch_set_client_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 			DBG_INF_FMT("free value=%s\n", cmd_data->value);
 			mnd_pefree(cmd_data->value, pool->data.persistent);
 		}
+
 		cmd_data->cb = cb;
 		cmd_data->option = option;
-		cmd_data->value = (value) ? mnd_pestrndup(value, strlen(value), pool->data.persistent) : NULL;
+
+		if (pool_client_option_is_char(cmd_data->option)) {
+			cmd_data->value = (value) ? mnd_pestrndup(value, strlen(value), pool->data.persistent) : NULL;
+		} else {
+			cmd_data->value = NULL;
+			cmd_data->value_int = *(unsigned int*)value;
+		}
+
 	}
 
 	DBG_RETURN(ret);
@@ -813,7 +877,7 @@ pool_dispatch_change_user(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__change
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, CHANGE_USER,
+	ret = pool_get_buffered_entry(pool, POOL_CMD_CHANGE_USER,
 								  (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_CHANGE_USER),
 								  NULL, NULL, NULL TSRMLS_CC);
 	if ((PASS == ret) && cmd_data) {
@@ -858,7 +922,7 @@ pool_dispatch_set_autocommit(MYSQLND_MS_POOL * pool,
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, SET_AUTOCOMMIT,
+	ret = pool_get_buffered_entry(pool, POOL_CMD_SET_AUTOCOMMIT,
 								  (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT),
 								  NULL, NULL, NULL TSRMLS_CC);
 	if ((PASS == ret) && cmd_data) {
@@ -886,7 +950,7 @@ pool_dispatch_ssl_set(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__ssl_set cb
 		DBG_RETURN(ret)
 	}
 
-	ret = pool_get_buffered_entry(pool, SSL_SET, (void *)&cmd_data,
+	ret = pool_get_buffered_entry(pool, POOL_CMD_SSL_SET, (void *)&cmd_data,
 								  sizeof(MYSQLND_MS_POOL_CMD_SSL_SET),
 								  NULL, NULL, NULL TSRMLS_CC);
 	if ((PASS == ret) && cmd_data) {
@@ -937,42 +1001,45 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const proxy_conn,
 
 		DBG_INF_FMT("pool_cmd=%p pool_cmd.data=%p", pool_cmd, pool_cmd->data);
 
-		if (cb && (FALSE == cb(pool_cmd TSRMLS_CC))) {
+		if (cb && (FALSE == cb(proxy_conn, pool_cmd TSRMLS_CC))) {
 			DBG_INF("skipping");
 			continue;
 		}
 
 		switch (pool_cmd->cmd) {
-			case SELECT_DB:
+			case POOL_CMD_SELECT_DB:
 				{
 					MYSQLND_MS_POOL_CMD_SELECT_DB * args = (MYSQLND_MS_POOL_CMD_SELECT_DB *)pool_cmd->data;
 					ret = args->cb(proxy_conn, args->db, args->db_len TSRMLS_CC);
 				}
 				break;
 
-			case SET_CHARSET:
+			case POOL_CMD_SET_CHARSET:
 				{
 					MYSQLND_MS_POOL_CMD_SET_CHARSET * args = (MYSQLND_MS_POOL_CMD_SET_CHARSET *)pool_cmd->data;
 					ret = args->cb(proxy_conn, args->csname TSRMLS_CC);
 				}
 				break;
 
-			case SET_SERVER_OPTION:
+			case POOL_CMD_SET_SERVER_OPTION:
 				{
 					MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION * args = (MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION *)pool_cmd->data;
 					ret = args->cb(proxy_conn, args->option TSRMLS_CC);
 				}
 				break;
 
-			case SET_CLIENT_OPTION:
+			case POOL_CMD_SET_CLIENT_OPTION:
 				{
 					MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION * args = (MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION *)pool_cmd->data;
-					php_printf("client %d %s\n", args->option, args->value);
-					ret = args->cb(proxy_conn, args->option, args->value TSRMLS_CC);
+					if (pool_client_option_is_char(args->option)) {
+						ret = args->cb(proxy_conn, args->option, args->value TSRMLS_CC);
+					} else {
+						ret = args->cb(proxy_conn, args->option, (const char * const)&args->value_int TSRMLS_CC);
+					}
 				}
 				break;
 
-			case CHANGE_USER:
+			case POOL_CMD_CHANGE_USER:
 				{
 					MYSQLND_MS_POOL_CMD_CHANGE_USER * args = (MYSQLND_MS_POOL_CMD_CHANGE_USER *)pool_cmd->data;
 					ret = args->cb(proxy_conn, args->user, args->passwd, args->db, args->silent
@@ -984,14 +1051,14 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const proxy_conn,
 				break;
 
 #if MYSQLND_VERSION_ID >= 50009
-			case SET_AUTOCOMMIT:
+			case POOL_CMD_SET_AUTOCOMMIT:
 				{
 					MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT * args = (MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT *)pool_cmd->data;
 					ret = args->cb(proxy_conn, args->mode TSRMLS_CC);
 				}
 				break;
 #endif
-			case SSL_SET:
+			case POOL_CMD_SSL_SET:
 				{
 					MYSQLND_MS_POOL_CMD_SSL_SET * args = (MYSQLND_MS_POOL_CMD_SSL_SET *)pool_cmd->data;
 					ret = args->cb(proxy_conn, args->key, args->cert, args->ca, args->capath, args->cipher TSRMLS_CC);
