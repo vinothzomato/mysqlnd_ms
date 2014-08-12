@@ -157,6 +157,11 @@ typedef struct st_mysqlnd_pool {
 
 	/* public methods */
 
+	/* CAUTION: this code should be reviewed. Review pending */
+
+	/* TODO: the pool lacks locks for atomic update semantics.
+	 * Currently all updates become immediately visible to consumers */
+
 	/* From an MS point of view: flush all connections, clear all slaves and masters
 	 * The connections will not necessarily be closed but marked inactive.
 	 * Assume Fabric constantly jumps between two shard groups, if we closed all
