@@ -816,7 +816,7 @@ pool_dispatch_select_db(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__select_d
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SELECT_DB),
@@ -855,7 +855,7 @@ pool_dispatch_set_charset(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__set_ch
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_SELECT_DB, (void *)&cmd_data, sizeof(MYSQLND_MS_POOL_CMD_SET_CHARSET),
@@ -914,7 +914,7 @@ pool_dispatch_set_server_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_SET_SERVER_OPTION, (void *)&cmd_data,
@@ -1038,7 +1038,7 @@ pool_dispatch_set_client_option(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_SET_CLIENT_OPTION, (void *)&cmd_data,
@@ -1098,7 +1098,7 @@ pool_dispatch_change_user(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__change
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_CHANGE_USER,
@@ -1153,7 +1153,7 @@ pool_dispatch_set_autocommit(MYSQLND_MS_POOL * pool,
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_SET_AUTOCOMMIT,
@@ -1193,7 +1193,7 @@ pool_dispatch_ssl_set(MYSQLND_MS_POOL * pool, func_mysqlnd_conn_data__ssl_set cb
 	}
 
 	if (pool->data.in_buffered_replay) {
-		DBG_RETURN(ret)
+		DBG_RETURN(ret);
 	}
 
 	ret = pool_get_buffered_entry(pool, POOL_CMD_SSL_SET, (void *)&cmd_data,
@@ -1320,7 +1320,7 @@ pool_replay_cmds(MYSQLND_MS_POOL * pool, MYSQLND_CONN_DATA * const proxy_conn,
 	}
 	pool->data.in_buffered_replay = FALSE;
 
-	DBG_RETURN(ret)
+	DBG_RETURN(ret);
 }
 /* }}} */
 
