@@ -61,48 +61,61 @@ typedef enum
 	POOL_CMD_SSL_SET = 6
 } enum_mysqlnd_pool_cmd;
 
-typedef struct st_mysqlnd_pool_cmd_select_db {
+
+typedef struct st_mysqlnd_pool_cmd_select_db
+{
 	func_mysqlnd_conn_data__select_db cb;
 	char * db;
-	unsigned int db_len;
+	size_t db_len;
 } MYSQLND_MS_POOL_CMD_SELECT_DB;
 
-typedef struct st_mysqlnd_pool_cmd_set_charset {
+
+typedef struct st_mysqlnd_pool_cmd_set_charset
+{
 	func_mysqlnd_conn_data__set_charset cb;
 	char * csname;
 } MYSQLND_MS_POOL_CMD_SET_CHARSET;
 
-typedef struct st_mysqlnd_pool_cmd_set_server_option {
+typedef struct st_mysqlnd_pool_cmd_set_server_option
+{
 	func_mysqlnd_conn_data__set_server_option cb;
 	enum_mysqlnd_server_option option;
 } MYSQLND_MS_POOL_CMD_SET_SERVER_OPTION;
 
-typedef struct st_mysqlnd_pool_cmd_set_client_option {
+
+typedef struct st_mysqlnd_pool_cmd_set_client_option
+{
 	func_mysqlnd_conn_data__set_client_option cb;
 	enum_mysqlnd_option option;
 	char * value;
 	unsigned int value_int;
 } MYSQLND_MS_POOL_CMD_SET_CLIENT_OPTION;
 
-typedef struct st_mysqlnd_pool_cmd_change_user {
+
+typedef struct st_mysqlnd_pool_cmd_change_user
+{
 	func_mysqlnd_conn_data__change_user cb;
-	char *user;
-	char *passwd;
-	char *db;
+	char * user;
+	char * passwd;
+	char * db;
 	zend_bool silent;
 #if PHP_VERSION_ID >= 50399
 	size_t passwd_len;
 #endif
 } MYSQLND_MS_POOL_CMD_CHANGE_USER;
 
+
 #if MYSQLND_VERSION_ID >= 50009
-typedef struct st_mysqlnd_pool_cmd_set_autocommit {
+typedef struct st_mysqlnd_pool_cmd_set_autocommit
+{
 	func_mysqlnd_conn_data__set_autocommit cb;
 	unsigned int mode;
 } MYSQLND_MS_POOL_CMD_SET_AUTOCOMMIT;
 #endif
 
-typedef struct st_mysqlnd_pool_cmd_ssl_set {
+
+typedef struct st_mysqlnd_pool_cmd_ssl_set
+{
 	func_mysqlnd_conn_data__ssl_set cb;
 	char * key;
 	char * cert;
@@ -112,7 +125,8 @@ typedef struct st_mysqlnd_pool_cmd_ssl_set {
 } MYSQLND_MS_POOL_CMD_SSL_SET;
 
 
-typedef struct st_mysqlnd_pool_cmd {
+typedef struct st_mysqlnd_pool_cmd
+{
 	enum_mysqlnd_pool_cmd cmd;
 	void * data; /* MYSQLND_MS_POOL_CMD_SELECT_DB and friends */
 	zend_bool persistent;
@@ -124,7 +138,8 @@ typedef zend_bool (*func_replay_filter)(MYSQLND_CONN_DATA * const proxy_conn,
 										MYSQLND_MS_POOL_CMD * pool_cmd TSRMLS_DC);
 
 
-typedef struct st_mysqlnd_pool {
+typedef struct st_mysqlnd_pool
+{
 
 	/* private */
 	struct {
@@ -186,28 +201,40 @@ typedef struct st_mysqlnd_pool {
 	 * The latter is not forbidden. In fact, it is a feature heavily used by the tests.
 	 */
 	void (*get_conn_hash_key)(smart_str * hash_key /* out */,
-							const char * unique_name_from_config,
-							const char * host, const char * user,
-							const char * passwd, size_t passwd_len,
-							unsigned int port, char * socket,
-							char * db, size_t db_len, unsigned long connect_flags,
-							zend_bool persistent);
+							const char * const unique_name_from_config,
+							const char * const host,
+							const char * const user,
+							const char * const passwd, const size_t passwd_len,
+							const unsigned int port,
+							const char * const socket,
+							const char * const db, const size_t db_len,
+							const unsigned long connect_flags,
+							const zend_bool persistent);
 
 	/* Add connections to the pool */
-	enum_func_status (*add_slave)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
-								  MYSQLND_MS_LIST_DATA * data, zend_bool persistent TSRMLS_DC);
-	enum_func_status (*add_master)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
-								   MYSQLND_MS_LIST_DATA * data, zend_bool persistent TSRMLS_DC);
+	enum_func_status (*add_slave)(struct st_mysqlnd_pool * pool,
+								  smart_str * hash_key,
+								  MYSQLND_MS_LIST_DATA * data,
+								  zend_bool persistent
+								  TSRMLS_DC);
+
+	enum_func_status (*add_master)(struct st_mysqlnd_pool * pool,
+								   smart_str * hash_key,
+								   MYSQLND_MS_LIST_DATA * data,
+								   zend_bool persistent
+								   TSRMLS_DC);
 
 	/* Test whether a connection is already in the pool.
 	 * data, is_master, is_active, is_removed are out parameters
 	 * A connection can be reactivated if is_active = FALSE, is_removed = FALSE
 	 */
-	zend_bool (*connection_exists)(struct st_mysqlnd_pool * pool, smart_str * hash_key,
-									MYSQLND_MS_LIST_DATA **data,
-									zend_bool * is_master,
-									zend_bool * is_active,
-									zend_bool * is_removed TSRMLS_DC);
+	zend_bool (*connection_exists)(struct st_mysqlnd_pool * pool,
+								   smart_str * hash_key,
+								   MYSQLND_MS_LIST_DATA **data,
+								   zend_bool * is_master,
+								   zend_bool * is_active,
+								   zend_bool * is_removed
+								   TSRMLS_DC);
 
 	/* Reactivate a connection: move it from the inactive to the active list
 	 *
@@ -222,7 +249,9 @@ typedef struct st_mysqlnd_pool {
 	 * Note: roles (master/slave) cannot change - saw no need, change if you like...
 	 */
 	enum_func_status (*connection_reactivate)(struct st_mysqlnd_pool * pool,
-									  smart_str * hash_key, zend_bool is_master TSRMLS_DC);
+									  		  smart_str * hash_key,
+											  zend_bool is_master
+											  TSRMLS_DC);
 
 	/* Mark a connection as removed.
 	 *
@@ -238,11 +267,14 @@ typedef struct st_mysqlnd_pool {
 	 * can be actually removed prior to giving up.
 	 */
 	enum_func_status (*connection_remove)(struct st_mysqlnd_pool * pool,
-										  smart_str * hash_key, zend_bool is_master TSRMLS_DC);
+										  smart_str * hash_key,
+										  zend_bool is_master
+										  TSRMLS_DC);
 
 	enum_func_status (*register_replace_listener)(struct st_mysqlnd_pool * pool,
-												void (*f)(struct st_mysqlnd_pool * pool, void * data TSRMLS_DC),
-												void * data TSRMLS_DC);
+												  void (*f)(struct st_mysqlnd_pool * pool, void * data TSRMLS_DC),
+												  void * data
+												  TSRMLS_DC);
 
 	enum_func_status (*notify_replace_listener)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 
@@ -259,9 +291,12 @@ typedef struct st_mysqlnd_pool {
 	 * TODO See implementation - semantics are a bit unclear
 	 */
 	enum_func_status (*add_reference)(struct st_mysqlnd_pool * pool,
-									  MYSQLND_CONN_DATA * const conn TSRMLS_DC);
+									  MYSQLND_CONN_DATA * const conn
+									  TSRMLS_DC);
+
 	enum_func_status (*free_reference)(struct st_mysqlnd_pool * pool,
-										 MYSQLND_CONN_DATA * const conn TSRMLS_DC);
+									   MYSQLND_CONN_DATA * const conn
+									   TSRMLS_DC);
 
 
 	/* By default MS will align the state (charset, options, ...) of all servers
@@ -277,17 +312,17 @@ typedef struct st_mysqlnd_pool {
 	 * get random replay order...
 	 */
 	enum_func_status (*dispatch_select_db)(struct st_mysqlnd_pool * pool,
-											func_mysqlnd_conn_data__select_db cb,
-											const char * db,
-											unsigned int db_len TSRMLS_DC);
+										   func_mysqlnd_conn_data__select_db cb,
+										   const char * const db,
+										   const size_t db_len TSRMLS_DC);
 
 	enum_func_status (*dispatch_set_charset)(struct st_mysqlnd_pool * pool,
 											func_mysqlnd_conn_data__set_charset cb,
 											const char * const csname TSRMLS_DC);
 
 	enum_func_status (*dispatch_set_server_option)(struct st_mysqlnd_pool * pool,
-												func_mysqlnd_conn_data__set_server_option cb,
-												enum_mysqlnd_server_option option TSRMLS_DC);
+												   func_mysqlnd_conn_data__set_server_option cb,
+												   enum_mysqlnd_server_option option TSRMLS_DC);
 
 	enum_func_status (*dispatch_set_client_option)(struct st_mysqlnd_pool *pool,
 												func_mysqlnd_conn_data__set_client_option cb,
@@ -296,10 +331,12 @@ typedef struct st_mysqlnd_pool {
 
 	enum_func_status (*dispatch_change_user)(struct st_mysqlnd_pool * pool,
 											func_mysqlnd_conn_data__change_user cb,
-											const char *user, const char * passwd,
-											const char * db, zend_bool silent
+											const char * const user,
+											const char * const passwd,
+											const char * const db,
+											const zend_bool silent
 #if PHP_VERSION_ID >= 50399
-											, size_t passwd_len
+											, const size_t passwd_len
 #endif
 											TSRMLS_DC);
 
@@ -310,10 +347,13 @@ typedef struct st_mysqlnd_pool {
 #endif
 
 	enum_func_status (*dispatch_ssl_set)(struct st_mysqlnd_pool * pool,
-										func_mysqlnd_conn_data__ssl_set cb,
-										const char * key, const char * const cert,
-										const char * const ca, const char * const capath,
-										const char * const cipher TSRMLS_DC);
+										 func_mysqlnd_conn_data__ssl_set cb,
+										 const char * const key,
+										 const char * const cert,
+										 const char * const ca,
+										 const char * const capath,
+										 const char * const cipher
+										 TSRMLS_DC);
 
 	enum_func_status (*replay_cmds)(struct st_mysqlnd_pool * pool,
 									MYSQLND_CONN_DATA * const proxy_conn,
@@ -322,12 +362,12 @@ typedef struct st_mysqlnd_pool {
 
 	void (*dtor)(struct st_mysqlnd_pool * pool TSRMLS_DC);
 
-
 } MYSQLND_MS_POOL;
 
 
 typedef void (*func_pool_replace_listener)(MYSQLND_MS_POOL * pool, void * data TSRMLS_DC);
-typedef struct st_mysqlnd_pool_listener {
+typedef struct st_mysqlnd_pool_listener
+{
 	func_pool_replace_listener listener;
 	void * data;
 } MYSQLND_MS_POOL_LISTENER;
@@ -335,7 +375,8 @@ typedef struct st_mysqlnd_pool_listener {
 
 MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(dtor_func_t ms_list_data_dtor, zend_bool persistent TSRMLS_DC);
 
-typedef struct st_mysqlnd_pool_entry {
+typedef struct st_mysqlnd_pool_entry
+{
 	/* This is the data we keep on behalf of the MS core */
 	MYSQLND_MS_LIST_DATA * data;
 	/* dtor the MS core provides to free LIST_DATA member */
