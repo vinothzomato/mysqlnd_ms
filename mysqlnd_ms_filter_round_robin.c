@@ -130,6 +130,7 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 				if (!subsection) {
 					break;
 				}
+				DBG_INF_FMT("subsection(%u)=[%s]", (unsigned int) current_subsection_name_len, current_subsection_name);
 				if (!strcmp(current_subsection_name, SECT_LB_WEIGHTS)) {
 					mysqlnd_ms_filter_ctor_load_weights_config(&ret->lb_weight, PICK_RROBIN, subsection, master_connections,  slave_connections, error_info, persistent TSRMLS_CC);
 					break;
