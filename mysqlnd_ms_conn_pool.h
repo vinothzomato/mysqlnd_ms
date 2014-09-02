@@ -12,9 +12,7 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author: Andrey Hristov <andrey@php.net>                              |
-  |         Ulf Wendel <uw@php.net>                                      |
-  |         Johannes Schlueter <johannes@php.net>                        |
+  | Author: Ulf Wendel <uw@php.net>                                      |
   +----------------------------------------------------------------------+
 */
 
