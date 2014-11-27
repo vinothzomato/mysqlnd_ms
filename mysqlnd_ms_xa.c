@@ -311,7 +311,7 @@ mysqlnd_ms_xa_participant_list_free_pool_ref(void *pDest, void *arg TSRMLS_DC)
 {
 	MYSQLND_MS_XA_PARTICIPANT_LIST_DATA * element = pDest? *(MYSQLND_MS_XA_PARTICIPANT_LIST_DATA **) pDest : NULL;
 	MYSQLND_MS_POOL * pool = (MYSQLND_MS_POOL *)arg;
-	DBG_ENTER("mysqlnd_ms_xa_participant_list_free_pool_ref")
+	DBG_ENTER("mysqlnd_ms_xa_participant_list_free_pool_ref");
 	if (element && element->conn && pool) {
 		pool->free_reference(pool, element->conn TSRMLS_CC);
 	}
