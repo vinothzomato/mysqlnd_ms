@@ -82,8 +82,8 @@ mysqlnd_ms_table_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, z
 			ret->parent.filter_dtor = table_filter_dtor;
 			ret->parent.filter_conn_pool_replaced = table_filter_conn_pool_replaced;
 
-			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
-			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
+			zend_hash_init(&ret->master_rules, 4, NULL/*hash*/, (dtor_func_t)mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
+			zend_hash_init(&ret->slave_rules, 4, NULL/*hash*/, (dtor_func_t)mysqlnd_ms_filter_ht_dtor/*dtor*/, persistent);
 			if (FAIL == mysqlnd_ms_load_table_filters(&ret->master_rules, &ret->slave_rules, section, error_info, persistent TSRMLS_CC)) {
 				ret->parent.filter_dtor((MYSQLND_MS_FILTER_DATA *)ret TSRMLS_CC);
 				ret = NULL;
@@ -242,7 +242,7 @@ mysqlnd_ms_table_add_rule(HashTable * rules_ht,
 						HashTable * ht_for_new_filter = mnd_malloc(sizeof(HashTable));
 						DBG_INF("Filter HT doesn't exist, need to create it");
 						if (ht_for_new_filter) {
-							if (SUCCESS == zend_hash_init(ht_for_new_filter, 2, NULL, mysqlnd_ms_filter_dtor, 1/*pers*/)) {
+							if (SUCCESS == zend_hash_init(ht_for_new_filter, 2, NULL, (dtor_func_t)mysqlnd_ms_filter_dtor, 1/*pers*/)) {
 								if (SUCCESS != zend_hash_add(rules_ht, filter_mask, filter_mask_len + 1, &ht_for_new_filter,
 						  				 			 		 sizeof(HashTable *), NULL))
 								{

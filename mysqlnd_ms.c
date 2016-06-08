@@ -115,8 +115,8 @@ MYSQLND_STATS * mysqlnd_ms_stats = NULL;
 #define CONN_DATA_TRY_TRX_INJECTION(conn_data, conn) ((CONN_GET_STATE(conn) > CONN_ALLOCED) && ((FALSE == (*(conn_data))->skip_ms_calls)) && ((*(conn_data))->global_trx.on_commit) && (TRUE == (*(conn_data))->global_trx.is_master))
 
 #define MS_TRX_INJECT(ret, connection, conn_data) \
-	if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)((connection), ((*(conn_data))->global_trx.on_commit), ((*(conn_data))->global_trx.on_commit_len) TSRMLS_CC))) \
-		(ret) = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)((connection) TSRMLS_CC);
+	if (PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)((connection), ((*(conn_data))->global_trx.on_commit), ((*(conn_data))->global_trx.on_commit_len) TSRMLS_CC, MYSQLND_SEND_QUERY_EXPLICIT, NULL, NULL))) \
+		(ret) = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)((connection) TSRMLS_CC, MYSQLND_REAP_RESULT_EXPLICIT);
 
 
 /* {{{ mysqlnd_ms_client_n_php_error */
@@ -224,7 +224,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 		element->emulated_scheme = NULL;
 	}
 
-	if (element->pool_hash_key.len) {
+	if (element->pool_hash_key.a) {
 		smart_str_free(&(element->pool_hash_key));
 	}
 
@@ -1148,7 +1148,7 @@ MYSQLND_METHOD(mysqlnd_ms, connect)(MYSQLND_CONN_DATA * conn,
 		}
 
 		/* Initialize connection pool */
-		(*conn_data)->pool = mysqlnd_ms_pool_ctor((llist_dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent TSRMLS_CC);
+		(*conn_data)->pool = mysqlnd_ms_pool_ctor((dtor_func_t) mysqlnd_ms_conn_list_dtor, conn->persistent TSRMLS_CC);
 		if (!(*conn_data)->pool) {
 			MYSQLND_MS_WARN_OOM();
 			ret = FALSE;
@@ -1223,7 +1223,7 @@ mysqlnd_ms_do_send_query(MYSQLND_CONN_DATA * conn, const char * query, size_t qu
 		}
 	}
 
-	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, query, query_len TSRMLS_CC);
+	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, query, query_len TSRMLS_CC, MYSQLND_SEND_QUERY_EXPLICIT, NULL, NULL);
 	DBG_RETURN(ret);
 }
 /* }}} */
@@ -1328,7 +1328,7 @@ MYSQLND_METHOD(mysqlnd_ms, query)(MYSQLND_CONN_DATA * conn, const char * query, 
 #endif
     do {
 		if ((PASS == (ret = mysqlnd_ms_do_send_query(connection, query, query_len, FALSE TSRMLS_CC))) &&
-			(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC))))
+			(PASS == (ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(connection TSRMLS_CC, MYSQLND_REAP_RESULT_EXPLICIT))))
 		{
 			if (connection->last_query_type == QUERY_UPSERT && (MYSQLND_MS_UPSERT_STATUS(connection).affected_rows)) {
 				MYSQLND_INC_CONN_STATISTIC_W_VALUE(connection->stats, STAT_ROWS_AFFECTED_NORMAL, MYSQLND_MS_UPSERT_STATUS(connection).affected_rows);
@@ -2552,7 +2552,7 @@ MYSQLND_METHOD(mysqlnd_ms, tx_rollback)(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 
 /* {{{ mysqlnd_ms::statistic */
 static enum_func_status
-MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND_CONN_DATA * proxy_conn, char **message, unsigned int * message_len TSRMLS_DC)
+MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND_CONN_DATA * proxy_conn, zend_string **message, unsigned int * message_len TSRMLS_DC)
 {
 	enum_func_status ret = FAIL;
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
@@ -2567,7 +2567,7 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_statistics)(MYSQLND_CONN_DATA * proxy_conn
 			DBG_RETURN(ret);
 		}
 	}
-	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_statistics)(conn, message, message_len TSRMLS_CC);
+	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_statistics)(conn, message);
 	DBG_RETURN(ret);
 }
 /* }}} */

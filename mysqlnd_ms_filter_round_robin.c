@@ -109,9 +109,9 @@ mysqlnd_ms_rr_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, zend
 		ret->parent.filter_dtor = rr_filter_dtor;
 		ret->parent.filter_conn_pool_replaced = rr_filter_conn_pool_replaced;
 
-		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, mysqlnd_ms_filter_rr_context_dtor, persistent);
-		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, mysqlnd_ms_filter_rr_context_dtor, persistent);
-		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, mysqlnd_ms_filter_lb_weigth_dtor, persistent);
+		zend_hash_init(&ret->master_context, 4, NULL/*hash*/, (dtor_func_t)mysqlnd_ms_filter_rr_context_dtor, persistent);
+		zend_hash_init(&ret->slave_context, 4, NULL/*hash*/, (dtor_func_t)mysqlnd_ms_filter_rr_context_dtor, persistent);
+		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, (dtor_func_t)mysqlnd_ms_filter_lb_weigth_dtor, persistent);
 
 		/* roundrobin => array(weights  => array(name => w, ... )) */
 		if (section &&

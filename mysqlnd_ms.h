@@ -38,7 +38,7 @@
 #ifndef SMART_STR_PREALLOC
 #define SMART_STR_PREALLOC 256
 #endif
-#include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_smart_string.h"
 
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_statistics.h"

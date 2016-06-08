@@ -27,7 +27,7 @@
 #ifndef SMART_STR_PREALLOC
 #define SMART_STR_PREALLOC 256
 #endif
-#include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_smart_string.h"
 #include "Zend/zend_llist.h"
 #include "Zend/zend_hash.h"
 

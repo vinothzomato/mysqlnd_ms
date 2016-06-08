@@ -208,8 +208,8 @@ mysqlnd_ms_qos_server_has_gtid(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_DATA **
 		MS_TIME_SET(run_time);
 	}
 	do {
-		if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC)) &&
-			(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
+		if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, sql, sql_len TSRMLS_CC, MYSQLND_SEND_QUERY_EXPLICIT, NULL, NULL)) &&
+			(PASS ==  MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC, MYSQLND_REAP_RESULT_EXPLICIT)) &&
 #if PHP_VERSION_ID < 50600
 			(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))
 #else
@@ -285,7 +285,7 @@ mysqlnd_ms_qos_server_get_lag_stage1(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 #endif
 	(*conn_data)->skip_ms_calls = TRUE;
 
-	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, SHOW_SS_QUERY , sizeof(SHOW_SS_QUERY) - 1 TSRMLS_CC);
+	ret = MS_CALL_ORIGINAL_CONN_DATA_METHOD(send_query)(conn, SHOW_SS_QUERY , sizeof(SHOW_SS_QUERY) - 1 TSRMLS_CC, MYSQLND_SEND_QUERY_EXPLICIT, NULL, NULL);
 
 	(*conn_data)->skip_ms_calls = FALSE;
 
@@ -323,7 +323,7 @@ mysqlnd_ms_qos_server_get_lag_stage2(MYSQLND_CONN_DATA * conn, MYSQLND_MS_CONN_D
 #endif
 	(*conn_data)->skip_ms_calls = TRUE;
 
-	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC)) &&
+	if ((PASS == MS_CALL_ORIGINAL_CONN_DATA_METHOD(reap_query)(conn TSRMLS_CC, MYSQLND_REAP_RESULT_EXPLICIT)) &&
 #if PHP_VERSION_ID < 50600
 		(res = MS_CALL_ORIGINAL_CONN_DATA_METHOD(store_result)(conn TSRMLS_CC))
 #else

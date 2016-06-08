@@ -121,7 +121,7 @@ mysqlnd_ms_get_fingerprint(smart_str * context, zend_llist * list TSRMLS_DC)
 	DBG_ENTER("mysqlnd_ms_get_fingerprint");
 	zend_llist_apply_with_argument(list, mysqlnd_ms_get_element_ptr, context TSRMLS_CC);
 	smart_str_appendc(context, '\0');
-	DBG_INF_FMT("len=%d", context->len);
+	DBG_INF_FMT("len=%d", context->a);
 	DBG_VOID_RETURN;
 }
 /* }}} */
@@ -134,7 +134,7 @@ mysqlnd_ms_get_fingerprint_connection(smart_str * context, MYSQLND_MS_LIST_DATA 
 	DBG_ENTER("mysqlnd_ms_get_fingerprint_connection");
 	mysqlnd_ms_get_element_ptr((void *) d, (void *)context TSRMLS_CC);
 	smart_str_appendc(context, '\0');
-	DBG_INF_FMT("context=%s len=%d", context->c, context->len);
+	DBG_INF_FMT("context=%s len=%d", context->s, context->a);
 	DBG_VOID_RETURN;
 }
 /* }}} */

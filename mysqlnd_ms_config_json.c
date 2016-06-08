@@ -159,7 +159,8 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 				MYSQLND_MS_WARN_OOM();
 			}
 			break;
-		case IS_BOOL:
+		case IS_TRUE:
+		case IS_FALSE:
 			DBG_INF("boolean");
 		case IS_LONG:
 			new_entry = mnd_calloc(1, sizeof(struct st_mysqlnd_ms_config_json_entry));
@@ -187,11 +188,11 @@ mysqlnd_ms_add_zval_to_hash(zval * zv, HashTable * ht, const char * skey, size_t
 	if (new_entry) {
 		switch (key_type) {
 			case HASH_KEY_IS_STRING:
-				zend_hash_add(ht, skey, skey_len, &new_entry, sizeof(struct st_mysqlnd_ms_config_json_entry *), NULL);
+				zend_hash_add(ht, zend_string_init(skey, strlen(skey), 0), zv);
 				DBG_INF_FMT("New HASH_KEY_IS_STRING entry [%s]", skey);
 				break;
 			default:
-				zend_hash_index_update(ht, nkey, &new_entry, sizeof(struct st_mysqlnd_ms_config_json_entry *), NULL);
+				zend_hash_index_update(ht, nkey, zv);
 				DBG_INF_FMT("New HASH_KEY_IS_LONG entry [%u]", nkey);
 				break;
 		}
@@ -221,7 +222,7 @@ mysqlnd_ms_zval_data_to_hashtable(zval * json_data TSRMLS_DC)
 			DBG_RETURN(ret);
 		}
 		zend_hash_init(ret->value.ht, Z_TYPE_P(json_data) == IS_ARRAY? zend_hash_num_elements(Z_ARRVAL_P(json_data)) : 1,
-						NULL /* hash_func */, mysqlnd_ms_config_json_section_dtor /*dtor*/, 1 /* persistent */);
+						NULL /* hash_func */, (dtor_func_t) mysqlnd_ms_config_json_section_dtor /*dtor*/, 1 /* persistent */);
 
 		if (Z_TYPE_P(json_data) == IS_ARRAY) {
 			zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(json_data), &pos);
@@ -349,9 +350,9 @@ mysqlnd_ms_config_json_sub_section_exists(struct st_mysqlnd_ms_config_json_entry
 	if (main_section && main_section->type == IS_ARRAY && main_section->value.ht){
 		void ** ini_entry;
 		if (section && section_len) {
-			ret = (SUCCESS == zend_hash_find(main_section->value.ht, section, section_len + 1, (void **) &ini_entry))? TRUE:FALSE;
+			ret = (NULL != (ini_entry = zend_hash_find(main_section->value.ht, zend_string_init(section, strlen(section), 0)))? TRUE:FALSE;
 		} else {
-			ret = (SUCCESS == zend_hash_index_find(main_section->value.ht, nkey, (void **) &ini_entry))? TRUE:FALSE;
+			ret = (NULL != (ini_entry = zend_hash_index_find(main_section->value.ht, nkey))? TRUE:FALSE;
 		}
 	}
 
@@ -396,7 +397,7 @@ mysqlnd_ms_config_json_sub_section(struct st_mysqlnd_ms_config_json_entry * main
 
 	if (main_section && main_section->type == IS_ARRAY && main_section->value.ht) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section;
-		if (zend_hash_find(main_section->value.ht, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+		if ((ini_section = zend_hash_find(main_section->value.ht, zend_string_init(section, strlen(section), 0))) != NULL) {
 			if (ini_section && IS_ARRAY == (*ini_section)->type) {
 				*exists = 1;
 				ret = *ini_section;
@@ -610,11 +611,11 @@ mysqlnd_ms_config_json_string_from_section(struct st_mysqlnd_ms_config_json_entr
 	if (section && section->type == IS_ARRAY && section->value.ht) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section_entry;
 		if (name) {
-			if (zend_hash_find(section->value.ht, name, name_len + 1, (void **) &ini_section_entry) == SUCCESS) {
+			if ((ini_section_entry = zend_hash_find(section->value.ht, zend_string_init(name, strlen(name), 0))) != NULL) {
 				ret = mysqlnd_ms_config_json_string_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
 			}
 		} else {
-			if (zend_hash_index_find(section->value.ht, nkey, (void **) &ini_section_entry) == SUCCESS) {
+			if ((ini_section_entry = zend_hash_index_find(section->value.ht, nkey)) != NULL) {
 				ret = mysqlnd_ms_config_json_string_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
 			}
 		}
@@ -722,11 +723,11 @@ mysqlnd_ms_config_json_int_from_section(struct st_mysqlnd_ms_config_json_entry *
 	if (section && section->type == IS_ARRAY && section->value.ht) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section_entry;
 		if (name) {
-			if (zend_hash_find(section->value.ht, name, name_len + 1, (void **) &ini_section_entry) == SUCCESS) {
+			if ((ini_section_entry=zend_hash_find(section->value.ht, zend_string_init(name, strlen(name), 0))) != NULL) {
 				ret = mysqlnd_ms_config_json_int_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
 			}
 		} else {
-			if (zend_hash_index_find(section->value.ht, nkey, (void **) &ini_section_entry) == SUCCESS) {
+			if ((ini_section_entry = zend_hash_index_find(section->value.ht, nkey)) != NULL) {
 				ret = mysqlnd_ms_config_json_int_aux_inner(*ini_section_entry, exists, is_list_value TSRMLS_CC);
 			}
 		}
@@ -830,7 +831,7 @@ mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * 
 	}
 	if (cfg->main_section) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section;
-		if (zend_hash_find(cfg->main_section->value.ht, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+		if ((ini_section=zend_hash_find(cfg->main_section->value.ht, send_string(section))) != NULL) {
 			struct st_mysqlnd_ms_config_json_entry * ini_section_entry = NULL;
 
 			switch ((*ini_section)->type) {
@@ -841,7 +842,7 @@ mysqlnd_ms_config_json_int(struct st_mysqlnd_ms_json_config * cfg, const char * 
 					break;
 				case IS_ARRAY: {
 					struct st_mysqlnd_ms_config_json_entry ** ini_section_entry_pp;
-					if (zend_hash_find((*ini_section)->value.ht, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
+					if ((ini_section_entry_pp=zend_hash_find((*ini_section)->value.ht, name)) != NULL) {
 						ini_section_entry = *ini_section_entry_pp;
 					}
 					break;
@@ -965,7 +966,7 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 	}
 	if (cfg->main_section) {
 		struct st_mysqlnd_ms_config_json_entry ** ini_section;
-		if (zend_hash_find(cfg->main_section->value.ht, section, section_len + 1, (void **) &ini_section) == SUCCESS) {
+		if ((ini_section=zend_hash_find(cfg->main_section->value.ht, section)) != NULL) {
 			struct st_mysqlnd_ms_config_json_entry * ini_section_entry = NULL;
 
 			switch ((*ini_section)->type) {
@@ -976,7 +977,7 @@ mysqlnd_ms_config_json_double(struct st_mysqlnd_ms_json_config * cfg, const char
 					break;
 				case IS_ARRAY: {
 					struct st_mysqlnd_ms_config_json_entry ** ini_section_entry_pp;
-					if (zend_hash_find((*ini_section)->value.ht, name, name_len + 1, (void **) &ini_section_entry_pp) == SUCCESS) {
+					if ((ini_section_entry_pp=zend_hash_find((*ini_section)->value.ht, name)) != NULL) {
 						ini_section_entry = *ini_section_entry_pp;
 					}
 					break;

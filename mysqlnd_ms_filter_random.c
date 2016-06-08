@@ -91,7 +91,7 @@ mysqlnd_ms_random_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 		ret->parent.filter_dtor = random_filter_dtor;
 		ret->parent.filter_conn_pool_replaced  = random_filter_conn_pool_replaced;
 
-		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, mysqlnd_ms_filter_lb_weigth_dtor, persistent);
+		zend_hash_init(&ret->lb_weight, 4, NULL/*hash*/, (dtor_func_t) mysqlnd_ms_filter_lb_weigth_dtor, persistent);
 
 		/* section could be NULL! */
 		if (section) {

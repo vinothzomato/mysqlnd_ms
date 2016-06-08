@@ -1413,8 +1413,8 @@ MYSQLND_MS_POOL * mysqlnd_ms_pool_ctor(llist_dtor_func_t ms_list_data_dtor, zend
 		/* Our own dtor's will call the MS provided dtor on demand */
 		pool->data.ms_list_data_dtor = ms_list_data_dtor;
 
-		zend_hash_init(&(pool->data.master_list), 4, NULL, mysqlnd_ms_pool_all_list_dtor, persistent);
-		zend_hash_init(&(pool->data.slave_list), 4, NULL, mysqlnd_ms_pool_all_list_dtor, persistent);
+		zend_hash_init(&(pool->data.master_list), 4, NULL, (dtor_func_t) mysqlnd_ms_pool_all_list_dtor, persistent);
+		zend_hash_init(&(pool->data.slave_list), 4, NULL, (dtor_func_t) mysqlnd_ms_pool_all_list_dtor, persistent);
 
 		zend_llist_init(&(pool->data.active_master_list), sizeof(MYSQLND_MS_LIST_DATA *), NULL, persistent);
 		zend_llist_init(&(pool->data.active_slave_list), sizeof(MYSQLND_MS_LIST_DATA *), NULL, persistent);

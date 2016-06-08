@@ -26,7 +26,7 @@
 
 #include "ext/standard/php_rand.h"
 
-#include "ext/standard/php_smart_str.h"
+#include "ext/standard/php_smart_string.h"
 
 #include "ext/mysqlnd/mysqlnd.h"
 #include "ext/mysqlnd/mysqlnd_priv.h"

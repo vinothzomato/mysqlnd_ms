@@ -107,7 +107,7 @@ mysqlnd_ms_groups_filter_ctor(struct st_mysqlnd_ms_config_json_entry * section, 
 			ret->parent.filter_dtor = groups_filter_dtor;
 			ret->parent.filter_conn_pool_replaced = groups_filter_conn_pool_replaced;
 
-			zend_hash_init(&ret->groups, 4, NULL/*hash*/, mysqlnd_ms_filter_groups_ht_dtor, persistent);
+			zend_hash_init(&ret->groups, 4, NULL/*hash*/, (dtor_func_t) mysqlnd_ms_filter_groups_ht_dtor, persistent);
 
 			if ((TRUE == mysqlnd_ms_config_json_section_is_list(section TSRMLS_CC) &&
 				 TRUE == mysqlnd_ms_config_json_section_is_object_list(section TSRMLS_CC)))
